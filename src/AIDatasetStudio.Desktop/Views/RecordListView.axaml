@@ -43,14 +43,22 @@
               </StackPanel>
             </StackPanel>
           </StackPanel>
-          <Button Grid.Column="2" Classes="subtle" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding !IsEmptyDataset}"
-                  ToolTip.Tip="{l:Tr Action_ImportFromFile}"
-                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ImportCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <ic:SymbolIcon Symbol="ArrowImport" />
-              <TextBlock Text="{l:Tr Action_Import}" />
-            </StackPanel>
-          </Button>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding !IsEmptyDataset}">
+            <Button Classes="subtle" ToolTip.Tip="{l:Tr Action_ImportFromFile}"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ImportCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ArrowImport" />
+                <TextBlock Text="{l:Tr Action_Import}" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="ExportButton" Classes="subtle" ToolTip.Tip="{l:Tr Action_ExportToFile}"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ExportCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ArrowExport" />
+                <TextBlock Text="{l:Tr Action_Export}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
         </Grid>
 
         <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsEmptyDataset}">

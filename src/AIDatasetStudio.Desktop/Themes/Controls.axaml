@@ -256,6 +256,47 @@
     <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
   </Style>
 
+  <!-- Option cards: a single choice among a few described options (export format) -->
+  <Style Selector="ListBox.options">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.option">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:pointerover Border.option">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:selected Border.option">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:selected Border.option TextBlock.strong">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+
   <!-- ===== Record rows ===== -->
   <Style Selector="ListBox.records">
     <Setter Property="Background" Value="Transparent" />

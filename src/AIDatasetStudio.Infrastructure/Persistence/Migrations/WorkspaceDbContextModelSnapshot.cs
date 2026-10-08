@@ -207,6 +207,59 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.ToTable("Workspace", (string)null);
                 });
 
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportHistoryRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExportedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Files")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RecordCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TargetFormat")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId", "ExportedAt");
+
+                    b.ToTable("ExportHistories", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportProfileRow", b =>
+                {
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TargetFormat")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DatasetId");
+
+                    b.ToTable("ExportProfiles", (string)null);
+                });
+
             modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordAnalysisRow", b =>
                 {
                     b.Property<Guid>("RecordId")
@@ -305,6 +358,24 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
                         .WithMany()
                         .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportHistoryRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportProfileRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
+                        .WithOne()
+                        .HasForeignKey("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportProfileRow", "DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

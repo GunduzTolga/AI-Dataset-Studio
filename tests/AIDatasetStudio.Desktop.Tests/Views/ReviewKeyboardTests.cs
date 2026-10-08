@@ -152,6 +152,22 @@ public sealed class ReviewKeyboardTests
         window.Close();
     });
 
+    [Fact]
+    public Task Mod_E_opens_the_export_wizard() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        await host.CreateDatasetWithRecordsAsync(2);
+        var window = Open(host);
+        host.Dialogs.ExportWizardScript = _ => Task.CompletedTask;
+        Assert.Equal(new KeyGesture(Key.E, KeyModifiers.Control), window.FindControl<MenuItem>("ExportMenuItem")!.InputGesture);
+
+        Press(window, Key.E, RawInputModifiers.Control);
+        await DesktopTestHost.WaitUntilAsync(() => host.Dialogs.LastExportWizard is not null);
+
+        Assert.Equal("Dataset", host.Dialogs.LastExportWizard!.Target.Name);
+        window.Close();
+    });
+
     private static MainWindow Open(DesktopTestHost host)
     {
         var window = new MainWindow { DataContext = host.Main, Width = 1440, Height = 860 };

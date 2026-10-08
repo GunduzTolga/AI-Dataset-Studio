@@ -1,9 +1,11 @@
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -198,6 +200,24 @@ internal sealed class FakeDialogs : IDialogService
 
     public ImportWizardViewModel? LastImportWizard { get; private set; }
 
+    /// <summary>
+    /// What the user does in the export wizard; by default shows the preview and exports.
+    /// </summary>
+    public Func<ExportWizardViewModel, Task> ExportWizardScript { get; set; } = async wizard =>
+    {
+        await wizard.InitializeAsync();
+        await wizard.ExportCommand.ExecuteAsync(null);
+    };
+
+    public ExportWizardViewModel? LastExportWizard { get; private set; }
+
+    public async Task<ExportResult?> ShowExportWizardAsync(ExportWizardViewModel wizard)
+    {
+        LastExportWizard = wizard;
+        await ExportWizardScript(wizard);
+        return wizard.Result;
+    }
+
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         LastImportWizard = wizard;
@@ -225,4 +245,18 @@ internal sealed class FakeFileDialogs : IFileDialogService
         ImportExtensions = extensions;
         return Task.FromResult(ImportPath);
     }
+
+    public string? ExportPath { get; set; }
+
+    public string? ExportFolder { get; set; }
+
+    public string? SuggestedExportName { get; private set; }
+
+    public Task<string?> PickExportFileAsync(string suggestedName)
+    {
+        SuggestedExportName = suggestedName;
+        return Task.FromResult(ExportPath);
+    }
+
+    public Task<string?> PickExportFolderAsync() => Task.FromResult(ExportFolder);
 }

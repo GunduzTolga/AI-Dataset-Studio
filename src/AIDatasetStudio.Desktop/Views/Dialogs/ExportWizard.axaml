@@ -1,0 +1,286 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Export"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.ExportWizard"
+        x:DataType="vm:ExportWizardViewModel"
+        Title="{l:Tr Export_Title}"
+        Width="1040" Height="720"
+        MinWidth="860" MinHeight="580"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <Window.Styles>
+    <Style Selector="NumericUpDown">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="FormatString" Value="0" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="ArrowExport" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Export_Title}" />
+          <TextBlock Classes="small muted" Text="{Binding TargetText}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer: actions for the current step -->
+    <Border DockPanel.Dock="Bottom" Padding="24,14" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Panel>
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsSetup}">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding HasLastExport}">
+            <ic:SymbolIcon Symbol="History" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+            <TextBlock Classes="small muted" Text="{Binding LastExportText}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0">
+            <Button Classes="subtle" Content="{l:Tr Dialog_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"
+                    MinWidth="88" HorizontalContentAlignment="Center" />
+            <Button x:Name="ExportButton" Classes="accent" Command="{Binding ExportCommand}" IsDefault="True">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ArrowExport" />
+                <TextBlock Text="{Binding StartText}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsExporting}">
+          <StackPanel Spacing="6" VerticalAlignment="Center" Margin="0,0,24,0">
+            <TextBlock Classes="small strong" Text="{Binding ProgressText}" TextTrimming="CharacterEllipsis" />
+            <ProgressBar Minimum="0" Maximum="1" Value="{Binding ProgressValue}" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="subtle" Content="{l:Tr Dialog_Cancel}" Command="{Binding CancelCommand}"
+                  MinWidth="88" HorizontalContentAlignment="Center" />
+        </Grid>
+
+        <Button Classes="accent" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsDefault="True"
+                HorizontalAlignment="Right" MinWidth="88" HorizontalContentAlignment="Center" IsVisible="{Binding IsDone}" />
+      </Panel>
+    </Border>
+
+    <Panel>
+      <!-- Settings | preview -->
+      <Grid ColumnDefinitions="360,*" IsVisible="{Binding !IsDone}">
+        <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+          <ScrollViewer>
+            <StackPanel Margin="20,18,20,20" Spacing="20" IsEnabled="{Binding IsSetup}">
+              <!-- Format -->
+              <StackPanel Spacing="8">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionFormat}" />
+                <ListBox x:Name="FormatList" Classes="options" ItemsSource="{Binding Formats}" SelectedItem="{Binding SelectedFormat}" SelectionMode="AlwaysSelected">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FormatOption">
+                      <Border Classes="option">
+                        <StackPanel Spacing="2">
+                          <TextBlock Classes="strong" Text="{Binding Label}" />
+                          <TextBlock Classes="small muted mono" Text="{Binding Description}" TextWrapping="Wrap" />
+                          <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,3,0,0" IsVisible="{Binding HasWarning}">
+                            <ic:SymbolIcon Symbol="Warning" FontSize="13" Foreground="{DynamicResource WarningTextBrush}" />
+                            <TextBlock Classes="caption" Foreground="{DynamicResource WarningTextBrush}" Text="{Binding Warning}" TextWrapping="Wrap" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+
+              <!-- Which records -->
+              <StackPanel Spacing="10">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionRecords}" />
+                <StackPanel>
+                  <TextBlock Classes="label" Text="{l:Tr Export_Statuses}" />
+                  <WrapPanel>
+                    <CheckBox x:Name="ApprovedBox" IsChecked="{Binding IncludeApproved}" Content="{l:Tr RecordStatus_Approved}" Margin="0,0,14,0" />
+                    <CheckBox IsChecked="{Binding IncludeInReview}" Content="{l:Tr RecordStatus_InReview}" Margin="0,0,14,0" />
+                    <CheckBox x:Name="DraftBox" IsChecked="{Binding IncludeDraft}" Content="{l:Tr RecordStatus_Draft}" />
+                  </WrapPanel>
+                </StackPanel>
+                <CheckBox IsChecked="{Binding SkipOverContextLimit}" Content="{l:Tr Export_SkipOverLimitOption}" />
+                <CheckBox IsChecked="{Binding SkipDuplicates}" Content="{l:Tr Export_SkipDuplicatesOption}" />
+                <CheckBox IsChecked="{Binding MaskPersonalData}" Content="{l:Tr Export_MaskOption}" />
+              </StackPanel>
+
+              <!-- Split -->
+              <StackPanel Spacing="10">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionSplit}" />
+                <ComboBox x:Name="SplitBox" ItemsSource="{Binding SplitModes}" SelectedItem="{Binding SelectedSplitMode}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SplitModeOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <Grid ColumnDefinitions="*,8,*,8,*" IsVisible="{Binding IsCustomSplit}">
+                  <StackPanel>
+                    <TextBlock Classes="label" Text="{l:Tr Export_TrainShare}" />
+                    <NumericUpDown Value="{Binding TrainPercent}" Minimum="1" Maximum="100" Increment="5" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Classes="label" Text="{l:Tr Export_ValidationShare}" />
+                    <NumericUpDown Value="{Binding ValidationPercent}" Minimum="0" Maximum="99" Increment="5" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="4">
+                    <TextBlock Classes="label" Text="{l:Tr Export_TestShare}" />
+                    <NumericUpDown Value="{Binding TestPercent}" Minimum="0" Maximum="99" Increment="5" />
+                  </StackPanel>
+                </Grid>
+                <StackPanel IsVisible="{Binding IsSplit}">
+                  <TextBlock Classes="label" Text="{l:Tr Export_Seed}" />
+                  <NumericUpDown Value="{Binding Seed}" Minimum="0" Maximum="2147483647" Increment="1" />
+                  <TextBlock Classes="caption muted" Text="{l:Tr Export_SplitHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+
+        <!-- Preview of what will be written -->
+        <DockPanel Grid.Column="1">
+          <Grid DockPanel.Dock="Top" Margin="24,18,24,8" ColumnDefinitions="*,Auto">
+            <TextBlock Classes="overline" Text="{l:Tr Import_SectionPreview}" VerticalAlignment="Center" />
+            <ProgressBar Grid.Column="1" IsIndeterminate="True" Width="72" VerticalAlignment="Center" IsVisible="{Binding IsPreviewing}" />
+          </Grid>
+          <ScrollViewer>
+            <StackPanel Margin="24,0,24,20" Spacing="14">
+              <Border Classes="callout danger" IsVisible="{Binding HasError}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="ErrorCircle" />
+                  <TextBlock Text="{Binding ErrorMessage}" />
+                </DockPanel>
+              </Border>
+              <Border Classes="callout" IsVisible="{Binding HasNotice}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Info" />
+                  <TextBlock Text="{Binding Notice}" />
+                </DockPanel>
+              </Border>
+              <Border Classes="callout warning" IsVisible="{Binding HasProblem}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Warning" />
+                  <TextBlock Text="{Binding ProblemText}" />
+                </DockPanel>
+              </Border>
+
+              <!-- The chosen folder already has split files -->
+              <Border Classes="callout warning" IsVisible="{Binding IsConfirmingOverwrite}">
+                <StackPanel Spacing="8">
+                  <DockPanel>
+                    <ic:SymbolIcon Symbol="Warning" />
+                    <TextBlock Text="{Binding OverwriteText}" />
+                  </DockPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                    <Button Classes="subtle" Content="{l:Tr Export_ChooseOtherFolder}" Command="{Binding ExportCommand}" />
+                    <Button x:Name="OverwriteButton" Classes="accent" Content="{l:Tr Export_Overwrite}" Command="{Binding ConfirmOverwriteCommand}" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- Counts -->
+              <Border Classes="card" IsVisible="{Binding !HasProblem}">
+                <StackPanel Spacing="10">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="display numeric" Text="{Binding ExportedText}" />
+                    <TextBlock Classes="secondary" Text="{l:Tr Export_WillExport}" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+                  </StackPanel>
+                  <TextBlock Classes="small" Text="{Binding SplitEstimateText}" IsVisible="{Binding HasSplitEstimate}" />
+                  <ItemsControl Classes="lines" ItemsSource="{Binding SkipItems}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:SkipItem">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,6">
+                          <Panel Margin="0,0,8,0" VerticalAlignment="Center">
+                            <ic:SymbolIcon Symbol="SubtractCircle" FontSize="15" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding !IsInfo}" />
+                            <ic:SymbolIcon Symbol="Info" FontSize="15" Foreground="{DynamicResource AccentTextBrush}" IsVisible="{Binding IsInfo}" />
+                          </Panel>
+                          <TextBlock Grid.Column="1" Classes="small" Text="{Binding Text}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="2" Classes="small strong numeric" Text="{Binding CountText}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Border Classes="callout" IsVisible="{Binding ShowNoApprovedHint}">
+                    <DockPanel>
+                      <ic:SymbolIcon Symbol="Info" />
+                      <TextBlock Text="{l:Tr Export_NoApprovedHint}" />
+                    </DockPanel>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <!-- First lines, exactly as written -->
+              <StackPanel Spacing="8" IsVisible="{Binding !HasProblem}">
+                <TextBlock Classes="overline" Text="{l:Tr Export_FirstLines}" />
+                <ItemsControl ItemsSource="{Binding Samples}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="8" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Border Classes="card" Padding="12,10">
+                        <SelectableTextBlock Classes="small mono" Text="{Binding}" TextWrapping="Wrap" />
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Grid>
+
+      <!-- Result -->
+      <ScrollViewer IsVisible="{Binding IsDone}">
+        <StackPanel Margin="48,36,48,24" Spacing="10" MaxWidth="720" VerticalAlignment="Center">
+          <Border Width="56" Height="56" CornerRadius="28" HorizontalAlignment="Center" Background="{DynamicResource StatusApprovedBackgroundBrush}">
+            <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="30" Foreground="{DynamicResource StatusApprovedForegroundBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <TextBlock Classes="title" Text="{l:Tr Export_DoneTitle}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+          <TextBlock Classes="secondary" Text="{Binding ResultText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+
+          <Border Classes="card" Margin="0,14,0,0">
+            <ItemsControl Classes="lines" ItemsSource="{Binding WrittenFiles}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ExportedFileItem">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,7">
+                    <ic:SymbolIcon Symbol="DocumentText" FontSize="18" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Classes="strong" Text="{Binding Name}" />
+                      <SelectableTextBlock Classes="small muted" Text="{Binding Folder}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Classes="small numeric" Text="{Binding CountText}" VerticalAlignment="Center" Margin="12,0,0,0" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding HasSkips}">
+            <ItemsControl Classes="lines" ItemsSource="{Binding SkipItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SkipItem">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,6">
+                    <TextBlock Classes="small" Text="{Binding Text}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Column="1" Classes="small strong numeric" Text="{Binding CountText}" Margin="12,0,0,0" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</Window>

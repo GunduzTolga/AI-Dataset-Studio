@@ -16,8 +16,10 @@ public static class AppServices
     public static IServiceCollection AddDesktop(this IServiceCollection services, Func<Window?> mainWindow)
     {
         services.AddSingleton(Localizer.Instance);
-        services.AddSingleton<IFileDialogService>(provider => new FileDialogService(mainWindow, provider.GetRequiredService<Localizer>()));
-        services.AddSingleton<IDialogService>(provider => new DialogService(mainWindow, provider.GetRequiredService<Localizer>()));
+        // Dialogs and pickers belong to the window in front, so a wizard can open its own.
+        Func<Window?> owner = () => ActiveWindow.Find(mainWindow);
+        services.AddSingleton<IFileDialogService>(provider => new FileDialogService(owner, provider.GetRequiredService<Localizer>()));
+        services.AddSingleton<IDialogService>(provider => new DialogService(owner, provider.GetRequiredService<Localizer>()));
         services.AddSingleton<UndoHistory>();
         services.AddSingleton<RecordOperations>();
         services.AddSingleton<StatusBarViewModel>();

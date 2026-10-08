@@ -2,12 +2,14 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using AIDatasetStudio.Application.Analysis;
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -27,6 +29,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordCommandService _commands;
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
+    private readonly IExportService _export;
     private readonly RecordOperations _operations;
     private readonly IRecordAnalysisService _analysis;
     private readonly IUserSettings _settings;
@@ -39,6 +42,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordCommandService commands,
         IRecordQueryService queries,
         IImportService import,
+        IExportService export,
         RecordOperations operations,
         IRecordAnalysisService analysis,
         IUserSettings settings,
@@ -55,6 +59,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _commands = commands;
         _queries = queries;
         _import = import;
+        _export = export;
         _operations = operations;
         _analysis = analysis;
         _settings = settings;
@@ -102,7 +107,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
     public partial bool IsBusy { get; set; }
@@ -312,6 +317,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private bool CanExport() => !IsBusy && Explorer.SelectedDataset is not null;
+
+    /// <summary>
+    /// Writes the selected dataset to training files (SDD §10, §13).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanExport))]
+    private async Task ExportAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset || !await Details.SaveIfDirtyAsync())
+        {
+            return;
+        }
+
+        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type));
+        if (await _dialogs.ShowExportWizardAsync(wizard) is { } result)
+        {
+            Status.Set("Status_Exported", result.Exported, dataset.Name, string.Join(", ", result.Files.Select(f => Path.GetFileName(f.Path))));
         }
     }
 
@@ -528,6 +553,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
+            ExportCommand.NotifyCanExecuteChanged();
             Details.Dataset = Explorer.SelectedDataset;
             _ = Details.ShowAsync(null);
             _ = Records.ShowDatasetAsync(Explorer.SelectedDataset);

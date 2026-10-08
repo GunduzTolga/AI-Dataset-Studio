@@ -939,4 +939,193 @@
   <data name="Error_Storage" xml:space="preserve">
     <value>Çalışma alanı kaydedilemedi; dosya kullanımda, salt okunur ya da disk dolu olabilir. {0}</value>
   </data>
+  <data name="Menu_Export" xml:space="preserve">
+    <value>Dosyaya _Dışa Aktar…</value>
+  </data>
+  <data name="Action_Export" xml:space="preserve">
+    <value>Dışa aktar</value>
+  </data>
+  <data name="Action_ExportToFile" xml:space="preserve">
+    <value>Eğitim dosyalarına dışa aktar (Mod+E)</value>
+  </data>
+  <data name="Export_Title" xml:space="preserve">
+    <value>Veri Setini Dışa Aktar</value>
+  </data>
+  <data name="Export_Target" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Export_SectionFormat" xml:space="preserve">
+    <value>BİÇİM</value>
+  </data>
+  <data name="Export_SectionRecords" xml:space="preserve">
+    <value>KAYITLAR</value>
+  </data>
+  <data name="Export_SectionSplit" xml:space="preserve">
+    <value>BÖLME</value>
+  </data>
+  <data name="Export_Statuses" xml:space="preserve">
+    <value>Durumlar</value>
+  </data>
+  <data name="Export_SkipOverLimitOption" xml:space="preserve">
+    <value>Bağlam uzunluğunu aşan kayıtları dışarıda bırak</value>
+  </data>
+  <data name="Export_SkipDuplicatesOption" xml:space="preserve">
+    <value>Birebir kopyaları dışarıda bırak (ilki kalır)</value>
+  </data>
+  <data name="Export_MaskOption" xml:space="preserve">
+    <value>Kişisel verileri maskele (e-posta, telefon, kimlik, anahtar…)</value>
+  </data>
+  <data name="Export_SplitNone" xml:space="preserve">
+    <value>Tek dosya</value>
+  </data>
+  <data name="Export_SplitStandard" xml:space="preserve">
+    <value>Eğitim / doğrulama / test · 80 / 10 / 10</value>
+  </data>
+  <data name="Export_SplitTrainValidation" xml:space="preserve">
+    <value>Eğitim / doğrulama · 90 / 10</value>
+  </data>
+  <data name="Export_SplitCustom" xml:space="preserve">
+    <value>Özel oranlar</value>
+  </data>
+  <data name="Export_Seed" xml:space="preserve">
+    <value>Tohum (seed)</value>
+  </data>
+  <data name="Export_SplitHint" xml:space="preserve">
+    <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
+  </data>
+  <data name="SplitPart_Train" xml:space="preserve">
+    <value>eğitim</value>
+  </data>
+  <data name="SplitPart_Validation" xml:space="preserve">
+    <value>doğrulama</value>
+  </data>
+  <data name="SplitPart_Test" xml:space="preserve">
+    <value>test</value>
+  </data>
+  <data name="Export_PartEstimate" xml:space="preserve">
+    <value>{0} ≈ {1:N0}</value>
+  </data>
+  <data name="ExportFormat_OpenAi" xml:space="preserve">
+    <value>OpenAI JSONL</value>
+  </data>
+  <data name="ExportFormat_ShareGpt" xml:space="preserve">
+    <value>ShareGPT</value>
+  </data>
+  <data name="ExportFormat_Alpaca" xml:space="preserve">
+    <value>Alpaca</value>
+  </data>
+  <data name="ExportFormat_HuggingFaceDpo" xml:space="preserve">
+    <value>Hugging Face DPO</value>
+  </data>
+  <data name="ExportFormat_ChatMl" xml:space="preserve">
+    <value>ChatML metni</value>
+  </data>
+  <data name="ExportFormat_Llama3" xml:space="preserve">
+    <value>Llama 3 metni</value>
+  </data>
+  <data name="ExportFormat_OpenAi_Hint" xml:space="preserve">
+    <value>messages: system / user / assistant</value>
+  </data>
+  <data name="ExportFormat_OpenAiPreference_Hint" xml:space="preserve">
+    <value>input / preferred_output / non_preferred_output</value>
+  </data>
+  <data name="ExportFormat_ShareGpt_Hint" xml:space="preserve">
+    <value>conversations: human / gpt</value>
+  </data>
+  <data name="ExportFormat_Alpaca_Hint" xml:space="preserve">
+    <value>instruction / input / output</value>
+  </data>
+  <data name="ExportFormat_HuggingFaceDpo_Hint" xml:space="preserve">
+    <value>prompt / chosen / rejected</value>
+  </data>
+  <data name="ExportFormat_ChatMl_Hint" xml:space="preserve">
+    <value>text: &lt;|im_start|&gt;user … &lt;|im_end|&gt;</value>
+  </data>
+  <data name="ExportFormat_Llama3_Hint" xml:space="preserve">
+    <value>text: &lt;|start_header_id|&gt;user&lt;|end_header_id|&gt; …</value>
+  </data>
+  <data name="Export_AlpacaChatWarning" xml:space="preserve">
+    <value>Yalnızca tek soru ve tek cevaplı sohbetler sığar; daha uzunları dışarıda kalır.</value>
+  </data>
+  <data name="Export_WillExport" xml:space="preserve">
+    <value>kayıt dışa aktarılacak</value>
+  </data>
+  <data name="Export_FirstLines" xml:space="preserve">
+    <value>İLK SATIRLAR</value>
+  </data>
+  <data name="Export_SkipUnsupported" xml:space="preserve">
+    <value>Dışarıda: bu biçime sığmıyor</value>
+  </data>
+  <data name="Export_SkipOverLimit" xml:space="preserve">
+    <value>Dışarıda: bağlam uzunluğunu aşıyor</value>
+  </data>
+  <data name="Export_SkipDuplicates" xml:space="preserve">
+    <value>Dışarıda: önceki bir kaydın kopyası</value>
+  </data>
+  <data name="Export_NotAnalyzed" xml:space="preserve">
+    <value>Uzunluğu henüz bilinmiyor; dışa aktarırken kontrol edilir</value>
+  </data>
+  <data name="Export_Masked" xml:space="preserve">
+    <value>Kişisel verisi maskelenen kayıt</value>
+  </data>
+  <data name="Export_NoApprovedHint" xml:space="preserve">
+    <value>Henüz onaylanmış kayıt yok. Onları da dışa aktarmak için İncelemede veya Taslak'ı işaretleyin.</value>
+  </data>
+  <data name="Export_NoStatus" xml:space="preserve">
+    <value>En az bir durum seçin.</value>
+  </data>
+  <data name="Export_InvalidSplit" xml:space="preserve">
+    <value>Oranların toplamı 100 olmalı ve eğitim payı sıfırdan büyük olmalı.</value>
+  </data>
+  <data name="Export_Start" xml:space="preserve">
+    <value>{0:N0} kaydı dışa aktar</value>
+  </data>
+  <data name="Export_Progress" xml:space="preserve">
+    <value>Dışa aktarılıyor… {0:N0} / {1:N0}</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Dışa aktarma iptal edildi. Hiçbir dosya yazılmadı veya değişmedi.</value>
+  </data>
+  <data name="Export_OverwriteQuestion" xml:space="preserve">
+    <value>{1} klasöründe {0} zaten var. Üzerine yazılsın mı?</value>
+  </data>
+  <data name="Export_Overwrite" xml:space="preserve">
+    <value>Üzerine Yaz</value>
+  </data>
+  <data name="Export_ChooseOtherFolder" xml:space="preserve">
+    <value>Başka Klasör Seç</value>
+  </data>
+  <data name="Export_DoneTitle" xml:space="preserve">
+    <value>Dışa aktarma tamamlandı</value>
+  </data>
+  <data name="Export_DoneSummary" xml:space="preserve">
+    <value>'{1}' veri setinden {0:N0} kayıt yazıldı.</value>
+  </data>
+  <data name="Export_FileCount" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Export_LastExport" xml:space="preserve">
+    <value>Son dışa aktarım: {0} · {1} · {2:N0} kayıt</value>
+  </data>
+  <data name="Status_Exported" xml:space="preserve">
+    <value>'{1}' veri setinden {0:N0} kayıt dışa aktarıldı: {2}</value>
+  </data>
+  <data name="Dialog_ExportFileTitle" xml:space="preserve">
+    <value>Dosyaya Dışa Aktar</value>
+  </data>
+  <data name="Dialog_ExportFileType" xml:space="preserve">
+    <value>JSON Lines</value>
+  </data>
+  <data name="Dialog_ExportFolderTitle" xml:space="preserve">
+    <value>train / val / test İçin Klasör Seçin</value>
+  </data>
+  <data name="Export_TrainShare" xml:space="preserve">
+    <value>Eğitim %</value>
+  </data>
+  <data name="Export_ValidationShare" xml:space="preserve">
+    <value>Doğrulama %</value>
+  </data>
+  <data name="Export_TestShare" xml:space="preserve">
+    <value>Test %</value>
+  </data>
 </root>

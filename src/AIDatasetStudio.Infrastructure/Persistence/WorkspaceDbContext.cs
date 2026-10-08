@@ -24,6 +24,10 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
 
     internal DbSet<WorkspaceSetting> Settings => Set<WorkspaceSetting>();
 
+    internal DbSet<ExportProfileRow> ExportProfiles => Set<ExportProfileRow>();
+
+    internal DbSet<ExportHistoryRow> ExportHistories => Set<ExportHistoryRow>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(WorkspaceDbContext).Assembly);
 

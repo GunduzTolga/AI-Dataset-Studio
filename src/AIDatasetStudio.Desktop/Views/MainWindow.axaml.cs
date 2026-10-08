@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window
         var mod = Avalonia.Application.Current?.PlatformSettings?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
         NewWorkspaceMenuItem.HotKey = NewWorkspaceMenuItem.InputGesture = new KeyGesture(Key.N, mod);
         OpenWorkspaceMenuItem.HotKey = OpenWorkspaceMenuItem.InputGesture = new KeyGesture(Key.O, mod);
+        Add(ExportMenuItem, new KeyGesture(Key.E, mod), vm => vm.ExportCommand, inTextBox: true);
 
         Add(UndoMenuItem, new KeyGesture(Key.Z, mod), vm => vm.UndoCommand, inTextBox: false);
         Add(RedoMenuItem, new KeyGesture(Key.Z, mod | KeyModifiers.Shift), vm => vm.RedoCommand, inTextBox: false);
