@@ -37,7 +37,12 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
 
     public Guid ProjectId { get; }
 
-    public string ProjectName { get; }
+    /// <summary>
+    /// Follows renames of the project.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Subtitle))]
+    public partial string ProjectName { get; set; }
 
     public DatasetType Type { get; }
 

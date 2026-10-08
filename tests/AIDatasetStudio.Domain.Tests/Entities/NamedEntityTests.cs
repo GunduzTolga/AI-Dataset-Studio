@@ -39,6 +39,7 @@ public sealed class NamedEntityTests
     [InlineData("red")]
     [InlineData("#12345")]
     [InlineData("#GGGGGG")]
+    [InlineData("#AABBCC\n")]
     public void Tag_color_must_be_hex(string color)
     {
         Assert.Throws<DomainException>(() => Tag.Create("t", TestData.Now, color));
@@ -48,6 +49,26 @@ public sealed class NamedEntityTests
     public void Tag_color_is_normalized_to_uppercase()
     {
         Assert.Equal("#AABBCC", Tag.Create("t", TestData.Now, "#aabbcc").ColorHex);
+    }
+
+    [Theory]
+    [InlineData("Şifre", "ŞİFRE")]
+    [InlineData("şifre", "ŞIFRE")]
+    [InlineData("Destek", "destek")]
+    [InlineData("kategori:İK", "Kategori:ik")]
+    public void Tag_names_that_differ_only_in_case_share_a_key(string first, string second)
+    {
+        Assert.Equal(Tag.Create(first, TestData.Now).NameKey, Tag.Create(second, TestData.Now).NameKey);
+    }
+
+    [Fact]
+    public void Renaming_a_tag_updates_its_key()
+    {
+        var tag = Tag.Create("Şifre", TestData.Now);
+
+        tag.Rename(" Güvenlik ");
+
+        Assert.Equal(("Güvenlik", "güvenlik"), (tag.Name, tag.NameKey));
     }
 
     [Fact]

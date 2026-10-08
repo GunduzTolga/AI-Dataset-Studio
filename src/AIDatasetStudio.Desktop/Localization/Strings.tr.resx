@@ -936,4 +936,7 @@
   <data name="Details_QualityScore" xml:space="preserve">
     <value>Kalite skoru</value>
   </data>
+  <data name="Error_Storage" xml:space="preserve">
+    <value>Çalışma alanı kaydedilemedi; dosya kullanımda, salt okunur ya da disk dolu olabilir. {0}</value>
+  </data>
 </root>

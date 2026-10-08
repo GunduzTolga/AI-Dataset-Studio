@@ -986,4 +986,8 @@
   <data name="Details_QualityScore" xml:space="preserve">
     <value>Quality score</value>
   </data>
+  <data name="Error_Storage" xml:space="preserve">
+    <value>The workspace could not be saved; the file may be in use, read-only or out of space. {0}</value>
+    <comment>{0} = technical detail</comment>
+  </data>
 </root>

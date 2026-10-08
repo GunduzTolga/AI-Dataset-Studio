@@ -1,3 +1,4 @@
+using System.Data.Common;
 using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Domain.Common;
@@ -17,6 +18,9 @@ internal static class UiErrors
         NotFoundException => new Error("Error_ItemNotFound", []),
         DomainException ex => new Error("Error_InvalidInput", [ex.Message]),
         IOException or UnauthorizedAccessException => new Error("Error_FileAccess", [exception.Message]),
+        // Storage failures (file locked by another program, disk full, read-only file); EF Core wraps them.
+        DbException ex => new Error("Error_Storage", [ex.Message]),
+        { InnerException: DbException ex } => new Error("Error_Storage", [ex.Message]),
         _ => null,
     };
 

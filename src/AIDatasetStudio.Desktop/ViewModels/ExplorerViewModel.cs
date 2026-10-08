@@ -155,9 +155,13 @@ public sealed partial class ExplorerViewModel : ViewModelBase
 
         await RunAsync(async () =>
         {
-            if (node is ProjectNodeViewModel)
+            if (node is ProjectNodeViewModel project)
             {
                 await _catalog.RenameProjectAsync(node.Id, name);
+                foreach (var dataset in project.Datasets)
+                {
+                    dataset.ProjectName = name; // shown in the dataset's subtitle
+                }
             }
             else
             {
