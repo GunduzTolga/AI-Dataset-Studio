@@ -65,9 +65,25 @@ AIDatasetStudio/
 
 ---
 
+## 📥 Install
+
+Download the installer for your system from the repository's **Releases** page:
+
+| System | File |
+|---|---|
+| Windows 10/11 (x64) | `AIDatasetStudio-win-x64-Setup.exe` (or the portable `.zip`) |
+| macOS (Apple silicon / Intel) | `AIDatasetStudio-osx-arm64-Setup.pkg` / `AIDatasetStudio-osx-x64-Setup.pkg` |
+| Linux (x64) | `AIDatasetStudio-linux-x64.AppImage` (`chmod +x`, then run) |
+
+No .NET installation is needed. Until signing certificates are configured, Windows shows a SmartScreen warning (*More info › Run anyway*) and macOS asks you to open the app with right-click › *Open*. The app never goes online by itself: **Help › Check for Updates** looks for a new version, and **Check for Updates at Startup** (off by default) does so when the app starts. Errors are written to a local log (**Help › About › Open Log Folder**).
+
+Publishing a release and setting up signing: [docs/release.md](docs/release.md) (Turkish). Changes per version: [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## 🚀 Getting Started
 
-Prerequisite: [.NET 10 SDK](https://dotnet.microsoft.com/download) (pinned in `global.json`).
+Prerequisite: [.NET 10 SDK](https://dotnet.microsoft.com/download) (pinned in `global.json`). Set `AVALONIA_TELEMETRY_OPTOUT=1` to stop Avalonia's build task from sending usage statistics (CI does).
 
 ```bash
 dotnet build AIDatasetStudio.slnx                      # build everything
@@ -136,7 +152,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M3 | Record editor, review shortcuts, batch actions, undo/redo | ✅ |
 | M4 | Tokens, health rules, PII masking | ✅ |
 | M5 | Export + train/val/test split | ✅ |
-| M6 | Packaging, signing, first release | ⏳ |
+| M6 | Installers (Velopack), optional signing, updates, first release 1.0.0 | ✅ |
 | M7 | Design system, light/dark themes, welcome screen | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
@@ -147,6 +163,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 
 For detailed architectural specifications, data schemas, and the product roadmap, refer to [Plan.txt](Plan.txt).
 Review notes, open design decisions and the milestone plan are in [docs/plan-review.md](docs/plan-review.md).
+Packaging, signing and publishing are described in [docs/release.md](docs/release.md); open-source components in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ---
 
