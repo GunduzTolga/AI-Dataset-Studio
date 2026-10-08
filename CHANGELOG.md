@@ -18,6 +18,20 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   history remembers which version was written.
 - The latest version is shown under the dataset name.
 
+### Near-duplicate questions
+- A new quality rule flags records whose question nearly matches another one (85% or more of
+  their character 5-grams, e.g. "Kargo ücreti ne kadar?" / "Kargo ücreti ne kadardır?"). The
+  editor names the first similar record; the list can be filtered by it; the overview archives
+  all but the first of each group (undoable).
+- Records asking the same or nearly the same question now always go to the same split file, also
+  when exporting a version. Exports with a split may therefore place a few records differently
+  than before.
+- Every record is analysed once more after updating, to compute its question signature.
+
+### Preference pairs
+- **Compare the answers** in the editor shows the rejected and the chosen answer with the words
+  only one of them has marked in red and green, updated while you type.
+
 ### Tags
 - Colored tags, shared by all datasets of a workspace. **Add tag** in the editor finds a tag as
   you type or creates one; the × on a chip removes it. A prefix makes a group

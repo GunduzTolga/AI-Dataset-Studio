@@ -23,7 +23,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - ⚡ **High-Performance Virtualization:** Seamlessly navigate and search 100,000+ records with zero UI lag.
 - 📐 **Token & Context Engine:** Real-time token counting (Tiktoken / BPE) to prevent Out-Of-Memory (OOM) training failures.
 - 🛡️ **PII & Secret Scrubber:** Automatically detect and mask emails, phone numbers, API keys, and sensitive tokens before training.
-- 🧹 **Dataset Health Engine:** Detect exact and near-duplicates, empty prompts, syntax errors, and formatting anomalies.
+- 🧹 **Dataset Health Engine:** Detect exact copies and near-duplicate questions (MinHash), empty prompts, syntax errors, and formatting anomalies.
 - 🎲 **Train / Validation / Test Split:** Deterministic, seed-based dataset splitting with stratified sampling.
 - 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
 - 🏷️ **Tags:** Colored tags shared by all datasets, toggled with Mod+1…5, on one record or many; filter the list by tag and split exports within each tag or tag group (`kategori:hukuk`).
@@ -122,7 +122,7 @@ Tokens and quality: every record is analysed in the background with an offline t
 | Severity | Rules |
 |---|---|
 | Error (−40) | Empty field or turn, chosen = rejected answer, longer than the context length |
-| Warning (−10) | Throwaway answer, answer 50× longer than the question, answer repeats the question, unclosed code block, invalid JSON, personal data, exact duplicate, same question with a different answer |
+| Warning (−10) | Throwaway answer, answer 50× longer than the question, answer repeats the question, unclosed code block, invalid JSON, personal data, exact duplicate, same question with a different answer, near-duplicate question (85%+ of character 5-grams shared) |
 
 Exporting: **File › Export to File…** (Mod+E) or the Export button above the list opens a wizard with a live preview of how many records go out and the first lines exactly as written.
 
@@ -132,7 +132,9 @@ Exporting: **File › Export to File…** (Mod+E) or the Export button above the
 | Chat | OpenAI JSONL, ShareGPT, ChatML text, Llama 3 text, Alpaca (single-turn chats only) |
 | Preference | Hugging Face DPO, OpenAI JSONL (OpenAI's DPO shape) |
 
-By default only approved records are exported, without records longer than the context length or exact copies, and with personal data masked. A split writes `train.jsonl`, `val.jsonl` and `test.jsonl` (80/10/10, 90/10 or custom shares) from a hash of the seed and each record's question: the same seed always gives the same files, new records never move existing ones, and records asking the same question stay in one file. Files appear only when complete, and the settings (including the seed) are remembered per dataset.
+By default only approved records are exported, without records longer than the context length or exact copies, and with personal data masked. A split writes `train.jsonl`, `val.jsonl` and `test.jsonl` (80/10/10, 90/10 or custom shares) from a hash of the seed and each record's question: the same seed always gives the same files, new records never move existing ones, and records asking the same or nearly the same question stay in one file. Files appear only when complete, and the settings (including the seed) are remembered per dataset.
+
+Near-duplicate questions: after the background analysis, records whose questions share at least 85% of their character 5-grams ("Kargo ücreti ne kadar?" / "Kargo ücreti ne kadardır?") are flagged; the editor names the first similar record, and the overview's **Archive** keeps the first of each group. For preference pairs, the editor's **Compare the answers** button marks the words only the chosen or only the rejected answer has, live while you type.
 
 Tags: **Add tag** in the editor finds a tag as you type or creates it (a prefix such as `kategori:` puts it in a group); the × on a chip removes it. With several records selected, the panel adds a tag to all of them or removes one from all. **Tools › Tags…** renames, recolors and deletes tags and gives them Mod+1…5; **Record › Tag** lists them. The list shows each record's tags and filters by tag (or *Untagged*). In the export wizard, **Split within** gives every tag, or every tag of a group, exactly the chosen shares — unlike the plain split, new records can then move a few records at the cut.
 
@@ -161,7 +163,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M7 | Design system, light/dark themes, welcome screen | ✅ |
 | M8 | Dataset versions: freeze, compare with a word-level diff, go back, export a version | ✅ |
 | M9 | Tags: editor chips, Mod+1…5, batch tagging, tag filter, tag manager, stratified split | ✅ |
-| M10 | Near-duplicates (MinHash) and the preference (DPO) diff | Next |
+| M10 | Near-duplicate questions (MinHash + exact Jaccard), clean-up and one split part per group; chosen vs rejected diff for preference pairs | ✅ |
+| M11 | Excel / Markdown import, code and JSON highlighting in the editor | Next |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

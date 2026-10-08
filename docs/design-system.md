@@ -119,6 +119,7 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | Gizlilik / Maskelenmiş önizleme | `ShieldLock` · özel terimler: `ShieldKeyhole` |
 | Token sayısı / Kalite skoru | `TextWordCount` / `HeartPulse` |
 | Bağlamı aşan kayıt | `Flag` (hata rengi) |
+| Tercih yanıtlarını karşılaştır | `ColumnDoubleCompare` (açıkken `accent`) |
 | Etiket / Etiket ekle / Etiketler (yönetici, menü) | `Tag` / `TagAdd` / `TagMultiple` · etiket grubu: `Folder` · kayıtlarını göster: `Filter` · yeniden adlandır: `Rename` |
 | Sorun: hata / uyarı / yok | `ErrorCircle` / `Warning` / `CheckmarkCircle` (olumlu renk) |
 
@@ -155,6 +156,9 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 - `controls:StatusBadge`: duruma göre renklenen hap (`:draft`, `:review`, `:approved`, `:archived`).
 - `Border.tag`: nötr hap (veri seti tipi).
 - `Border.kind`: sürüm farkının türü. `.added` onaylı yeşili, `.removed` arşiv kırmızısı, `.modified` inceleme amberi kullanır; durum ve etiket değişikliği nötrdür. Alan kartlarında "Değişti / Eklendi / Kaldırıldı" rozeti `.modified` ile gösterilir.
+
+### Yanıt karşılaştırması (tercih kayıtları)
+Başlıkta maskelenmiş önizlemenin solunda `ColumnDoubleCompare` simge düğmesi (açıkken `accent`). Yanıt kartlarının altında bir `Border.card`: üst başlık "YANITLARI KARŞILAŞTIR", soluk özet ("13 kelime yalnızca tercih edilende · 5 yalnızca reddedilende"), sonra alt alta reddedilen (`ThumbDislike`, olumsuz renk) ve tercih edilen (`ThumbLike`, olumlu renk) yanıt; metinler `controls:DiffTextBlock` ile, yalnızca birinde olan kelimeler `DiffDeletedBrush` / `DiffInsertedBrush` zeminli. Sağ panel dar olduğu için yan yana değil alt alta.
 
 ### Etiketler
 - **Renk:** Etiket rengi kullanıcı verisidir, tema tokenı değildir; açık ve koyu zeminde okunan 8 renklik paletten seçilir (`Tag.Palette`: indigo, gök mavisi, zümrüt, amber, kırmızı, pembe, mor, arduvaz). Renk yalnızca 7–10 px'lik noktada kullanılır; metin her zaman tema rengindedir, böylece kontrast etiket renginden etkilenmez.
