@@ -25,6 +25,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🛡️ **PII & Secret Scrubber:** Automatically detect and mask emails, phone numbers, API keys, and sensitive tokens before training.
 - 🧹 **Dataset Health Engine:** Detect exact and near-duplicates, empty prompts, syntax errors, and formatting anomalies.
 - 🎲 **Train / Validation / Test Split:** Deterministic, seed-based dataset splitting with stratified sampling.
+- 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
 - 🔄 **Universal Import & Export:**
   - **Import:** CSV (with column mapping wizard), JSONL, and standard JSON.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
@@ -154,6 +155,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M5 | Export + train/val/test split | ✅ |
 | M6 | Installers (Velopack), optional signing, updates, first release 1.0.0 | ✅ |
 | M7 | Design system, light/dark themes, welcome screen | ✅ |
+| M8 | Dataset versions: freeze, compare with a word-level diff, go back, export a version | ✅ |
+| M9 | Tags, quick tagging and tag-based stratified split | Next |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

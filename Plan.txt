@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.8.0 (paketleme, güncelleme ve ilk sürüm 1.0.0; bkz. §25 ve ADR-029)
+- **Versiyon:** 1.9.0 (V2 başladı: veri seti sürümleri, karşılaştırma ve geri dönüş; bkz. §14 ve ADR-030)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -268,6 +268,8 @@ Görsel dil, renk/tipografi tokenları ve bileşenler `docs/design-system.md` do
 - **Toplu işlem:** Listede `Shift`/`Ctrl` ile çoklu seçim yapılınca sağ panel toplu panele dönüşür: seçili kayıtların durum dağılımı ve onayla / incelemeye al / arşivle / geri yükle / sil. Aksiyon, durumu izin veren her kayda uygulanır; diğerleri atlanır ve sayısı bildirilir.
 - **Henüz yok:** AvaloniaEdit renklendirmesi ve DPO diff görselleştiricisi (V2) sonraki aşamalardadır.
 
+**Uygulama ayrıntıları (M8):** Sürümler ağaçta ayrı düğümler olarak değil, veri setinin **Sürümler** penceresinde listelenir (Dosya › Sürümler…, liste başlığındaki *Sürümler* düğmesi; §14.3). Ağaçtaki ve liste başlığındaki alt satır en son sürümü gösterir ("Proje · 1.234 kayıt · v1.1.0").
+
 **Uygulama ayrıntıları (M4):**
 - **Veri seti özeti:** Hiçbir kayıt seçili değilken sağ panel veri setinin özetini gösterir: kalite skoru ve analiz ilerlemesi, tokenizer ve bağlam uzunluğu seçimi, toplam / en uzun / sınırı aşan token sayıları, uzunluk histogramı ve kurala göre sorun listesi ("Göster" listeyi o sorunla filtreler, "Arşivle" onay sonrası geri alınabilir şekilde arşivler; §8.3).
 - **Liste:** Satırlarda token sayısı (bağlamı aşanlarda kırmızı bayrak) ve renkli kalite skoru (90+ yeşil, 60–89 sarı, altı kırmızı); arama kutusunun yanında kalite filtresi (sorunlu, hatalı, bağlamı aşan, kopya, kişisel veri).
@@ -495,6 +497,8 @@ Veri iç sistemde evrensel JSON olarak saklanır; dışa aktarılırken hedef mo
 - **Önizleme:** Sayılar SQL ile anında hesaplanır (aynı kuralların SQL karşılıkları; testler eşitliği doğrular), ilk 3 satır dosyaya yazılacağı haliyle gösterilir; bölmede beklenen dosya boyutları "≈" ile verilir.
 - **Henüz yok:** Listede "export'a hazır" rozeti/filtresi (ADR-019) ve geçmiş ekranı.
 
+**Uygulama ayrıntıları (M8):** Sihirbazın başında **Kaynak** seçilir: güncel kayıtlar ya da dondurulmuş bir sürüm. Sürüm, dondurulduğu hâliyle yazılır (§14.3). Dışa aktarım geçmişi sürümün kimliğini ve numarasını da saklar; sürüm silinse de numara geçmişte kalır.
+
 ---
 
 ## 14. SÜRÜMLEME VE ANLIK GÖRÜNTÜ SİSTEMİ (VERSIONING & SNAPSHOTS)
@@ -508,6 +512,54 @@ Veri setleri `v1.0.0`, `v1.1.0`, `v2.0.0` formatında semantik olarak sürümlec
 - **Depolama Tasarrufu (Mapping Yaklaşımı):** Her versiyonda 100.000 satırın metni kopyalanmaz; `VersionRecordMappings` tablosu her kaydın o versiyondaki **revizyonunu**, durumunu ve etiketlerini tutar (yalnızca kimlikler).
 - **Diff & Compare:** İki versiyon kayıt bazında karşılaştırılır: yalnızca yenide olan (+) eklendi, yalnızca eskide olan (-) silindi, revizyonu farklı olan (~) güncellendi. Metin farkları renkli görsel arayüzle sunulur.
 - **Rollback:** Önceki bir versiyonun revizyonları güncel kayıtlara yeni bir değişiklik olarak uygulanır; geçmiş silinmez, geri alma da geri alınabilir.
+
+### 14.3. Uygulama ayrıntıları (M8)
+- **Kavramlar:** Veri setinin kendisi **çalışma kopyası**dır ve her zaman düzenlenebilir. **Sürüm**, çalışma kopyasının belli bir andaki dondurulmuş hâlidir. Her sürüm oluşturulduğu anda dondurulur ve bir daha değişmez; ayrı bir "dondur" adımı yoktur (ADR-030).
+- **Numara:** `MAJOR.MINOR.PATCH` (ön ek "v" yazılabilir, saklanmaz; baştaki sıfır ve ön sürüm eki kabul edilmez). Veri setinde tekildir. İlk sürüm 1.0.0 önerilir; sonra küçük artış önerilir, yama ve büyük artış tek tıkla seçilir. İsteğe bağlı bir not eklenir (en çok 2.000 karakter).
+- **Oluşturma:**
+  - Güncel analizi olmayan kayıtlar önce analiz edilir.
+  - Tek bir yazma işleminde (transaction) şunlar yapılır:
+    - henüz saklanmamış içerikler `RecordRevisions`'a yazılır (kayıt + içerik özeti başına bir kez);
+    - sürüm satırı eklenir;
+    - her kayıt için `VersionRecordMappings`'e revizyonu, durumu, sırası, etiketleri ve token sayısı yazılır.
+  - Arşivlenmiş kayıtlar da sürüme girer. Sürüm, veri setinin o anki tokenizer'ını ve bağlam uzunluğunu da saklar.
+  - Ölçüm: 10.000 kayıt ~0,2 sn.
+- **Karşılaştırma:**
+  - İki durum karşılaştırılır; her biri bir sürüm ya da çalışma kopyası olabilir. Eskiden yeniye doğru, kayıt kimliğine göre:
+    - yalnızca yenide olan kayıt **eklendi**,
+    - yalnızca eskide olan kayıt **silindi**,
+    - içerik özeti farklıysa **değişti**,
+    - içerik aynı, durum farklıysa **durum** değişikliğidir.
+  - Ölçüm: 10.000 kayıt ~0,08 sn.
+  - Seçilen kaydın alanları yan yana gösterilir:
+    - Talimat: talimat/girdi/çıktı; Tercih: istem/tercih edilen/reddedilen; Sohbet: sistem talimatı ve turlar.
+    - Kelime düzeyinde fark: Myers algoritması, ortak baş ve son kırpılır; 1.000 düzenlemeden sonra ortadaki kısım bütün olarak değişmiş sayılır.
+    - Silinen kısımlar kırmızı, eklenenler yeşil zeminle gösterilir. Aralarında yalnızca boşluk olan değişiklikler birleştirilir; satır sonları birleştirmeyi böler.
+    - Sohbet turları dizi olarak eşleştirilir; araya tur eklemek sonraki turları "değişti" göstermez.
+- **Sürümler penceresi:**
+  - **Sol:** çalışma kopyası ve sürümler, en yeni üstte.
+  - **Sağ:** seçilen öğe ve eylemleri.
+    - Çalışma kopyası için: *Sürüm Oluştur*.
+    - Sürüm için: *Dışa Aktar*, *Bu Sürüme Dön*, *Sil*.
+  - **Karşılaştırma seçimi:** varsayılan olarak bir önceki sürüm, ilk sürüm için çalışma kopyasıdır; başka bir sürüm de seçilebilir. Altında türe göre süzülebilen fark listesi ve alan alan görünüm vardır.
+- **Geri dönüş (rollback):**
+  - Çalışma kopyası sürümle aynı hâle gelir:
+    - içerik ve durumlar geri döner;
+    - silinmiş kayıtlar kimlikleri, sıraları, kökenleri ve hâlâ var olan etiketleriyle geri gelir;
+    - sürümde olmayan kayıtlar **arşivlenir, silinmez**.
+  - Onay penceresi önce ne olacağını sayılarla söyler.
+  - Değişiklik geri al geçmişine tek adım olarak girer ("v1.0.0 sürümüne dönüş"); Düzen › Geri Al / Yinele ile geri alınır.
+- **Silme:** Onay ister ve geri alınamaz. Başka hiçbir sürümün tutmadığı içerikler dosyadan da silinir. Kayıtların kendisi değişmez.
+- **Dışa aktarma:**
+  - Bir sürüm, dondurulduğu hâliyle dışa aktarılır:
+    - sürümdeki durumlar, içerikler ve token sayıları kullanılır;
+    - bağlam sınırı sürümün kendi bağlam uzunluğuna göre denetlenir.
+  - Aynı seçenekler ve seed ile, veri seti sonradan değişse de birebir aynı dosyalar üretilir (testle doğrulanır).
+  - Kişisel veri maskelemesi güncel özel terimleri kullanır.
+- **Henüz yok:**
+  - var olan kayıtların etiketlerinin geri dönüşte geri yüklenmesi (etiket arayüzüyle, M9);
+  - tek kaydın düzenleme geçmişi (bkz. ADR-030);
+  - ağaçta sürüm düğümleri.
 
 ---
 
@@ -569,16 +621,16 @@ Veritabanı tabloları ve temel ilişkileri (bir `.adstudio` dosyası = bir çal
 - `Projects`: Id, Name, Description, CreatedAt
 - `Datasets`: Id, ProjectId, Name, Description, Type, DefaultTokenizer, ContextLength (varsayılan 4096), CreatedAt
 - `DatasetRecords`: Id, DatasetId, Type, Status, Ordinal, DataPayload, ContentHash, Preview (liste önizlemesi, ≤200 karakter), HealthScore (önbellek), MetadataJson, SourceKind, SourceReference, CreatedBy, GeneratedByModel, CreatedAt, UpdatedAt
-- `RecordRevisions`: Id, RecordId, ContentHash, DataPayload, CreatedAt — değişmez içerik geçmişi
+- `RecordRevisions`: Id (INTEGER PRIMARY KEY), DatasetId, RecordId, ContentHash, DataPayload, Preview, SourceKind, SourceReference, CreatedBy, GeneratedByModel, MetadataJson, RecordCreatedAt, CreatedAt — sürümlerin tuttuğu değişmez içerikler; (RecordId, ContentHash) tekildir, kayda yabancı anahtarı yoktur (kayıt silinse de sürüm içeriğini korur), veri setiyle silinir. Yalnızca SQL ile kullanılır (EF modelinde değildir)
 - `RecordAnalyses`: RecordId (PK, kayıtla birlikte silinir), DatasetId, ContentHash, Tokenizer, RulesVersion, InputTokens, OutputTokens, TotalTokens, QuestionKey, Score, IssueFlags (kural bit maskesi), Issues (JSON), AnalyzedAt — token sayıları ve tek kayıt kurallarının sonucu (ADR-027; `RecordTokenStats` ve `QualityRuleResults` yerine)
 - `WorkspaceSettings`: Key, Value — çalışma alanına özgü ayarlar (ör. `pii.customTerms`)
-- `DatasetVersions`: Id, DatasetId, VersionTag, Description, IsFrozen, CreatedAt
-- `VersionRecordMappings`: VersionId, RecordId, RevisionId, Status, TagIds (JSON)
+- `DatasetVersions`: Id, DatasetId, Number ("1.2.0"; veri setinde tekil), Description, Tokenizer, ContextLength, RecordCount, ApprovedCount, CreatedAt — her sürüm donmuştur, `IsFrozen` yoktur (ADR-030)
+- `VersionRecordMappings`: VersionId, Ordinal, RevisionId, Status, Tokens (sürümün tokenizer'ıyla), TagIds (JSON) — birincil anahtar (VersionId, Ordinal, RevisionId), `WITHOUT ROWID`; kayıt kimliği revizyondan gelir. Yalnızca SQL ile kullanılır
 - `Tags`: Id, Name, NameKey (Türkçe I/İ/ı dahil katlanmış ad; benzersiz — SQLite NOCASE yalnızca ASCII katlar), ColorHex — kategoriler `kategori:hukuk` gibi önekli etiketlerdir (ayrı `Category` tablosu yok)
 - `RecordTags`: RecordId, TagId
 - `RecordRelations`: SourceRecordId, TargetRecordId, RelationType (Parent, DuplicateOf, NearDuplicateOf, Contradicts) — ilişki tipleri enum'dur (ayrı `Relation` tablosu yok)
 - `ExportProfiles`: DatasetId (PK; şimdilik veri seti başına son kullanılan profil), TargetFormat, Settings (JSON: durumlar, bağlamı aşanları/kopyaları atla, PII maskele, bölme oranları ve seed), UpdatedAt
-- `ExportHistories`: Id, DatasetId, TargetFormat, Settings (JSON), Files (JSON: bölme, yol, kayıt sayısı), RecordCount, ExportedAt — sürümleme (§14) gelince VersionId eklenecek
+- `ExportHistories`: Id, DatasetId, VersionId, VersionNumber, TargetFormat, Settings (JSON), Files (JSON: bölme, yol, kayıt sayısı), RecordCount, ExportedAt — VersionId yabancı anahtar değildir; sürüm silinse de numara geçmişte kalır
 - `EvaluationSets`: Id, ProjectId, DatasetId, Name, CreatedAt
 - `BenchmarkRuns`: Id, EvaluationSetId, ModelName, Score, ExecutedAt
 - `RecordSearchKeys`: RowId (INTEGER PRIMARY KEY), RecordId (benzersiz) — FTS satırlarını kayıtlara bağlar
@@ -627,6 +679,12 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 
 - **V1 (MVP):** Çekirdek stüdyo, `.adstudio` dosya sistemi, TR/EN arayüz, CSV/JSONL import, OpenAI/ShareGPT/Alpaca export, Train/Val split, yerel token motoru, temel health kontrolleri ve PII filtresi.
 - **V2:** DPO / Preference özel görsel editörü, Semantik benzerlik motoru (MinHash / Embedding), Revizyon tabanlı sürüm dondurma ve görsel diff, Excel (.xlsx) ve Markdown importu, Llama-3 ve HuggingFace DPO export şablonları.
+  - Llama-3 ve HuggingFace DPO şablonları M5'te yapıldı.
+  - Kalanlar dört aşamaya bölündü (`docs/plan-review.md` §5):
+    - **M8** sürümleme (§14.3) ✅
+    - **M9** etiketler (V1'den kalan etiket arayüzü, `Mod + 1..5`, etikete göre tabakalı bölme)
+    - **M10** yakın kopya (MinHash) ve DPO fark görünümü
+    - **M11** Excel / Markdown içe aktarma
 - **V3:** Yerel LLM entegrasyonu (Ollama / LM Studio), PDF ve Word belge chunking & soru-cevap çıkarımı, sentetik veri çoğaltma motoru, LLM-as-a-Judge kalite denetimi.
 - **V4:** Model Benchmark & Evaluation modülü, Axolotl / Unsloth / Llama-Factory doğrudan eğitim konfigürasyon exportu, çoklu proje birleştirme sihirbazı.
 
@@ -695,6 +753,7 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-027: Analiz Sonuçlarının Saklanması:** Token sayıları ve tek kayıt kurallarının sonuçları kayıt başına tek satırda (`RecordAnalyses`) tutulur; satır içerik özeti, tokenizer ve kural sürümüyle birlikte saklanır, bunlardan biri değişince "bayat" sayılır ve arka plan analizi yeniden hesaplar (açık bir geçersizleştirme adımı gerekmez). Kayıtlar arası kurallar (kopya, çelişen yanıt) ve veri seti ayarına bağlı kural (bağlamı aşma) saklanmaz, SQL'de sorgu anında hesaplanır; böylece bir kaydın değişmesi başka kayıtların satırını bayatlatmaz ve bağlam uzunluğu değişikliği yeniden analiz gerektirmez. Liste, filtre ve özet bu tabloyu `LEFT JOIN` ile okur; analiz edilmemiş kayıt "—" görünür. Arşivlenmiş kayıtlar özete girmez ve kayıtlar arası kurallarda karşılaştırılmaz. Kişisel veri için özel terimler çalışma alanı dosyasında (`WorkspaceSettings`) saklanır, çünkü şirket ve proje adları paylaşılan dosyayla birlikte gitmelidir.
 - **ADR-028: Dışa Aktarma Hattı ve Soru Tabanlı Bölme:** Dışa aktarma, saf bir dönüştürücüden (`ExportRenderer`, biçim başına golden testli) ve kayıtları listedeki sırayla tek bir okuma anlık görüntüsünden akıtan bir servisten oluşur; dosyalar geçici adla yazılıp tamamlanınca taşınır. Bölme anahtarı, ADR-018'deki "kopya grubunun temsilci kimliği" yerine normalleştirilmiş soru tarafıdır: aynı soruyu soran her kayıt (birebir kopya, farklı yanıt, aynı istemli tercih çifti) aynı dosyaya düşer ve temsilci kaydın silinmesi grubu taşımaz; kayıt eklemek/silmek diğer kayıtları hiç etkilemez. Bedeli, sorusu düzenlenen kaydın dosyasının değişebilmesidir. Bağlam sınırı kontrolü listedeki kırmızı bayrakla aynı içerik tokenını kullanır; şablon yükü sayılmaz.
 - **ADR-029: Paketleme ve Güncelleme Velopack ile:** Dağıtım, Velopack (MIT) ile yapılır: tek araç Windows kurulumu (Setup.exe + taşınabilir zip), macOS .pkg/.app ve Linux AppImage üretir, imzalama ve notarization'ı yönetir ve fark (delta) güncellemeleri sağlar. Her platform/mimari ayrı bir kanaldır (`win-x64`, `osx-arm64`, `osx-x64`, `linux-x64`); güncellemeler sürümün GitHub Releases'ından okunur. Sıfır telemetri ilkesi gereği uygulama kendiliğinden ağa çıkmaz: güncelleme yalnızca kullanıcı denetlediğinde ya da açılışta denetimi açtığında aranır, indirme ve yeniden başlatma onay ister. Uygulama self-contained ve ReadyToRun yayınlanır, trimming yapılmaz (EF Core ve Avalonia yansıması). İmzalama sertifikaları repo sırlarıyla verilir; yoksa paketler imzasız üretilir.
+- **ADR-030: Sürümler Dondurulmuş Anlık Görüntülerdir (ADR-017'nin uygulanışı):** Veri seti (çalışma kopyası) her zaman düzenlenebilir. Sürüm oluşturulduğu anda dondurulur; plandaki ayrı "Frozen" durumu ve "dondurulmuş sürümün kayıtları düzenlenemez" kuralı yerine, eğitimde kullanılan veri sürümün kendisinde değişmeden kalır. Revizyonlar plandaki gibi her düzenlemede değil, yalnızca bir sürüm bir içeriği tuttuğunda yazılır (kayıt ve içerik özeti başına bir kez). Bunun iki nedeni var: (1) Maskelenen kişisel veri ya da silinen kayıtlar, kullanıcının görmediği bir geçmişte dosyada kalmamalıdır; içerik yalnızca kullanıcının bilerek oluşturduğu bir sürümde tutulur ve sürüm silinince dosyadan da silinir. (2) Dosya boyutu düzenleme sayısıyla değil sürüm sayısıyla büyür. Oturum içi geri alma (ADR-026) düzenleme hatalarını karşılar. Revizyonların kayda yabancı anahtarı yoktur; böylece silinen kaydın içeriği ve kökeni sürümde kalır ve geri dönüşte kayıt geri gelir. Sürüm eşlemeleri yalnızca kimlik, durum, sıra, token sayısı ve etiket tutar (`WITHOUT ROWID`). Sürüm, tokenizer'ını ve bağlam uzunluğunu saklar; dışa aktarımı veri setinin sonraki ayarlarından etkilenmez. Geri dönüş, sürümde olmayan kayıtları silmez, arşivler.
 
 ---
 

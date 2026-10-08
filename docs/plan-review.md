@@ -136,5 +136,11 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 | **M5** | Dışa aktarma sihirbazı: OpenAI JSONL (+ OpenAI DPO), ShareGPT, Alpaca, Hugging Face DPO, ChatML ve Llama 3 metni; durum, bağlam sınırı, kopya ve PII maskeleme seçenekleri, canlı önizleme; soru tabanlı hash bölmesi (80/10/10, 90/10, özel, seed), güvenli yazım, profil ve geçmiş (ADR-028) | ✅ PR #3 |
 | **M6** | Velopack ile Windows/macOS/Linux kurulumları ve taşınabilir paketler, isteğe bağlı imzalama + notarization (sırlarla), etiketle yayınlanan GitHub sürümü, isteğe bağlı güncelleme denetimi (varsayılan kapalı), Hakkında penceresi, yerel hata günlüğü, ikon seti, CHANGELOG ve üçüncü taraf bildirimleri; sürüm 1.0.0 (ADR-029, `docs/release.md`) | ✅ PR #4 · yayın `v1.0.0` etiketiyle |
 | **M7** | Görsel tasarım sistemi: renk tokenları (açık/koyu), tipografi, ikonlar, bileşenler, karşılama ekranı, boş durumlar, tema tercihi | ✅ PR #1 (öne alındı) |
+| **M8** (V2) | Sürümleme: dondurulmuş sürümler (semver, not, tokenizer ve bağlam uzunluğuyla), içerik başına bir kez saklanan revizyonlar, iki durumun karşılaştırılması ve kelime düzeyinde renkli fark, sürüme geri dönüş (geri alınabilir; yeni kayıtlar arşivlenir), sürüm silme ve sürümü dondurulduğu hâliyle dışa aktarma (ADR-030, Plan §14.3) | ✅ PR #5 |
+| **M9** (V2) | Etiketler: etiket oluşturma, renk ve yönetim, `Mod+1..5` hızlı etiketleme, listede etiket sütunu ve filtresi, toplu etiketleme, etikete göre tabakalı bölme | Sırada |
+| **M10** (V2) | Yakın kopya (MinHash / Jaccard) kuralı, temizleme ve aynı bölmeye düşürme; tercih (DPO) editöründe tercih edilen ↔ reddedilen farkı | Planlandı |
+| **M11** (V2) | Excel (.xlsx, çoklu sayfa) ve Markdown / düz metin içe aktarma; editörde kod ve JSON renklendirmesi | Planlandı |
+
+> Not: V2 (Plan §21) dört aşamaya bölündü; Llama 3 ve Hugging Face DPO şablonları M5'te yapıldığı için V2'de yer almıyor. Sıralama kullanıcıyla belirlendi: önce sürümleme, çünkü 1.0.0'dan sonra yapılan düzenlemelerin eski hâli ancak bir sürümde tutulabiliyor.
 
 > Not: Tasarım, kullanıcının isteğiyle sona bırakılmak yerine M1'in hemen ardından yapıldı. Kurallar `docs/design-system.md` dosyasında; M2–M6'daki yeni ekranlar bu sisteme göre yapılacak.

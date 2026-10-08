@@ -3,6 +3,21 @@
 All notable changes to AI Dataset Studio. Versions follow [Semantic Versioning](https://semver.org);
 from 1.0.0 on, every version opens `.adstudio` files written by earlier versions.
 
+## [Unreleased]
+
+### Dataset versions
+- Freeze a dataset as a numbered version (v1.0.0, v1.1.0, …) with a note. A version keeps every
+  record's content, status, order, tags and token count, and the tokenizer and context length.
+  Contents are stored once however many versions keep them.
+- File › Versions… (or the *Versions* button above the list) compares any two versions, or a
+  version with the current records: added, removed, changed and status changes, and for a
+  record its fields side by side with the changed words in colour.
+- Go back to a version: contents and statuses return, deleted records come back and records
+  added since are archived, never deleted. Edit › Undo takes it back.
+- Export a version exactly as it was frozen, even after the dataset has changed; the export
+  history remembers which version was written.
+- The latest version is shown under the dataset name.
+
 ## [1.0.0] - 2026-10-08
 
 The first release: the complete MVP of the design document (SDD §20), offline on Windows, macOS
