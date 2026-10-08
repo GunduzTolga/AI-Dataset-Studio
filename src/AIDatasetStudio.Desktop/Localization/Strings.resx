@@ -1188,4 +1188,75 @@
   <data name="Export_TestShare" xml:space="preserve">
     <value>Test %</value>
   </data>
+  <data name="Menu_Help" xml:space="preserve">
+    <value>_Help</value>
+  </data>
+  <data name="Menu_CheckForUpdates" xml:space="preserve">
+    <value>_Check for Updates…</value>
+  </data>
+  <data name="Menu_CheckForUpdatesAtStartup" xml:space="preserve">
+    <value>Check for Updates at _Startup</value>
+  </data>
+  <data name="Menu_About" xml:space="preserve">
+    <value>_About AI Dataset Studio</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>About AI Dataset Studio</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="About_Tagline" xml:space="preserve">
+    <value>An offline-first studio for curating, cleaning, checking and exporting LLM training datasets.</value>
+  </data>
+  <data name="About_Privacy" xml:space="preserve">
+    <value>Your data never leaves this computer. The app sends no telemetry and only connects to the internet when you check for updates.</value>
+  </data>
+  <data name="About_DataFolder" xml:space="preserve">
+    <value>Settings and error logs</value>
+  </data>
+  <data name="About_OpenLogs" xml:space="preserve">
+    <value>Open Log Folder</value>
+  </data>
+  <data name="About_Notices" xml:space="preserve">
+    <value>Third-Party Notices</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>© AI Dataset Studio. All rights reserved.</value>
+  </data>
+  <data name="Status_CheckingForUpdates" xml:space="preserve">
+    <value>Checking for updates…</value>
+  </data>
+  <data name="Status_UpToDate" xml:space="preserve">
+    <value>AI Dataset Studio {0} is the latest version.</value>
+  </data>
+  <data name="Status_UpdateAvailable" xml:space="preserve">
+    <value>Version {0} is available. Help › Check for Updates installs it.</value>
+  </data>
+  <data name="Status_UpdatesNotInstalled" xml:space="preserve">
+    <value>Updates are installed by the installed app; this copy ({0}) was started from a build.</value>
+  </data>
+  <data name="Status_DownloadingUpdate" xml:space="preserve">
+    <value>Downloading version {0}… {1}%</value>
+  </data>
+  <data name="Status_UpdateFailed" xml:space="preserve">
+    <value>Could not check for updates: {0}</value>
+    <comment>{0} = technical detail</comment>
+  </data>
+  <data name="Dialog_UpdateTitle" xml:space="preserve">
+    <value>Update Available</value>
+  </data>
+  <data name="Dialog_UpdateMessage" xml:space="preserve">
+    <value>Version {0} is available (you have {1}). Download it and restart? Your work is saved first.</value>
+  </data>
+  <data name="Dialog_UpdateConfirm" xml:space="preserve">
+    <value>Update and Restart</value>
+  </data>
+  <data name="Error_Unexpected" xml:space="preserve">
+    <value>An unexpected error occurred. Details were written to {0}</value>
+    <comment>{0} = log file</comment>
+  </data>
+  <data name="Error_UnexpectedNoLog" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
 </root>

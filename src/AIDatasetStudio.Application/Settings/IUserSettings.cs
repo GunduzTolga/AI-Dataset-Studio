@@ -24,9 +24,17 @@ public interface IUserSettings
     /// </summary>
     IReadOnlyList<string> RecentWorkspaces { get; }
 
+    /// <summary>
+    /// Look for a new version at startup. Off by default: the app makes no network request
+    /// unless the user turns this on or checks by hand.
+    /// </summary>
+    bool CheckForUpdates { get; }
+
     void SetUiLanguage(string? cultureName);
 
     void SetUiTheme(string? theme);
+
+    void SetCheckForUpdates(bool enabled);
 
     void AddRecentWorkspace(string filePath);
 

@@ -5,6 +5,7 @@ using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Domain.Enums;
@@ -34,6 +35,8 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             .AddDesktop(() => null)
             .AddSingleton<IDialogService>(Dialogs)
             .AddSingleton<IFileDialogService>(Files)
+            .AddSingleton<IUpdateService>(Updates)
+            .AddSingleton<IShellService>(Shell)
             .BuildServiceProvider();
     }
 
@@ -42,6 +45,10 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeDialogs Dialogs { get; } = new();
 
     public FakeFileDialogs Files { get; } = new();
+
+    public FakeUpdates Updates { get; } = new();
+
+    public FakeShell Shell { get; } = new();
 
     public MainWindowViewModel Main => Get<MainWindowViewModel>();
 
@@ -218,6 +225,14 @@ internal sealed class FakeDialogs : IDialogService
         return wizard.Result;
     }
 
+    public AboutViewModel? LastAbout { get; private set; }
+
+    public Task ShowAboutAsync(AboutViewModel about)
+    {
+        LastAbout = about;
+        return Task.CompletedTask;
+    }
+
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         LastImportWizard = wizard;
@@ -259,4 +274,54 @@ internal sealed class FakeFileDialogs : IFileDialogService
     }
 
     public Task<string?> PickExportFolderAsync() => Task.FromResult(ExportFolder);
+}
+
+internal sealed class FakeUpdates : IUpdateService
+{
+    public bool IsSupported { get; set; } = true;
+
+    /// <summary>
+    /// What the next check finds; <c>null</c> for "up to date".
+    /// </summary>
+    public AvailableUpdate? Next { get; set; }
+
+    public Exception? Failure { get; set; }
+
+    public int Checks { get; private set; }
+
+    public AvailableUpdate? Downloaded { get; private set; }
+
+    public AvailableUpdate? Applied { get; private set; }
+
+    public Task<AvailableUpdate?> CheckAsync(CancellationToken cancellationToken = default)
+    {
+        Checks++;
+        return Failure is { } failure ? Task.FromException<AvailableUpdate?>(failure) : Task.FromResult(Next);
+    }
+
+    public Task DownloadAsync(AvailableUpdate update, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
+    {
+        progress?.Report(100);
+        Downloaded = update;
+        return Task.CompletedTask;
+    }
+
+    public void RestartToApply(AvailableUpdate update) => Applied = update;
+}
+
+internal sealed class FakeShell : IShellService
+{
+    public List<string> Opened { get; } = [];
+
+    public Task OpenFolderAsync(string path)
+    {
+        Opened.Add(path);
+        return Task.CompletedTask;
+    }
+
+    public Task OpenFileAsync(string path)
+    {
+        Opened.Add(path);
+        return Task.CompletedTask;
+    }
 }

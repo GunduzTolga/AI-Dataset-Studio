@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Dialogs"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.AboutDialog"
+        x:DataType="vm:AboutViewModel"
+        Title="{l:Tr About_Title}"
+        SizeToContent="Height"
+        Width="460"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <StackPanel Margin="24,24,24,20" Spacing="16">
+    <StackPanel Orientation="Horizontal" Spacing="14">
+      <Border Classes="brand" Width="56" Height="56" CornerRadius="16">
+        <ic:SymbolIcon Symbol="Sparkle" IconVariant="Filled" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Classes="title" Text="AI Dataset Studio" />
+        <TextBlock x:Name="VersionText" Classes="secondary" Text="{Binding VersionText}" />
+      </StackPanel>
+    </StackPanel>
+
+    <TextBlock Classes="content" Text="{l:Tr About_Tagline}" TextWrapping="Wrap" />
+
+    <Border Classes="callout">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="ShieldLock" />
+        <TextBlock Text="{l:Tr About_Privacy}" />
+      </DockPanel>
+    </Border>
+
+    <StackPanel Spacing="4">
+      <TextBlock Classes="label" Text="{l:Tr About_DataFolder}" />
+      <SelectableTextBlock Classes="small mono" Text="{Binding DataFolder}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <WrapPanel>
+      <Button Classes="subtle" Command="{Binding OpenLogFolderCommand}" Margin="0,0,8,0">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <ic:SymbolIcon Symbol="FolderOpen" />
+          <TextBlock Text="{l:Tr About_OpenLogs}" />
+        </StackPanel>
+      </Button>
+      <Button Classes="subtle" Command="{Binding OpenNoticesCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <ic:SymbolIcon Symbol="DocumentText" />
+          <TextBlock Text="{l:Tr About_Notices}" />
+        </StackPanel>
+      </Button>
+    </WrapPanel>
+
+    <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+      <TextBlock Classes="caption muted" Text="{l:Tr About_Copyright}" VerticalAlignment="Center" TextWrapping="Wrap" />
+      <Button Grid.Column="1" Classes="accent" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsDefault="True" IsCancel="True"
+              MinWidth="88" HorizontalContentAlignment="Center" Margin="12,0,0,0" />
+    </Grid>
+  </StackPanel>
+</Window>

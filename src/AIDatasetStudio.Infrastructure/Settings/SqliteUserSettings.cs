@@ -15,6 +15,7 @@ internal sealed class SqliteUserSettings : IUserSettings
 
     private const string UiLanguageKey = "ui.language";
     private const string UiThemeKey = "ui.theme";
+    private const string CheckForUpdatesKey = "updates.check";
 
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -24,6 +25,7 @@ internal sealed class SqliteUserSettings : IUserSettings
     private string? _connectionString;
     private string? _uiLanguage;
     private string? _uiTheme;
+    private bool _checkForUpdates;
     private readonly List<string> _recent = [];
 
     public SqliteUserSettings(string directory, TimeProvider timeProvider)
@@ -82,6 +84,26 @@ internal sealed class SqliteUserSettings : IUserSettings
             {
                 return [.. _recent];
             }
+        }
+    }
+
+    public bool CheckForUpdates
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _checkForUpdates;
+            }
+        }
+    }
+
+    public void SetCheckForUpdates(bool enabled)
+    {
+        lock (_lock)
+        {
+            _checkForUpdates = enabled;
+            SaveValue(CheckForUpdatesKey, enabled ? "true" : null);
         }
     }
 
@@ -150,6 +172,7 @@ internal sealed class SqliteUserSettings : IUserSettings
 
         _uiLanguage = ReadValue(connection, UiLanguageKey);
         _uiTheme = ReadValue(connection, UiThemeKey);
+        _checkForUpdates = ReadValue(connection, CheckForUpdatesKey) == "true";
 
         using (var read = connection.CreateCommand())
         {

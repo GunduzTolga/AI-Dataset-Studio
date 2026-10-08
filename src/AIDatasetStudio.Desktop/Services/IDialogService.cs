@@ -1,5 +1,6 @@
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
+using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Domain.Enums;
@@ -46,4 +47,9 @@ public interface IDialogService
     /// </summary>
     /// <returns>The finished export, or <c>null</c> if nothing was written.</returns>
     Task<ExportResult?> ShowExportWizardAsync(ExportWizardViewModel wizard);
+
+    /// <summary>
+    /// Shows Help › About until it is closed.
+    /// </summary>
+    Task ShowAboutAsync(AboutViewModel about);
 }

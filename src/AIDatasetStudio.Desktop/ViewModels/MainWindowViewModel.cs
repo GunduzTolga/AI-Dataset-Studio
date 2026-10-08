@@ -30,6 +30,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
     private readonly IExportService _export;
+    private readonly IUpdateService _updates;
+    private readonly IShellService _shell;
     private readonly RecordOperations _operations;
     private readonly IRecordAnalysisService _analysis;
     private readonly IUserSettings _settings;
@@ -43,6 +45,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordQueryService queries,
         IImportService import,
         IExportService export,
+        IUpdateService updates,
+        IShellService shell,
         RecordOperations operations,
         IRecordAnalysisService analysis,
         IUserSettings settings,
@@ -60,6 +64,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _queries = queries;
         _import = import;
         _export = export;
+        _updates = updates;
+        _shell = shell;
         _operations = operations;
         _analysis = analysis;
         _settings = settings;
@@ -108,6 +114,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
     public partial bool IsBusy { get; set; }

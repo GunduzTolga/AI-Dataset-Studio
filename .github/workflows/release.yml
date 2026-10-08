@@ -1,0 +1,259 @@
+name: Release
+
+# Builds installers for every platform with Velopack and, for a version tag (v1.2.3), publishes them
+# as a GitHub release that installed copies update from. Signing is used when its secrets exist;
+# without them the packages are built unsigned. See docs/release.md.
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build (e.g. 1.0.1); the packages are kept as workflow artifacts only
+        required: true
+  # A dry run when the packaging itself changes.
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - build/**
+      - .config/dotnet-tools.json
+      - src/AIDatasetStudio.Desktop/AIDatasetStudio.Desktop.csproj
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  AVALONIA_TELEMETRY_OPTOUT: 1
+  PACK_ID: AIDatasetStudio
+  PACK_TITLE: AI Dataset Studio
+  PACK_AUTHORS: AI Dataset Studio
+  # Never change: macOS identifies the app (and its permissions) by this id.
+  BUNDLE_ID: io.github.gunduztolga.aidatasetstudio
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            publish=true
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            version="$INPUT_VERSION"
+            publish=false
+          else
+            base=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props)
+            version="$base-pr.$GITHUB_RUN_NUMBER"
+            publish=false
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$version' is not a semantic version (1.2.3 or 1.2.3-beta.1)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "Building $version (publish: $publish)"
+
+  test:
+    name: Test
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - run: dotnet build AIDatasetStudio.slnx --configuration Release
+      - run: dotnet test --solution AIDatasetStudio.slnx --configuration Release --no-build
+
+  package:
+    name: Package (${{ matrix.rid }})
+    needs: [version, test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, rid: win-x64, exe: AIDatasetStudio.exe, icon: app.ico }
+          - { os: ubuntu-latest, rid: linux-x64, exe: AIDatasetStudio, icon: app.png }
+          - { os: macos-latest, rid: osx-arm64, exe: AIDatasetStudio, icon: app.icns }
+          - { os: macos-latest, rid: osx-x64, exe: AIDatasetStudio, icon: app.icns }
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      RID: ${{ matrix.rid }}
+      # Mapped here so steps can test whether signing is set up (secrets cannot be used in `if`).
+      WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Install AppImage tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools
+
+      - name: Publish
+        shell: bash
+        run: >
+          dotnet publish src/AIDatasetStudio.Desktop/AIDatasetStudio.Desktop.csproj
+          --configuration Release --runtime "$RID" --self-contained true
+          -p:Version="$VERSION" -p:PublishReadyToRun=true
+          --output publish
+
+      - name: Release notes
+        shell: bash
+        run: build/release-notes.sh "$VERSION" > release-notes.md
+
+      # Lets Velopack build a small delta update from the previous release.
+      - name: Download previous release
+        if: needs.version.outputs.publish == 'true'
+        continue-on-error: true
+        shell: bash
+        run: >
+          dotnet vpk download github -x --skip-updates --outputDir Releases --channel "$RID"
+          --repoUrl "https://github.com/${{ github.repository }}" --token "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Prepare Windows signing
+        if: runner.os == 'Windows' && env.WINDOWS_CERTIFICATE != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $path = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          "SIGN_PARAMS=/fd sha256 /td sha256 /tr http://timestamp.digicert.com /f `"$path`" /p `"$env:WINDOWS_CERTIFICATE_PASSWORD`"" >> $env:GITHUB_ENV
+
+      - name: Prepare macOS signing and notarization
+        if: runner.os == 'macOS' && env.MACOS_CERTIFICATE != ''
+        shell: bash
+        env:
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+          MACOS_NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_PASSWORD }}
+          MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password=$(openssl rand -base64 24)
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain"
+          security list-keychain -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          xcrun notarytool store-credentials aidatasetstudio --apple-id "$MACOS_NOTARY_APPLE_ID" \
+            --team-id "$MACOS_NOTARY_TEAM_ID" --password "$MACOS_NOTARY_PASSWORD" --keychain "$keychain"
+          echo "MACOS_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      - name: Pack (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $arguments = @('vpk', 'pack', '-x', '--skip-updates',
+            '--packId', $env:PACK_ID, '--packVersion', $env:VERSION, '--packDir', 'publish', '--runtime', $env:RID,
+            '--mainExe', '${{ matrix.exe }}', '--packTitle', $env:PACK_TITLE, '--packAuthors', $env:PACK_AUTHORS,
+            '--icon', 'src/AIDatasetStudio.Desktop/Assets/${{ matrix.icon }}',
+            '--releaseNotes', 'release-notes.md', '--channel', $env:RID, '--outputDir', 'Releases')
+          if ($env:SIGN_PARAMS) { $arguments += @('--signParams', $env:SIGN_PARAMS) }
+          dotnet @arguments
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Pack (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MACOS_SIGN_APP_IDENTITY: ${{ secrets.MACOS_SIGN_APP_IDENTITY }}
+          MACOS_SIGN_INSTALL_IDENTITY: ${{ secrets.MACOS_SIGN_INSTALL_IDENTITY }}
+        run: |
+          arguments=(vpk pack -x --skip-updates
+            --packId "$PACK_ID" --packVersion "$VERSION" --packDir publish --runtime "$RID"
+            --mainExe "${{ matrix.exe }}" --packTitle "$PACK_TITLE" --packAuthors "$PACK_AUTHORS"
+            --icon "src/AIDatasetStudio.Desktop/Assets/${{ matrix.icon }}" --bundleId "$BUNDLE_ID"
+            --releaseNotes release-notes.md --channel "$RID" --outputDir Releases)
+          if [[ -n "${MACOS_KEYCHAIN:-}" ]]; then
+            arguments+=(--signAppIdentity "$MACOS_SIGN_APP_IDENTITY" --signInstallIdentity "$MACOS_SIGN_INSTALL_IDENTITY"
+              --signEntitlements build/macos.entitlements --notaryProfile aidatasetstudio --keychain "$MACOS_KEYCHAIN")
+          fi
+          dotnet "${arguments[@]}"
+
+      - name: Pack (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: >
+          dotnet vpk pack -x --skip-updates
+          --packId "$PACK_ID" --packVersion "$VERSION" --packDir publish --runtime "$RID"
+          --mainExe "${{ matrix.exe }}" --packTitle "$PACK_TITLE" --packAuthors "$PACK_AUTHORS"
+          --icon "src/AIDatasetStudio.Desktop/Assets/${{ matrix.icon }}" --categories Development
+          --releaseNotes release-notes.md --channel "$RID" --outputDir Releases
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: release-${{ matrix.rid }}
+          path: Releases/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: [version, package]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      # One release holds every platform's channel; each upload merges into it.
+      - name: Upload packages
+        shell: bash
+        run: |
+          prerelease=()
+          if [[ "$VERSION" == *-* ]]; then prerelease=(--pre); fi
+          for rid in win-x64 linux-x64 osx-arm64 osx-x64; do
+            dotnet vpk upload github -x --skip-updates --outputDir "artifacts/release-$rid" --channel "$rid" \
+              --repoUrl "https://github.com/${{ github.repository }}" --token "${{ secrets.GITHUB_TOKEN }}" \
+              --tag "v$VERSION" --releaseName "AI Dataset Studio $VERSION" --merge --publish "${prerelease[@]}"
+          done
+
+      - name: Release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          build/release-notes.sh "$VERSION" > release-notes.md
+          gh release edit "v$VERSION" --notes-file release-notes.md
