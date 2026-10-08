@@ -31,6 +31,16 @@ public sealed partial class InputDialogViewModel : ViewModelBase
 
     public int MaxLength { get; init; } = 200;
 
+    /// <summary>
+    /// A tall text box that accepts line breaks.
+    /// </summary>
+    public bool IsMultiline { get; init; }
+
+    /// <summary>
+    /// The text may be empty (e.g. to clear a list).
+    /// </summary>
+    public bool AllowEmpty { get; init; }
+
     public IReadOnlyList<DialogOption> Options { get; init; } = [];
 
     public bool ShowOptions => Options.Count > 0;
@@ -44,6 +54,6 @@ public sealed partial class InputDialogViewModel : ViewModelBase
     public partial DialogOption? SelectedOption { get; set; }
 
     public bool CanConfirm =>
-        (!ShowText || (!string.IsNullOrWhiteSpace(Text) && Text.Trim().Length <= MaxLength))
+        (!ShowText || ((AllowEmpty || !string.IsNullOrWhiteSpace(Text)) && Text.Trim().Length <= MaxLength))
         && (!ShowOptions || SelectedOption is not null);
 }

@@ -37,9 +37,26 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
 
     public Guid ProjectId { get; }
 
-    public string ProjectName { get; }
+    /// <summary>
+    /// Follows renames of the project.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Subtitle))]
+    public partial string ProjectName { get; set; }
 
     public DatasetType Type { get; }
+
+    /// <summary>
+    /// Tokenizer for token counts, e.g. "o200k_base".
+    /// </summary>
+    [ObservableProperty]
+    public partial string Tokenizer { get; set; } = Domain.Entities.Dataset.DefaultTokenizerName;
+
+    /// <summary>
+    /// Records with more tokens than this are flagged.
+    /// </summary>
+    [ObservableProperty]
+    public partial int ContextLength { get; set; } = Domain.Entities.Dataset.DefaultContextLength;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CountText), nameof(Subtitle))]

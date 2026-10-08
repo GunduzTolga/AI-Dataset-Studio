@@ -8,9 +8,13 @@ public sealed record ProjectSummary(
     string? Description,
     IReadOnlyList<DatasetSummary> Datasets);
 
+/// <param name="Tokenizer">Tokenizer for token counts, e.g. "o200k_base".</param>
+/// <param name="ContextLength">Target context length; records with more tokens are flagged.</param>
 public sealed record DatasetSummary(
     Guid Id,
     Guid ProjectId,
     string Name,
     DatasetType Type,
-    long RecordCount);
+    long RecordCount,
+    string Tokenizer = Domain.Entities.Dataset.DefaultTokenizerName,
+    int ContextLength = Domain.Entities.Dataset.DefaultContextLength);

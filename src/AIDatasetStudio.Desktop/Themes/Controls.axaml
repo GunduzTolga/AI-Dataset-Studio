@@ -256,6 +256,47 @@
     <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
   </Style>
 
+  <!-- Option cards: a single choice among a few described options (export format) -->
+  <Style Selector="ListBox.options">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.option">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}" />
+    <Setter Property="Padding" Value="12,9" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:pointerover Border.option">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:selected Border.option">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="ListBox.options > ListBoxItem:selected Border.option TextBlock.strong">
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+
   <!-- ===== Record rows ===== -->
   <Style Selector="ListBox.records">
     <Setter Property="Background" Value="Transparent" />
@@ -524,6 +565,81 @@
   </Style>
   <Style Selector="ScrollViewer">
     <Setter Property="AllowAutoHide" Value="True" />
+  </Style>
+
+  <!-- ===== Quality ===== -->
+  <!-- Score / token pill: green (good), amber (fair), red (poor); neutral before analysis. -->
+  <Style Selector="Border.score">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="Padding" Value="7,1" />
+    <Setter Property="MinWidth" Value="30" />
+    <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+  </Style>
+  <Style Selector="Border.score TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.score ic|SymbolIcon">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+  </Style>
+  <Style Selector="Border.score.good">
+    <Setter Property="Background" Value="{DynamicResource StatusApprovedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.good TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusApprovedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.good ic|SymbolIcon">
+    <Setter Property="Foreground" Value="{DynamicResource StatusApprovedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.fair">
+    <Setter Property="Background" Value="{DynamicResource StatusReviewBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.fair TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusReviewForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.fair ic|SymbolIcon">
+    <Setter Property="Foreground" Value="{DynamicResource StatusReviewForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.poor">
+    <Setter Property="Background" Value="{DynamicResource StatusArchivedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.poor TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusArchivedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.score.poor ic|SymbolIcon">
+    <Setter Property="Foreground" Value="{DynamicResource StatusArchivedForegroundBrush}" />
+  </Style>
+  <!-- Large score tile of the dataset overview -->
+  <Style Selector="Border.score.large">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Width" Value="64" />
+    <Setter Property="Height" Value="64" />
+  </Style>
+  <Style Selector="Border.score.large TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeDisplay}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+  </Style>
+  <!-- Histogram bar in its track -->
+  <Style Selector="Border.bar-track">
+    <Setter Property="Height" Value="10" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
+    <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+  </Style>
+  <Style Selector="Border.bar">
+    <Setter Property="Height" Value="10" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusSmall}" />
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Border.bar.over">
+    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
   </Style>
 
   <!-- ===== Record editor ===== -->

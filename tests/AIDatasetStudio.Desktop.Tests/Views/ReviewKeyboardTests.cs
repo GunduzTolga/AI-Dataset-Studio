@@ -125,6 +125,49 @@ public sealed class ReviewKeyboardTests
         window.Close();
     });
 
+    [Fact]
+    public Task The_inspector_shows_the_overview_until_a_record_is_selected_and_Mod_Shift_M_masks_it() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        await host.CreateDatasetAsync(DatasetType.Instruction, [new InstructionPayload("Kime yazayım?", "", "ali@firma.com adresine yazın.")]);
+        var window = Open(host);
+        var overview = window.GetVisualDescendants().OfType<DatasetOverviewView>().Single();
+        var details = window.GetVisualDescendants().OfType<RecordDetailsView>().Single();
+        Assert.True(overview.IsVisible);
+        Assert.False(details.IsVisible);
+
+        await SelectAsync(host, 0);
+        Assert.False(overview.IsVisible);
+        Assert.True(details.IsVisible);
+
+        EditorFields(window)[2].Focus();
+        Press(window, Key.M, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.True(host.Main.Details.IsPiiPreview);
+        Assert.DoesNotContain(EditorFields(window), box => box.IsEffectivelyVisible);
+        Assert.Contains(window.GetVisualDescendants().OfType<SelectableTextBlock>(), block => block.Text == "[EMAIL_1] adresine yazın." && block.IsEffectivelyVisible);
+
+        Press(window, Key.M, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.False(host.Main.Details.IsPiiPreview);
+        Assert.Equal(3, EditorFields(window).Count(box => box.IsEffectivelyVisible));
+        window.Close();
+    });
+
+    [Fact]
+    public Task Mod_E_opens_the_export_wizard() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        await host.CreateDatasetWithRecordsAsync(2);
+        var window = Open(host);
+        host.Dialogs.ExportWizardScript = _ => Task.CompletedTask;
+        Assert.Equal(new KeyGesture(Key.E, KeyModifiers.Control), window.FindControl<MenuItem>("ExportMenuItem")!.InputGesture);
+
+        Press(window, Key.E, RawInputModifiers.Control);
+        await DesktopTestHost.WaitUntilAsync(() => host.Dialogs.LastExportWizard is not null);
+
+        Assert.Equal("Dataset", host.Dialogs.LastExportWizard!.Target.Name);
+        window.Close();
+    });
+
     private static MainWindow Open(DesktopTestHost host)
     {
         var window = new MainWindow { DataContext = host.Main, Width = 1440, Height = 860 };

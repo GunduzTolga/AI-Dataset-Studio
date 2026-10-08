@@ -197,6 +197,22 @@ public sealed class RecordCommandServiceTests
     }
 
     [Fact]
+    public async Task Tag_names_are_unique_regardless_of_turkish_case()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        await using (var context = ws.Workspace.CreateDbContext())
+        {
+            context.Tags.Add(Tag.Create("Şifre", TestWorkspace.Now));
+            await context.SaveChangesAsync(Ct);
+        }
+
+        await using var other = ws.Workspace.CreateDbContext();
+        other.Tags.Add(Tag.Create("ŞİFRE", TestWorkspace.Now));
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => other.SaveChangesAsync(Ct));
+    }
+
+    [Fact]
     public async Task Deleted_records_come_back_from_snapshots()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

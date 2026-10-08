@@ -24,6 +24,11 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("ContextLength")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(4096);
+
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER");
 
@@ -167,9 +172,14 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .UseCollation("NOCASE");
 
+                    b.Property<string>("NameKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("NameKey")
                         .IsUnique();
 
                     b.ToTable("Tags", (string)null);
@@ -195,6 +205,128 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Workspace", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportHistoryRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExportedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Files")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RecordCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TargetFormat")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId", "ExportedAt");
+
+                    b.ToTable("ExportHistories", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportProfileRow", b =>
+                {
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TargetFormat")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DatasetId");
+
+                    b.ToTable("ExportProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordAnalysisRow", b =>
+                {
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("AnalyzedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("IssueFlags")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Issues")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("QuestionKey")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RulesVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Tokenizer")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TotalTokens")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("RecordId");
+
+                    b.HasIndex("DatasetId", "QuestionKey");
+
+                    b.ToTable("RecordAnalyses", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.WorkspaceSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("WorkspaceSettings", (string)null);
                 });
 
             modelBuilder.Entity("RecordTags", b =>
@@ -226,6 +358,33 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
                         .WithMany()
                         .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportHistoryRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportProfileRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
+                        .WithOne()
+                        .HasForeignKey("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportProfileRow", "DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordAnalysisRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.DatasetRecord", null)
+                        .WithOne()
+                        .HasForeignKey("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordAnalysisRow", "RecordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

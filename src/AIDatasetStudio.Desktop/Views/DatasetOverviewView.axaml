@@ -1,0 +1,140 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+             xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:conv="using:AIDatasetStudio.Desktop.Converters"
+             x:Class="AIDatasetStudio.Desktop.Views.DatasetOverviewView"
+             x:DataType="vm:DatasetOverviewViewModel">
+  <UserControl.Styles>
+    <Style Selector="StackPanel.stat > TextBlock.value">
+      <Setter Property="FontSize" Value="{StaticResource FontSizeSubtitle}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Margin="20,18,20,24" Spacing="10">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="overline" Text="{l:Tr Overview_Title}" />
+        <TextBlock Classes="title" Text="{Binding Dataset.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+
+      <!-- Quality score (SDD §8.2) -->
+      <Border Classes="card" Padding="14,12" Margin="0,6,0,0" IsVisible="{Binding HasRecords}">
+        <Grid ColumnDefinitions="Auto,*">
+          <Border Classes="score large" Classes.good="{Binding IsGood}" Classes.fair="{Binding IsFair}" Classes.poor="{Binding IsPoor}">
+            <TextBlock Classes="numeric" Text="{Binding ScoreText}" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="14,0,0,0" Spacing="3" VerticalAlignment="Center">
+            <TextBlock Classes="subtitle" Text="{l:Tr Overview_QualityScore}" />
+            <TextBlock Classes="small muted" Text="{Binding AnalyzedText}" TextWrapping="Wrap" />
+            <StackPanel Spacing="4" Margin="0,4,0,0" IsVisible="{Binding IsAnalyzing}">
+              <ProgressBar Minimum="0" Maximum="1" Value="{Binding ProgressValue}" />
+              <TextBlock Classes="caption muted" Text="{Binding ProgressText}" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Tokens (SDD §7) -->
+      <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Overview_Tokens}" />
+      <Border Classes="card" Padding="14,12">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="3*,10,2*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{l:Tr Overview_Tokenizer}" />
+              <ComboBox x:Name="TokenizerBox" HorizontalAlignment="Stretch" ItemsSource="{Binding TokenizerOptions}" SelectedItem="{Binding SelectedTokenizer}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:TokenizerOption">
+                    <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="{l:Tr Overview_ContextLength}" />
+              <ComboBox x:Name="ContextBox" HorizontalAlignment="Stretch" ItemsSource="{Binding ContextOptions}" SelectedItem="{Binding SelectedContextLength}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ContextLengthOption">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*,*" IsVisible="{Binding HasRecords}">
+            <StackPanel Classes="stat">
+              <TextBlock Classes="value numeric" Text="{Binding TotalTokensText}" />
+              <TextBlock Classes="caption muted" Text="{l:Tr Overview_TotalTokens}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Classes="stat">
+              <TextBlock Classes="value numeric" Text="{Binding MaxTokensText}" />
+              <TextBlock Classes="caption muted" Text="{l:Tr Overview_MaxTokens}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Classes="stat">
+              <TextBlock Classes="value numeric" Classes.error="{Binding HasOverLimit}" Text="{Binding OverLimitText}" />
+              <TextBlock Classes="caption muted" Text="{l:Tr Overview_OverLimit}" />
+            </StackPanel>
+          </Grid>
+
+          <!-- Distribution of record lengths -->
+          <ItemsControl ItemsSource="{Binding Histogram}" IsVisible="{Binding HasRecords}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:HistogramBar">
+                <Grid ColumnDefinitions="78,*,Auto" Margin="0,2">
+                  <TextBlock Classes="caption muted numeric" Text="{Binding Label}" VerticalAlignment="Center" />
+                  <Border Grid.Column="1" Classes="bar-track" Width="200" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Border Classes="bar" Classes.over="{Binding IsOverLimit}"
+                            Width="{Binding Fraction, Converter={x:Static conv:LayoutConverters.BarWidth}}" />
+                  </Border>
+                  <TextBlock Grid.Column="2" Classes="caption numeric" Text="{Binding CountText}" Margin="8,0,0,0" MinWidth="36"
+                             TextAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Issues with clean-up actions (SDD §8.3) -->
+      <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Overview_Issues}" IsVisible="{Binding HasRecords}" />
+      <Border Classes="card" Padding="14,8" IsVisible="{Binding HasRecords}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4" IsVisible="{Binding ShowNoIssues}">
+            <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="16" Foreground="{DynamicResource PositiveBrush}" />
+            <TextBlock Classes="small" Text="{l:Tr Overview_NoIssues}" VerticalAlignment="Center" />
+          </StackPanel>
+          <ItemsControl Classes="lines" ItemsSource="{Binding Issues}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:IssueSummaryItem">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,6">
+                  <Panel Margin="0,0,8,0" VerticalAlignment="Center">
+                    <ic:SymbolIcon Symbol="ErrorCircle" FontSize="16" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsError}" />
+                    <ic:SymbolIcon Symbol="Warning" FontSize="16" Foreground="{DynamicResource WarningTextBrush}" IsVisible="{Binding IsWarning}" />
+                  </Panel>
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Classes="small strong" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="caption muted numeric" Text="{Binding CountText}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="subtle" Content="{l:Tr Overview_ShowRecords}"
+                            Command="{Binding $parent[UserControl].((vm:DatasetOverviewViewModel)DataContext).ShowRecordsCommand}" CommandParameter="{Binding}" />
+                    <Button Content="{l:Tr Action_Archive}" IsVisible="{Binding CanArchive}" ToolTip.Tip="{l:Tr Overview_ArchiveHint}"
+                            Command="{Binding $parent[UserControl].((vm:DatasetOverviewViewModel)DataContext).ArchiveCommand}" CommandParameter="{Binding}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,10,0,0">
+        <ic:SymbolIcon Symbol="Info" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Top" Margin="0,1,0,0" />
+        <TextBlock Classes="small muted" Text="{l:Tr Details_NoRecordHint}" TextWrapping="Wrap" MaxWidth="340" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

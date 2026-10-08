@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.5.0 (kayıt editörü, inceleme kısayolları, toplu işlemler ve geri al/yinele; bkz. §6.1–6.2 ve ADR-026)
+- **Versiyon:** 1.7.0 (dışa aktarma ve train/val/test bölmesi; bkz. §10, §13 ve ADR-028)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -223,7 +223,7 @@ public sealed class DatasetRecord
     public DateTimeOffset UpdatedAt { get; }
 }
 ```
-- Token sayıları kayıtta değil, hangi tokenizer ve hangi içerik özetiyle hesaplandığını bilen `RecordTokenStats` tablosunda tutulur (§7, §18).
+- Token sayıları ve kalite sonuçları kayıtta değil, hangi tokenizer, içerik özeti ve kural sürümüyle hesaplandığını bilen `RecordAnalyses` tablosunda tutulur (§7, §8, §18, ADR-027).
 - Kayıt ilişkileri (`Parent`, `DuplicateOf` vb.) `RecordRelations` tablosundadır.
 
 ### 5.2. Kayıt Yaşam Döngüsü (Record Lifecycle)
@@ -266,7 +266,12 @@ Görsel dil, renk/tipografi tokenları ve bileşenler `docs/design-system.md` do
 - **Editör:** Alanlar kartların içinde doğrudan düzenlenir (Instruction: talimat/girdi/çıktı; Preference: istem/tercih edilen/reddedilen; Chat: sistem talimatı + turlar). Sohbet turları eklenebilir, silinebilir ve kullanıcı ↔ asistan arasında çevrilebilir; yeni tur bir öncekinin tersi rolle başlar.
 - **Kaydetme:** Değişiklik olduğunda "Kaydedilmemiş değişiklikler — Vazgeç / Kaydet" çubuğu görünür. `Mod+S` kaydeder; başka kayda geçmek, onaylamak veya arşivlemek önce kaydeder (otomatik kayıt). İçeriği değişen kayıt §5.2 gereği InReview'a döner. Arşivlenmiş kayıt salt okunurdur.
 - **Toplu işlem:** Listede `Shift`/`Ctrl` ile çoklu seçim yapılınca sağ panel toplu panele dönüşür: seçili kayıtların durum dağılımı ve onayla / incelemeye al / arşivle / geri yükle / sil. Aksiyon, durumu izin veren her kayda uygulanır; diğerleri atlanır ve sayısı bildirilir.
-- **Henüz yok:** AvaloniaEdit renklendirmesi, token rozeti (M4) ve DPO diff görselleştiricisi (V2) sonraki aşamalardadır.
+- **Henüz yok:** AvaloniaEdit renklendirmesi ve DPO diff görselleştiricisi (V2) sonraki aşamalardadır.
+
+**Uygulama ayrıntıları (M4):**
+- **Veri seti özeti:** Hiçbir kayıt seçili değilken sağ panel veri setinin özetini gösterir: kalite skoru ve analiz ilerlemesi, tokenizer ve bağlam uzunluğu seçimi, toplam / en uzun / sınırı aşan token sayıları, uzunluk histogramı ve kurala göre sorun listesi ("Göster" listeyi o sorunla filtreler, "Arşivle" onay sonrası geri alınabilir şekilde arşivler; §8.3).
+- **Liste:** Satırlarda token sayısı (bağlamı aşanlarda kırmızı bayrak) ve renkli kalite skoru (90+ yeşil, 60–89 sarı, altı kırmızı); arama kutusunun yanında kalite filtresi (sorunlu, hatalı, bağlamı aşan, kopya, kişisel veri).
+- **Editör:** Başlıkta canlı token rozeti (`812 / 4.096`; yeşil < %50, sarı ≤ %100, kırmızı aşıyor; ayrıntı ipucunda istem + yanıt) ve kalite skoru; içeriğin altında "Kalite" bölümü kuralları yazarken günceller. Kopya ve "aynı soru, farklı yanıt" bulguları kayıtlar arası olduğu için saklanan analizden gelir.
 
 ### 6.2. Klavye Kısayolları ile Seri Veri İnceleme
 Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleyebilmesi için tasarlanan kısayol şeması. `Mod` = Windows/Linux'ta `Ctrl`, macOS'ta `Cmd`. Kısayollar metin editörünün standart tuşlarıyla (kelime silme, paragraf gezinme) çakışmayacak şekilde seçilmiştir.
@@ -277,7 +282,7 @@ Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleye
 - `Mod + Shift + M`: PII maskeleme önizlemesini çalıştır.
 - `Mod + Z / Mod + Shift + Z`: Geri al / yinele (tek kayıt düzenlemeleri ve toplu işlemler dahil).
 
-**Uygulama ayrıntıları (M3):** Ek olarak `Mod + S` kaydet, `Mod + F` aramaya git, `Mod + Y` yinele (Windows alışkanlığı) ve liste odaktayken `Delete` (onaylı silme) eklenmiştir. Kısayollar pencere düzeyinde metin kutusundan önce yakalanır; böylece `Mod + Enter` editörde satır sonu eklemez. `Mod + Enter`, `Mod + Shift + Backspace`, `Mod + S` ve `F8` yazarken de çalışır; `Mod + Z` ise odaklı metin kutusunun kendi geri almasına bırakılır, uygulama düzeyindeki geri alma metin kutusu dışındayken veya Düzen menüsünden çalışır. Kısayollar Düzen ve Kayıt menülerinde gösterilir. `Mod + 1..5` etiketleme, etiket arayüzüyle; `Mod + Shift + M` PII önizlemesi M4 ile gelecektir.
+**Uygulama ayrıntıları (M3):** Ek olarak `Mod + S` kaydet, `Mod + F` aramaya git, `Mod + Y` yinele (Windows alışkanlığı) ve liste odaktayken `Delete` (onaylı silme) eklenmiştir. Kısayollar pencere düzeyinde metin kutusundan önce yakalanır; böylece `Mod + Enter` editörde satır sonu eklemez. `Mod + Enter`, `Mod + Shift + Backspace`, `Mod + S` ve `F8` yazarken de çalışır; `Mod + Z` ise odaklı metin kutusunun kendi geri almasına bırakılır, uygulama düzeyindeki geri alma metin kutusu dışındayken veya Düzen menüsünden çalışır. Kısayollar Düzen ve Kayıt menülerinde gösterilir. `Mod + 1..5` etiketleme, etiket arayüzüyle gelecektir. `Mod + Shift + M` (M4) maskelenmiş önizlemeyi açar/kapatır ve yazarken de çalışır; Kayıt menüsünde "Maskelenmiş Önizleme" olarak yer alır.
 
 ---
 
@@ -296,11 +301,19 @@ Fine-tuning sürecinde eğitim scriptlerinin en sık patlama sebebi olan **CUDA 
 
 ### 7.3. Fonksiyonlar ve Raporlama
 - **Anlık Satır Analizi:** Kullanıcı metni yazarken milisaniyeler içinde Input Token, Output Token ve Toplam Token hesabı.
-- **Tokenizer'a Bağlı Saklama:** Sayılar `RecordTokenStats` tablosunda tokenizer kimliği ve içerik özetiyle birlikte tutulur; tokenizer veya içerik değişince yeniden hesaplanır. Saklanan değer "içerik tokenı"dır; sohbet şablonlarının (ChatML, Llama-3) özel token yükü export formatına göre export anında eklenir.
+- **Tokenizer'a Bağlı Saklama:** Sayılar `RecordAnalyses` tablosunda (ADR-027) tokenizer kimliği ve içerik özetiyle birlikte tutulur; tokenizer veya içerik değişince yeniden hesaplanır. Saklanan değer "içerik tokenı"dır; sohbet şablonlarının (ChatML, Llama-3) birkaç tokenlık tur başına yükü sayılmaz (§13.2 uygulama notu).
 - **Tokenizer Lisansları:** Llama-3 / Gemma sözlükleri kendi lisanslarıyla gelir; uygulamaya gömülmez, kullanıcı `tokenizer.json` / `tokenizer.model` dosyasını gösterir.
 - **Context Window Eşik Uyarıları:** 2048, 4096, 8192, 16k, 32k ve 128k sınırlarını aşan satırların DataGrid üzerinde kırmızı bayrakla işaretlenmesi ve tek tıkla filtrelenebilmesi.
 - **Token Histogramı:** Veri setinin genel token dağılımını gösteren görsel yoğunluk grafiği (kaç satır 500 token altında, kaç satır 4000 üzerinde).
 - **Eğitim Maliyet Hesaplayıcısı:** Güncel OpenAI fine-tuning ($/1M token) veya bulut GPU saatlik maliyet katsayılarıyla veri setinin tahmini eğitim bütçesini çıkarma.
+
+**Uygulama ayrıntıları (M4):**
+- **Tokenizerlar:** `o200k_base` (varsayılan) ve `cl100k_base`, `Microsoft.ML.Tokenizers` 2.0 ve veri paketleriyle tamamen çevrimdışı. Llama-3 / Mistral / Gemma (kullanıcının gösterdiği `tokenizer.json`) sonraki aşamadadır.
+- **Veri seti ayarları:** Tokenizer ve bağlam uzunluğu veri seti başına seçilir (2.048 – 128k; varsayılan 4.096). Tokenizer değişince tüm sayılar yeniden hesaplanır; bağlam uzunluğu değişince yalnızca bayraklar değişir (sorgu anında hesaplanır).
+- **Ne sayılır:** İçerik tokenı = istem tarafı (talimat + girdi, sistem talimatı + kullanıcı turları, istem) + yanıt tarafı (çıktı, asistan turları; tercih kayıtlarında tercih edilen ve reddedilenin uzun olanı, çünkü bağlama sığması gereken odur).
+- **Arka plan analizi:** Veri seti açılınca, içe aktarma / örnek veri / geri alma sonrasında ve özel terimler değişince güncel olmayan kayıtlar 500'lük partilerde paralel analiz edilir; ilerleme liste başlığında ve özette görünür, iptal edilebilir, biten partiler korunur. Düzenlenen kayıt kaydedilince hemen yeniden analiz edilir. 10.000 kayıt birkaç saniyede analiz edilir.
+- **Histogram:** `< 128`, `< 256` … `< 8.192`, `≥ 8.192` kovaları; bağlam uzunluğunun üstündeki kovalar kırmızıdır.
+- **Henüz yok:** Maliyet hesaplayıcısı ve sohbet şablonu yükü (export ile, M5).
 
 ---
 
@@ -323,6 +336,14 @@ Veri setindeki her satır bir dizi kural motorundan (IHealthRule) geçer ve veri
 ### 8.3. Tek Tıkla Temizleme (Auto-Cleaner Wizard)
 Tespit edilen sorunları kullanıcıya listeler: "142 adet yinelenen satırı arşivle", "12 adet boş kaydı sil", "Bozuk markdown etiketlerini otomatik onar".
 
+**Uygulama ayrıntıları (M4):**
+- **Kurallar ve ciddiyet:** Hata (−40): boş alan veya tur, tercih edilen = reddedilen yanıt, bağlam uzunluğunu aşma. Uyarı (−10): geçiştirici yanıt ("tamam", "bilmiyorum"…), sorudan 50 kattan uzun yanıt, soruyu tekrarlayan yanıt, kapanmamış kod bloğu, geçersiz JSON (`{`/`[` ile başlayan metin), kişisel veri (§9), birebir kopya, aynı soru – farklı yanıt.
+- **Karşılaştırma:** "Aynı soru", Türkçe harfler katlanmış, noktalama atılmış ve boşlukları sadeleştirilmiş sorunun özetiyle bulunur ("Şifremi unuttum!" = "şifremi  UNUTTUM").
+- **Kayıtlar arası kurallar** (kopya, çelişen yanıt, bağlamı aşma) saklanmaz, sorgu anında hesaplanır; böylece bir kaydı düzenlemek, arşivlemek veya bağlam uzunluğunu değiştirmek diğer kayıtların sonucunu bayatlatmaz.
+- **Arşiv:** Arşivlenmiş kayıtlar özetteki sayılara ve skora girmez ve başka kayıtları kopya/çelişkili yapmaz; bir kopyayı arşivlemek sorunu çözer.
+- **Temizleme:** Özetteki sorun listesinde "Arşivle", Kopyalar (her grubun ilki kalır), Boş alanlar ve Aynı yanıtlar için sunulur; onay ister ve Düzen › Geri Al ile tek adımda geri alınır. Silme ve otomatik onarım sonraki aşamadadır.
+- **Henüz yok:** Yakın kopya (MinHash, V2), XML / markdown doğrulama, ayarlardan değiştirilebilir ağırlıklar.
+
 ---
 
 ## 9. HASSAS VERİ VE PII MASKELEME MOTORU (PII SCRUBBER)
@@ -342,6 +363,13 @@ Tespit edilen sorunları kullanıcıya listeler: "142 adet yinelenen satırı ar
 - **Tutarlı yer tutucular:** Aynı kayıttaki aynı değer aynı yer tutucuyu alır (`[EMAIL_1]`, `[EMAIL_2]`); konuşma içi atıflar korunur.
 - **Kaynak veri bozulmaz:** Varsayılan davranış önizleme + export anında maskelemedir (ADR-004). Kaynak kayıtlara kalıcı uygulama yalnızca açık onayla ve geri alınabilir bir toplu işlem olarak yapılır.
 
+**Uygulama ayrıntıları (M4):**
+- **Algılananlar:** E-posta, telefon (TR yerel ve E.164), T.C. kimlik no (algoritma), IBAN (mod-97), kart numarası (Luhn), dahili IP (10/8, 172.16/12, 192.168/16) ve URL (`.local`, `.internal`, `.corp`, `.lan`, `.intranet`, `.localdomain`), API anahtarları (OpenAI, Anthropic, AWS, GitHub, Slack, Google, JWT, özel anahtar blokları), parola / bağlantı dizesi değerleri (rakam veya sembol içeren) ve özel terimler.
+- **Çakışmalar:** Aynı metne birden fazla kural uyarsa öncelik sırası gizli bilgi > özel terim > IBAN > kart > T.C. kimlik > e-posta > URL > IP > telefon, eşitlikte uzun olan kazanır.
+- **Yer tutucular:** `[EMAIL_1]`, `[PHONE_1]`, `[ID_NUMBER_1]`, `[IBAN_1]`, `[CREDIT_CARD_1]`, `[INTERNAL_IP_1]`, `[INTERNAL_URL_1]`, `[API_KEY_1]`, `[SECRET_1]`, özel terimler için `[REDACTED_1]`; numaralar kayıt içinde tutarlıdır.
+- **Özel terimler:** Araçlar › Özel Hassas Terimler (satır başına bir terim) çalışma alanına kaydedilir (`WorkspaceSettings`); büyük/küçük harf ve Türkçe I/İ/ı farkı gözetmeden, kelime sınırında eşleşir. Değişince tüm kayıtlar yeniden analiz edilir.
+- **Önizleme:** Kayıt › Maskelenmiş Önizleme (`Mod + Shift + M`) editör yerine maskelenmiş metni ve bulunanların özetini gösterir. "Maskelemeyi Uygula" maskelenmiş metni editöre koyar; kaydedilince kalıcı olur ve Düzen › Geri Al ile geri alınır. Export anında maskeleme M5 ile gelir.
+
 ---
 
 ## 10. EĞİTİM BÖLME MOTORU (TRAIN / VALIDATION / TEST SPLIT)
@@ -357,6 +385,12 @@ Veri setini model eğitimine göndermeden önce bilimsel standartlarda 3 parçay
 - **Stratified Sampling (Tabakalı Dağıtım):** Seçilen etiket grubuna (örneğin `kategori:hukuk`, `kategori:teknik`) göre her tabakada kayıtlar hash değerine göre sıralanıp oranlara göre kesilir. Bu mod oranları tam tutturur; karşılığında yeni kayıt eklendiğinde sınırdaki birkaç kayıt yer değiştirebilir (arayüzde belirtilir).
 - **Tekrarlanabilirlik (Random Seed):** `Seed = 42` girildiğinde, aylar sonra bile veri seti bölündüğünde birebir aynı satırların train ve test kümelerine düşmesi sağlanır. Seed, export profiliyle ve sürümle birlikte saklanır.
 - **Export Çıktısı:** Tek tıkla `train.jsonl`, `val.jsonl`, `test.jsonl` olarak ayrıştırılmış dosyalar oluşturulur.
+
+**Uygulama ayrıntıları (M5):**
+- **Atama:** `SHA-256("{seed}:{grup anahtarı}")` değerinin ilk 8 baytı mod 10.000 → kova; kova < eğitim×100 ise train, < (eğitim+doğrulama)×100 ise val, değilse test. Tamsayı aritmetiği olduğundan sonuç her platformda aynıdır; birim testleri seed 42 için ilk 12 atamayı sabitler.
+- **Grup anahtarı:** Kopya gruplarının temsilci kimliği yerine kaydın **normalleştirilmiş soru tarafı** hashlenir (Talimat: talimat + girdi; Sohbet: sistem talimatı + kullanıcı turları; Tercih: istem; §8 "aynı soru" tanımıyla aynı normalleştirme). Böylece birebir kopyalar, aynı soruya farklı yanıtlar ve aynı istemli tercih çiftleri hep aynı dosyaya düşer; temsilci kaydın silinmesi grubu yerinden oynatmaz. Sorusu boş kayıtlar kimlikleriyle atanır. Bedeli: bir kaydın sorusunu düzenlemek onu başka dosyaya taşıyabilir (ADR-028).
+- **Ön ayarlar:** Tek dosya, 80/10/10, 90/10 ve özel oranlar (eğitim > 0, toplam 100); payı 0 olan bölmenin dosyası yazılmaz. Seed varsayılan 42'dir ve export profiliyle saklanır.
+- **Henüz yok:** Etiket tabanlı tabakalı bölme (etiket arayüzüyle) ve yakın kopya grupları (V2).
 
 ---
 
@@ -452,6 +486,15 @@ Veri iç sistemde evrensel JSON olarak saklanır; dışa aktarılırken hedef mo
 - Kayıplı dönüşümler export sihirbazında açıkça uyarılır ve etkilenen kayıt sayısı gösterilir.
 - Exporter'lar ortak bir ara model (konuşma + isteğe bağlı tercih çifti) üzerinden çalışır.
 
+**Uygulama ayrıntıları (M5):**
+- **Biçimler:** OpenAI JSONL (`messages`; tercih çiftleri OpenAI DPO biçiminde), ShareGPT (`human` / `gpt`, sistem talimatı `system`), Alpaca (talimat kayıtları; sohbetlerden yalnızca tek soru + tek cevaplı olanlar, sistem talimatı LLaMA-Factory'nin okuduğu `system` alanında), Hugging Face DPO (`prompt` / `chosen` / `rejected`), ChatML ve Llama 3 Instruct metni (`{"text": ...}`, Llama 3'te başlıktan sonra boş satır). Talimat kaydının girdisi, talimatın altına boş satırla eklenerek kullanıcı turu olur. Mistral/Gemma şablonları ve eğitim aracı konfigürasyonları sonraki aşamadadır.
+- **Dosya:** UTF-8 (BOM'suz), satır sonu LF, her satır bir JSON nesnesi; Türkçe karakterler kaçışsız yazılır. Kayıtlar listedeki sırayla tek bir okuma anlık görüntüsünden (WAL, düzenlemeleri engellemez) 500'lük partilerle okunur.
+- **Filtreler ve sıra:** Seçilen durumlar (varsayılan yalnızca Onaylandı; arşiv hiçbir zaman), sonra sırasıyla biçime sığmayanlar, bağlam uzunluğunu aşanlar (§7: içerik tokenı > veri setinin bağlam uzunluğu; şablon yükü sayılmaz, bağlam uzunluğunda pay bırakılmalı) ve önceki bir kaydın birebir kopyaları (ilki kalır) atlanır. Analiz edilmemiş kayıt varsa önce analiz edilir. Kişisel veriler maskelenir (varsayılan açık; çalışma alanının özel terimleriyle). Bölme maskelenmemiş soruya göre yapılır.
+- **Güvenli yazım:** Dosyalar `.partial` adıyla yazılır, hepsi tamamlanınca yerlerine taşınır; iptal veya hata mevcut dosyalara dokunmaz ve yarım dosya bırakmaz. Bölmeli dışa aktarmada klasörde aynı adlı dosyalar varsa sihirbaz içinde "Üzerine yaz / Başka klasör seç" sorulur.
+- **Profil ve geçmiş:** Son kullanılan seçenekler (seed dahil) veri seti başına `ExportProfiles`'ta, her dışa aktarım (biçim, seçenekler, dosyalar ve kayıt sayıları) `ExportHistories`'te saklanır; sihirbaz son seçeneklerle açılır ve son dışa aktarımı gösterir. Adlandırılmış birden fazla profil sonraki aşamadadır.
+- **Önizleme:** Sayılar SQL ile anında hesaplanır (aynı kuralların SQL karşılıkları; testler eşitliği doğrular), ilk 3 satır dosyaya yazılacağı haliyle gösterilir; bölmede beklenen dosya boyutları "≈" ile verilir.
+- **Henüz yok:** Listede "export'a hazır" rozeti/filtresi (ADR-019) ve geçmiş ekranı.
+
 ---
 
 ## 14. SÜRÜMLEME VE ANLIK GÖRÜNTÜ SİSTEMİ (VERSIONING & SNAPSHOTS)
@@ -524,18 +567,18 @@ Uygulama genişletilebilir C# arayüzleri (interfaces) üzerine inşa edilir:
 Veritabanı tabloları ve temel ilişkileri (bir `.adstudio` dosyası = bir çalışma alanı):
 - `Workspace`: Id, Name, Description, CreatedAt — dosya başına tek satır
 - `Projects`: Id, Name, Description, CreatedAt
-- `Datasets`: Id, ProjectId, Name, Description, Type, DefaultTokenizer, CreatedAt
+- `Datasets`: Id, ProjectId, Name, Description, Type, DefaultTokenizer, ContextLength (varsayılan 4096), CreatedAt
 - `DatasetRecords`: Id, DatasetId, Type, Status, Ordinal, DataPayload, ContentHash, Preview (liste önizlemesi, ≤200 karakter), HealthScore (önbellek), MetadataJson, SourceKind, SourceReference, CreatedBy, GeneratedByModel, CreatedAt, UpdatedAt
 - `RecordRevisions`: Id, RecordId, ContentHash, DataPayload, CreatedAt — değişmez içerik geçmişi
-- `RecordTokenStats`: RecordId, TokenizerId, ContentHash, InputTokens, OutputTokens, TotalTokens
+- `RecordAnalyses`: RecordId (PK, kayıtla birlikte silinir), DatasetId, ContentHash, Tokenizer, RulesVersion, InputTokens, OutputTokens, TotalTokens, QuestionKey, Score, IssueFlags (kural bit maskesi), Issues (JSON), AnalyzedAt — token sayıları ve tek kayıt kurallarının sonucu (ADR-027; `RecordTokenStats` ve `QualityRuleResults` yerine)
+- `WorkspaceSettings`: Key, Value — çalışma alanına özgü ayarlar (ör. `pii.customTerms`)
 - `DatasetVersions`: Id, DatasetId, VersionTag, Description, IsFrozen, CreatedAt
 - `VersionRecordMappings`: VersionId, RecordId, RevisionId, Status, TagIds (JSON)
-- `Tags`: Id, Name (büyük/küçük harf duyarsız, benzersiz), ColorHex — kategoriler `kategori:hukuk` gibi önekli etiketlerdir (ayrı `Category` tablosu yok)
+- `Tags`: Id, Name, NameKey (Türkçe I/İ/ı dahil katlanmış ad; benzersiz — SQLite NOCASE yalnızca ASCII katlar), ColorHex — kategoriler `kategori:hukuk` gibi önekli etiketlerdir (ayrı `Category` tablosu yok)
 - `RecordTags`: RecordId, TagId
 - `RecordRelations`: SourceRecordId, TargetRecordId, RelationType (Parent, DuplicateOf, NearDuplicateOf, Contradicts) — ilişki tipleri enum'dur (ayrı `Relation` tablosu yok)
-- `QualityRuleResults`: Id, RecordId, RuleId, Severity, Message, ContentHash, RunId, CheckedAt
-- `ExportProfiles`: Id, DatasetId, Name, TargetFormat, TokenizerId, MaxTokens, StatusFilter, MaskPii, SplitConfig (JSON: oranlar, seed, mod)
-- `ExportHistories`: Id, DatasetId, VersionId, ProfileId, TargetFormat, FilePath, SplitType, RecordCount, ExportedAt
+- `ExportProfiles`: DatasetId (PK; şimdilik veri seti başına son kullanılan profil), TargetFormat, Settings (JSON: durumlar, bağlamı aşanları/kopyaları atla, PII maskele, bölme oranları ve seed), UpdatedAt
+- `ExportHistories`: Id, DatasetId, TargetFormat, Settings (JSON), Files (JSON: bölme, yol, kayıt sayısı), RecordCount, ExportedAt — sürümleme (§14) gelince VersionId eklenecek
 - `EvaluationSets`: Id, ProjectId, DatasetId, Name, CreatedAt
 - `BenchmarkRuns`: Id, EvaluationSetId, ModelName, Score, ExecutedAt
 - `RecordSearchKeys`: RowId (INTEGER PRIMARY KEY), RecordId (benzersiz) — FTS satırlarını kayıtlara bağlar
@@ -649,3 +692,5 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-024: Tasarım Sistemi:** Arayüz Avalonia Fluent teması üzerine kurulu, token tabanlı bir tasarım sistemi kullanır (`Themes/Tokens.axaml`, `Themes/Controls.axaml`). Bileşenler ham renk değil semantik tokenlar kullanır; açık ve koyu tema aynı tokenlarla tanımlanır ve WCAG AA kontrastını karşılar. İkonlar Fluent UI System Icons'tır (FluentIcons.Avalonia, MIT).
 - **ADR-025: İçe Aktarma Hattı:** İçe aktarma üç aşamalıdır: *analiz* (biçim, CSV ayarları, düzen, sütunlar, satır sayısı, eşleme önerisi), *önizleme* (ilk 20 satır, yazmadan) ve *aktarım* (tek transaction). Okuyucular dosya biçiminden bağımsız `ISourceRow` üretir; dönüştürme (`ImportConverter`) saf ve dosya sisteminden bağımsızdır, bu sayede kurallar birim testleriyle doğrulanır. Satır hataları içe aktarmayı durdurmaz, dosya hataları durdurur. Kodlaması belirsiz CSV'lerde varsayılan windows-1254'tür.
 - **ADR-026: Geri Al / Yinele:** Geri alma, oturum boyunca tutulan bir komut geçmişidir (en fazla 100 adım; çalışma alanı değişince temizlenir, dosyaya yazılmaz). Her adım değişiklikten önceki ve sonraki durumu taşır: durum değişikliklerinde kayıt başına eski/yeni durum, düzenlemede eski/yeni içerik ve durum, silmede kaydın tam kopyası (kimlik, sıra, köken, etiketler, zaman damgaları). Geri alma, yaşam döngüsü kurallarını atlayan ayrı bir servis yöntemiyle (`RestoreStatesAsync` / `RestoreAsync`) uygulanır; kullanıcı aksiyonları ise kurallara tabidir. Kayıtları artık bulunmayan adım uyarıyla geçmişten düşer. İçe aktarma ve örnek veri üretimi geri alınamaz (kayıtlar silinerek kaldırılır). Kalıcı içerik geçmişi (`RecordRevisions`, §14) sürümleme kapsamında ayrıca ele alınır.
+- **ADR-027: Analiz Sonuçlarının Saklanması:** Token sayıları ve tek kayıt kurallarının sonuçları kayıt başına tek satırda (`RecordAnalyses`) tutulur; satır içerik özeti, tokenizer ve kural sürümüyle birlikte saklanır, bunlardan biri değişince "bayat" sayılır ve arka plan analizi yeniden hesaplar (açık bir geçersizleştirme adımı gerekmez). Kayıtlar arası kurallar (kopya, çelişen yanıt) ve veri seti ayarına bağlı kural (bağlamı aşma) saklanmaz, SQL'de sorgu anında hesaplanır; böylece bir kaydın değişmesi başka kayıtların satırını bayatlatmaz ve bağlam uzunluğu değişikliği yeniden analiz gerektirmez. Liste, filtre ve özet bu tabloyu `LEFT JOIN` ile okur; analiz edilmemiş kayıt "—" görünür. Arşivlenmiş kayıtlar özete girmez ve kayıtlar arası kurallarda karşılaştırılmaz. Kişisel veri için özel terimler çalışma alanı dosyasında (`WorkspaceSettings`) saklanır, çünkü şirket ve proje adları paylaşılan dosyayla birlikte gitmelidir.
+- **ADR-028: Dışa Aktarma Hattı ve Soru Tabanlı Bölme:** Dışa aktarma, saf bir dönüştürücüden (`ExportRenderer`, biçim başına golden testli) ve kayıtları listedeki sırayla tek bir okuma anlık görüntüsünden akıtan bir servisten oluşur; dosyalar geçici adla yazılıp tamamlanınca taşınır. Bölme anahtarı, ADR-018'deki "kopya grubunun temsilci kimliği" yerine normalleştirilmiş soru tarafıdır: aynı soruyu soran her kayıt (birebir kopya, farklı yanıt, aynı istemli tercih çifti) aynı dosyaya düşer ve temsilci kaydın silinmesi grubu taşımaz; kayıt eklemek/silmek diğer kayıtları hiç etkilemez. Bedeli, sorusu düzenlenen kaydın dosyasının değişebilmesidir. Bağlam sınırı kontrolü listedeki kırmızı bayrakla aynı içerik tokenını kullanır; şablon yükü sayılmaz.

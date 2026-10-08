@@ -11,7 +11,9 @@ internal sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
         builder.ToTable("Tags");
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Name).HasMaxLength(Tag.MaxNameLength).UseCollation("NOCASE").IsRequired();
+        // Uniqueness uses the folded key: NOCASE would treat "Şifre" and "şifre" as different names.
+        builder.Property(t => t.NameKey).HasMaxLength(Tag.MaxNameLength).IsRequired();
         builder.Property(t => t.ColorHex).HasMaxLength(7).IsRequired();
-        builder.HasIndex(t => t.Name).IsUnique();
+        builder.HasIndex(t => t.NameKey).IsUnique();
     }
 }

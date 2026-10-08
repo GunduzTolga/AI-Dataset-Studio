@@ -63,7 +63,11 @@ public sealed partial class ExplorerViewModel : ViewModelBase
             var node = new ProjectNodeViewModel(project.Id, project.Name) { IsExpanded = expanded.Contains(project.Id) || project.Id == selectedId };
             foreach (var dataset in project.Datasets)
             {
-                node.Datasets.Add(new DatasetNodeViewModel(dataset.Id, dataset.ProjectId, project.Name, dataset.Name, dataset.Type, dataset.RecordCount, _localizer));
+                node.Datasets.Add(new DatasetNodeViewModel(dataset.Id, dataset.ProjectId, project.Name, dataset.Name, dataset.Type, dataset.RecordCount, _localizer)
+                {
+                    Tokenizer = dataset.Tokenizer,
+                    ContextLength = dataset.ContextLength,
+                });
                 if (dataset.Id == selectedId)
                 {
                     node.IsExpanded = true;
@@ -151,9 +155,13 @@ public sealed partial class ExplorerViewModel : ViewModelBase
 
         await RunAsync(async () =>
         {
-            if (node is ProjectNodeViewModel)
+            if (node is ProjectNodeViewModel project)
             {
                 await _catalog.RenameProjectAsync(node.Id, name);
+                foreach (var dataset in project.Datasets)
+                {
+                    dataset.ProjectName = name; // shown in the dataset's subtitle
+                }
             }
             else
             {

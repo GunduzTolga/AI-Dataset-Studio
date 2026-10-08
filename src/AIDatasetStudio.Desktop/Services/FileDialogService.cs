@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using Avalonia.Controls;
@@ -47,6 +48,31 @@ internal sealed class FileDialogService(Func<TopLevel?> topLevel, Localizer loca
         });
 
         return files.Count == 1 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task<string?> PickExportFileAsync(string suggestedName)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = localizer["Dialog_ExportFileTitle"],
+            SuggestedFileName = suggestedName,
+            DefaultExtension = ExportFormats.Extension.TrimStart('.'),
+            FileTypeChoices = [new FilePickerFileType(localizer["Dialog_ExportFileType"]) { Patterns = ["*" + ExportFormats.Extension] }],
+            ShowOverwritePrompt = true,
+        });
+
+        return file?.TryGetLocalPath();
+    }
+
+    public async Task<string?> PickExportFolderAsync()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = localizer["Dialog_ExportFolderTitle"],
+            AllowMultiple = false,
+        });
+
+        return folders.Count == 1 ? folders[0].TryGetLocalPath() : null;
     }
 
     private FilePickerFileType WorkspaceFileType() => new(localizer["Dialog_WorkspaceFileType"])

@@ -1,9 +1,11 @@
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -64,7 +66,13 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     /// Creates a workspace with one project and one dataset holding <paramref name="count"/>
     /// instruction records ("Soru i" / "üçlü" for every third, else "diğer"), and shows it.
     /// </summary>
-    public async Task<DatasetNodeViewModel> CreateDatasetWithRecordsAsync(int count, DatasetType type = DatasetType.Instruction)
+    public Task<DatasetNodeViewModel> CreateDatasetWithRecordsAsync(int count, DatasetType type = DatasetType.Instruction) =>
+        CreateDatasetAsync(type, [.. Enumerable.Range(1, count).Select(i => new InstructionPayload($"Soru {i}", "", i % 3 == 0 ? "üçlü" : "diğer"))]);
+
+    /// <summary>
+    /// Creates a workspace with one project and one dataset holding <paramref name="payloads"/>, and shows it.
+    /// </summary>
+    public async Task<DatasetNodeViewModel> CreateDatasetAsync(DatasetType type, IReadOnlyList<RecordPayload> payloads)
     {
         await CreateWorkspaceAsync();
         var explorer = Main.Explorer;
@@ -74,18 +82,26 @@ internal sealed class DesktopTestHost : IAsyncDisposable
         await explorer.NewDatasetCommand.ExecuteAsync(null);
         var dataset = explorer.SelectedDataset!;
 
-        if (count > 0)
+        if (payloads.Count > 0)
         {
-            await Get<IRecordCommandService>().AddRangeAsync(
-                dataset.Id,
-                Enumerable.Range(1, count).Select(i => new NewRecord(
-                    new InstructionPayload($"Soru {i}", "", i % 3 == 0 ? "üçlü" : "diğer"),
-                    RecordLineage.Manual())));
+            await Get<IRecordCommandService>().AddRangeAsync(dataset.Id, payloads.Select(payload => new NewRecord(payload, RecordLineage.Manual())));
         }
 
         await Main.Records.ReloadAsync();
         await WaitUntilAsync(() => Main.Records.Dataset == dataset && !Main.Records.IsLoading);
         return dataset;
+    }
+
+    /// <summary>
+    /// Runs the background analysis of the shown dataset, as after an import, and waits until the
+    /// list and the overview show its results.
+    /// </summary>
+    public async Task AnalyzeAsync()
+    {
+        await Main.Overview.Running; // the run started when the dataset was shown
+        Main.Overview.StartAnalysis();
+        await Main.Overview.Running;
+        await WaitUntilAsync(() => !Main.Records.IsLoading && Main.Records.Items.All(row => row.IsAnalyzed) && Main.Overview.Summary is { PendingCount: 0 });
     }
 
     /// <summary>
@@ -117,6 +133,8 @@ internal sealed class DesktopTestHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // The background analysis must not touch the workspace while it closes.
+        await Main.Overview.StopAsync();
         await Get<IWorkspaceService>().CloseAsync();
         await _services.DisposeAsync();
         SqliteConnection.ClearAllPools();
@@ -148,6 +166,17 @@ internal sealed class FakeDialogs : IDialogService
     public Task<string?> PromptTextAsync(string title, string message, string initialText) =>
         Task.FromResult(TextAnswers.Count > 0 ? TextAnswers.Dequeue() : null);
 
+    /// <summary>
+    /// The text the last multi-line prompt started with.
+    /// </summary>
+    public string? LastLinesInitialText { get; private set; }
+
+    public Task<string?> PromptLinesAsync(string title, string message, string initialText)
+    {
+        LastLinesInitialText = initialText;
+        return PromptTextAsync(title, message, initialText);
+    }
+
     public Task<NewDatasetRequest?> PromptNewDatasetAsync() => Task.FromResult(DatasetAnswer);
 
     public Task<T?> ChooseAsync<T>(string title, string message, IReadOnlyList<(T Value, string Label)> options, int selectedIndex)
@@ -170,6 +199,24 @@ internal sealed class FakeDialogs : IDialogService
     };
 
     public ImportWizardViewModel? LastImportWizard { get; private set; }
+
+    /// <summary>
+    /// What the user does in the export wizard; by default shows the preview and exports.
+    /// </summary>
+    public Func<ExportWizardViewModel, Task> ExportWizardScript { get; set; } = async wizard =>
+    {
+        await wizard.InitializeAsync();
+        await wizard.ExportCommand.ExecuteAsync(null);
+    };
+
+    public ExportWizardViewModel? LastExportWizard { get; private set; }
+
+    public async Task<ExportResult?> ShowExportWizardAsync(ExportWizardViewModel wizard)
+    {
+        LastExportWizard = wizard;
+        await ExportWizardScript(wizard);
+        return wizard.Result;
+    }
 
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
@@ -198,4 +245,18 @@ internal sealed class FakeFileDialogs : IFileDialogService
         ImportExtensions = extensions;
         return Task.FromResult(ImportPath);
     }
+
+    public string? ExportPath { get; set; }
+
+    public string? ExportFolder { get; set; }
+
+    public string? SuggestedExportName { get; private set; }
+
+    public Task<string?> PickExportFileAsync(string suggestedName)
+    {
+        SuggestedExportName = suggestedName;
+        return Task.FromResult(ExportPath);
+    }
+
+    public Task<string?> PickExportFolderAsync() => Task.FromResult(ExportFolder);
 }

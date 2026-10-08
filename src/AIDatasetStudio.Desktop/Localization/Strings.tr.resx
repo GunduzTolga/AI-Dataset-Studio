@@ -699,4 +699,433 @@
   <data name="Status_RecordsStatusChangedAll" xml:space="preserve">
     <value>{0:N0} kayıt “{1}” yapıldı.</value>
   </data>
+  <data name="Menu_PiiPreview" xml:space="preserve">
+    <value>_Maskelenmiş Önizleme</value>
+  </data>
+  <data name="Menu_CustomTerms" xml:space="preserve">
+    <value>Özel Hassas _Terimler…</value>
+  </data>
+  <data name="Records_ColumnTokens" xml:space="preserve">
+    <value>TOKEN</value>
+  </data>
+  <data name="Records_ColumnQuality" xml:space="preserve">
+    <value>KALİTE</value>
+  </data>
+  <data name="Records_OverContextLimit" xml:space="preserve">
+    <value>Veri setinin bağlam uzunluğunu aşıyor</value>
+  </data>
+  <data name="Records_QualityFilter" xml:space="preserve">
+    <value>Kaliteye göre filtrele</value>
+  </data>
+  <data name="QualityFilter_None" xml:space="preserve">
+    <value>Tüm kalite düzeyleri</value>
+  </data>
+  <data name="QualityFilter_Issues" xml:space="preserve">
+    <value>Sorunlu kayıtlar</value>
+  </data>
+  <data name="QualityFilter_Errors" xml:space="preserve">
+    <value>Hatalı kayıtlar</value>
+  </data>
+  <data name="QualityFilter_OverContextLimit" xml:space="preserve">
+    <value>Bağlam uzunluğunu aşanlar</value>
+  </data>
+  <data name="QualityFilter_Duplicates" xml:space="preserve">
+    <value>Kopyalar</value>
+  </data>
+  <data name="QualityFilter_PersonalData" xml:space="preserve">
+    <value>Kişisel veri içerenler</value>
+  </data>
+  <data name="Rule_EmptyContent" xml:space="preserve">
+    <value>Boş alanlar</value>
+  </data>
+  <data name="Rule_IdenticalAnswers" xml:space="preserve">
+    <value>Aynı yanıtlar</value>
+  </data>
+  <data name="Rule_ShortAnswer" xml:space="preserve">
+    <value>Geçiştirici yanıtlar</value>
+  </data>
+  <data name="Rule_UnbalancedLength" xml:space="preserve">
+    <value>Dengesiz uzunluk</value>
+  </data>
+  <data name="Rule_EchoedInput" xml:space="preserve">
+    <value>Soruyu tekrarlayan yanıtlar</value>
+  </data>
+  <data name="Rule_UnclosedCodeBlock" xml:space="preserve">
+    <value>Kapanmamış kod blokları</value>
+  </data>
+  <data name="Rule_InvalidJson" xml:space="preserve">
+    <value>Geçersiz JSON</value>
+  </data>
+  <data name="Rule_PersonalData" xml:space="preserve">
+    <value>Kişisel veri</value>
+  </data>
+  <data name="Rule_Duplicate" xml:space="preserve">
+    <value>Kopyalar</value>
+  </data>
+  <data name="Rule_ConflictingAnswer" xml:space="preserve">
+    <value>Çelişen yanıtlar</value>
+  </data>
+  <data name="Rule_OverContextLimit" xml:space="preserve">
+    <value>Bağlam uzunluğunu aşanlar</value>
+  </data>
+  <data name="Issue_EmptyContent" xml:space="preserve">
+    <value>Boş alan: {0}</value>
+  </data>
+  <data name="Issue_IdenticalAnswers" xml:space="preserve">
+    <value>Tercih edilen ve reddedilen yanıtlar aynı.</value>
+  </data>
+  <data name="Issue_ShortAnswer" xml:space="preserve">
+    <value>Yanıt “tamam”, “bilmiyorum” gibi geçiştirici bir cevap.</value>
+  </data>
+  <data name="Issue_UnbalancedLength" xml:space="preserve">
+    <value>Yanıt, sorudan 50 kattan daha uzun.</value>
+  </data>
+  <data name="Issue_EchoedInput" xml:space="preserve">
+    <value>Yanıt soruyu tekrarlıyor.</value>
+  </data>
+  <data name="Issue_UnclosedCodeBlock" xml:space="preserve">
+    <value>Kapanmamış kod bloğu: {0}</value>
+  </data>
+  <data name="Issue_InvalidJson" xml:space="preserve">
+    <value>Çözümlenemeyen JSON: {0}</value>
+  </data>
+  <data name="Issue_PersonalData" xml:space="preserve">
+    <value>Kişisel veya gizli veri içeriyor: {0}</value>
+  </data>
+  <data name="Issue_Duplicate" xml:space="preserve">
+    <value>Başka bir kayıt birebir aynı içeriğe sahip.</value>
+  </data>
+  <data name="Issue_ConflictingAnswer" xml:space="preserve">
+    <value>Başka bir kayıt aynı soruya farklı yanıt veriyor.</value>
+  </data>
+  <data name="Issue_OverContextLimit" xml:space="preserve">
+    <value>Veri setinin bağlam uzunluğunu aşıyor.</value>
+  </data>
+  <data name="Pii_Email" xml:space="preserve">
+    <value>e-posta adresi</value>
+  </data>
+  <data name="Pii_Phone" xml:space="preserve">
+    <value>telefon numarası</value>
+  </data>
+  <data name="Pii_NationalId" xml:space="preserve">
+    <value>T.C. kimlik numarası</value>
+  </data>
+  <data name="Pii_Iban" xml:space="preserve">
+    <value>IBAN</value>
+  </data>
+  <data name="Pii_CreditCard" xml:space="preserve">
+    <value>kart numarası</value>
+  </data>
+  <data name="Pii_InternalIp" xml:space="preserve">
+    <value>iç IP adresi</value>
+  </data>
+  <data name="Pii_InternalUrl" xml:space="preserve">
+    <value>iç URL</value>
+  </data>
+  <data name="Pii_ApiKey" xml:space="preserve">
+    <value>API anahtarı</value>
+  </data>
+  <data name="Pii_Secret" xml:space="preserve">
+    <value>parola veya gizli anahtar</value>
+  </data>
+  <data name="Pii_CustomTerm" xml:space="preserve">
+    <value>özel terim</value>
+  </data>
+  <data name="Pii_Count" xml:space="preserve">
+    <value>{1}: {0:N0}</value>
+  </data>
+  <data name="Pii_NoneFound" xml:space="preserve">
+    <value>Kişisel veya gizli veri bulunamadı.</value>
+  </data>
+  <data name="Editor_Tokens" xml:space="preserve">
+    <value>{0:N0} / {1:N0}</value>
+  </data>
+  <data name="Editor_TokenDetail" xml:space="preserve">
+    <value>İstem {0:N0} + yanıt {1:N0} token ({2})</value>
+  </data>
+  <data name="Editor_PiiPreview" xml:space="preserve">
+    <value>Kişisel veriler maskelenmiş önizleme</value>
+  </data>
+  <data name="Editor_PiiPreviewTitle" xml:space="preserve">
+    <value>Maskelenmiş önizleme</value>
+  </data>
+  <data name="Editor_ApplyMask" xml:space="preserve">
+    <value>Maskelemeyi Uygula</value>
+  </data>
+  <data name="Details_Quality" xml:space="preserve">
+    <value>KALİTE</value>
+  </data>
+  <data name="Details_NoIssues" xml:space="preserve">
+    <value>Sorun bulunamadı.</value>
+  </data>
+  <data name="Overview_Title" xml:space="preserve">
+    <value>VERİ SETİ ÖZETİ</value>
+  </data>
+  <data name="Overview_QualityScore" xml:space="preserve">
+    <value>Kalite skoru</value>
+  </data>
+  <data name="Overview_Analyzed" xml:space="preserve">
+    <value>{1:N0} kaydın {0:N0} tanesi analiz edildi</value>
+  </data>
+  <data name="Overview_Analyzing" xml:space="preserve">
+    <value>Analiz ediliyor {0:N0} / {1:N0}…</value>
+  </data>
+  <data name="Overview_Tokens" xml:space="preserve">
+    <value>TOKENLAR</value>
+  </data>
+  <data name="Overview_Tokenizer" xml:space="preserve">
+    <value>Tokenizer</value>
+  </data>
+  <data name="Overview_ContextLength" xml:space="preserve">
+    <value>Bağlam uzunluğu</value>
+  </data>
+  <data name="Overview_ContextOption" xml:space="preserve">
+    <value>{0:N0} token</value>
+  </data>
+  <data name="Overview_TotalTokens" xml:space="preserve">
+    <value>toplam token</value>
+  </data>
+  <data name="Overview_MaxTokens" xml:space="preserve">
+    <value>en uzun kayıt</value>
+  </data>
+  <data name="Overview_OverLimit" xml:space="preserve">
+    <value>sınırı aşan</value>
+  </data>
+  <data name="Overview_BucketBelow" xml:space="preserve">
+    <value>&lt; {0:N0}</value>
+  </data>
+  <data name="Overview_BucketAbove" xml:space="preserve">
+    <value>≥ {0:N0}</value>
+  </data>
+  <data name="Overview_Issues" xml:space="preserve">
+    <value>SORUNLAR</value>
+  </data>
+  <data name="Overview_NoIssues" xml:space="preserve">
+    <value>Analiz edilen kayıtlarda sorun yok.</value>
+  </data>
+  <data name="Overview_ShowRecords" xml:space="preserve">
+    <value>Göster</value>
+  </data>
+  <data name="Overview_ArchiveHint" xml:space="preserve">
+    <value>Bu kayıtları arşivle (kopyalarda ilki hariç). Düzen › Geri Al ile geri alınabilir.</value>
+  </data>
+  <data name="Dialog_ArchiveIssuesTitle" xml:space="preserve">
+    <value>Kayıtları Arşivle</value>
+  </data>
+  <data name="Dialog_ArchiveIssuesMessage" xml:space="preserve">
+    <value>“{1}” sorunu olan {0:N0} kayıt arşivlensin mi? Düzen › Geri Al ile geri getirebilirsiniz.</value>
+  </data>
+  <data name="Dialog_CustomTermsTitle" xml:space="preserve">
+    <value>Özel Hassas Terimler</value>
+  </data>
+  <data name="Dialog_CustomTermsMessage" xml:space="preserve">
+    <value>Her satıra bir terim: şirket adları, proje kod adları, kişiler… Bu çalışma alanındaki tüm veri setlerinde diğer kişisel veriler gibi işaretlenir ve maskelenir.</value>
+  </data>
+  <data name="Status_CustomTermsSaved" xml:space="preserve">
+    <value>{0:N0} özel terim kaydedildi; kayıtlar yeniden analiz ediliyor.</value>
+  </data>
+  <data name="Status_MaskApplied" xml:space="preserve">
+    <value>Maskelenmiş metin düzenleyicide. Kalıcı olması için kaydedin; Düzen › Geri Al kaydı geri alır.</value>
+  </data>
+  <data name="Status_RecordsArchivedByRule" xml:space="preserve">
+    <value>“{1}” sorunu olan {0:N0} kayıt arşivlendi.</value>
+  </data>
+  <data name="Status_TokenSettingsChanged" xml:space="preserve">
+    <value>{0} token ayarları: {1}, {2}.</value>
+  </data>
+  <data name="Details_QualityScore" xml:space="preserve">
+    <value>Kalite skoru</value>
+  </data>
+  <data name="Error_Storage" xml:space="preserve">
+    <value>Çalışma alanı kaydedilemedi; dosya kullanımda, salt okunur ya da disk dolu olabilir. {0}</value>
+  </data>
+  <data name="Menu_Export" xml:space="preserve">
+    <value>Dosyaya _Dışa Aktar…</value>
+  </data>
+  <data name="Action_Export" xml:space="preserve">
+    <value>Dışa aktar</value>
+  </data>
+  <data name="Action_ExportToFile" xml:space="preserve">
+    <value>Eğitim dosyalarına dışa aktar (Mod+E)</value>
+  </data>
+  <data name="Export_Title" xml:space="preserve">
+    <value>Veri Setini Dışa Aktar</value>
+  </data>
+  <data name="Export_Target" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Export_SectionFormat" xml:space="preserve">
+    <value>BİÇİM</value>
+  </data>
+  <data name="Export_SectionRecords" xml:space="preserve">
+    <value>KAYITLAR</value>
+  </data>
+  <data name="Export_SectionSplit" xml:space="preserve">
+    <value>BÖLME</value>
+  </data>
+  <data name="Export_Statuses" xml:space="preserve">
+    <value>Durumlar</value>
+  </data>
+  <data name="Export_SkipOverLimitOption" xml:space="preserve">
+    <value>Bağlam uzunluğunu aşan kayıtları dışarıda bırak</value>
+  </data>
+  <data name="Export_SkipDuplicatesOption" xml:space="preserve">
+    <value>Birebir kopyaları dışarıda bırak (ilki kalır)</value>
+  </data>
+  <data name="Export_MaskOption" xml:space="preserve">
+    <value>Kişisel verileri maskele (e-posta, telefon, kimlik, anahtar…)</value>
+  </data>
+  <data name="Export_SplitNone" xml:space="preserve">
+    <value>Tek dosya</value>
+  </data>
+  <data name="Export_SplitStandard" xml:space="preserve">
+    <value>Eğitim / doğrulama / test · 80 / 10 / 10</value>
+  </data>
+  <data name="Export_SplitTrainValidation" xml:space="preserve">
+    <value>Eğitim / doğrulama · 90 / 10</value>
+  </data>
+  <data name="Export_SplitCustom" xml:space="preserve">
+    <value>Özel oranlar</value>
+  </data>
+  <data name="Export_Seed" xml:space="preserve">
+    <value>Tohum (seed)</value>
+  </data>
+  <data name="Export_SplitHint" xml:space="preserve">
+    <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
+  </data>
+  <data name="SplitPart_Train" xml:space="preserve">
+    <value>eğitim</value>
+  </data>
+  <data name="SplitPart_Validation" xml:space="preserve">
+    <value>doğrulama</value>
+  </data>
+  <data name="SplitPart_Test" xml:space="preserve">
+    <value>test</value>
+  </data>
+  <data name="Export_PartEstimate" xml:space="preserve">
+    <value>{0} ≈ {1:N0}</value>
+  </data>
+  <data name="ExportFormat_OpenAi" xml:space="preserve">
+    <value>OpenAI JSONL</value>
+  </data>
+  <data name="ExportFormat_ShareGpt" xml:space="preserve">
+    <value>ShareGPT</value>
+  </data>
+  <data name="ExportFormat_Alpaca" xml:space="preserve">
+    <value>Alpaca</value>
+  </data>
+  <data name="ExportFormat_HuggingFaceDpo" xml:space="preserve">
+    <value>Hugging Face DPO</value>
+  </data>
+  <data name="ExportFormat_ChatMl" xml:space="preserve">
+    <value>ChatML metni</value>
+  </data>
+  <data name="ExportFormat_Llama3" xml:space="preserve">
+    <value>Llama 3 metni</value>
+  </data>
+  <data name="ExportFormat_OpenAi_Hint" xml:space="preserve">
+    <value>messages: system / user / assistant</value>
+  </data>
+  <data name="ExportFormat_OpenAiPreference_Hint" xml:space="preserve">
+    <value>input / preferred_output / non_preferred_output</value>
+  </data>
+  <data name="ExportFormat_ShareGpt_Hint" xml:space="preserve">
+    <value>conversations: human / gpt</value>
+  </data>
+  <data name="ExportFormat_Alpaca_Hint" xml:space="preserve">
+    <value>instruction / input / output</value>
+  </data>
+  <data name="ExportFormat_HuggingFaceDpo_Hint" xml:space="preserve">
+    <value>prompt / chosen / rejected</value>
+  </data>
+  <data name="ExportFormat_ChatMl_Hint" xml:space="preserve">
+    <value>text: &lt;|im_start|&gt;user … &lt;|im_end|&gt;</value>
+  </data>
+  <data name="ExportFormat_Llama3_Hint" xml:space="preserve">
+    <value>text: &lt;|start_header_id|&gt;user&lt;|end_header_id|&gt; …</value>
+  </data>
+  <data name="Export_AlpacaChatWarning" xml:space="preserve">
+    <value>Yalnızca tek soru ve tek cevaplı sohbetler sığar; daha uzunları dışarıda kalır.</value>
+  </data>
+  <data name="Export_WillExport" xml:space="preserve">
+    <value>kayıt dışa aktarılacak</value>
+  </data>
+  <data name="Export_FirstLines" xml:space="preserve">
+    <value>İLK SATIRLAR</value>
+  </data>
+  <data name="Export_SkipUnsupported" xml:space="preserve">
+    <value>Dışarıda: bu biçime sığmıyor</value>
+  </data>
+  <data name="Export_SkipOverLimit" xml:space="preserve">
+    <value>Dışarıda: bağlam uzunluğunu aşıyor</value>
+  </data>
+  <data name="Export_SkipDuplicates" xml:space="preserve">
+    <value>Dışarıda: önceki bir kaydın kopyası</value>
+  </data>
+  <data name="Export_NotAnalyzed" xml:space="preserve">
+    <value>Uzunluğu henüz bilinmiyor; dışa aktarırken kontrol edilir</value>
+  </data>
+  <data name="Export_Masked" xml:space="preserve">
+    <value>Kişisel verisi maskelenen kayıt</value>
+  </data>
+  <data name="Export_NoApprovedHint" xml:space="preserve">
+    <value>Henüz onaylanmış kayıt yok. Onları da dışa aktarmak için İncelemede veya Taslak'ı işaretleyin.</value>
+  </data>
+  <data name="Export_NoStatus" xml:space="preserve">
+    <value>En az bir durum seçin.</value>
+  </data>
+  <data name="Export_InvalidSplit" xml:space="preserve">
+    <value>Oranların toplamı 100 olmalı ve eğitim payı sıfırdan büyük olmalı.</value>
+  </data>
+  <data name="Export_Start" xml:space="preserve">
+    <value>{0:N0} kaydı dışa aktar</value>
+  </data>
+  <data name="Export_Progress" xml:space="preserve">
+    <value>Dışa aktarılıyor… {0:N0} / {1:N0}</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Dışa aktarma iptal edildi. Hiçbir dosya yazılmadı veya değişmedi.</value>
+  </data>
+  <data name="Export_OverwriteQuestion" xml:space="preserve">
+    <value>{1} klasöründe {0} zaten var. Üzerine yazılsın mı?</value>
+  </data>
+  <data name="Export_Overwrite" xml:space="preserve">
+    <value>Üzerine Yaz</value>
+  </data>
+  <data name="Export_ChooseOtherFolder" xml:space="preserve">
+    <value>Başka Klasör Seç</value>
+  </data>
+  <data name="Export_DoneTitle" xml:space="preserve">
+    <value>Dışa aktarma tamamlandı</value>
+  </data>
+  <data name="Export_DoneSummary" xml:space="preserve">
+    <value>'{1}' veri setinden {0:N0} kayıt yazıldı.</value>
+  </data>
+  <data name="Export_FileCount" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Export_LastExport" xml:space="preserve">
+    <value>Son dışa aktarım: {0} · {1} · {2:N0} kayıt</value>
+  </data>
+  <data name="Status_Exported" xml:space="preserve">
+    <value>'{1}' veri setinden {0:N0} kayıt dışa aktarıldı: {2}</value>
+  </data>
+  <data name="Dialog_ExportFileTitle" xml:space="preserve">
+    <value>Dosyaya Dışa Aktar</value>
+  </data>
+  <data name="Dialog_ExportFileType" xml:space="preserve">
+    <value>JSON Lines</value>
+  </data>
+  <data name="Dialog_ExportFolderTitle" xml:space="preserve">
+    <value>train / val / test İçin Klasör Seçin</value>
+  </data>
+  <data name="Export_TrainShare" xml:space="preserve">
+    <value>Eğitim %</value>
+  </data>
+  <data name="Export_ValidationShare" xml:space="preserve">
+    <value>Doğrulama %</value>
+  </data>
+  <data name="Export_TestShare" xml:space="preserve">
+    <value>Test %</value>
+  </data>
 </root>

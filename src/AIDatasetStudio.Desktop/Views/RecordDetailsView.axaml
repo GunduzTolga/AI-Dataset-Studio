@@ -14,21 +14,28 @@
   </UserControl.Styles>
 
   <Panel>
-    <!-- Nothing selected -->
-    <StackPanel Classes="empty" IsVisible="{Binding IsEmpty}">
-      <Border Classes="empty-icon">
-        <ic:SymbolIcon Symbol="DocumentText" />
-      </Border>
-      <TextBlock Classes="subtitle" Text="{l:Tr Details_NoRecordTitle}" />
-      <TextBlock Classes="muted" Text="{l:Tr Details_NoRecordHint}" />
-    </StackPanel>
-
     <!-- One record: editor -->
     <DockPanel IsVisible="{Binding HasRecord}">
       <StackPanel DockPanel.Dock="Top" Margin="20,18,20,12" Spacing="12">
         <StackPanel Orientation="Horizontal" Spacing="10">
           <TextBlock Classes="title numeric" Text="{Binding Title}" />
-          <controls:StatusBadge Status="{Binding Status}" Text="{Binding StatusLabel}" />
+          <controls:StatusBadge Status="{Binding Status}" Text="{Binding StatusLabel}" VerticalAlignment="Center" />
+          <!-- Live token count against the dataset's context length -->
+          <Border Classes="score" Classes.good="{Binding IsTokenGood}" Classes.fair="{Binding IsTokenFair}" Classes.poor="{Binding IsTokenPoor}"
+                  VerticalAlignment="Center" IsVisible="{Binding HasTokens}" ToolTip.Tip="{Binding TokenDetail}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <ic:SymbolIcon Symbol="TextWordCount" />
+              <TextBlock Classes="numeric" Text="{Binding TokenText}" />
+            </StackPanel>
+          </Border>
+          <!-- Quality score; the issues are listed below the content -->
+          <Border Classes="score" Classes.good="{Binding IsQualityGood}" Classes.fair="{Binding IsQualityFair}" Classes.poor="{Binding IsQualityPoor}"
+                  VerticalAlignment="Center" IsVisible="{Binding HasTokens}" ToolTip.Tip="{l:Tr Details_QualityScore}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <ic:SymbolIcon Symbol="HeartPulse" />
+              <TextBlock Classes="numeric" Text="{Binding QualityScoreText}" />
+            </StackPanel>
+          </Border>
         </StackPanel>
         <Grid ColumnDefinitions="*,Auto">
           <WrapPanel Classes="actions">
@@ -57,11 +64,32 @@
               </StackPanel>
             </Button>
           </WrapPanel>
-          <Button x:Name="DeleteButton" Grid.Column="1" Classes="danger-subtle icon" VerticalAlignment="Top" Command="{Binding DeleteCommand}" ToolTip.Tip="{l:Tr Action_Delete}">
-            <ic:SymbolIcon Symbol="Delete" />
-          </Button>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+            <Button x:Name="PiiButton" Classes="icon" Classes.subtle="{Binding !IsPiiPreview}" Classes.accent="{Binding IsPiiPreview}"
+                    Command="{Binding TogglePiiPreviewCommand}" ToolTip.Tip="{l:Tr Editor_PiiPreview}">
+              <ic:SymbolIcon Symbol="ShieldLock" />
+            </Button>
+            <Button x:Name="DeleteButton" Classes="danger-subtle icon" Command="{Binding DeleteCommand}" ToolTip.Tip="{l:Tr Action_Delete}">
+              <ic:SymbolIcon Symbol="Delete" />
+            </Button>
+          </StackPanel>
         </Grid>
       </StackPanel>
+
+      <!-- Personal data preview -->
+      <Border DockPanel.Dock="Top" Classes="callout" Classes.warning="{Binding HasPii}" Margin="20,0,20,12" Padding="12,8" IsVisible="{Binding IsPiiPreview}">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+          <ic:SymbolIcon Symbol="ShieldLock" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Classes="small strong" Text="{l:Tr Editor_PiiPreviewTitle}" />
+            <TextBlock Classes="small" Text="{Binding PiiSummary}" />
+          </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0" HorizontalAlignment="Right">
+            <Button Classes="subtle" Content="{l:Tr Import_Close}" Command="{Binding TogglePiiPreviewCommand}" />
+            <Button Classes="accent" Content="{l:Tr Editor_ApplyMask}" Command="{Binding ApplyMaskCommand}" IsVisible="{Binding HasPii}" />
+          </StackPanel>
+        </Grid>
+      </Border>
 
       <!-- Unsaved edits -->
       <Border DockPanel.Dock="Top" Classes="callout" Margin="20,0,20,12" Padding="12,8" IsVisible="{Binding IsDirty}">
@@ -87,8 +115,27 @@
 
       <ScrollViewer>
         <StackPanel Margin="20,16,20,24" Spacing="10">
+          <!-- Masked preview (read-only) -->
+          <ItemsControl ItemsSource="{Binding PiiPreview}" IsVisible="{Binding IsPiiPreview}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="10" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:PreviewBlock">
+                <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}">
+                  <StackPanel Spacing="6">
+                    <TextBlock Classes="overline card-label" Text="{Binding Label}" />
+                    <SelectableTextBlock Classes="content" Classes.muted="{Binding IsEmpty}" Text="{Binding Text}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
           <!-- Fields: instruction / input / output, prompt / chosen / rejected, or the system prompt of a chat -->
-          <ItemsControl ItemsSource="{Binding Fields}">
+          <ItemsControl ItemsSource="{Binding Fields}" IsVisible="{Binding IsEditing}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Spacing="10" />
@@ -113,7 +160,7 @@
           </ItemsControl>
 
           <!-- Chat turns -->
-          <ItemsControl ItemsSource="{Binding Messages}" IsVisible="{Binding IsChat}">
+          <ItemsControl ItemsSource="{Binding Messages}" IsVisible="{Binding ShowChatEditor}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Spacing="10" />
@@ -144,12 +191,41 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Classes="subtle" HorizontalAlignment="Center" Command="{Binding AddMessageCommand}" IsVisible="{Binding IsChat}">
+          <Button Classes="subtle" HorizontalAlignment="Center" Command="{Binding AddMessageCommand}" IsVisible="{Binding ShowChatEditor}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <ic:SymbolIcon Symbol="Add" />
               <TextBlock Text="{l:Tr Editor_AddMessage}" />
             </StackPanel>
           </Button>
+
+          <!-- Quality (SDD §8) -->
+          <Grid ColumnDefinitions="*,Auto" Margin="2,14,0,2">
+            <TextBlock Classes="overline" Text="{l:Tr Details_Quality}" VerticalAlignment="Center" />
+            <Border Grid.Column="1" Classes="score" Classes.good="{Binding IsQualityGood}" Classes.fair="{Binding IsQualityFair}" Classes.poor="{Binding IsQualityPoor}">
+              <TextBlock Text="{Binding QualityScoreText}" />
+            </Border>
+          </Grid>
+          <Border Classes="card" Padding="14,10">
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasNoQualityIssues}">
+                <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="16" Foreground="{DynamicResource PositiveBrush}" />
+                <TextBlock Classes="small" Text="{l:Tr Details_NoIssues}" VerticalAlignment="Center" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding QualityIssues}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:IssueItem">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,3">
+                      <Panel Margin="0,1,8,0" VerticalAlignment="Top">
+                        <ic:SymbolIcon Symbol="ErrorCircle" FontSize="16" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsError}" />
+                        <ic:SymbolIcon Symbol="Warning" FontSize="16" Foreground="{DynamicResource WarningTextBrush}" IsVisible="{Binding IsWarning}" />
+                      </Panel>
+                      <TextBlock Grid.Column="1" Classes="small" Text="{Binding Text}" TextWrapping="Wrap" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
 
           <!-- Info -->
           <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Details_Info}" />

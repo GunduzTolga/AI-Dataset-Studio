@@ -16,6 +16,12 @@
   </ItemGroup>
 
   <ItemGroup Label="Persistence">
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers.Data.Cl100kBase" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers.Data.O200kBase" Version="2.0.0" />
+    <!-- Microsoft.ML.Tokenizers 2.0.0 brings Microsoft.Bcl.Memory 9.0.4, which has a known high-severity
+         vulnerability (GHSA-73j8-2gch-69rq); pinned to a serviced release. -->
+    <PackageVersion Include="Microsoft.Bcl.Memory" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
   </ItemGroup>

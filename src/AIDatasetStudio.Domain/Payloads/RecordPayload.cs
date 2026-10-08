@@ -42,7 +42,19 @@ public abstract record RecordPayload
         }
 
         var collapsed = string.Join(' ', source.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        return collapsed.Length <= maxLength ? collapsed : string.Concat(collapsed.AsSpan(0, maxLength - 1).TrimEnd(), "…");
+        if (collapsed.Length <= maxLength)
+        {
+            return collapsed;
+        }
+
+        // Never cut between the two halves of a surrogate pair (emoji and other non-BMP characters).
+        var cut = maxLength - 1;
+        if (char.IsHighSurrogate(collapsed[cut - 1]))
+        {
+            cut--;
+        }
+
+        return string.Concat(collapsed.AsSpan(0, cut).TrimEnd(), "…");
     }
 
     /// <summary>

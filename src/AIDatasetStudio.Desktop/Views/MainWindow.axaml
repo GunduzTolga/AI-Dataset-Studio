@@ -41,6 +41,9 @@
         <MenuItem x:Name="ImportMenuItem" Header="{l:Tr Menu_Import}" Command="{Binding ImportCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowImport" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="ExportMenuItem" Header="{l:Tr Menu_Export}" Command="{Binding ExportCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowExport" /></MenuItem.Icon>
+        </MenuItem>
         <Separator />
         <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
       </MenuItem>
@@ -93,6 +96,9 @@
         <MenuItem x:Name="PreviousMenuItem" Header="{l:Tr Menu_PreviousRecord}" Command="{Binding PreviousRecordCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowUp" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="PiiPreviewMenuItem" Header="{l:Tr Menu_PiiPreview}" Command="{Binding Details.TogglePiiPreviewCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldLock" /></MenuItem.Icon>
+        </MenuItem>
         <Separator />
         <MenuItem x:Name="DeleteMenuItem" Header="{l:Tr Menu_DeleteRecords}" Command="{Binding DeleteSelectionCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="Delete" /></MenuItem.Icon>
@@ -101,6 +107,9 @@
       <MenuItem Header="{l:Tr Menu_Tools}">
         <MenuItem Header="{l:Tr Menu_GenerateSampleData}" Command="{Binding GenerateSampleDataCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="Sparkle" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="CustomTermsMenuItem" Header="{l:Tr Menu_CustomTerms}" Command="{Binding EditCustomTermsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldKeyhole" /></MenuItem.Icon>
         </MenuItem>
       </MenuItem>
     </Menu>
@@ -139,7 +148,9 @@
 
         <Border Grid.Column="4" Background="{DynamicResource InspectorBackgroundBrush}">
           <Panel IsVisible="{Binding Records.HasDataset}">
-            <views:RecordDetailsView DataContext="{Binding Details}" />
+            <!-- Nothing selected: the dataset overview; otherwise the record editor or batch panel -->
+            <views:DatasetOverviewView x:Name="OverviewView" DataContext="{Binding Overview}" IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Details.IsEmpty}" />
+            <views:RecordDetailsView DataContext="{Binding Details}" IsVisible="{Binding !IsEmpty}" />
           </Panel>
         </Border>
       </Grid>

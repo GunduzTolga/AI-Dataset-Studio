@@ -51,6 +51,16 @@ public sealed class PreviewAndSearchTextTests
     }
 
     [Fact]
+    public void Cutting_never_splits_an_emoji()
+    {
+        // The cut at 199 UTF-16 units would fall between the two halves of the emoji.
+        var preview = new InstructionPayload(new string('a', 198) + "😀x", "", "").GetPreviewText();
+
+        Assert.Equal(new string('a', 198) + "…", preview);
+        Assert.DoesNotContain(preview, char.IsSurrogate);
+    }
+
+    [Fact]
     public void Searchable_texts_cover_every_text_field()
     {
         Assert.Equal(["i", "in", "out"], new InstructionPayload("i", "in", "out").GetSearchableTexts());

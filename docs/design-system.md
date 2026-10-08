@@ -105,6 +105,8 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | Aç / Son açılanlar / Kapat | `FolderOpen` / `History` / `Dismiss` |
 | Tema / Dil | `DarkTheme` / `LocalLanguage` |
 | İçe aktar / Kaynak dosya | `ArrowImport` / `DocumentTable` |
+| Dışa aktar / Yazılan dosya / Son dışa aktarım | `ArrowExport` / `DocumentText` / `History` |
+| Dışarıda bırakılan kayıt | `SubtractCircle` (soluk) |
 | Geçerli / Atlanacak satır | `CheckmarkCircle` (olumlu renk) / `ErrorCircle` (hata rengi) |
 | Bilgi / Uyarı / Hata bildirimi | `Info` (konuşma biçiminde `Chat`) / `Warning` / `ErrorCircle`, `DismissCircle` |
 | Kaydet / Kaydedilmemiş değişiklik / Salt okunur | `Save` / `DocumentEdit` / `LockClosed` |
@@ -112,7 +114,10 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | Önceki / Sonraki kayıt | `ArrowUp` / `ArrowDown` |
 | Mesaj ekle / Rolü çevir / Mesajı kaldır | `Add` / `ArrowSwap` / `Dismiss` |
 | Çoklu seçim | `Multiselect` |
-| Gizlilik | `ShieldLock` |
+| Gizlilik / Maskelenmiş önizleme | `ShieldLock` · özel terimler: `ShieldKeyhole` |
+| Token sayısı / Kalite skoru | `TextWordCount` / `HeartPulse` |
+| Bağlamı aşan kayıt | `Flag` (hata rengi) |
+| Sorun: hata / uyarı / yok | `ErrorCircle` / `Warning` / `CheckmarkCircle` (olumlu renk) |
 
 Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Symbol` yalnızca tekil kullanımlar içindir.
 
@@ -137,6 +142,9 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 - `TextBox`: yüzey zemin, odakta 1,5 px vurgu kenarı.
 - `TextBox.search`: soldaki `Search` ikonu (`InnerLeftContent`) ve Fluent'ın temizleme düğmesi (`clearButton`).
 
+### Seçenek kartları
+`ListBox.options` + `Border.option`: birkaç açıklamalı seçenekten biri (dışa aktarma biçimi). Kart: kalın ad, altında soluk tek satır biçim örneği (`mono`), gerekirse amber uyarı satırı. Üzerine gelince güçlü kenar; seçiliyken vurgu zemini, vurgu kenarı ve vurgu renkli ad. `SelectionMode="AlwaysSelected"`.
+
 ### Çipler (durum filtresi)
 `ListBox.chips` + `Border.chip`: yatay, hap biçiminde; etiket ve soluk sayaç. Seçili çip vurgu zemini, vurgu kenarı ve vurgu metniyle gösterilir. `SelectionMode="AlwaysSelected"`.
 
@@ -145,7 +153,13 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 - `Border.tag`: nötr hap (veri seti tipi).
 
 ### Kayıt satırı
-`ListBox.records` + `Border.row`: alt ayırıcı çizgi, `16,9` iç boşluk; kolonlar `#` (64) · durum (116) · içerik. Üzerine gelince hafif dolgu; seçiliyken vurgu zemini ve solda 3 px vurgu çubuğu (`Border.row-indicator`).
+`ListBox.records` + `Border.row`: alt ayırıcı çizgi, `16,9` iç boşluk; kolonlar `#` (64) · durum (116) · içerik · token (76, sağa yaslı; bağlamı aşınca `Flag` + hata rengi) · kalite (64, `Border.score`). Üzerine gelince hafif dolgu; seçiliyken vurgu zemini ve solda 3 px vurgu çubuğu (`Border.row-indicator`).
+
+### Skor ve token hapları
+`Border.score`: hap biçiminde, küçük yarı kalın yazı; analizden önce nötr ("—"). `.good` (90–100, onaylı yeşili), `.fair` (60–89, inceleme amberi), `.poor` (< 60, arşiv kırmızısı); token rozetinde aynı renkler bağlam doluluğunu gösterir (< %50 / ≤ %100 / aşıyor). İçinde isteğe bağlı 13 px ikon. `Border.score.large`: 64×64, `RadiusLarge`, `FontSizeDisplay` rakam — veri seti özetindeki skor kutusu.
+
+### Histogram
+Satır: kova etiketi (78 px, soluk tablo rakamı) · 200 px `Border.bar-track` içinde `Border.bar` (vurgu rengi; bağlamın üstündeki kovalar `.over` ile hata rengi; genişlik `LayoutConverters.BarWidth`, sıfır olmayan pay en az 2 px) · sağa yaslı sayı.
 
 ### Gezinme ağacı
 `TreeView.nav`: 32 px düğümler, 6 px yuvarlatılmış seçim, seçili düğümde vurgu metni. Proje düğümü kalın yazılır; veri seti düğümünde tip ikonu, ad ve sağda tablo rakamlarıyla kayıt sayısı bulunur.
@@ -162,6 +176,12 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 
 ### Toplu panel
 Birden fazla kayıt seçilince sağ panel: ikon kutusu + "N kayıt seçili" başlığı, durum rozetleri ve sayıları, uygun aksiyonlar (en az bir seçili kayda uygulanabilenler) ve kısa açıklama. Silme metinli `danger-subtle` düğmedir.
+
+### Veri seti özeti
+Hiçbir kayıt seçili değilken sağ panel: "VERİ SETİ ÖZETİ" üst başlığı ve veri seti adı · skor kartı (büyük skor kutusu, "Kalite skoru", "x / y kayıt analiz edildi", analiz sürerken ilerleme çubuğu) · TOKENLAR kartı (tokenizer 3* ve bağlam uzunluğu 2* açılır listeleri, üç istatistik: toplam / en uzun / sınırı aşan, histogram) · SORUNLAR kartı (`ItemsControl.lines`: ciddiyet ikonu, kural adı + soluk sayı, sağda "Göster" `subtle` ve uygun kurallarda "Arşivle"; sorun yoksa olumlu onay satırı) · altta seçme ipucu.
+
+### Kalite bölümü ve maskelenmiş önizleme
+Editörde içerikten sonra, BİLGİLER'den önce "KALİTE" başlığı (sağda skor hapı) ve bir kart: sorunlar ciddiyete göre sıralı, ikon + kaydırmalı metin; sorun yoksa `CheckmarkCircle` + "Sorun bulunamadı". Maskelenmiş önizlemede başlıktaki `ShieldLock` düğmesi `accent` olur; altında bir bildirim (bulgu varsa `.warning`): başlık, "e-posta adresi: 1 · telefon numarası: 1" özeti ve ikinci satırda sağa yaslı "Kapat" (`subtle`) + "Maskelemeyi Uygula" (`accent`). Alanlar yerine salt okunur kartlar (`SelectableTextBlock`) gösterilir; yer tutucular `[EMAIL_1]` biçimindedir.
 
 ### Bildirimler (callout)
 `Border.callout`: ikon + metin, `RadiusMedium`, `12,10` iç boşluk. Varsayılan bilgi (vurgu zemin); `.warning` (amber) devam etmeyi engellemeyen sorunlar, `.danger` (kırmızı) devam edilemeyen durumlar için. İçinde `DockPanel`: solda `SymbolIcon`, kalan alanda kaydırmalı `TextBlock`.
@@ -180,10 +200,11 @@ Etiket `TextBlock.label` (küçük, yarı kalın, ikincil renk) kontrolün üst�
 | Ekran | Düzen |
 |---|---|
 | Karşılama (çalışma alanı yok) | Marka simgesi, başlık, slogan; "Yeni çalışma alanı" ve "Çalışma alanı aç" kutucukları; son açılanlar; gizlilik notu |
-| Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı, arama, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: kayıt başlığı + durum, aksiyonlar, içerik kartları/balonları, "BİLGİLER" |
+| Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı (analiz sürerken küçük ilerleme; sağda "İçe aktar" ve "Dışa aktar"), arama + kalite filtresi, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: seçim yokken veri seti özeti; kayıtta başlık + durum + token ve skor hapları, aksiyonlar, içerik kartları/balonları, "KALİTE", "BİLGİLER" |
 | Diyaloglar | 460 px; başlık, açıklama, giriş, sağa yaslı İptal (`subtle`) + onay (`accent` veya `danger`) |
-| Kayıt editörü (sağ panel) | Başlık + durum rozeti, duruma uygun aksiyonlar ve sağda sil · kaydedilmemiş değişiklik çubuğu · alan kartları veya sohbet balonları (düzenlenebilir) · "Mesaj ekle" · BİLGİLER. Çoklu seçimde toplu panel |
-| Menüler | Dosya · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Sil) · Araçlar; kısayollar menüde gösterilir |
+| Kayıt editörü (sağ panel) | Başlık + durum rozeti + token ve skor hapları, duruma uygun aksiyonlar ve sağda maskelenmiş önizleme + sil · maskelenmiş önizleme bildirimi · kaydedilmemiş değişiklik çubuğu · alan kartları veya sohbet balonları (düzenlenebilir) · "Mesaj ekle" · KALİTE · BİLGİLER. Çoklu seçimde toplu panel |
+| Menüler | Dosya (… İçe aktar, Dışa aktar `Mod+E` …) · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Maskelenmiş önizleme, Sil) · Araçlar (Örnek kayıt üret, Özel hassas terimler); kısayollar menüde gösterilir |
+| Dışa aktarma sihirbazı | 1040×720, içe aktarma sihirbazıyla aynı iskelet. Sol (360 px): BİÇİM seçenek kartları · KAYITLAR (durum onay kutuları, bağlamı aşanları/kopyaları atla, kişisel verileri maskele) · BÖLME (ön ayar açılır listesi, özel oranlar için üç sayı kutusu, seed ve açıklaması) · Sağ: ÖNİZLEME kartı (büyük sayı + "kayıt dışa aktarılacak", bölmede "eğitim ≈ … · doğrulama ≈ …", dışarıda kalanlar `SubtractCircle` satırlarıyla, onaylı kayıt yoksa bilgi bildirimi) · İLK SATIRLAR (3 satır, `mono` kartlar) · klasörde dosya varsa üstte uyarı bildirimi + "Başka klasör seç" / "Üzerine yaz" · Alt çubuk: son dışa aktarım + İptal + "N kaydı dışa aktar"; sonuç ekranında yazılan dosyalar (ad, klasör, kayıt sayısı) |
 | İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir. Üst: ikon kutusu, başlık, hedef veri seti · Sol (340 px, uygulama zemini): KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri), bildirimler, CSV AYARLARI, SÜTUN EŞLEME · Sağ: ÖNİZLEME (ilk 20 satır) · Alt çubuk: adıma göre özet + İptal + "N satırı içe aktar" (`accent`), aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
 
 **Tercihler:** Görünüm › Tema (Sistem / Açık / Koyu) ve Görünüm › Dil (English / Türkçe). İkisi de `app.settings.db` dosyasında saklanır ve yeniden başlatmadan uygulanır.

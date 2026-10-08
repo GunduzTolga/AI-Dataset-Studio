@@ -71,8 +71,8 @@ public sealed class RecordQueryServiceTests
         var ids = await AddAsync(ws, datasetId, ["izin a", "izin b", "şifre c", "izin d"]);
         await ws.Commands.SetStatusAsync([ids[0], ids[2]], RecordStatus.Approved, Ct);
 
-        var all = await ws.Queries.CountByStatusAsync(datasetId, searchText: null, Ct);
-        var izin = await ws.Queries.CountByStatusAsync(datasetId, "izin", Ct);
+        var all = await ws.Queries.CountByStatusAsync(datasetId, searchText: null, cancellationToken: Ct);
+        var izin = await ws.Queries.CountByStatusAsync(datasetId, "izin", cancellationToken: Ct);
 
         Assert.Equal(2, all[RecordStatus.Draft]);
         Assert.Equal(2, all[RecordStatus.Approved]);

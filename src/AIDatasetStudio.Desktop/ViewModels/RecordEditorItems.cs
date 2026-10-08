@@ -96,6 +96,18 @@ public sealed partial class EditorMessage : ViewModelBase
 }
 
 /// <summary>
+/// A read-only field of the personal-data preview.
+/// </summary>
+public sealed record PreviewBlock(string Label, string Text, bool IsEmpty, FieldTone Tone)
+{
+    public bool IsPositive => Tone == FieldTone.Positive;
+
+    public bool IsNegative => Tone == FieldTone.Negative;
+
+    public bool IsSystem => Tone == FieldTone.System;
+}
+
+/// <summary>
 /// A labelled value in the record's info section.
 /// </summary>
 public sealed record InfoItem(string Label, string Value, bool IsMonospace = false);

@@ -1,7 +1,9 @@
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.Views.Dialogs;
 using AIDatasetStudio.Domain.Enums;
@@ -24,6 +26,24 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
         };
 
         return await ShowAsync(dialog) ? dialog.Text.Trim() : null;
+    }
+
+    public async Task<string?> PromptLinesAsync(string title, string message, string initialText)
+    {
+        var dialog = new InputDialogViewModel
+        {
+            Title = title,
+            Message = message,
+            ConfirmText = localizer["Dialog_OK"],
+            CancelText = localizer["Dialog_Cancel"],
+            ShowText = true,
+            IsMultiline = true,
+            AllowEmpty = true,
+            MaxLength = 20_000,
+            Text = initialText,
+        };
+
+        return await ShowAsync(dialog) ? dialog.Text : null;
     }
 
     public async Task<NewDatasetRequest?> PromptNewDatasetAsync()
@@ -76,6 +96,12 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         await new ImportWizard { DataContext = wizard }.ShowDialog(Owner);
+        return wizard.Result;
+    }
+
+    public async Task<ExportResult?> ShowExportWizardAsync(ExportWizardViewModel wizard)
+    {
+        await new ExportWizard { DataContext = wizard }.ShowDialog(Owner);
         return wizard.Result;
     }
 

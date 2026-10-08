@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window
         var mod = Avalonia.Application.Current?.PlatformSettings?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
         NewWorkspaceMenuItem.HotKey = NewWorkspaceMenuItem.InputGesture = new KeyGesture(Key.N, mod);
         OpenWorkspaceMenuItem.HotKey = OpenWorkspaceMenuItem.InputGesture = new KeyGesture(Key.O, mod);
+        Add(ExportMenuItem, new KeyGesture(Key.E, mod), vm => vm.ExportCommand, inTextBox: true);
 
         Add(UndoMenuItem, new KeyGesture(Key.Z, mod), vm => vm.UndoCommand, inTextBox: false);
         Add(RedoMenuItem, new KeyGesture(Key.Z, mod | KeyModifiers.Shift), vm => vm.RedoCommand, inTextBox: false);
@@ -39,6 +40,7 @@ public sealed partial class MainWindow : Window
         Add(ArchiveNextMenuItem, new KeyGesture(Key.Back, mod | KeyModifiers.Shift), vm => vm.ArchiveAndNextCommand, inTextBox: true);
         Add(NextMenuItem, new KeyGesture(Key.F8), vm => vm.NextRecordCommand, inTextBox: true);
         Add(PreviousMenuItem, new KeyGesture(Key.F8, KeyModifiers.Shift), vm => vm.PreviousRecordCommand, inTextBox: true);
+        Add(PiiPreviewMenuItem, new KeyGesture(Key.M, mod | KeyModifiers.Shift), vm => vm.Details.TogglePiiPreviewCommand, inTextBox: true);
         Add(DeleteMenuItem, new KeyGesture(Key.Delete), vm => vm.DeleteSelectionCommand, inTextBox: false, () => RecordListView.IsListFocused);
         FindMenuItem.InputGesture = new KeyGesture(Key.F, mod);
     }

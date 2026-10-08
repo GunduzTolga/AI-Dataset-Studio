@@ -1,9 +1,13 @@
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Catalog;
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
+using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Catalog;
+using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Persistence;
 using AIDatasetStudio.Infrastructure.Records;
@@ -30,6 +34,9 @@ public static class DependencyInjection
         services.AddSingleton<IRecordCommandService, RecordCommandService>();
         services.AddSingleton<IRecordQueryService, RecordQueryService>();
         services.AddSingleton<IImportService, ImportService>();
+        services.AddSingleton<ITokenizerProvider, TiktokenProvider>();
+        services.AddSingleton<IRecordAnalysisService, RecordAnalysisService>();
+        services.AddSingleton<IExportService, ExportService>();
         return services;
     }
 }

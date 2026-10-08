@@ -86,32 +86,51 @@ internal static class SearchIndex
         """;
 
     /// <summary>
+    /// Records repaired per transaction, so a large upgrade never holds every payload in memory.
+    /// </summary>
+    public const int RepairBatchSize = 1000;
+
+    /// <summary>
     /// Fills in derived data (search index, list preview) for records that lack it: records
     /// written by an older version, or by a crash between the record write and the index write.
     /// </summary>
     /// <returns>The number of records repaired.</returns>
-    public static async Task<int> RepairAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    public static async Task<int> RepairAsync(SqliteConnection connection, CancellationToken cancellationToken, int batchSize = RepairBatchSize)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(batchSize, 1);
+        var repaired = 0;
+        // Every record of a batch gets a key (even an unreadable one), so the next query moves on.
+        while (await ReadPendingAsync(connection, batchSize, cancellationToken) is { Count: > 0 } pending)
+        {
+            await RepairBatchAsync(connection, pending, cancellationToken);
+            repaired += pending.Count;
+        }
+
+        return repaired;
+    }
+
+    private static async Task<List<(string Id, string Json)>> ReadPendingAsync(SqliteConnection connection, int batchSize, CancellationToken cancellationToken)
     {
         var pending = new List<(string Id, string Json)>();
-        await using (var select = connection.CreateCommand())
+        await using var select = connection.CreateCommand();
+        select.CommandText = """
+            SELECT r.Id, r.DataPayload FROM DatasetRecords r
+            LEFT JOIN RecordSearchKeys k ON k.RecordId = r.Id
+            WHERE k.RecordId IS NULL
+            LIMIT $limit;
+            """;
+        select.Parameters.AddWithValue("$limit", batchSize);
+        await using var reader = await select.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
         {
-            select.CommandText = """
-                SELECT r.Id, r.DataPayload FROM DatasetRecords r
-                LEFT JOIN RecordSearchKeys k ON k.RecordId = r.Id
-                WHERE k.RecordId IS NULL;
-                """;
-            await using var reader = await select.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
-            {
-                pending.Add((reader.GetString(0), reader.GetString(1)));
-            }
+            pending.Add((reader.GetString(0), reader.GetString(1)));
         }
 
-        if (pending.Count == 0)
-        {
-            return 0;
-        }
+        return pending;
+    }
 
+    private static async Task RepairBatchAsync(SqliteConnection connection, List<(string Id, string Json)> pending, CancellationToken cancellationToken)
+    {
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
         await using (var writer = new Writer(connection, transaction))
         await using (var setPreview = connection.CreateCommand())
@@ -150,6 +169,5 @@ internal static class SearchIndex
         }
 
         await transaction.CommitAsync(cancellationToken);
-        return pending.Count;
     }
 }

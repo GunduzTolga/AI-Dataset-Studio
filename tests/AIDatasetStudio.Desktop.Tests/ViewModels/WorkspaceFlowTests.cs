@@ -40,6 +40,13 @@ public sealed class WorkspaceFlowTests
         await explorer.RenameCommand.ExecuteAsync(null);
         Assert.Equal("Leave FAQ", explorer.Projects[0].Datasets[0].Name);
 
+        // The dataset's subtitle (list header) follows a rename of its project.
+        explorer.SelectedNode = explorer.Projects[0];
+        host.Dialogs.TextAnswers.Enqueue("People Assistant");
+        await explorer.RenameCommand.ExecuteAsync(null);
+        Assert.Equal("People Assistant", explorer.Projects[0].Name);
+        Assert.StartsWith("People Assistant · ", dataset.Subtitle, StringComparison.Ordinal);
+
         explorer.SelectedNode = explorer.Projects[0];
         host.Dialogs.ConfirmAnswer = false;
         await explorer.DeleteCommand.ExecuteAsync(null);
@@ -49,7 +56,7 @@ public sealed class WorkspaceFlowTests
         await explorer.DeleteCommand.ExecuteAsync(null);
         Assert.Empty(explorer.Projects);
         Assert.True(explorer.IsEmpty);
-        Assert.Contains("HR Assistant", host.Dialogs.ConfirmMessages[^1], StringComparison.Ordinal);
+        Assert.Contains("People Assistant", host.Dialogs.ConfirmMessages[^1], StringComparison.Ordinal);
         Assert.All(host.Dialogs.ConfirmWasDestructive, Assert.True);
     });
 

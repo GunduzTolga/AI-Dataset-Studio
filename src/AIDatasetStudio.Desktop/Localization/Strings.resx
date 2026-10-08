@@ -731,4 +731,461 @@
   <data name="Status_RecordsStatusChangedAll" xml:space="preserve">
     <value>{0:N0} records set to {1}.</value>
   </data>
+  <data name="Menu_PiiPreview" xml:space="preserve">
+    <value>_Masked Preview</value>
+  </data>
+  <data name="Menu_CustomTerms" xml:space="preserve">
+    <value>Custom Sensitive _Terms…</value>
+  </data>
+  <data name="Records_ColumnTokens" xml:space="preserve">
+    <value>TOKENS</value>
+    <comment>Column header, shown in capitals.</comment>
+  </data>
+  <data name="Records_ColumnQuality" xml:space="preserve">
+    <value>QUALITY</value>
+    <comment>Column header, shown in capitals.</comment>
+  </data>
+  <data name="Records_OverContextLimit" xml:space="preserve">
+    <value>Longer than the dataset's context length</value>
+  </data>
+  <data name="Records_QualityFilter" xml:space="preserve">
+    <value>Filter by quality</value>
+  </data>
+  <data name="QualityFilter_None" xml:space="preserve">
+    <value>Any quality</value>
+  </data>
+  <data name="QualityFilter_Issues" xml:space="preserve">
+    <value>With issues</value>
+  </data>
+  <data name="QualityFilter_Errors" xml:space="preserve">
+    <value>With errors</value>
+  </data>
+  <data name="QualityFilter_OverContextLimit" xml:space="preserve">
+    <value>Over the context length</value>
+  </data>
+  <data name="QualityFilter_Duplicates" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="QualityFilter_PersonalData" xml:space="preserve">
+    <value>Personal data</value>
+  </data>
+  <data name="Rule_EmptyContent" xml:space="preserve">
+    <value>Empty fields</value>
+  </data>
+  <data name="Rule_IdenticalAnswers" xml:space="preserve">
+    <value>Identical answers</value>
+  </data>
+  <data name="Rule_ShortAnswer" xml:space="preserve">
+    <value>Throwaway answers</value>
+  </data>
+  <data name="Rule_UnbalancedLength" xml:space="preserve">
+    <value>Unbalanced length</value>
+  </data>
+  <data name="Rule_EchoedInput" xml:space="preserve">
+    <value>Answer repeats the question</value>
+  </data>
+  <data name="Rule_UnclosedCodeBlock" xml:space="preserve">
+    <value>Unclosed code blocks</value>
+  </data>
+  <data name="Rule_InvalidJson" xml:space="preserve">
+    <value>Invalid JSON</value>
+  </data>
+  <data name="Rule_PersonalData" xml:space="preserve">
+    <value>Personal data</value>
+  </data>
+  <data name="Rule_Duplicate" xml:space="preserve">
+    <value>Duplicates</value>
+  </data>
+  <data name="Rule_ConflictingAnswer" xml:space="preserve">
+    <value>Conflicting answers</value>
+  </data>
+  <data name="Rule_OverContextLimit" xml:space="preserve">
+    <value>Over the context length</value>
+  </data>
+  <data name="Issue_EmptyContent" xml:space="preserve">
+    <value>Empty field: {0}</value>
+    <comment>{0} = field name</comment>
+  </data>
+  <data name="Issue_IdenticalAnswers" xml:space="preserve">
+    <value>The chosen and rejected answers are the same.</value>
+  </data>
+  <data name="Issue_ShortAnswer" xml:space="preserve">
+    <value>The answer is a throwaway reply such as “ok” or “I don't know”.</value>
+  </data>
+  <data name="Issue_UnbalancedLength" xml:space="preserve">
+    <value>The answer is more than 50 times longer than the question.</value>
+  </data>
+  <data name="Issue_EchoedInput" xml:space="preserve">
+    <value>The answer repeats the question.</value>
+  </data>
+  <data name="Issue_UnclosedCodeBlock" xml:space="preserve">
+    <value>A code block is not closed: {0}</value>
+    <comment>{0} = field name</comment>
+  </data>
+  <data name="Issue_InvalidJson" xml:space="preserve">
+    <value>JSON that does not parse: {0}</value>
+    <comment>{0} = field name</comment>
+  </data>
+  <data name="Issue_PersonalData" xml:space="preserve">
+    <value>Contains personal or secret data: {0}</value>
+    <comment>{0} = kinds, e.g. “e-mail address, phone number”</comment>
+  </data>
+  <data name="Issue_Duplicate" xml:space="preserve">
+    <value>Another record has exactly the same content.</value>
+  </data>
+  <data name="Issue_ConflictingAnswer" xml:space="preserve">
+    <value>Another record asks the same question but answers differently.</value>
+  </data>
+  <data name="Issue_OverContextLimit" xml:space="preserve">
+    <value>Longer than the dataset's context length.</value>
+  </data>
+  <data name="Pii_Email" xml:space="preserve">
+    <value>e-mail address</value>
+  </data>
+  <data name="Pii_Phone" xml:space="preserve">
+    <value>phone number</value>
+  </data>
+  <data name="Pii_NationalId" xml:space="preserve">
+    <value>national ID number</value>
+  </data>
+  <data name="Pii_Iban" xml:space="preserve">
+    <value>IBAN</value>
+  </data>
+  <data name="Pii_CreditCard" xml:space="preserve">
+    <value>card number</value>
+  </data>
+  <data name="Pii_InternalIp" xml:space="preserve">
+    <value>internal IP address</value>
+  </data>
+  <data name="Pii_InternalUrl" xml:space="preserve">
+    <value>internal URL</value>
+  </data>
+  <data name="Pii_ApiKey" xml:space="preserve">
+    <value>API key</value>
+  </data>
+  <data name="Pii_Secret" xml:space="preserve">
+    <value>password or secret</value>
+  </data>
+  <data name="Pii_CustomTerm" xml:space="preserve">
+    <value>custom term</value>
+  </data>
+  <data name="Pii_Count" xml:space="preserve">
+    <value>{1}: {0:N0}</value>
+    <comment>{0} = count, {1} = kind of data</comment>
+  </data>
+  <data name="Pii_NoneFound" xml:space="preserve">
+    <value>No personal or secret data found.</value>
+  </data>
+  <data name="Editor_Tokens" xml:space="preserve">
+    <value>{0:N0} / {1:N0}</value>
+    <comment>{0} = tokens of the record, {1} = context length</comment>
+  </data>
+  <data name="Editor_TokenDetail" xml:space="preserve">
+    <value>Prompt {0:N0} + answer {1:N0} tokens ({2})</value>
+    <comment>{2} = tokenizer</comment>
+  </data>
+  <data name="Editor_PiiPreview" xml:space="preserve">
+    <value>Preview with personal data masked</value>
+  </data>
+  <data name="Editor_PiiPreviewTitle" xml:space="preserve">
+    <value>Masked preview</value>
+  </data>
+  <data name="Editor_ApplyMask" xml:space="preserve">
+    <value>Apply Masking</value>
+  </data>
+  <data name="Details_Quality" xml:space="preserve">
+    <value>QUALITY</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Details_NoIssues" xml:space="preserve">
+    <value>No issues found.</value>
+  </data>
+  <data name="Overview_Title" xml:space="preserve">
+    <value>DATASET OVERVIEW</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Overview_QualityScore" xml:space="preserve">
+    <value>Quality score</value>
+  </data>
+  <data name="Overview_Analyzed" xml:space="preserve">
+    <value>{0:N0} of {1:N0} records analyzed</value>
+  </data>
+  <data name="Overview_Analyzing" xml:space="preserve">
+    <value>Analyzing {0:N0} / {1:N0}…</value>
+  </data>
+  <data name="Overview_Tokens" xml:space="preserve">
+    <value>TOKENS</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Overview_Tokenizer" xml:space="preserve">
+    <value>Tokenizer</value>
+  </data>
+  <data name="Overview_ContextLength" xml:space="preserve">
+    <value>Context length</value>
+  </data>
+  <data name="Overview_ContextOption" xml:space="preserve">
+    <value>{0:N0} tokens</value>
+  </data>
+  <data name="Overview_TotalTokens" xml:space="preserve">
+    <value>total tokens</value>
+  </data>
+  <data name="Overview_MaxTokens" xml:space="preserve">
+    <value>longest record</value>
+  </data>
+  <data name="Overview_OverLimit" xml:space="preserve">
+    <value>over the limit</value>
+  </data>
+  <data name="Overview_BucketBelow" xml:space="preserve">
+    <value>&lt; {0:N0}</value>
+    <comment>Histogram bucket: records with fewer than {0} tokens</comment>
+  </data>
+  <data name="Overview_BucketAbove" xml:space="preserve">
+    <value>≥ {0:N0}</value>
+    <comment>Histogram bucket: records with {0} tokens or more</comment>
+  </data>
+  <data name="Overview_Issues" xml:space="preserve">
+    <value>ISSUES</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Overview_NoIssues" xml:space="preserve">
+    <value>No issues in the analyzed records.</value>
+  </data>
+  <data name="Overview_ShowRecords" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="Overview_ArchiveHint" xml:space="preserve">
+    <value>Archive these records (for duplicates, all but the first copy). Edit › Undo reverts it.</value>
+  </data>
+  <data name="Dialog_ArchiveIssuesTitle" xml:space="preserve">
+    <value>Archive Records</value>
+  </data>
+  <data name="Dialog_ArchiveIssuesMessage" xml:space="preserve">
+    <value>Archive {0:N0} records with “{1}”? Edit › Undo brings them back.</value>
+    <comment>{1} = rule name</comment>
+  </data>
+  <data name="Dialog_CustomTermsTitle" xml:space="preserve">
+    <value>Custom Sensitive Terms</value>
+  </data>
+  <data name="Dialog_CustomTermsMessage" xml:space="preserve">
+    <value>One term per line: company names, project code names, people… They are flagged and masked like other personal data in every dataset of this workspace.</value>
+  </data>
+  <data name="Status_CustomTermsSaved" xml:space="preserve">
+    <value>{0:N0} custom terms saved; records are analyzed again.</value>
+  </data>
+  <data name="Status_MaskApplied" xml:space="preserve">
+    <value>Masked text is in the editor. Save to keep it; Edit › Undo reverts the save.</value>
+  </data>
+  <data name="Status_RecordsArchivedByRule" xml:space="preserve">
+    <value>{0:N0} records with “{1}” archived.</value>
+    <comment>{1} = rule name</comment>
+  </data>
+  <data name="Status_TokenSettingsChanged" xml:space="preserve">
+    <value>Token settings of {0}: {1}, {2}.</value>
+    <comment>{0} = dataset, {1} = tokenizer, {2} = context length</comment>
+  </data>
+  <data name="Details_QualityScore" xml:space="preserve">
+    <value>Quality score</value>
+  </data>
+  <data name="Error_Storage" xml:space="preserve">
+    <value>The workspace could not be saved; the file may be in use, read-only or out of space. {0}</value>
+    <comment>{0} = technical detail</comment>
+  </data>
+  <data name="Menu_Export" xml:space="preserve">
+    <value>_Export to File…</value>
+  </data>
+  <data name="Action_Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Action_ExportToFile" xml:space="preserve">
+    <value>Export to training files (Mod+E)</value>
+  </data>
+  <data name="Export_Title" xml:space="preserve">
+    <value>Export Dataset</value>
+  </data>
+  <data name="Export_Target" xml:space="preserve">
+    <value>{0} · {1}</value>
+    <comment>{0} = dataset name, {1} = dataset type</comment>
+  </data>
+  <data name="Export_SectionFormat" xml:space="preserve">
+    <value>FORMAT</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Export_SectionRecords" xml:space="preserve">
+    <value>RECORDS</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Export_SectionSplit" xml:space="preserve">
+    <value>SPLIT</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Export_Statuses" xml:space="preserve">
+    <value>Statuses</value>
+  </data>
+  <data name="Export_SkipOverLimitOption" xml:space="preserve">
+    <value>Leave out records longer than the context length</value>
+  </data>
+  <data name="Export_SkipDuplicatesOption" xml:space="preserve">
+    <value>Leave out exact copies (keep the first)</value>
+  </data>
+  <data name="Export_MaskOption" xml:space="preserve">
+    <value>Mask personal data (e-mail, phone, IDs, keys…)</value>
+  </data>
+  <data name="Export_SplitNone" xml:space="preserve">
+    <value>One file</value>
+  </data>
+  <data name="Export_SplitStandard" xml:space="preserve">
+    <value>Train / validation / test · 80 / 10 / 10</value>
+  </data>
+  <data name="Export_SplitTrainValidation" xml:space="preserve">
+    <value>Train / validation · 90 / 10</value>
+  </data>
+  <data name="Export_SplitCustom" xml:space="preserve">
+    <value>Custom shares</value>
+  </data>
+  <data name="Export_Seed" xml:space="preserve">
+    <value>Seed</value>
+  </data>
+  <data name="Export_SplitHint" xml:space="preserve">
+    <value>Each record's file follows from the seed and its question: the same seed gives the same files, new records never move existing ones, and records asking the same question stay together.</value>
+  </data>
+  <data name="SplitPart_Train" xml:space="preserve">
+    <value>train</value>
+  </data>
+  <data name="SplitPart_Validation" xml:space="preserve">
+    <value>validation</value>
+  </data>
+  <data name="SplitPart_Test" xml:space="preserve">
+    <value>test</value>
+  </data>
+  <data name="Export_PartEstimate" xml:space="preserve">
+    <value>{0} ≈ {1:N0}</value>
+    <comment>{0} = part, {1} = expected record count</comment>
+  </data>
+  <data name="ExportFormat_OpenAi" xml:space="preserve">
+    <value>OpenAI JSONL</value>
+  </data>
+  <data name="ExportFormat_ShareGpt" xml:space="preserve">
+    <value>ShareGPT</value>
+  </data>
+  <data name="ExportFormat_Alpaca" xml:space="preserve">
+    <value>Alpaca</value>
+  </data>
+  <data name="ExportFormat_HuggingFaceDpo" xml:space="preserve">
+    <value>Hugging Face DPO</value>
+  </data>
+  <data name="ExportFormat_ChatMl" xml:space="preserve">
+    <value>ChatML text</value>
+  </data>
+  <data name="ExportFormat_Llama3" xml:space="preserve">
+    <value>Llama 3 text</value>
+  </data>
+  <data name="ExportFormat_OpenAi_Hint" xml:space="preserve">
+    <value>messages: system / user / assistant</value>
+  </data>
+  <data name="ExportFormat_OpenAiPreference_Hint" xml:space="preserve">
+    <value>input / preferred_output / non_preferred_output</value>
+  </data>
+  <data name="ExportFormat_ShareGpt_Hint" xml:space="preserve">
+    <value>conversations: human / gpt</value>
+  </data>
+  <data name="ExportFormat_Alpaca_Hint" xml:space="preserve">
+    <value>instruction / input / output</value>
+  </data>
+  <data name="ExportFormat_HuggingFaceDpo_Hint" xml:space="preserve">
+    <value>prompt / chosen / rejected</value>
+  </data>
+  <data name="ExportFormat_ChatMl_Hint" xml:space="preserve">
+    <value>text: &lt;|im_start|&gt;user … &lt;|im_end|&gt;</value>
+  </data>
+  <data name="ExportFormat_Llama3_Hint" xml:space="preserve">
+    <value>text: &lt;|start_header_id|&gt;user&lt;|end_header_id|&gt; …</value>
+  </data>
+  <data name="Export_AlpacaChatWarning" xml:space="preserve">
+    <value>Only chats with one question and one answer fit; longer ones are left out.</value>
+  </data>
+  <data name="Export_WillExport" xml:space="preserve">
+    <value>records will be exported</value>
+  </data>
+  <data name="Export_FirstLines" xml:space="preserve">
+    <value>FIRST LINES</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Export_SkipUnsupported" xml:space="preserve">
+    <value>Left out: the format cannot hold them</value>
+  </data>
+  <data name="Export_SkipOverLimit" xml:space="preserve">
+    <value>Left out: longer than the context length</value>
+  </data>
+  <data name="Export_SkipDuplicates" xml:space="preserve">
+    <value>Left out: copies of an earlier record</value>
+  </data>
+  <data name="Export_NotAnalyzed" xml:space="preserve">
+    <value>Length not known yet; checked when exporting</value>
+  </data>
+  <data name="Export_Masked" xml:space="preserve">
+    <value>Records with personal data masked</value>
+  </data>
+  <data name="Export_NoApprovedHint" xml:space="preserve">
+    <value>No record is approved yet. Tick In review or Draft to export them too.</value>
+  </data>
+  <data name="Export_NoStatus" xml:space="preserve">
+    <value>Choose at least one status.</value>
+  </data>
+  <data name="Export_InvalidSplit" xml:space="preserve">
+    <value>The shares must add up to 100, with some training data.</value>
+  </data>
+  <data name="Export_Start" xml:space="preserve">
+    <value>Export {0:N0} records</value>
+  </data>
+  <data name="Export_Progress" xml:space="preserve">
+    <value>Exporting… {0:N0} / {1:N0}</value>
+  </data>
+  <data name="Export_Cancelled" xml:space="preserve">
+    <value>Export cancelled. No file was written or changed.</value>
+  </data>
+  <data name="Export_OverwriteQuestion" xml:space="preserve">
+    <value>{0} already exist in {1}. Overwrite them?</value>
+    <comment>{0} = file names, {1} = folder</comment>
+  </data>
+  <data name="Export_Overwrite" xml:space="preserve">
+    <value>Overwrite</value>
+  </data>
+  <data name="Export_ChooseOtherFolder" xml:space="preserve">
+    <value>Choose Another Folder</value>
+  </data>
+  <data name="Export_DoneTitle" xml:space="preserve">
+    <value>Export finished</value>
+  </data>
+  <data name="Export_DoneSummary" xml:space="preserve">
+    <value>Wrote {0:N0} records of '{1}'.</value>
+  </data>
+  <data name="Export_FileCount" xml:space="preserve">
+    <value>{0:N0} records</value>
+  </data>
+  <data name="Export_LastExport" xml:space="preserve">
+    <value>Last export: {0} · {1} · {2:N0} records</value>
+    <comment>{0} = date, {1} = format</comment>
+  </data>
+  <data name="Status_Exported" xml:space="preserve">
+    <value>Exported {0:N0} records of '{1}': {2}</value>
+    <comment>{2} = file names</comment>
+  </data>
+  <data name="Dialog_ExportFileTitle" xml:space="preserve">
+    <value>Export to File</value>
+  </data>
+  <data name="Dialog_ExportFileType" xml:space="preserve">
+    <value>JSON Lines</value>
+  </data>
+  <data name="Dialog_ExportFolderTitle" xml:space="preserve">
+    <value>Choose a Folder for train / val / test</value>
+  </data>
+  <data name="Export_TrainShare" xml:space="preserve">
+    <value>Train %</value>
+  </data>
+  <data name="Export_ValidationShare" xml:space="preserve">
+    <value>Validation %</value>
+  </data>
+  <data name="Export_TestShare" xml:space="preserve">
+    <value>Test %</value>
+  </data>
 </root>
