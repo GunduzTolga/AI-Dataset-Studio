@@ -41,7 +41,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - **Architecture:** Clean Architecture + lightweight CQRS (separate command/query services, no MediatR) + MVVM
 - **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 10
 - **Tokenization:** `Microsoft.ML.Tokenizers` (offline `cl100k_base` / `o200k_base` vocabularies)
-- **Editor:** AvaloniaEdit (TextMate syntax highlighting)
+- **Editor:** AvaloniaEdit, with built-in highlighting for Markdown, fenced code blocks and JSON
 - **Tests:** xUnit v3 on Microsoft Testing Platform
 
 ---
@@ -101,8 +101,11 @@ Importing data: select a dataset, then **File › Import from File…** (or the 
 |---|---|---|
 | JSON Lines (`.jsonl`, `.ndjson`) and JSON arrays (`.json`) | OpenAI messages, ShareGPT, Alpaca, prompt/completion, Hugging Face DPO, OpenAI preference, any flat object | Instruction, Chat, Preference |
 | CSV / TSV (`.csv`, `.tsv`, `.txt`) | Any columns, mapped by name (English and Turkish names are suggested automatically); UTF-8, UTF-16 and Turkish Windows-1254 files from Excel | Instruction, Chat, Preference |
+| Excel workbooks (`.xlsx`, `.xlsm`) | One sheet or all sheets at once, each with its own header row; columns mapped by name as for CSV; dates read as ISO text | Instruction, Chat, Preference |
+| Markdown (`.md`, `.markdown`) | One record per heading with text under it: the heading asks, the text answers; the headings above it can fill the input | Instruction, Chat, Preference |
+| Plain text (`.txt`) | One record per paragraph: the first line asks, the lines after it answer. A `.txt` file is read as a table or as text, whichever it looks like, and the wizard can switch | Instruction, Chat, Preference |
 
-Reviewing records: edit fields directly in the right-hand panel; changes are saved with **Mod+S** or automatically when you move on. Shift/Ctrl-click selects several records for batch actions. (**Mod** is Ctrl on Windows/Linux and Cmd on macOS.)
+Reviewing records: edit fields directly in the right-hand panel; changes are saved with **Mod+S** or automatically when you move on. Fields colour Markdown, fenced code blocks (```` ```json ````, `python`, `javascript`, `csharp`, `sql`, `bash`, `xml`) and JSON documents. Shift/Ctrl-click selects several records for batch actions. (**Mod** is Ctrl on Windows/Linux and Cmd on macOS.)
 
 | Keys | Action |
 |---|---|
@@ -164,7 +167,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M8 | Dataset versions: freeze, compare with a word-level diff, go back, export a version | ✅ |
 | M9 | Tags: editor chips, Mod+1…5, batch tagging, tag filter, tag manager, stratified split | ✅ |
 | M10 | Near-duplicate questions (MinHash + exact Jaccard), clean-up and one split part per group; chosen vs rejected diff for preference pairs | ✅ |
-| M11 | Excel / Markdown import, code and JSON highlighting in the editor | Next |
+| M11 | Excel (multi-sheet), Markdown and plain-text import; Markdown, code and JSON highlighting in the editor | ✅ |
+| V3 | Local LLMs (Ollama / LM Studio), PDF and Word chunking, synthetic data, LLM-as-a-judge | Planned |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

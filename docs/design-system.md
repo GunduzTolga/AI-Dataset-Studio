@@ -48,6 +48,27 @@ Temel: Avalonia'nın **Fluent** teması (`DensityStyle="Compact"`, indigo vurgu 
 | `DiffInsertedBrush` / `DiffDeletedBrush` | `#BBF7D0` / `#FECDD3` | `#1D5236` / `#62202E` | Sürüm farkında eklenen / silinen kelimelerin zemini (üstünde ana metin rengi) |
 | `BrandGradientBrush` | `#6366F1 → #9333EA` | aynı | Uygulama simgesi |
 
+### Sözdizimi renkleri (editör alanları)
+
+`Color` tokenları; `controls:CodeHighlighting` bunları editörün `.xshd` tanımlarındaki renk adlarına uygular. Her iki temada kartlar, sistem talimatı kartı ve kullanıcı balonu üzerinde kontrast 4,5:1'in üzerindedir (en düşük: açık temada bağlantı rengi, kullanıcı balonunda ≈ 4,56:1).
+
+| Token | Açık | Koyu | Kullanım |
+|---|---|---|---|
+| `SyntaxCommentColor` | `#4B5563` | `#9CA3AF` | Kod yorumları (italik), Markdown alıntıları (italik), kod çitleri |
+| `SyntaxStringColor` | `#047857` | `#6EE7B7` | Metin değerleri |
+| `SyntaxKeywordColor` | `#7C3AED` | `#C4B5FD` | Anahtar sözcükler |
+| `SyntaxNumberColor` | `#92400E` | `#FCD34D` | Sayılar, XML öznitelikleri, kabuk seçenekleri |
+| `SyntaxLiteralColor` | `#C2410C` | `#FDBA74` | `true` / `false` / `null`, XML varlıkları |
+| `SyntaxPropertyColor` | `#1D4ED8` | `#93C5FD` | JSON özellik adları, XML etiketleri |
+| `SyntaxFunctionColor` | `#0E7490` | `#67E8F9` | Fonksiyon çağrıları, Python dekoratörleri |
+| `SyntaxVariableColor` | `#BE185D` | `#F9A8D4` | Kabuk değişkenleri |
+| `SyntaxHeadingColor` | `#4338CA` | `#A5B4FC` | Markdown başlıkları (kalın) |
+| `SyntaxCodeColor` | `#BE185D` | `#F9A8D4` | `satır içi kod`, dili bilinmeyen kod blokları |
+| `SyntaxLinkColor` | `#2563EB` | `#93C5FD` | Bağlantılar |
+| `SyntaxMarkerColor` | `#4F46E5` | `#A5B4FC` | Liste işaretleri, yatay çizgiler |
+
+Kalın (`**…**`) ve italik (`*…*`) metin rengini korur, yalnızca ağırlığı veya eğimi değişir.
+
 ### Kayıt durumu renkleri
 
 | Durum | Açık (zemin / yazı) | Koyu (zemin / yazı) | Anlam |
@@ -63,7 +84,7 @@ Kullanılan tüm metin/zemin çiftlerinin kontrastı 4,5:1'in üzerindedir. En d
 
 ## 3. Tipografi
 
-Yazı tipi **Inter** (uygulamayla birlikte gelir). Sayı sütunlarında tablo rakamları (`.numeric` → `tnum`) kullanılır; içerik özetinde eş aralıklı yazı tipi (`.mono`).
+Yazı tipi **Inter** (uygulamayla birlikte gelir). Sayı sütunlarında tablo rakamları (`.numeric` → `tnum`) kullanılır; içerik özetinde eş aralıklı yazı tipi (`.mono`). Editör alanlarındaki kod (çitli bloklar, `satır içi kod`, JSON belgeleri) `MonoFontFamily` ile yazılır: Cascadia Mono, Consolas, Menlo, SF Mono, DejaVu Sans Mono — sistemde ilk bulunan.
 
 | Sınıf | Boyut / ağırlık | Kullanım |
 |---|---|---|
@@ -190,7 +211,7 @@ Satır: kova etiketi (78 px, soluk tablo rakamı) · 200 px `Border.bar-track` i
 `StackPanel.empty`: dairesel ikon (`Border.empty-icon`), başlık (`.subtitle`), açıklama (`.muted`) ve varsa bir `accent` aksiyon (yanında en fazla bir `subtle` alternatif; ör. "Dosyadan içe aktar" + "Örnek kayıt üret"). Her boş ekran ne olduğunu ve bir sonraki adımı söyler.
 
 ### Editör alanları
-`TextBox.field`: kendi kutusu olmayan, kartın (`Border.card`) veya balonun (`Border.bubble`) içine yerleşen çok satırlı metin alanı; boşken "Boş" yer tutucusu gösterir. Odak, kabın etrafında 3 px yarı saydam indigo halkayla (`BoxShadow`, `:focus-within`) gösterilir; böylece tercih edilen/reddedilen kartların yeşil/kırmızı kenarı korunur. Sohbet turlarının başlığında rol ikonu ve etiketinin yanında 22 px'lik `Button.mini` düğmeleri (rolü çevir, kaldır) bulunur. Kaydedilmemiş değişiklikler başlığın altında bilgi bildirimi + "Vazgeç" (`subtle`) + "Kaydet" (`accent`) olarak gösterilir; arşivlenmiş kayıtta uyarı bildirimi ve salt okunur alanlar vardır.
+`controls:CodeEditor` (`.field`; AvaloniaEdit `TextEditor` temasıyla): kendi kutusu olmayan, kartın (`Border.card`) veya balonun (`Border.bubble`) içine yerleşen, kaydırmalı ve içeriğe göre uzayan metin alanı. Boşken "Boş" yer tutucusu soluk renkte gösterilir. Markdown, çitli kod blokları ve JSON belgeleri sözdizimi tokenlarıyla renklenir. JSON belgesi olan alan `.json` sınıfını alır ve tamamen eş aralıklı yazılır. Seçim zemini `AccentSubtleHoverBrush`'tır. Sağ tıkta Kes / Kopyala / Yapıştır / Tümünü seç menüsü açılır; salt okunurken yalnızca kopyalama ve tümünü seçme etkindir. Odak, kabın etrafında 3 px yarı saydam indigo halkayla (`BoxShadow`, `:focus-within`) gösterilir; böylece tercih edilen/reddedilen kartların yeşil/kırmızı kenarı korunur. Sohbet turlarının başlığında rol ikonu ve etiketinin yanında 22 px'lik `Button.mini` düğmeleri (rolü çevir, kaldır) bulunur. Kaydedilmemiş değişiklikler başlığın altında bilgi bildirimi + "Vazgeç" (`subtle`) + "Kaydet" (`accent`) olarak gösterilir; arşivlenmiş kayıtta uyarı bildirimi ve salt okunur alanlar vardır.
 
 ### Toplu panel
 Birden fazla kayıt seçilince sağ panel: ikon kutusu + "N kayıt seçili" başlığı, durum rozetleri ve sayıları, uygun aksiyonlar (en az bir seçili kayda uygulanabilenler) ve kısa açıklama. Silme metinli `danger-subtle` düğmedir.
@@ -227,6 +248,6 @@ Etiket `TextBlock.label` (küçük, yarı kalın, ikincil renk) kontrolün üst�
 | Kayıt editörü (sağ panel) | Başlık + durum rozeti + token ve skor hapları, duruma uygun aksiyonlar ve sağda maskelenmiş önizleme + sil · etiket çipleri + "Etiket ekle" · maskelenmiş önizleme bildirimi · kaydedilmemiş değişiklik çubuğu · alan kartları veya sohbet balonları (düzenlenebilir) · "Mesaj ekle" · KALİTE · BİLGİLER. Çoklu seçimde toplu panel (aksiyonların altında ETİKETLER: sayılı çipler + "Hepsine etiket ekle") |
 | Menüler | Dosya (… İçe aktar, Dışa aktar `Mod+E`, Sürüm oluştur, Sürümler …) · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Maskelenmiş önizleme, Etiketle › etiketler noktası ve `Mod+N` ile, Sil) · Araçlar (Örnek kayıt üret, Özel hassas terimler, Etiketler) · Yardım (Güncellemeleri denetle, Açılışta denetle onay işareti, Hakkında); kısayollar menüde gösterilir |
 | Dışa aktarma sihirbazı | 1040×720, içe aktarma sihirbazıyla aynı iskelet. Sol (360 px): veri setinin sürümü varsa KAYNAK (güncel kayıtlar / sürüm açılır listesi, sürümde dondurmayı anlatan not) · BİÇİM seçenek kartları · KAYITLAR (durum onay kutuları, bağlamı aşanları/kopyaları atla, kişisel verileri maskele) · BÖLME (ön ayar açılır listesi, özel oranlar için üç sayı kutusu, "Tabakalara göre böl" açılır listesi — etiket yoksa kapalı —, seed ve seçime göre değişen açıklaması) · Sağ: ÖNİZLEME kartı (büyük sayı + "kayıt dışa aktarılacak", bölmede "eğitim ≈ … · doğrulama ≈ …", dışarıda kalanlar `SubtractCircle` satırlarıyla, onaylı kayıt yoksa bilgi bildirimi) · İLK SATIRLAR (3 satır, `mono` kartlar) · klasörde dosya varsa üstte uyarı bildirimi + "Başka klasör seç" / "Üzerine yaz" · Alt çubuk: son dışa aktarım + İptal + "N kaydı dışa aktar"; sonuç ekranında yazılan dosyalar (ad, klasör, kayıt sayısı) |
-| İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir. Üst: ikon kutusu, başlık, hedef veri seti · Sol (340 px, uygulama zemini): KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri), bildirimler, CSV AYARLARI, SÜTUN EŞLEME · Sağ: ÖNİZLEME (ilk 20 satır) · Alt çubuk: adıma göre özet + İptal + "N satırı içe aktar" (`accent`), aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
+| İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir.<br>• **Üst:** ikon kutusu, başlık, hedef veri seti.<br>• **Sol (340 px, uygulama zemini):** KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri). Dosya birden çok biçimde okunabiliyorsa altında "Okuma biçimi" açılır listesi. Sonra bildirimler: Markdown ve düz metinde nasıl bölündüğünü anlatan bilgi bildirimi (`TextBulletListSquare`). Ardından CSV AYARLARI ya da ÇALIŞMA KİTABI (sayfa açılır listesi, sonda "Tüm sayfalar (N)"; başlık satırı onay kutusu; tüm sayfalarda soluk açıklama). En altta SÜTUN EŞLEME; Markdown ve düz metin sütunları yerelleştirilmiş adlarla gösterilir.<br>• **Sağ:** ÖNİZLEME (ilk 20 satır). Tüm sayfalar okunurken satır numarasının önünde sayfa adı yazar (`Kargo · 3`); numara sütunu satırlar arasında ortak genişliktedir.<br>• **Alt çubuk:** adıma göre özet + İptal + "N satırı içe aktar" (`accent`). Aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
 
 **Tercihler:** Görünüm › Tema (Sistem / Açık / Koyu) ve Görünüm › Dil (English / Türkçe). İkisi de `app.settings.db` dosyasında saklanır ve yeniden başlatmadan uygulanır.

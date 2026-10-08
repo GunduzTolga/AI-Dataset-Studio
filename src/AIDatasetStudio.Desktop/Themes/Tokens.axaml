@@ -66,7 +66,7 @@
       <Color x:Key="SyntaxCommentColor">#4B5563</Color>
       <Color x:Key="SyntaxStringColor">#047857</Color>
       <Color x:Key="SyntaxKeywordColor">#7C3AED</Color>
-      <Color x:Key="SyntaxNumberColor">#B45309</Color>
+      <Color x:Key="SyntaxNumberColor">#92400E</Color>
       <Color x:Key="SyntaxLiteralColor">#C2410C</Color>
       <Color x:Key="SyntaxPropertyColor">#1D4ED8</Color>
       <Color x:Key="SyntaxFunctionColor">#0E7490</Color>

@@ -5,6 +5,24 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Import
+- Excel workbooks (`.xlsx`, `.xlsm`): the sheet that was open is read, or any other sheet, or
+  all sheets at once — each with its own header row, columns with the same name mapped
+  together. Dates come in as `2024-03-01` / `2024-03-01 14:30`, and imported records point at
+  their sheet and row. Old `.xls` and password-protected workbooks are explained, not misread.
+- Markdown (`.md`): every heading with text under it becomes a record — the heading asks, the
+  text answers, and the headings above it can fill the input. Code blocks stay intact.
+- Plain text (`.txt`): every paragraph becomes a record (first line → question, the rest →
+  answer). A `.txt` file is read as a table or as text, whichever it looks like; **Read as** in
+  the wizard switches.
+
+### Editor
+- Record fields colour Markdown (headings, bold, italic, `code`, links, lists), fenced code
+  blocks in JSON, Python, JavaScript/TypeScript, C#, SQL, shell and XML/HTML, and fields that hold
+  a JSON document. Code is set in a monospace font; colours follow the light or dark theme.
+- Fields keep working like text boxes: Tab moves on, right-click cuts/copies/pastes, and the
+  review shortcuts work while typing.
+
 ### Dataset versions
 - Freeze a dataset as a numbered version (v1.0.0, v1.1.0, …) with a note. A version keeps every
   record's content, status, order, tags and token count, and the tokenizer and context length.
