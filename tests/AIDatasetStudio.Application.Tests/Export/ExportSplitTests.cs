@@ -63,6 +63,36 @@ public sealed class ExportSplitTests
         Assert.Equal("id:" + id.ToString("D"), ExportSplit.GroupKey(new InstructionPayload("  ", "", "cevap"), id));
     }
 
+    [Fact]
+    public void A_family_joins_the_groups_of_its_records_under_the_first_key()
+    {
+        Guid root = Guid.NewGuid(), other = Guid.NewGuid(), lone = Guid.NewGuid();
+        var families = new SplitFamilies();
+        families.Add("q:kargo ücreti ne kadar", root);
+        families.Add("q:mesai saatleri", other);
+        families.Add("q:kargo kaç para", root); // a variation of the first record
+        families.Add("n:" + other.ToString("D"), lone);
+        families.Add("q:kargo kaç para", lone); // asks what a variation asks
+        families.Add("q:iade süresi", Guid.NewGuid());
+
+        var joined = families.Build();
+
+        Assert.Equal(
+            new Dictionary<string, string>
+            {
+                ["q:kargo kaç para"] = "q:kargo ücreti ne kadar",
+                ["n:" + other.ToString("D")] = "q:kargo ücreti ne kadar",
+            },
+            joined);
+
+        // A family whose first record comes later still takes the key of the first record written.
+        var late = new SplitFamilies();
+        late.Add("q:kargo kaç para", root);
+        late.Add("q:kargo ücreti ne kadar", root);
+        Assert.Equal("q:kargo kaç para", Assert.Single(late.Build()).Value);
+        Assert.Empty(new SplitFamilies().Build());
+    }
+
     [Theory]
     [InlineData(80, 10, 10, true)]
     [InlineData(90, 10, 0, true)]

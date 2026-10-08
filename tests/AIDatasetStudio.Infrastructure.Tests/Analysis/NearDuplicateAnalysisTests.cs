@@ -138,6 +138,84 @@ public sealed class NearDuplicateAnalysisTests
             frozen.Files.Select(f => File.ReadAllText(f.Path)));
     }
 
+    [Fact]
+    public async Task Variations_are_not_near_duplicates_of_their_family_and_clean_up_keeps_them()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        const string question = "Siparişim kargoya verildikten sonra teslimat kaç iş günü içinde adresime ulaşır";
+        var root = await ws.Commands.AddAsync(datasetId, new InstructionPayload(question, "", "İki iş günü."), RecordLineage.Manual(), Ct);
+        var other = await ws.Commands.AddAsync(datasetId, new InstructionPayload("Mesai saatleri nedir?", "", "09.00 – 18.00."), RecordLineage.Manual(), Ct);
+        var variation = await AddVariationAsync(ws, datasetId, root, question + " mi");
+
+        await ws.Analysis.AnalyzeAsync(datasetId, cancellationToken: Ct);
+        Assert.Null(await NearDetailAsync(ws, root));
+        Assert.Null(await NearDetailAsync(ws, variation));
+
+        // Another record near both: near the family, not the family near itself.
+        await ws.Commands.UpdatePayloadAsync(other, new InstructionPayload(question + " mu", "", "Üç iş günü."), Ct);
+        await ws.Analysis.AnalyzeAsync(datasetId, cancellationToken: Ct);
+        Assert.Equal("2", await NearDetailAsync(ws, root));
+        Assert.Equal("2", await NearDetailAsync(ws, variation));
+        Assert.Equal("1", await NearDetailAsync(ws, other));
+
+        // Clean-up keeps the first record with its variations.
+        Assert.Equal([other], await ws.Analysis.FindAsync(datasetId, QualityRule.NearDuplicate, Ct));
+    }
+
+    [Fact]
+    public async Task A_record_and_its_variations_go_to_one_split_part_also_in_a_version()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var random = new Random(5);
+        string[] words = ["sipariş", "kargo", "iade", "fatura", "ödeme", "hesap", "şifre", "adres", "mağaza", "ürün", "teslimat", "kampanya"];
+        string Question(int i) => $"{i}: " + string.Join(' ', Enumerable.Range(0, 12).Select(_ => words[random.Next(words.Length)]));
+
+        // Variations ask in other words, so only their family keeps them with the first record.
+        var sizes = new List<int>();
+        for (var i = 0; i < 60; i++)
+        {
+            var root = await ws.Commands.AddAsync(datasetId, new InstructionPayload(Question(i), "", $"Yanıt {i}."), RecordLineage.Manual(), Ct);
+            var variation = await AddVariationAsync(ws, datasetId, root, Question(i));
+            if (i % 3 == 0)
+            {
+                await AddVariationAsync(ws, datasetId, variation, Question(i));
+            }
+
+            sizes.Add(i % 3 == 0 ? 3 : 2);
+        }
+
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft], Split: SplitOptions.Standard);
+        var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "split"), cancellationToken: Ct);
+        AssertFamiliesTogether(result, sizes);
+
+        var version = await ws.Versions.CreateAsync(datasetId, "1.0.0", null, cancellationToken: Ct);
+        var frozen = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "frozen"), versionId: version.Id, cancellationToken: Ct);
+        Assert.Equal(result.Files.Select(f => File.ReadAllText(f.Path)), frozen.Files.Select(f => File.ReadAllText(f.Path)));
+
+        // A stratified split keeps families together too.
+        var stratified = await ws.Export.ExportAsync(
+            datasetId,
+            options with { Split = SplitOptions.Standard with { StratifyBy = SplitOptions.AnyTag } },
+            Path.Combine(ws.Directory, "stratified"),
+            cancellationToken: Ct);
+        AssertFamiliesTogether(stratified, sizes);
+    }
+
+    private static void AssertFamiliesTogether(ExportResult result, List<int> sizes)
+    {
+        var lines = result.Files.Select(f => File.ReadAllLines(f.Path)).ToList();
+        Assert.Equal(sizes.Sum(), lines.Sum(l => l.Length));
+        Assert.True(lines.Count(l => l.Length > 0) > 1);
+        for (var i = 0; i < sizes.Count; i++)
+        {
+            var answer = $"\"Yanıt {i}.\"";
+            var file = Assert.Single(lines, file => file.Any(l => l.Contains(answer, StringComparison.Ordinal)));
+            Assert.Equal(sizes[i], file.Count(l => l.Contains(answer, StringComparison.Ordinal)));
+        }
+    }
+
     private static void AssertPairsTogether(ExportResult result, IEnumerable<string> questions)
     {
         var lines = result.Files.Select(f => File.ReadAllLines(f.Path)).ToList();
@@ -153,6 +231,14 @@ public sealed class NearDuplicateAnalysisTests
 
     private static async Task<string?> NearDetailAsync(TestWorkspace ws, Guid recordId) =>
         (await ws.Analysis.GetRecordQualityAsync(recordId, Ct))!.Issues.SingleOrDefault(i => i.Rule == QualityRule.NearDuplicate)?.Detail;
+
+    private static async Task<Guid> AddVariationAsync(TestWorkspace ws, Guid datasetId, Guid sourceId, string question)
+    {
+        var source = (await ws.Queries.GetAsync(sourceId, Ct))!;
+        var payload = new InstructionPayload(question, "", ((InstructionPayload)source.Payload).Output);
+        var lineage = new RecordLineage(RecordSourceKind.Synthetic, "#1", GeneratedByModel: "qwen2.5:7b");
+        return Assert.Single(await ws.Commands.AddManyAsync(datasetId, [new NewRecord(payload, lineage, VariantOf.For(source))], Ct));
+    }
 
     private static async Task<List<Guid>> AddAsync(TestWorkspace ws, Guid datasetId, params RecordPayload[] payloads)
     {

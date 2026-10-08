@@ -121,6 +121,10 @@
             </Button>
           </WrapPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+            <Button x:Name="VariationsButton" Classes="subtle icon" Command="{Binding GenerateVariationsCommand}" IsVisible="{Binding CanVary}"
+                    ToolTip.Tip="{l:Tr Editor_GenerateVariations}">
+              <ic:SymbolIcon Symbol="BranchFork" />
+            </Button>
             <Button x:Name="CompareButton" Classes="icon" Classes.subtle="{Binding !IsPreferenceCompare}" Classes.accent="{Binding IsPreferenceCompare}"
                     Command="{Binding TogglePreferenceCompareCommand}" IsVisible="{Binding IsPreference}" ToolTip.Tip="{l:Tr Editor_PreferenceCompare}">
               <ic:SymbolIcon Symbol="ColumnDoubleCompare" />
@@ -470,6 +474,12 @@
           <StackPanel Orientation="Horizontal" Spacing="6">
             <ic:SymbolIcon Symbol="ArrowUndo" />
             <TextBlock Text="{l:Tr Action_Restore}" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="BatchVariationsButton" Command="{Binding GenerateVariationsCommand}" IsVisible="{Binding CanVary}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="BranchFork" />
+            <TextBlock Text="{l:Tr Action_GenerateVariations}" />
           </StackPanel>
         </Button>
         <Button Classes="danger-subtle" Command="{Binding BatchDeleteCommand}">

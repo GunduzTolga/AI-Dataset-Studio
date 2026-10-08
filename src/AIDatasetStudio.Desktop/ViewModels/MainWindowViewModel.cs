@@ -43,6 +43,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly TagCatalog _tags;
     private readonly AIAssistant _ai;
     private readonly DocumentQuestions _questions;
+    private readonly RecordVariations _variations;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -63,6 +64,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         TagCatalog tags,
         AIAssistant ai,
         DocumentQuestions questions,
+        RecordVariations variations,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -87,6 +89,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _tags = tags;
         _ai = ai;
         _questions = questions;
+        _variations = variations;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -113,6 +116,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Overview.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
         Overview.ExtractQuestionsRequested += (_, _) => ExtractQuestionsCommand.Execute(null);
         Details.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
+        Details.VariationsRequested += (_, _) => GenerateVariationsCommand.Execute(null);
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }
@@ -631,6 +635,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private void OnRecordSelectionChanged()
     {
+        GenerateVariationsCommand.NotifyCanExecuteChanged();
         var rows = Records.SelectedRows;
         _ = rows.Count > 1 && Records.Dataset is { } dataset
             ? Details.ShowBatchAsync(dataset.Id, rows)
@@ -685,6 +690,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         DeleteSelectionCommand.NotifyCanExecuteChanged();
         ToggleTagCommand.NotifyCanExecuteChanged();
         ToggleTagSlotCommand.NotifyCanExecuteChanged();
+        GenerateVariationsCommand.NotifyCanExecuteChanged();
     }
 
     private void OnHistoryChanged()

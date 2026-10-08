@@ -10,23 +10,26 @@ using CommunityToolkit.Mvvm.Input;
 namespace AIDatasetStudio.Desktop.ViewModels.Documents;
 
 /// <summary>
-/// The dataset that receives the pairs, with its instructions for the model.
+/// The dataset that receives what the model writes, with its instructions for the model.
 /// </summary>
 public sealed record QATarget(Guid DatasetId, string Name, DatasetType Type, string? Guidance);
 
-public enum ChunkState
+/// <summary>
+/// Where the model is with a passage or a record.
+/// </summary>
+public enum WritingState
 {
-    /// <summary>Not written yet, or stopped before any pair.</summary>
+    /// <summary>Not written yet, or stopped before anything was written.</summary>
     Waiting,
     Writing,
 
-    /// <summary>The model wrote pairs.</summary>
+    /// <summary>The model wrote pairs or variations.</summary>
     Done,
 
-    /// <summary>The model found nothing to ask (an empty list).</summary>
+    /// <summary>The model wrote an empty list (nothing to ask).</summary>
     Empty,
 
-    /// <summary>The model's answer had no pairs that could be read.</summary>
+    /// <summary>The model's answer had nothing that could be read.</summary>
     Unreadable,
 }
 
@@ -72,7 +75,7 @@ public sealed partial class QAChunkViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StateText), nameof(IsWriting), nameof(HasProblem))]
-    public partial ChunkState State { get; set; }
+    public partial WritingState State { get; set; }
 
     /// <summary>
     /// The model that wrote the pairs, noted in their records' lineage.
@@ -87,9 +90,9 @@ public sealed partial class QAChunkViewModel : ViewModelBase
 
     public bool HasPairs => Pairs.Count > 0;
 
-    public bool IsWriting => State == ChunkState.Writing;
+    public bool IsWriting => State == WritingState.Writing;
 
-    public bool HasProblem => State == ChunkState.Unreadable;
+    public bool HasProblem => State == WritingState.Unreadable;
 
     /// <summary>
     /// The headings above the passage without the one above all passages, or its first words when it has none.
@@ -115,10 +118,10 @@ public sealed partial class QAChunkViewModel : ViewModelBase
 
     public string StateText => State switch
     {
-        ChunkState.Writing => _localizer["QA_StateWriting"],
-        ChunkState.Done => _localizer.Format("QA_StatePairs", Pairs.Count),
-        ChunkState.Empty => _localizer["QA_StateEmpty"],
-        ChunkState.Unreadable => _localizer["QA_StateUnreadable"],
+        WritingState.Writing => _localizer["QA_StateWriting"],
+        WritingState.Done => _localizer.Format("QA_StatePairs", Pairs.Count),
+        WritingState.Empty => _localizer["QA_StateEmpty"],
+        WritingState.Unreadable => _localizer["QA_StateUnreadable"],
         _ => string.Empty,
     };
 

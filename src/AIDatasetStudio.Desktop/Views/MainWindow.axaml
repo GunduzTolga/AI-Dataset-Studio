@@ -114,6 +114,9 @@
         <MenuItem x:Name="WriteMenuItem" Header="{l:Tr Menu_WriteWithAI}" Command="{Binding Details.WriteMainCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="Sparkle" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="VariationsMenuItem" Header="{l:Tr Menu_GenerateVariations}" Command="{Binding GenerateVariationsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="BranchFork" /></MenuItem.Icon>
+        </MenuItem>
         <Separator />
         <!-- Each tag toggles on the shown or selected records; those with a shortcut show Mod+N -->
         <MenuItem x:Name="TagMenuItem" Header="{l:Tr Menu_TagRecord}" ItemsSource="{Binding Tags.Tags}" IsEnabled="{Binding !Tags.IsEmpty}">

@@ -223,14 +223,14 @@ public sealed partial class QAExtractionViewModel : ViewModelBase, IDisposable
     /// </summary>
     public Task InitializeAsync() => PendingWork = ReadAsync();
 
-    private bool CanStart() => !IsRunning && IsSupported && Chunks.Any(c => c.IsIncluded && c.State is ChunkState.Waiting or ChunkState.Unreadable);
+    private bool CanStart() => !IsRunning && IsSupported && Chunks.Any(c => c.IsIncluded && c.State is WritingState.Waiting or WritingState.Unreadable);
 
     /// <summary>
     /// Has the model write from every included passage not written yet.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanStart))]
     private Task StartAsync() =>
-        PendingWork = RunAsync([.. Chunks.Where(c => c.IsIncluded && c.State is ChunkState.Waiting or ChunkState.Unreadable)]);
+        PendingWork = RunAsync([.. Chunks.Where(c => c.IsIncluded && c.State is WritingState.Waiting or WritingState.Unreadable)]);
 
     [RelayCommand(CanExecute = nameof(IsRunning))]
     private void Stop() => _run?.Cancel();
@@ -437,7 +437,7 @@ public sealed partial class QAExtractionViewModel : ViewModelBase, IDisposable
         chunk.Pairs.Clear();
         chunk.RawAnswer = null;
         chunk.Model = connection.Model;
-        chunk.State = ChunkState.Writing;
+        chunk.State = WritingState.Writing;
         var reader = new QAPairReader();
         try
         {
@@ -456,14 +456,14 @@ public sealed partial class QAExtractionViewModel : ViewModelBase, IDisposable
             }
 
             chunk.RawAnswer = reader.Text.Trim();
-            chunk.State = chunk.Pairs.Count > 0 ? ChunkState.Done
-                : IsEmptyList(reader.Text) ? ChunkState.Empty
-                : ChunkState.Unreadable;
+            chunk.State = chunk.Pairs.Count > 0 ? WritingState.Done
+                : IsEmptyList(reader.Text) ? WritingState.Empty
+                : WritingState.Unreadable;
         }
         catch
         {
             // Stopped or failed: what was written is kept.
-            chunk.State = chunk.Pairs.Count > 0 ? ChunkState.Done : ChunkState.Waiting;
+            chunk.State = chunk.Pairs.Count > 0 ? WritingState.Done : WritingState.Waiting;
             throw;
         }
     }

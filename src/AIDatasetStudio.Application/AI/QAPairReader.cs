@@ -11,7 +11,12 @@ namespace AIDatasetStudio.Application.AI;
 /// fence, after a sentence, inside <c>{"pairs": […]}</c>), under the usual key names in English
 /// or Turkish. An answer without any JSON is read as "Q: … A: …" / "Soru: … Cevap: …" lines.
 /// </summary>
-public sealed partial class QAPairReader
+/// <param name="questionsOnly">
+/// Whether questions without an answer are taken too (synthetic variations, which may only ask
+/// again): then objects with only a question count, and an answer without any JSON is also read
+/// as a JSON array of strings or as a numbered or bulleted list.
+/// </param>
+public sealed partial class QAPairReader(bool questionsOnly = false)
 {
     private static readonly string[] QuestionKeys = ["question", "q", "soru", "instruction", "prompt", "user"];
     private static readonly string[] AnswerKeys = ["answer", "a", "cevap", "yanıt", "yanit", "response", "output", "assistant"];
@@ -76,7 +81,7 @@ public sealed partial class QAPairReader
                     break;
                 case '}' when _objects.Count > 0:
                     var start = _objects.Pop();
-                    if (Read(_text.ToString(start, _scanned - start + 1)) is { } pair && Add(pair))
+                    if (Read(_text.ToString(start, _scanned - start + 1), questionsOnly) is { } pair && Add(pair))
                     {
                         found.Add(pair);
                     }
@@ -89,7 +94,8 @@ public sealed partial class QAPairReader
     }
 
     /// <summary>
-    /// Ends the answer. When it had no JSON at all, its "Q: … A: …" lines are read.
+    /// Ends the answer. When it had no JSON objects at all, its "Q: … A: …" lines are read (and,
+    /// for questions only, a JSON array of strings or a list).
     /// </summary>
     /// <returns>The pairs found only now.</returns>
     public IReadOnlyList<QAPair> Complete()
@@ -99,6 +105,23 @@ public sealed partial class QAPairReader
             return [];
         }
 
+        var found = Lines();
+        if (found.Count == 0 && questionsOnly)
+        {
+            foreach (var question in Strings() ?? ListItems())
+            {
+                if (Add(new QAPair(question, string.Empty)))
+                {
+                    found.Add(Pairs[^1]);
+                }
+            }
+        }
+
+        return found;
+    }
+
+    private List<QAPair> Lines()
+    {
         var found = new List<QAPair>();
         string? question = null;
         var answer = new StringBuilder();
@@ -134,6 +157,46 @@ public sealed partial class QAPairReader
         return found;
     }
 
+    // ["Kargo ne kadar?", "Kargo ücreti nedir?"], in a code fence or not.
+    private List<string>? Strings()
+    {
+        var text = _text.ToString();
+        var start = text.IndexOf('[', StringComparison.Ordinal);
+        var end = text.LastIndexOf(']');
+        if (start < 0 || end <= start)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(text.AsMemory(start, end - start + 1), new JsonDocumentOptions { AllowTrailingCommas = true });
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            var strings = document.RootElement.EnumerateArray()
+                .Where(e => e.ValueKind == JsonValueKind.String)
+                .Select(e => e.GetString()!.Trim())
+                .Where(s => s.Length > 0)
+                .ToList();
+            return strings.Count > 0 ? strings : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    // "1. …", "2) …", "- …", "* …", "• …"
+    private IEnumerable<string> ListItems() =>
+        _text.ToString().Split('\n')
+            .Select(line => ListItem().Match(line))
+            .Where(m => m.Success)
+            .Select(m => Clean(m.Groups["text"].Value).Trim('"', '“', '”'))
+            .Where(text => text.Length > 0);
+
     private bool Add(QAPair pair)
     {
         if (!_questions.Add(pair.Question))
@@ -145,14 +208,17 @@ public sealed partial class QAPairReader
         return true;
     }
 
-    private static QAPair? Read(string json)
+    private static QAPair? Read(string json, bool questionsOnly)
     {
         try
         {
             using var document = JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = true });
             var question = Value(document.RootElement, QuestionKeys);
             var answer = Value(document.RootElement, AnswerKeys);
-            return question is { Length: > 0 } && answer is { Length: > 0 } ? new QAPair(question, answer) : null;
+            return question is not { Length: > 0 } ? null
+                : answer is { Length: > 0 } ? new QAPair(question, answer)
+                : questionsOnly ? new QAPair(question, string.Empty)
+                : null;
         }
         catch (JsonException)
         {
@@ -187,4 +253,7 @@ public sealed partial class QAPairReader
     // "A: …", "Answer: …", "**Cevap:** …", "Yanıt: …", "C: …"
     [GeneratedRegex(@"^\s*[*_]*(?:a|answer|cevap|yanıt|yanit|c|y)\s*\d*\s*[:.)\-–][*_]*\s*(?<text>\S.*)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex AnswerLine();
+
+    [GeneratedRegex(@"^\s*(?:\d+[.)]|[-*•])\s+(?<text>\S.*)$", RegexOptions.CultureInvariant)]
+    private static partial Regex ListItem();
 }

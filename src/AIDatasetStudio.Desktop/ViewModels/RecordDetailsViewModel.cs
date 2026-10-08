@@ -148,6 +148,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// The dataset of the shown records, for its tokenizer and context length.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanVary))]
     public partial DatasetNodeViewModel? Dataset { get; set; }
 
     /// <summary>
@@ -988,9 +989,13 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private List<InfoItem> BuildInfo(RecordDetails record)
     {
+        // A variation names the record it varies; its reference is that record's number.
+        var reference = VariantOf.FromMetadata(record.MetadataJson) is { } family
+            ? _localizer.Format("Meta_VariationOf", family.Ordinal)
+            : record.Lineage.SourceReference;
         var items = new List<InfoItem>
         {
-            new(_localizer["Meta_Source"], Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(record.Lineage.SourceReference)),
+            new(_localizer["Meta_Source"], Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(reference)),
         };
         if (Source is { } source)
         {

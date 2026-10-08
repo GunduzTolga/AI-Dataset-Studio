@@ -315,6 +315,19 @@ internal sealed class FakeDialogs : IDialogService
         await QAExtractionScript(extraction);
     }
 
+    /// <summary>
+    /// What the user does in Generate Variations; by default closes it.
+    /// </summary>
+    public Func<VariationsViewModel, Task> VariationsScript { get; set; } = _ => Task.CompletedTask;
+
+    public VariationsViewModel? LastVariations { get; private set; }
+
+    public async Task ShowVariationsAsync(VariationsViewModel variations)
+    {
+        LastVariations = variations;
+        await VariationsScript(variations);
+    }
+
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         LastImportWizard = wizard;

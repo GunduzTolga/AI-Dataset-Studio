@@ -30,6 +30,16 @@ public sealed partial class RecordDetailsViewModel
     public event EventHandler? AIConnectionsRequested;
 
     /// <summary>
+    /// Raised when the user wants variations of the shown or selected records (SDD §17.6).
+    /// </summary>
+    public event EventHandler? VariationsRequested;
+
+    /// <summary>
+    /// Whether variations can be generated of the dataset's records.
+    /// </summary>
+    public bool CanVary => Dataset is { } dataset && Variations.Supports(dataset.Type);
+
+    /// <summary>
     /// The field being written, or <c>null</c>.
     /// </summary>
     [ObservableProperty]
@@ -99,6 +109,9 @@ public sealed partial class RecordDetailsViewModel
         AIError = null;
         AIConnectionsRequested?.Invoke(this, EventArgs.Empty);
     }
+
+    [RelayCommand]
+    private void GenerateVariations() => VariationsRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
     private void DismissAIError() => AIError = null;

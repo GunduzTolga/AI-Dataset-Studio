@@ -43,6 +43,7 @@ public sealed partial class MainWindow : Window
         Add(PreviousMenuItem, new KeyGesture(Key.F8, KeyModifiers.Shift), vm => vm.PreviousRecordCommand, inTextBox: true);
         Add(PiiPreviewMenuItem, new KeyGesture(Key.M, mod | KeyModifiers.Shift), vm => vm.Details.TogglePiiPreviewCommand, inTextBox: true);
         Add(WriteMenuItem, new KeyGesture(Key.G, mod), vm => vm.Details.WriteMainCommand, inTextBox: true);
+        Add(VariationsMenuItem, new KeyGesture(Key.G, mod | KeyModifiers.Shift), vm => vm.GenerateVariationsCommand, inTextBox: true);
         Add(DeleteMenuItem, new KeyGesture(Key.Delete), vm => vm.DeleteSelectionCommand, inTextBox: false, () => RecordListView.IsListFocused);
         FindMenuItem.InputGesture = new KeyGesture(Key.F, mod);
 

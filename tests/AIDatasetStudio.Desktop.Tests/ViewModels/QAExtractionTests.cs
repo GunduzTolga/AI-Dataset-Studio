@@ -58,8 +58,8 @@ public sealed class QAExtractionTests
             await extraction.StartCommand.ExecuteAsync(null);
 
             var (kargo, iade) = (extraction.Chunks[0], extraction.Chunks[1]);
-            Assert.Equal((ChunkState.Done, "2 questions"), (kargo.State, kargo.StateText));
-            Assert.Equal((ChunkState.Empty, "No questions"), (iade.State, iade.StateText));
+            Assert.Equal((WritingState.Done, "2 questions"), (kargo.State, kargo.StateText));
+            Assert.Equal((WritingState.Empty, "No questions"), (iade.State, iade.StateText));
             Assert.Equal("2 questions written; review them, then add them.", extraction.ProgressText);
             Assert.False(extraction.CanChangeChunks);
             extraction.ChunkTokens = 800;
@@ -121,13 +121,13 @@ public sealed class QAExtractionTests
         host.AI.Answers.Enqueue(["[{\"question\": \"Kargo ücretli mi?\", \"answer\": \"500 TL altında evet.\"},", "{\"question\": \"Yarım"]);
         var running = extraction.StartCommand.ExecuteAsync(null);
         await DesktopTestHost.WaitUntilAsync(() => kargo.Pairs.Count == 1 && extraction.IsRunning);
-        Assert.Equal((ChunkState.Writing, "Writing…"), (kargo.State, kargo.StateText));
+        Assert.Equal((WritingState.Writing, "Writing…"), (kargo.State, kargo.StateText));
         Assert.Equal("Writing passage 1 of 2 with qwen2.5:7b…", extraction.ProgressText);
         Assert.False(extraction.AddCommand.CanExecute(null));
         extraction.StopCommand.Execute(null);
         await running;
 
-        Assert.Equal((ChunkState.Done, ChunkState.Waiting), (kargo.State, iade.State));
+        Assert.Equal((WritingState.Done, WritingState.Waiting), (kargo.State, iade.State));
         Assert.Equal("Stopped; what was written is kept.", extraction.ProgressText);
         host.AI.Hold = null;
 
@@ -135,14 +135,14 @@ public sealed class QAExtractionTests
         host.AI.Failure = new AIException(AIErrorKind.Unreachable, "down");
         await extraction.StartCommand.ExecuteAsync(null);
         Assert.Equal("Nothing answers at http://localhost:11434/v1. Is Ollama running?", extraction.AIError);
-        Assert.Equal(ChunkState.Waiting, iade.State);
+        Assert.Equal(WritingState.Waiting, iade.State);
         extraction.DismissAIErrorCommand.Execute(null);
 
         // An answer without pairs is shown, and the passage can be tried again.
         host.AI.Failure = null;
         host.AI.Answers.Enqueue(["Üzgünüm, bu konuda yardımcı olamam."]);
         await extraction.StartCommand.ExecuteAsync(null);
-        Assert.Equal((ChunkState.Unreadable, "Unreadable", "Üzgünüm, bu konuda yardımcı olamam."), (iade.State, iade.StateText, iade.RawAnswer));
+        Assert.Equal((WritingState.Unreadable, "Unreadable", "Üzgünüm, bu konuda yardımcı olamam."), (iade.State, iade.StateText, iade.RawAnswer));
         Assert.True(extraction.StartCommand.CanExecute(null));
 
         host.AI.Answers.Enqueue(["Soru: İade süresi nedir?\nCevap: 14 gün."]);
@@ -192,7 +192,7 @@ public sealed class QAExtractionTests
         Assert.Null(extraction.AllIncluded);
         host.AI.Answers.Enqueue(["[{\"question\": \"İade süresi nedir?\", \"answer\": \"14 gün.\"}]"]);
         await extraction.StartCommand.ExecuteAsync(null);
-        Assert.Equal(ChunkState.Waiting, extraction.Chunks[0].State);
+        Assert.Equal(WritingState.Waiting, extraction.Chunks[0].State);
         Assert.Single(host.AI.Requests);
 
         host.Dialogs.ConfirmAnswer = false;

@@ -189,6 +189,9 @@
   <data name="Meta_GeneratedBy" xml:space="preserve">
     <value>Üreten model</value>
   </data>
+  <data name="Meta_VariationOf" xml:space="preserve">
+    <value>#{0} kaydının varyantı</value>
+  </data>
   <data name="Meta_Section" xml:space="preserve">
     <value>Bölüm</value>
   </data>
@@ -731,6 +734,9 @@
   </data>
   <data name="Status_QAAdded" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} soru-cevap taslak olarak eklendi; gözden geçirin</value>
+  </data>
+  <data name="Status_VariationsAdded" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} varyant taslak olarak eklendi; gözden geçirin</value>
   </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı; {2:N0} satır atlandı</value>
@@ -1914,6 +1920,117 @@
   <data name="QA_Stopped" xml:space="preserve">
     <value>Durduruldu; yazılanlar duruyor.</value>
   </data>
+  <data name="Action_GenerateVariations" xml:space="preserve">
+    <value>Varyant üret</value>
+  </data>
+  <data name="Editor_GenerateVariations" xml:space="preserve">
+    <value>Varyant üret: aynı soru başka sözlerle</value>
+  </data>
+  <data name="Variations_Title" xml:space="preserve">
+    <value>Varyant Üret</value>
+  </data>
+  <data name="Variations_OneRecord" xml:space="preserve">
+    <value>#{0} kaydı</value>
+  </data>
+  <data name="Variations_Records" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Variations_PerRecord" xml:space="preserve">
+    <value>Kayıt başına varyant</value>
+  </data>
+  <data name="Variations_Reword" xml:space="preserve">
+    <value>Değişecek</value>
+  </data>
+  <data name="Variations_ModeQuestions" xml:space="preserve">
+    <value>Yalnızca soru</value>
+  </data>
+  <data name="Variations_ModeAnswers" xml:space="preserve">
+    <value>Soru ve yanıt</value>
+  </data>
+  <data name="Variations_ModeHint" xml:space="preserve">
+    <value>Yanıtın da yeniden yazılması öğrenmek için daha çeşitli yanıtlar verir. Eklemeden önce okuyun: model yeniden yazarken bir bilgiyi değiştirebilir.</value>
+  </data>
+  <data name="Variations_Casual" xml:space="preserve">
+    <value>Günlük dil, yazım hataları</value>
+  </data>
+  <data name="Variations_CasualHint" xml:space="preserve">
+    <value>Bazı sorular insanların sohbette yazdığı gibi yazılır: kısa, noktalamasız, sık yapılan yazım hatalarıyla.</value>
+  </data>
+  <data name="Variations_Start" xml:space="preserve">
+    <value>Varyant üret</value>
+  </data>
+  <data name="Variations_Unsupported" xml:space="preserve">
+    <value>Varyantlar yalnızca Talimat, Sohbet ve Tercih kayıtları için üretilebilir.</value>
+  </data>
+  <data name="Variations_Skipped" xml:space="preserve">
+    <value>Seçilen kayıtlardan {0:N0} tanesinin henüz sorusu yok; bunlar atlandı.</value>
+  </data>
+  <data name="Variations_NoQuestions" xml:space="preserve">
+    <value>Bu kayıtların hiçbirinde başka sözlerle sorulacak bir soru yok.</value>
+  </data>
+  <data name="Variations_RecordList" xml:space="preserve">
+    <value>KAYITLAR</value>
+  </data>
+  <data name="Variations_Include" xml:space="preserve">
+    <value>Bu kaydın varyantları üretilsin</value>
+  </data>
+  <data name="Variations_RewriteHint" xml:space="preserve">
+    <value>Bu kaydın varyantlarını modele yeniden yazdırır; mevcutların yerini alır.</value>
+  </data>
+  <data name="Variations_Original" xml:space="preserve">
+    <value>ASIL KAYIT</value>
+  </data>
+  <data name="Variations_Input" xml:space="preserve">
+    <value>Girdi</value>
+  </data>
+  <data name="Variations_Items" xml:space="preserve">
+    <value>VARYANTLAR</value>
+  </data>
+  <data name="Variations_None" xml:space="preserve">
+    <value>Bu kaydın henüz varyantı yok.</value>
+  </data>
+  <data name="Variations_UnreadableHint" xml:space="preserve">
+    <value>Modelin yanıtında soru bulunamadı. Yeniden yazdırın ya da başka bir model deneyin. Modelin yazdığı:</value>
+  </data>
+  <data name="Variations_KeptAnswer" xml:space="preserve">
+    <value>Her varyant asıl yanıtı korur.</value>
+  </data>
+  <data name="Variations_TooSimilar" xml:space="preserve">
+    <value>Asıl soruya çok yakın</value>
+  </data>
+  <data name="Variations_TooSimilarHint" xml:space="preserve">
+    <value>Bu varyant pek az şey değiştiriyor; işaretlemezseniz eklenmez.</value>
+  </data>
+  <data name="Variations_Same" xml:space="preserve">
+    <value>Asıl soruyla aynı</value>
+  </data>
+  <data name="Variations_StateCount" xml:space="preserve">
+    <value>{0} varyant</value>
+  </data>
+  <data name="Variations_StateEmpty" xml:space="preserve">
+    <value>Varyant yok</value>
+  </data>
+  <data name="Variations_NoneYet" xml:space="preserve">
+    <value>Kayıtları seçip Varyant üret'e basın: model her soruyu başka sözlerle sorar.</value>
+  </data>
+  <data name="Variations_Summary" xml:space="preserve">
+    <value>{1:N0} varyanttan {0:N0} tanesi taslak kayıt olarak eklenecek</value>
+  </data>
+  <data name="Variations_DiscardTitle" xml:space="preserve">
+    <value>Varyantlar eklenmedi</value>
+  </data>
+  <data name="Variations_DiscardMessage" xml:space="preserve">
+    <value>{0:N0} varyant henüz veri setine eklenmedi. Atılsın mı?</value>
+  </data>
+  <data name="Variations_Progress" xml:space="preserve">
+    <value>{2} ile {0}/{1}. kaydın varyantları yazılıyor…</value>
+  </data>
+  <data name="Variations_Finished" xml:space="preserve">
+    <value>{0:N0} varyant yazıldı; gözden geçirip ekleyin.</value>
+  </data>
+  <data name="Variations_History" xml:space="preserve">
+    <value>varyantlar</value>
+  </data>
   <data name="AIProvider_Ollama" xml:space="preserve">
     <value>Ollama</value>
   </data>
@@ -1931,6 +2048,9 @@
   </data>
   <data name="Menu_WriteWithAI" xml:space="preserve">
     <value>Yapay zekâyla yaz</value>
+  </data>
+  <data name="Menu_GenerateVariations" xml:space="preserve">
+    <value>Varyant Üret…</value>
   </data>
   <data name="Tags_Title" xml:space="preserve">
     <value>Etiketler</value>

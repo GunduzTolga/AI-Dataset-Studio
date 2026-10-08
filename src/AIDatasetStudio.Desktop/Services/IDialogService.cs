@@ -82,4 +82,9 @@ public interface IDialogService
     /// Shows Q&amp;A extraction from a document until the window is closed.
     /// </summary>
     Task ShowQAExtractionAsync(QAExtractionViewModel extraction);
+
+    /// <summary>
+    /// Shows variations of records until the window is closed.
+    /// </summary>
+    Task ShowVariationsAsync(VariationsViewModel variations);
 }

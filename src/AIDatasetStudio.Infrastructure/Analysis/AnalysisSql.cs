@@ -37,11 +37,13 @@ internal static class AnalysisSql
         $"AND r2.Status <> {Archived}))";
 
     // Another record with an up-to-date analysis, not archived, in the same group of near-duplicate
-    // questions but with a different question (exactly the same question is another rule's business).
+    // questions but with a different question (exactly the same question is another rule's business)
+    // and not of the same family: variations are meant to ask the same thing (SDD §17.6).
     private static readonly string NearOthers =
         "FROM RecordAnalyses a3 JOIN DatasetRecords r3 ON r3.Id = a3.RecordId AND a3.ContentHash = r3.ContentHash " +
         "WHERE a3.DatasetId = r.DatasetId AND a3.NearGroup = a.NearGroup AND a3.QuestionKey IS NOT a.QuestionKey " +
-        $"AND a3.Tokenizer = a.Tokenizer AND a3.RulesVersion = {QualityRules.Version} AND r3.Status <> {Archived}";
+        $"AND a3.Tokenizer = a.Tokenizer AND a3.RulesVersion = {QualityRules.Version} AND r3.Status <> {Archived} " +
+        $"AND {Family("r3")} IS NOT {Family("r")}";
 
     /// <summary>
     /// 1 when another record, not archived, asks a near-duplicate question (<see cref="NearDuplicates"/>).
@@ -54,6 +56,19 @@ internal static class AnalysisSql
     public static readonly string NearDuplicateOf = $"(CASE WHEN a.NearGroup IS NULL THEN NULL ELSE (SELECT MIN(r3.Ordinal) {NearOthers}) END)";
 
     public const string IsOverLimit = "(a.TotalTokens > d.ContextLength)";
+
+    /// <summary>
+    /// The record a variation was written from, as its metadata has it (<c>alias</c> has a
+    /// MetadataJson column), or NULL.
+    /// </summary>
+    public static string VariantOf(string alias) =>
+        $"(CASE WHEN json_valid({alias}.MetadataJson) THEN json_extract({alias}.MetadataJson, '{Application.Records.VariantOf.IdPath}') END)";
+
+    /// <summary>
+    /// The family of a record (<c>alias</c> of DatasetRecords): the record it is a variation of,
+    /// otherwise itself, written as stored ids are.
+    /// </summary>
+    public static string Family(string alias) => $"COALESCE(upper({VariantOf(alias)}), {alias}.Id)";
 
     /// <summary>
     /// The score with cross-record and context penalties; NULL when not analysed (SDD §8.1).

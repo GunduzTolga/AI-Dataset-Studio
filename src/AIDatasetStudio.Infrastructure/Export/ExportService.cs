@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -175,10 +176,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             {
                 // One deferred read transaction: a consistent snapshot that does not block edits (WAL).
                 await using var snapshot = connection.BeginTransaction(deferred: true);
+                var families = options.Split is not null ? await JoinFamiliesAsync(connection, snapshot, source, options, cancellationToken) : null;
                 var parts = options.Split is { IsStratified: true } stratified
-                    ? await StratifyAsync(connection, snapshot, source, options, stratified, cancellationToken)
+                    ? await StratifyAsync(connection, snapshot, source, options, stratified, families, cancellationToken)
                     : null;
-                pipeline = new Pipeline(options, scanner, parts);
+                pipeline = new Pipeline(options, scanner, parts, families);
                 var total = await CountSelectedAsync(connection, snapshot, source, options, cancellationToken);
                 long processed = 0;
                 progress?.Report(new ExportProgress(0, total));
@@ -333,13 +335,56 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     }
 
     /// <summary>
+    /// When variations are among the records that will be written, a first pass (same checks,
+    /// nothing rendered) joins the groups of each family so they share a part (SDD §17.6);
+    /// otherwise <c>null</c>.
+    /// </summary>
+    private static async Task<IReadOnlyDictionary<string, string>?> JoinFamiliesAsync(
+        SqliteConnection connection, SqliteTransaction transaction, Source source, ExportOptions options, CancellationToken cancellationToken)
+    {
+        if (options.Statuses.Count == 0)
+        {
+            return null;
+        }
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = $"{SourceSql(source)} SELECT EXISTS (SELECT 1 FROM s WHERE s.Status IN ({StatusList(options)}) AND s.Family IS NOT NULL);";
+            source.Bind(command);
+            if ((long)(await command.ExecuteScalarAsync(cancellationToken))! == 0)
+            {
+                return null;
+            }
+        }
+
+        var checks = new Pipeline(options, scanner: null, parts: null);
+        var families = new SplitFamilies();
+        await foreach (var record in ReadAsync(connection, transaction, source, options, withTags: false, cancellationToken))
+        {
+            if (checks.Accept(record) is { } payload)
+            {
+                families.Add(ExportSplit.GroupKey(payload, record.Id, record.NearGroup), record.Family ?? record.Id);
+            }
+        }
+
+        return families.Build();
+    }
+
+    /// <summary>
     /// A first pass over the records that will be written (same checks, nothing rendered): their
     /// groups, strata and sizes, assigned to parts with exact shares per stratum (SDD §10.1).
     /// </summary>
     private static async Task<IReadOnlyDictionary<string, SplitPart>> StratifyAsync(
-        SqliteConnection connection, SqliteTransaction transaction, Source source, ExportOptions options, SplitOptions split, CancellationToken cancellationToken)
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        Source source,
+        ExportOptions options,
+        SplitOptions split,
+        IReadOnlyDictionary<string, string>? families,
+        CancellationToken cancellationToken)
     {
-        var checks = new Pipeline(options, scanner: null, parts: null);
+        var checks = new Pipeline(options, scanner: null, parts: null, families);
         var groups = new Dictionary<string, (string Stratum, int Count)>(StringComparer.Ordinal);
         var order = new List<string>();
         await foreach (var record in ReadAsync(connection, transaction, source, options, withTags: true, cancellationToken))
@@ -349,7 +394,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 continue;
             }
 
-            var key = ExportSplit.GroupKey(payload, record.Id, record.NearGroup);
+            var key = checks.GroupKey(payload, record);
             if (groups.TryGetValue(key, out var group))
             {
                 groups[key] = group with { Count = group.Count + 1 };
@@ -389,7 +434,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 command.Transaction = transaction;
                 command.CommandText = $"""
                     {SourceSql(source)}
-                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}, s.NearGroup
+                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}, s.NearGroup, s.Family
                     FROM s WHERE s.Status IN ({StatusList(options)}) AND s.Ordinal > $after
                     ORDER BY s.Ordinal
                     LIMIT {BatchSize};
@@ -405,7 +450,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                         reader.GetString(3),
                         reader.GetBoolean(4),
                         reader.IsDBNull(5) ? null : reader.GetString(5),
-                        reader.IsDBNull(6) ? null : SqliteValues.ReadGuid(reader.GetString(6))));
+                        reader.IsDBNull(6) ? null : SqliteValues.ReadGuid(reader.GetString(6)),
+                        reader.IsDBNull(7) || !Guid.TryParse(reader.GetString(7), out var family) ? null : family));
                     after = reader.GetInt64(1);
                 }
             }
@@ -424,9 +470,10 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     /// <summary>
     /// The records to export as a common table <c>s</c> (Id, Ordinal, Status, ContentHash,
-    /// DataPayload, OverLimit, NotAnalyzed, TagNames, NearGroup): the dataset's records with their
-    /// up-to-date analysis, or a version's records with the token counts, context length and groups
-    /// of near-duplicate questions frozen with it.
+    /// DataPayload, OverLimit, NotAnalyzed, TagNames, NearGroup, Family): the dataset's records with
+    /// their up-to-date analysis, or a version's records with the token counts, context length and
+    /// groups of near-duplicate questions frozen with it. Family is the record a variation was
+    /// written from, as it is in the metadata (<see cref="VariantOf"/>).
     /// </summary>
     private static string SourceSql(Source source) => source.VersionId is null
         ? $"""
@@ -434,16 +481,16 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
               SELECT r.Id AS Id, r.Ordinal AS Ordinal, r.Status AS Status, r.ContentHash AS ContentHash, r.DataPayload AS DataPayload,
                      (a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength) AS OverLimit, (a.RecordId IS NULL) AS NotAnalyzed,
                      (SELECT json_group_array(t.Name) FROM RecordTags rt JOIN Tags t ON t.Id = rt.TagId WHERE rt.RecordId = r.Id) AS TagNames,
-                     a.NearGroup AS NearGroup
+                     a.NearGroup AS NearGroup, {AnalysisSql.VariantOf("r")} AS Family
               FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
               WHERE r.DatasetId = $ds)
           """
-        : """
+        : $"""
           WITH s AS (
               SELECT x.RecordId AS Id, m.Ordinal AS Ordinal, m.Status AS Status, x.ContentHash AS ContentHash, x.DataPayload AS DataPayload,
                      (m.Tokens IS NOT NULL AND m.Tokens > v.ContextLength) AS OverLimit, 0 AS NotAnalyzed,
                      (SELECT json_group_array(t.Name) FROM json_each(m.TagIds) j JOIN Tags t ON t.Id = j.value) AS TagNames,
-                     m.NearGroup AS NearGroup
+                     m.NearGroup AS NearGroup, {AnalysisSql.VariantOf("x")} AS Family
               FROM VersionRecordMappings m
               JOIN RecordRevisions x ON x.Id = m.RevisionId
               JOIN DatasetVersions v ON v.Id = m.VersionId
@@ -475,7 +522,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     /// <param name="TagNames">The record's tag names as a JSON array, when asked for.</param>
     /// <param name="NearGroup">The first record of its group of near-duplicate questions, if any.</param>
-    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null, Guid? NearGroup = null);
+    /// <param name="Family">The record it is a variation of, if any.</param>
+    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null, Guid? NearGroup = null, Guid? Family = null);
 
     private readonly record struct ExportLine(SplitPart? Part, string Text);
 
@@ -518,7 +566,9 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     /// checks (unsupported, too long, copy) matches the preview counts.
     /// </summary>
     /// <param name="parts">The parts of a stratified split by group key; <c>null</c> to assign by hash alone.</param>
-    private sealed class Pipeline(ExportOptions options, PiiScanner? scanner, IReadOnlyDictionary<string, SplitPart>? parts)
+    /// <param name="families">Group keys joined with those of their family (<see cref="SplitFamilies"/>), if any.</param>
+    private sealed class Pipeline(
+        ExportOptions options, PiiScanner? scanner, IReadOnlyDictionary<string, SplitPart>? parts, IReadOnlyDictionary<string, string>? families = null)
     {
         private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
 
@@ -532,6 +582,15 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
         public long Masked { get; private set; }
 
+        /// <summary>
+        /// What keeps the record with related ones in the split: its group, joined with its family's.
+        /// </summary>
+        public string GroupKey(RecordPayload payload, ExportRecord record)
+        {
+            var key = ExportSplit.GroupKey(payload, record.Id, record.NearGroup);
+            return families is not null && families.TryGetValue(key, out var joined) ? joined : key;
+        }
+
         public ExportLine? Convert(ExportRecord record)
         {
             if (Accept(record) is not { } payload)
@@ -541,9 +600,9 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
             // The split follows the stored question, so masking never moves a record to another file.
             SplitPart? part = options.Split is { } split
-                ? parts is not null && parts.TryGetValue(ExportSplit.GroupKey(payload, record.Id, record.NearGroup), out var assigned)
+                ? parts is not null && parts.TryGetValue(GroupKey(payload, record), out var assigned)
                     ? assigned
-                    : ExportSplit.Assign(split, ExportSplit.GroupKey(payload, record.Id, record.NearGroup))
+                    : ExportSplit.Assign(split, GroupKey(payload, record))
                 : null;
             if (scanner is not null && scanner.Mask(payload) is { HasFindings: true } masked)
             {

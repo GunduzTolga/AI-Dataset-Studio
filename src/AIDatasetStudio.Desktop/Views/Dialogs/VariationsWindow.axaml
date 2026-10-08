@@ -1,0 +1,269 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.AI"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.VariationsWindow"
+        x:DataType="vm:VariationsViewModel"
+        Title="{l:Tr Variations_Title}"
+        Width="1080" Height="740"
+        MinWidth="860" MinHeight="560"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <Window.Styles>
+    <Style Selector="NumericUpDown">
+      <Setter Property="MinWidth" Value="100" />
+    </Style>
+    <!-- A variant that will not be added -->
+    <Style Selector="Border.left-out">
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <!-- Header: the records, the dataset and the model -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="BranchFork" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Variations_Title}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="TextBulletListSquare" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+            <TextBlock x:Name="RecordsText" Classes="small strong" Text="{Binding RecordsText}" />
+            <TextBlock Classes="small muted" Text="→" />
+            <TextBlock Classes="small muted" Text="{Binding TargetText}" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2" HorizontalAlignment="Right">
+          <TextBlock Classes="small muted" Text="{l:Tr QA_Model}" HorizontalAlignment="Right" />
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+            <ic:SymbolIcon Symbol="BrainCircuit" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+            <TextBlock x:Name="ConnectionText" Classes="small" Text="{Binding ConnectionText}" />
+            <Button Classes="subtle small" Content="{l:Tr Overview_AIConnections}" Command="{Binding OpenAIConnectionsCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Settings and the run -->
+    <Border DockPanel.Dock="Top" Padding="24,10" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" IsVisible="{Binding HasRecords}">
+      <Grid ColumnDefinitions="Auto,Auto,24,Auto,Auto,24,Auto,*,Auto">
+        <TextBlock Classes="small" Text="{l:Tr Variations_PerRecord}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <NumericUpDown x:Name="CountBox" Grid.Column="1" Value="{Binding Count}" Minimum="1" Maximum="10" Increment="1" FormatString="0"
+                       IsEnabled="{Binding !IsRunning}" />
+        <TextBlock Grid.Column="3" Classes="small" Text="{l:Tr Variations_Reword}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <ComboBox x:Name="ModeBox" Grid.Column="4" SelectedIndex="{Binding ModeIndex}" MinWidth="190" ToolTip.Tip="{l:Tr Variations_ModeHint}"
+                  IsEnabled="{Binding !IsRunning}">
+          <ComboBoxItem Content="{l:Tr Variations_ModeQuestions}" />
+          <ComboBoxItem Content="{l:Tr Variations_ModeAnswers}" />
+        </ComboBox>
+        <CheckBox x:Name="CasualBox" Grid.Column="6" IsChecked="{Binding IsCasual}" Content="{l:Tr Variations_Casual}"
+                  ToolTip.Tip="{l:Tr Variations_CasualHint}" IsEnabled="{Binding !IsRunning}" />
+        <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="8">
+          <Button x:Name="StartButton" Classes="accent" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Sparkle" />
+              <TextBlock Text="{l:Tr Variations_Start}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="StopButton" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
+              <TextBlock Text="{l:Tr Editor_StopWriting}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,16,0">
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding ProgressValue}" IsVisible="{Binding IsRunning}" MaxWidth="360" HorizontalAlignment="Left" />
+          <TextBlock x:Name="ProgressText" Classes="small muted" Text="{Binding ProgressText}" TextTrimming="CharacterEllipsis"
+                     IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <TextBlock x:Name="SummaryText" Classes="small" Text="{Binding SummaryText}" IsVisible="{Binding HasRecords}" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsCancel="True" Margin="0,0,8,0"
+                MinWidth="88" HorizontalContentAlignment="Center" />
+        <Button x:Name="AddButton" Grid.Column="2" Classes="accent" Content="{Binding AddText}" Command="{Binding AddCommand}"
+                MinWidth="120" HorizontalContentAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <!-- The model could not write -->
+    <Border DockPanel.Dock="Top" Classes="callout danger" Margin="24,12,24,0" Padding="12,8" IsVisible="{Binding HasAIError}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ic:SymbolIcon Symbol="Sparkle" VerticalAlignment="Center" />
+        <TextBlock x:Name="AIErrorText" Grid.Column="1" Classes="small" Text="{Binding AIError}" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="12,0,0,0">
+          <Button Classes="subtle" Content="{l:Tr Import_Close}" Command="{Binding DismissAIErrorCommand}" />
+          <Button Classes="accent" Content="{l:Tr Editor_AIConnections}" Command="{Binding OpenAIConnectionsCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- The variants could not be added -->
+    <Border DockPanel.Dock="Top" Classes="callout danger" Margin="24,12,24,0" IsVisible="{Binding HasAddError}">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="ErrorCircle" />
+        <TextBlock Classes="small" Text="{Binding AddError}" />
+      </DockPanel>
+    </Border>
+
+    <!-- Records without a question were left out -->
+    <Border DockPanel.Dock="Top" Classes="callout" Margin="24,12,24,0" IsVisible="{Binding HasSkipped}">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="Info" />
+        <TextBlock x:Name="SkippedText" Classes="small" Text="{Binding SkippedText}" />
+      </DockPanel>
+    </Border>
+
+    <!-- Variants cannot become records of this dataset -->
+    <Border DockPanel.Dock="Top" Classes="callout warning" Margin="24,12,24,0" IsVisible="{Binding !IsSupported}">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="Warning" />
+        <TextBlock Classes="small" Text="{l:Tr Variations_Unsupported}" />
+      </DockPanel>
+    </Border>
+
+    <Panel>
+      <!-- Nothing to ask in other words -->
+      <StackPanel Classes="empty" IsVisible="{Binding !HasRecords}">
+        <Border Classes="empty-icon">
+          <ic:SymbolIcon Symbol="BranchFork" />
+        </Border>
+        <TextBlock Classes="muted" Text="{l:Tr Variations_NoQuestions}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding HasRecords}">
+        <!-- Records -->
+        <Border Width="330" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0"
+                IsVisible="{Binding HasManyRecords}">
+          <DockPanel Margin="12,12,12,12">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="4,0,0,8">
+              <TextBlock Classes="overline" Text="{l:Tr Variations_RecordList}" VerticalAlignment="Center" />
+              <CheckBox x:Name="AllBox" Grid.Column="1" IsThreeState="True" IsChecked="{Binding AllIncluded}" Content="{l:Tr QA_All}"
+                        IsEnabled="{Binding !IsRunning}" />
+            </Grid>
+            <ListBox x:Name="RecordList" Classes="records" ItemsSource="{Binding Records}" SelectedItem="{Binding SelectedRecord}" Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:VariationRecordViewModel">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,3">
+                    <CheckBox IsChecked="{Binding IsIncluded}" VerticalAlignment="Top" Margin="0,-2,6,0" MinWidth="0"
+                              IsEnabled="{Binding !IsWriting}" ToolTip.Tip="{l:Tr Variations_Include}" />
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <TextBlock Classes="strong" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="small muted numeric" Text="{Binding Number}" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Classes="tag" Classes.warning="{Binding HasProblem}" Margin="8,0,0,0" VerticalAlignment="Top"
+                            IsVisible="{Binding StateText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="{Binding StateText}" />
+                    </Border>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <!-- The record and its variants -->
+        <ScrollViewer Grid.Column="1" IsVisible="{Binding HasSelection}">
+          <StackPanel Margin="24,16,24,20" Spacing="12" DataContext="{Binding SelectedRecord}" x:DataType="vm:VariationRecordViewModel">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="2">
+                <TextBlock x:Name="RecordTitle" Classes="subtitle" Text="{Binding Title}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Classes="small muted numeric" Text="{Binding Number}" />
+                  <Border Classes="tag" Classes.warning="{Binding HasProblem}"
+                          IsVisible="{Binding StateText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <TextBlock Text="{Binding StateText}" />
+                  </Border>
+                </StackPanel>
+              </StackPanel>
+              <Button x:Name="RewriteButton" Grid.Column="1" Classes="subtle" VerticalAlignment="Top"
+                      Command="{Binding $parent[Window].((vm:VariationsViewModel)DataContext).RewriteCommand}" CommandParameter="{Binding}"
+                      ToolTip.Tip="{l:Tr Variations_RewriteHint}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="ArrowClockwise" />
+                  <TextBlock Text="{l:Tr QA_Rewrite}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <TextBlock Classes="overline" Text="{l:Tr Variations_Original}" Margin="2,4,0,0" />
+            <Border Classes="card" Padding="14,10">
+              <StackPanel Spacing="4">
+                <TextBlock Classes="label" Text="{l:Tr QA_Question}" />
+                <SelectableTextBlock x:Name="OriginalQuestion" Text="{Binding Source.Question}" TextWrapping="Wrap" />
+                <TextBlock Classes="label" Text="{l:Tr Variations_Input}" Margin="0,8,0,0" IsVisible="{Binding HasContext}" />
+                <SelectableTextBlock Classes="small" Text="{Binding Source.Context}" TextWrapping="Wrap" IsVisible="{Binding HasContext}" />
+                <TextBlock Classes="label" Text="{l:Tr QA_Answer}" Margin="0,8,0,0" IsVisible="{Binding HasAnswer}" />
+                <ScrollViewer MaxHeight="160" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasAnswer}">
+                  <SelectableTextBlock x:Name="OriginalAnswer" Classes="small" Text="{Binding Source.Answer}" TextWrapping="Wrap" />
+                </ScrollViewer>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="callout warning" IsVisible="{Binding HasProblem}">
+              <StackPanel Spacing="6">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Warning" />
+                  <TextBlock Classes="small" Text="{l:Tr Variations_UnreadableHint}" TextWrapping="Wrap" />
+                </DockPanel>
+                <SelectableTextBlock Classes="small mono" Text="{Binding RawAnswer}" TextWrapping="Wrap" MaxHeight="120" />
+              </StackPanel>
+            </Border>
+
+            <TextBlock Classes="overline" Text="{l:Tr Variations_Items}" Margin="2,4,0,0" />
+            <TextBlock Classes="small muted" Text="{l:Tr Variations_None}" TextWrapping="Wrap" Margin="2,0"
+                       IsVisible="{Binding !HasVariants}" />
+            <TextBlock Classes="small muted" Text="{l:Tr Variations_KeptAnswer}" TextWrapping="Wrap" Margin="2,0"
+                       IsVisible="{Binding KeepsAnswer}" />
+            <ItemsControl x:Name="VariantList" ItemsSource="{Binding Variants}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="10" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:VariantViewModel">
+                  <Border Classes="card" Classes.left-out="{Binding !IsKept}" Padding="12,10">
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                      <CheckBox Grid.RowSpan="4" IsChecked="{Binding IsKept}" VerticalAlignment="Top" MinWidth="0" Margin="0,-2,8,0"
+                                ToolTip.Tip="{l:Tr QA_Keep}" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="label" Text="{l:Tr QA_Question}" VerticalAlignment="Center" />
+                        <Border Classes="tag warning" IsVisible="{Binding IsTooSimilar}" ToolTip.Tip="{l:Tr Variations_TooSimilarHint}">
+                          <TextBlock Text="{l:Tr Variations_TooSimilar}" />
+                        </Border>
+                        <Border Classes="tag warning" IsVisible="{Binding IsSame}">
+                          <TextBlock Text="{l:Tr Variations_Same}" />
+                        </Border>
+                      </StackPanel>
+                      <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding Question}" TextWrapping="Wrap" AcceptsReturn="False" Margin="0,4,0,0" />
+                      <TextBlock Grid.Column="1" Grid.Row="2" Classes="label" Text="{l:Tr QA_Answer}" Margin="0,8,0,0" IsVisible="{Binding HasOwnAnswer}" />
+                      <TextBox Grid.Column="1" Grid.Row="3" Text="{Binding Answer}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="56"
+                               IsVisible="{Binding HasOwnAnswer}" />
+                      <Button Grid.Column="2" Grid.RowSpan="4" Classes="mini" VerticalAlignment="Top" Margin="8,0,0,0"
+                              Command="{Binding RemoveCommand}" ToolTip.Tip="{l:Tr QA_RemovePair}">
+                        <ic:SymbolIcon Symbol="Delete" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Panel>
+  </DockPanel>
+</Window>

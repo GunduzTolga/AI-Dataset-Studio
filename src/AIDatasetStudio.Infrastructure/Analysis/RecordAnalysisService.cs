@@ -205,12 +205,12 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
                 "EXISTS (SELECT 1 FROM DatasetRecords o WHERE o.DatasetId = r.DatasetId AND o.ContentHash = r.ContentHash " +
                 $"AND o.Status <> {AnalysisSql.Archived} AND (o.Ordinal < r.Ordinal OR (o.Ordinal = r.Ordinal AND o.Id < r.Id)))",
             QualityRule.ConflictingAnswer => $"a.RecordId IS NOT NULL AND {AnalysisSql.IsConflicting}",
-            // Keep the first record of each group of near-duplicate questions.
+            // Keep the first record of each group of near-duplicate questions, with its variations.
             QualityRule.NearDuplicate =>
-                $"a.RecordId IS NOT NULL AND {AnalysisSql.IsNearDuplicate} AND EXISTS (SELECT 1 FROM RecordAnalyses a4 " +
-                "JOIN DatasetRecords r4 ON r4.Id = a4.RecordId AND a4.ContentHash = r4.ContentHash " +
+                $"a.RecordId IS NOT NULL AND {AnalysisSql.IsNearDuplicate} AND {AnalysisSql.Family("r")} IS NOT (SELECT {AnalysisSql.Family("r4")} " +
+                "FROM RecordAnalyses a4 JOIN DatasetRecords r4 ON r4.Id = a4.RecordId AND a4.ContentHash = r4.ContentHash " +
                 $"WHERE a4.DatasetId = r.DatasetId AND a4.NearGroup = a.NearGroup AND a4.Tokenizer = a.Tokenizer AND a4.RulesVersion = {QualityRules.Version} " +
-                $"AND r4.Status <> {AnalysisSql.Archived} AND (r4.Ordinal < r.Ordinal OR (r4.Ordinal = r.Ordinal AND r4.Id < r.Id)))",
+                $"AND r4.Status <> {AnalysisSql.Archived} ORDER BY r4.Ordinal, r4.Id LIMIT 1)",
             QualityRule.OverContextLimit => $"a.RecordId IS NOT NULL AND {AnalysisSql.IsOverLimit}",
             _ => $"a.RecordId IS NOT NULL AND (a.IssueFlags & {AnalysisSql.Bit(rule)}) <> 0",
         };
@@ -338,11 +338,11 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         var ds = SqliteValues.Guid(datasetId);
 
         // Which contents are there: one light read decides whether anything has to be done.
-        var records = new List<(string Id, string ContentHash, string? QuestionKey, string? NearGroup)>();
+        var records = new List<(string Id, string ContentHash, string? QuestionKey, string? NearGroup, string Family)>();
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = $"""
-                SELECT r.Id, r.ContentHash, a.QuestionKey, a.NearGroup
+                SELECT r.Id, r.ContentHash, a.QuestionKey, a.NearGroup, {AnalysisSql.Family("r")}
                 FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
                 WHERE r.DatasetId = $ds AND a.Signature IS NOT NULL
                 ORDER BY r.Ordinal, r.Id;
@@ -351,11 +351,17 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
-                records.Add((reader.GetString(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3)));
+                records.Add((
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetString(2),
+                    reader.IsDBNull(3) ? null : reader.GetString(3),
+                    reader.GetString(4)));
             }
         }
 
-        var stamp = Stamp(records.Select(r => (r.Id, r.ContentHash)));
+        // Metadata is not part of the content hash, so the families are part of the stamp.
+        var stamp = Stamp(records.Select(r => (r.Id, r.Family == r.Id ? r.ContentHash : r.ContentHash + ":" + r.Family)));
         await using (var command = connection.CreateCommand())
         {
             command.CommandText = "SELECT Stamp FROM DatasetSimilarity WHERE DatasetId = $ds;";
@@ -372,7 +378,12 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         // The exact check needs the questions of the candidates only.
         var involved = candidates.SelectMany(p => new[] { p.A, p.B }).Distinct().ToDictionary(i => records[i].Id, i => i, StringComparer.Ordinal);
         var shingles = await ReadShinglesAsync(connection, involved, cancellationToken);
-        var roots = NearDuplicates.Group(records.Count, keys, candidates, (a, b) => NearDuplicates.Jaccard(shingles[a], shingles[b]) >= NearDuplicates.Threshold);
+        // A record and its variations ask the same thing on purpose: they are a family, not near duplicates.
+        var roots = NearDuplicates.Group(
+            records.Count,
+            keys,
+            candidates,
+            (a, b) => !string.Equals(records[a].Family, records[b].Family, StringComparison.Ordinal) && NearDuplicates.Jaccard(shingles[a], shingles[b]) >= NearDuplicates.Threshold);
 
         // A group whose records all ask exactly the same question has no near-duplicate in it.
         var mixed = roots.Select((root, i) => (root, key: keys[i])).GroupBy(x => x.root)
