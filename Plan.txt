@@ -1,805 +1,545 @@
-AI DATASET STUDIO
-Software Design Document (SDD)
+# AI DATASET STUDIO
+## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-Version: 0.3
-Status: Approved Architectural Specification
+- **Versiyon:** 1.0.0
+- **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
+- **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
+- **Hedef Framework:** .NET 9 / C# 13
+- **Arayüz Teknolojisi:** Avalonia UI 11+ (CommunityToolkit.Mvvm)
+- **Veri Depolama:** SQLite (WAL Mode, FTS5 Tam Metin Arama, JSON1 Eklentisi)
+- **Mimari Desen:** Clean Architecture + CQRS + Specification Pattern + MVVM
 
-PLATFORM
+---
 
-- Desktop Application
-- Windows (x64 / arm64)
-- Linux (x64 / arm64)
-- macOS (Apple Silicon / Intel)
+## 1. ÜRÜN VİZYONU VE ÇÖZÜLEN PROBLEM (PRODUCT VISION)
 
-TECHNOLOGY STACK
+### 1.1. Sektördeki Problem
+Büyük Dil Modellerinin (LLM) fine-tuning (SFT, LoRA, DPO), RAG ve değerlendirme aşamalarında yaşanan en büyük kriz model eğitimi algoritmaları değil, **eğitim verisinin kalitesi, formatı ve yönetimidir.**
 
-- .NET 9
-- C# 13
-- Avalonia UI (11+)
-- SQLite (WAL Mode, FTS5 Full-Text Search, JSON1 extension)
-- Entity Framework Core 9 (Complex Types, JSON Columns, Value Converters)
-- Microsoft.ML.Tokenizers / Tiktoken-CSharp (Yerel Token Sayımı & Context Analizi)
-- AvaloniaEdit (Monaco / TextMate tabanlı kod & markdown düzenleme bileşeni)
-- MVVM (CommunityToolkit.Mvvm / ReactiveUI)
-- Clean Architecture & CQRS Pattern
+Bugün yapay zeka ekiplerinin eğitim verileri şu dağınık ortamlarda tutulmaktadır:
+- Farklı format ve karakter kodlamalarındaki Excel / CSV tabloları,
+- Elle veya kararsız Python scriptleriyle üretilmiş bozuk/geçersiz JSONL dosyaları,
+- Ham PDF, Word ve Markdown belgeleri,
+- Notion, Confluence ve Google Docs gibi dokümantasyon araçları,
+- Farklı Git repolarındaki `train.jsonl` versiyonları.
 
---------------------------------------------------
-1. PRODUCT VISION
---------------------------------------------------
+Bu dağınıklık şu ölümcül sonuçları doğurur:
+1. **Veri Tekrarı (Duplicates):** Aynı veya %95 benzer soruların veri setinde onlarca kez yer alması sonucu modelin aşırı öğrenmesi (overfitting).
+2. **Sürüm ve Köken Kaybı (Lost Lineage):** Bir verinin nereden geldiği, hangi AI modeliyle veya kim tarafından üretildiği, hangi aşamalardan geçtiğinin takip edilememesi.
+3. **Token Sınır Aşımı ve OOM (Out of Memory):** 4096 veya 8192 token sınırını aşan satırların tespit edilememesi nedeniyle GPU eğitiminin saatler sonra çökmesi.
+4. **Model Formatına Bağımlılık (Lock-in):** Verinin doğrudan belirli bir model formatında (örneğin sadece OpenAI chat formatında) saklanması yüzünden, Llama-3, Mistral veya Alpaca formatına geçişte veri kaybı ve kod karmaşası yaşanması.
+5. **Veri Sızıntısı ve PII (Kişisel/Gizli Veri):** Şirket içi eğitim setlerine kazara API anahtarları, şifreler, T.C. kimlik numaraları, e-postalar veya müşteri kredi kartı bilgilerinin sızması.
+6. **Gizlilik ve Güvenlik Endişeleri:** Şirketlerin hassas verilerini üçüncü parti SaaS / Bulut tabanlı veri etiketleme araçlarına yükleyememesi.
 
-Problem:
+### 1.2. Çözüm ve Amaç
+**AI Dataset Studio**, Postman'in API geliştiricileri için yaptığını LLM veri mühendisleri için yapan; tamamen **yerel (offline-first, zero-cloud dependency)**, yüksek performanslı ve modern bir masaüstü stüdyodur.
 
-AI projelerinde kullanılan veri setleri;
+Uygulamanın temel amacı; eğitim verilerini oluşturmak, zenginleştirmek, sentetik olarak çoğaltmak, tokenize etmek, PII temizliğinden geçirmek, kalite skorunu hesaplamak, semantik olarak sürümlemek ve tek bir tıkla hedef modelin (OpenAI, Llama-3, Mistral, Alpaca, ShareGPT, DPO vb.) gerektirdiği formata kayıpsız dönüştürmektir.
 
-- Excel dosyalarında
-- JSON ve JSONL dosyalarında
-- PDF belgelerinde
-- Notion sayfalarında
-- Confluence alanlarında
-- Git depolarında
+---
 
-dağınık şekilde tutulmaktadır.
+## 2. ÇEKİRDEK MİMARİ İLKELER (CORE PRINCIPLES)
 
-Bu durum;
+1. **Dataset First, Model Second:** Model mimarileri ve fine-tuning metotları hızla değişir, ancak temizlenmiş alan (domain) veri setiniz şirketin en değerli kalıcı varlığıdır.
+2. **Internal Format != Model Format (Unified Schema Architecture):** Veriler dahili olarak hiçbir yapay zeka modelinin formatında saklanmaz. Evrensel ve standart bir dahili veri modelinde saklanır.
+3. **Export-Time Transformation:** Veri seti her zaman ham ve kayıpsız tutulur; hedef modele (OpenAI, ChatML, Llama-3, Axolotl vb.) sadece dışa aktarma (export) anında dönüştürülür.
+4. **Full Data Lineage & Auditability:** Her bir satırın hangi kaynaktan geldiği (PDF chunk, sentetik üretim, CSV import, manuel giriş), kimin incelediği, hangi modelin ürettiği kayıt altında tutulur.
+5. **Dataset Quality > Training Method:** 1.000 adet kusursuz, filtrelenmiş ve token dengesi sağlanmış veri; 50.000 adet gürültülü ve tekrarlı veriden çok daha başarılı model eğitir.
+6. **Zero-Telemetry & Offline-First:** Hiçbir kullanıcı verisi, metin veya API anahtarı kullanıcının izni olmadan internete çıkmaz. Tamamen hava boşluklu (air-gapped) ortamlarda çalışabilir.
+7. **Portable Project Files (.aids / SQLite Mimarisi):** Figma (.fig) veya Photoshop (.psd) mantığında, bir projenin tüm veri setleri, etiketleri, versiyonları ve geçmişi tek bir taşınabilir `.aids` (SQLite) dosyasında yaşar.
+8. **Extreme Virtualization:** 100.000+ kayıttan oluşan dev veri setlerinde dahi arayüz asla kilitlenmez, bellek şişmez; ekran sadece görünen 30 satırı render eder (UI Virtualization).
 
-- veri tekrarına (duplicates)
-- sürüm karmaşasına
-- token limitlerinin aşılmasına (OOM hataları)
-- kalite kaybına ve tutarsız formatlamaya
-- model bağımlılığına
-- hassas şirket verilerinin (PII, API key) eğitim setine sızmasına
+---
 
-sebep olmaktadır.
+## 3. DOMAIN HİYERARŞİSİ VE DOSYA STRATEJİSİ
 
-Amaç:
+### 3.1. Proje ve Dosya Depolama Modeli
+Uygulama iki seviyeli bir depolama stratejisi izler:
 
-AI eğitim verilerini;
+1. **Global Uygulama Ayarları Veritabanı:**
+   - Konum: `~/AppData/Roaming/AIDatasetStudio/app.settings.db` (Windows) veya `~/.config/AIDatasetStudio/` (Linux/macOS)
+   - İçerik: Tema tercihleri, son açılan projeler listesi, şifrelenmiş yerel API Key Kasası (OpenAI, Anthropic, OpenRouter anahtarları), kullanıcı tanımlı özel şablonlar.
 
-- oluşturmak
-- düzenlemek ve zenginleştirmek
-- sürümlemek (Diff / Snapshot tabanlı)
-- tokenize edip context length kontrolünden geçirmek
-- kalite kontrolünden geçirmek (Health Engine)
-- kişisel/hassas verilerden arındırmak (PII Scrubber)
-- farklı modeller için export etmek (OpenAI, ShareGPT, ChatML vb.)
+2. **Taşınabilir Çalışma Alanı Dosyası (`*.aids`):**
+   - Yapı: SQLite WAL (Write-Ahead Logging) modunda çalışan bağımsız veritabanı dosyası.
+   - Avantajı: Projeyi bir USB belleğe atıp başka bir bilgisayarda doğrudan açabilme, versiyon kontrol sistemlerine (Git LFS) tek dosya olarak commit edebilme.
 
-üzere merkezi, yerel (offline-first, zero-cloud dependency), gizliliğe odaklı bir masaüstü uygulama geliştirmek.
-
---------------------------------------------------
-2. CORE PRINCIPLES
---------------------------------------------------
-
-1. Dataset First, Model Second (Model geçicidir, veri seti kalıcı varlıktır)
-2. Internal Format != Model Format (Dahili yapı modelden bağımsız tutulur)
-3. Export Time Transformation (Veri ham saklanır, modele export anında dönüştürülür)
-4. Data Lineage Must Exist (Her kaydın kökeni, tarihi ve onaylayanı bilinir)
-5. Dataset Quality > Training Method (Veri kalitesi model parametrelerinden önemlidir)
-6. Offline First & Local Privacy (Veriler asla izinsiz dışarı çıkmaz, sıfır telemetri)
-7. Portable Project Files (.aids / SQLite bazlı tek dosya taşınabilirliği)
-8. Extreme Virtualization (100.000+ kayıtta UI donması olmadan akıcı çalışma)
-
---------------------------------------------------
-3. DOMAIN STRUCTURE
---------------------------------------------------
-
-Workspace (*.aids Dosyası / Proje Dosyası)
+### 3.2. Varlık Hiyerarşisi
+```text
+Workspace (Çalışma Alanı / *.aids Dosyası)
 │
-├── Project
-│
-├── Dataset
-│
-├── DatasetVersion
-│
-├── DatasetRecord (Polymorphic Payload)
-│
-├── ExportProfile
-│
-└── EvaluationSet
+├── Project (Proje / Alt Çalışma Alanı - Örn: "Müşteri Hizmetleri Asistanı")
+│   │
+│   ├── Dataset (Veri Seti - Örn: "Sık Sorulan Sorular - SFT")
+│   │   ├── DatasetVersion (Snapshot / Dondurulmuş Sürüm - Örn: "v1.0.0")
+│   │   ├── DatasetRecord (Kayıt - Polimorfik JSON Payload)
+│   │   │   ├── Lineage (Kayıt Kökeni & Denetim Bilgisi)
+│   │   │   ├── RecordTags (Etiketler)
+│   │   │   └── RecordRelations (Kayıt İlişkileri: Parent, Duplicate vb.)
+│   │   └── ExportProfile (Özel Dışa Aktarma Şablonları)
+│   │
+│   └── EvaluationSet (Model Değerlendirme & Benchmark Kümeleri)
+```
 
---------------------------------------------------
-4. WORKSPACE
---------------------------------------------------
+---
 
-En üst organizasyon katmanıdır. Bağımsız bir `.aids` SQLite dosyası olarak saklanır.
+## 4. DESTEKLENEN VERİ SETİ TİPLERİ VE ŞEMA SPESİFİKASYONLARI
 
-Örnekler:
+Her kayıt tipi `DatasetRecord` tablosunda `DataPayload` sütununda yapılandırılmış JSON olarak saklanır. Arayüz ve motor bu JSON'u dinamik olarak doğrular ve işler.
 
-- Healthcare
-- Gaming
-- Corporate AI / Legal / HR
-- Personal Research
-
---------------------------------------------------
-5. PROJECT
---------------------------------------------------
-
-Belirli bir amaç için oluşturulan çalışma alanıdır.
-
-Örnekler:
-
-- Support Bot
-- HR Assistant
-- Medical Assistant
-- Education Bot
-- Code Generation Assistant
-
---------------------------------------------------
-6. DATASET
---------------------------------------------------
-
-Her dataset tek bir amaca ve veri formatına hizmet eder.
-
-Örnekler:
-
-- Support Questions
-- Interview Questions
-- HR Policies
-- Technical Support
-- Documentation QA
-- Function Calling Tools Catalog
-
---------------------------------------------------
-7. DATASET TYPES
---------------------------------------------------
-
-Instruction Dataset
-
-Yapı:
-- Instruction
-- Input
-- Output
-
-JSON Payload:
+### 4.1. Instruction Dataset (Tek Turlu Talimat Seti)
+- **Kullanım Alanı:** SFT (Supervised Fine-Tuning), LoRA, QLoRA, DoRA, Full Parameter Tuning.
+- **Şema Tanımı:**
+```json
 {
-  "instruction": "Kullanıcıya talimatı...",
-  "input": "Opsiyonel bağlam veya metin...",
-  "output": "Modelin vermesi gereken ideal yanıt..."
+  "instruction": "Aşağıdaki metindeki ana fikri tek bir cümleyle özetle.",
+  "input": "Yapay zeka modellerinin eğitiminde veri kalitesi, model parametre sayısından daha kritik bir rol oynamaktadır...",
+  "output": "Veri kalitesi, yapay zeka eğitiminde model boyutundan daha belirleyici bir faktördür."
 }
+```
 
-Amaç:
-- SFT (Supervised Fine-Tuning)
-- LoRA
-- QLoRA
-- DoRA
-- Full Fine Tune
-
---------------------------------------------------
-
-Chat Dataset
-
-Yapı:
-- Conversation (Multi-turn)
-- System Prompt
-- User
-- Assistant
-- User
-- Assistant
-
-JSON Payload:
+### 4.2. Chat Dataset (Çok Turlu Konuşma Seti)
+- **Kullanım Alanı:** Sohbet asistanları, çok turlu diyalog yeteneği kazandırma, SFT.
+- **Şema Tanımı:**
+```json
 {
-  "system_prompt": "Sen bir asistansın...",
+  "system_prompt": "Sen kurumsal bir İK asistanısın. Yanıtların resmi ve net olmalıdır.",
   "messages": [
-    { "role": "user", "content": "Merhaba!" },
-    { "role": "assistant", "content": "Nasıl yardımcı olabilirim?" }
+    { "role": "user", "content": "Yıllık izin hakkım ne zaman başlar?" },
+    { "role": "assistant", "content": "İş Kanunu uyarınca, deneme süreniz dahil 1 yıllık kıdeminizi doldurduğunuz tarihte başlar." },
+    { "role": "user", "content": "Kaç gün izin hakkım olur?" },
+    { "role": "assistant", "content": "1 yıldan 5 yıla kadar (5 yıl dahil) kıdemi olan çalışanlar için yıllık ücretli izin hakkı en az 14 gündür." }
   ]
 }
+```
 
-Amaç:
-- SFT
-- LoRA
-- QLoRA
-- Full Fine Tune
-
---------------------------------------------------
-
-Preference Dataset
-
-Yapı:
-- Prompt
-- Chosen
-- Rejected
-
-JSON Payload:
+### 4.3. Preference Dataset (İkili Tercih Seti)
+- **Kullanım Alanı:** DPO (Direct Preference Optimization), ORPO, RLHF, KTO, Model Alignment.
+- **Şema Tanımı:**
+```json
 {
-  "prompt": "Soru veya talimat...",
-  "chosen": "Yüksek kaliteli, tercih edilen yanıt...",
-  "rejected": "Düşük kaliteli, reddedilen yanıt..."
+  "prompt": "Python'da liste ters çevirme nasıl yapılır?",
+  "chosen": "Python'da bir listeyi ters çevirmenin en yaygın yolu dilimleme (slicing) yöntemidir:\n```python\nters = liste[::-1]\n```\nAyrıca listeyi yerinde ters çevirmek için `liste.reverse()` fonksiyonu da kullanılabilir.",
+  "rejected": "Bir for döngüsü yazıp sondan başa doğru elemanları yeni bir listeye ekleyebilirsin."
 }
+```
 
-Amaç:
-- DPO (Direct Preference Optimization)
-- ORPO
-- RLHF
-- KTO
-
---------------------------------------------------
-
-Evaluation Dataset
-
-Yapı:
-- Question
-- Expected Answer
-- Score
-- Rubric
-
-JSON Payload:
+### 4.4. Tool Calling / Agent Dataset (Fonksiyon Çağrı Seti)
+- **Kullanım Alanı:** Fonksiyon çağırma, otonom ajan (agentic AI) eğitimi, API entegrasyonları.
+- **Şema Tanımı:**
+```json
 {
-  "question": "Değerlendirme sorusu...",
-  "expected_answer": "Beklenen referans cevap...",
-  "rubric": "Puanlama kriterleri...",
-  "score": 5
+  "prompt": "Kadıköy için yarınki hava durumunu kontrol et.",
+  "tools": [
+    {
+      "name": "get_forecast",
+      "description": "Belirli bir konum ve gün için hava durumu tahminini döner.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": { "type": "string" },
+          "days_ahead": { "type": "integer" }
+        },
+        "required": ["location", "days_ahead"]
+      }
+    }
+  ],
+  "tool_calls": [
+    {
+      "name": "get_forecast",
+      "arguments": { "location": "Kadıköy", "days_ahead": 1 }
+    }
+  ],
+  "tool_output": "{\"temperature\": 19, \"condition\": \"Parçalı Bulutlu\", \"rain_prob\": 0.10}",
+  "final_response": "Kadıköy'de yarın hava parçalı bulutlu ve yaklaşık 19 derece olacak. Yağış ihtimali %10 civarında."
 }
+```
 
-Amaç:
-- Benchmark
-- Model Kalite Değerlendirme
-
---------------------------------------------------
-
-Classification Dataset
-
-Yapı:
-- Text
-- Label
-
-JSON Payload:
+### 4.5. Evaluation & Benchmark Dataset
+- **Kullanım Alanı:** Model karşılaştırmaları, LLM-as-a-Judge testleri, yetkinlik ölçümü.
+- **Şema Tanımı:**
+```json
 {
-  "text": "Sınıflandırılacak metin...",
-  "label": "Sentiment_Positive"
+  "question": "Aşırı öğrenmeyi (overfitting) engellemek için hangi yöntemler kullanılır?",
+  "expected_answer": "Düzenlileştirme (L1/L2), Dropout, Erken Durdurma (Early Stopping) ve Veri Artırma (Data Augmentation).",
+  "rubric": "Yanıt en az 3 geçerli teknik içermeli ve her birinin amacını kısaca açıklamalıdır.",
+  "max_score": 10
 }
+```
 
-Amaç:
-- Classification Models
-- NLU / Intent Recognition
-
---------------------------------------------------
-
-Tool Calling Dataset
-
-Yapı:
-- Prompt
-- Tool
-- Arguments
-- Tool Output
-- Final Response
-
-JSON Payload:
+### 4.6. Classification Dataset
+- **Kullanım Alanı:** NLU modelleri, duygu analizi, niyet belirleme (intent recognition).
+- **Şema Tanımı:**
+```json
 {
-  "prompt": "Hava durumunu sorgula...",
-  "tools": [ { "name": "get_weather", "description": "Hava durumu", "parameters": { ... } } ],
-  "tool_calls": [ { "name": "get_weather", "arguments": { "city": "Istanbul" } } ],
-  "tool_output": "{\"temp\": 22}",
-  "final_response": "İstanbul'da hava 22 derece."
+  "text": "Siparişim 4 gündür kargoya verilmedi, acil iptal talep ediyorum.",
+  "label": "Siparis_Iptal_Talebi",
+  "confidence_score": 1.0
 }
+```
 
-Amaç:
-- Function Calling
-- Agent Training
-
---------------------------------------------------
-
-RAG Test Dataset
-
-Yapı:
-- Question
-- Expected Document / Chunks
-- Expected Answer
-
-JSON Payload:
+### 4.7. RAG Test Dataset
+- **Kullanım Alanı:** Retriever performansı, bağlam doğruluğu, RAG pipeline benchmark.
+- **Şema Tanımı:**
+```json
 {
-  "question": "Doküman bazlı soru...",
-  "expected_document_ids": ["doc_123", "chunk_45"],
-  "expected_answer": "Doğru yanıt..."
+  "question": "Şirket içi uzaktan çalışma politikasında haftalık limit kaç gündür?",
+  "expected_document_ids": ["doc_hr_policy_v2_chunk_14"],
+  "expected_answer": "Haftada en fazla 2 gün uzaktan çalışma izni verilmektedir."
 }
+```
+
+---
+
+## 5. VERİ MODELİ VE YAŞAM DÖNGÜSÜ (DATA MODEL & LIFECYCLE)
+
+### 5.1. DatasetRecord Varlık Alanları
+```csharp
+public class DatasetRecord
+{
+    public Guid Id { get; set; }
+    public Guid DatasetId { get; set; }
+    public DatasetType Type { get; set; }
+    public RecordStatus Status { get; set; }
+    
+    // SQLite JSON1 destekli, EF Core Complex/JSON mapping
+    public string DataPayload { get; set; } = string.Empty;
+    
+    // Token Analiz Motoru Değerleri
+    public int TokenCount { get; set; }
+    public int InputTokenCount { get; set; }
+    public int OutputTokenCount { get; set; }
+    
+    // Serbest Meta Veriler & Etiketler
+    public string MetadataJson { get; set; } = "{}";
+    public List<RecordTag> Tags { get; set; } = new();
+    
+    // İlişkiler & Benzerlik Bağlantıları
+    public List<RecordRelation> Relations { get; set; } = new();
+    
+    // Denetim & Köken Bilgisi (Lineage)
+    public RecordLineage Lineage { get; set; } = new();
+    
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+```
+
+### 5.2. Kayıt Yaşam Döngüsü (Record Lifecycle)
+```text
+[Draft] (Taslak) ──> [InReview] (İncelemede) ──> [Approved] (Onaylandı) ──> [ExportReady] (Hazır)
+   │                       │                             │                          │
+   └───────────────────────┴─────────────────────────────┴──────────────────────────┴──> [Archived] (Arşivlendi)
+```
+- **Draft:** İçe aktarılmış veya AI tarafından yeni üretilmiş, henüz insan gözüyle incelenmemiş kayıtlar.
+- **InReview:** Bir editörün inceleme listesine aldığı veya üzerinde değişiklik yaptığı kayıtlar.
+- **Approved:** İçerik ve kalite açısından onaylanmış kayıtlar.
+- **ExportReady:** Token sınır kontrollerinden geçmiş, PII temizliği tamamlanmış ve eğitime girmeye hazır kayıtlar.
+- **Archived:** Kalitesiz, yinelenen veya eğitimden çıkarılmış ancak silinmeyip geçmiş amacıyla saklanan kayıtlar.
+
+---
+
+## 6. ARAYÜZ (UX) VE SERİ DÜZENLEME MİMARİSİ (SPEED-REVIEW UX)
+
+### 6.1. UI Yerleşim Mimarisi (Split-View Layout)
+- **Sol Panel (Proje & Veri Seti Ağacı):** Çalışma alanı, projeler, veri setleri ve versiyonlar hiyerarşisi.
+- **Orta Panel (Sanallaştırılmış Veri Tablosu):** 100.000+ satırlı veri kümesinde 60 FPS kaydırma sağlayan, arama çubuğu ve filtre chipleri içeren DataGrid.
+- **Sağ Panel (Dinamik Kayıt Editörü):**
+  - Seçilen kayıt tipine göre dinamik olarak şekillenen form (Chat ise konuşma baloncukları, DPO ise yan yana iki yanıt paneli, Instruction ise girdi-çıktı alanları).
+  - AvaloniaEdit entegrasyonu ile JSON, Markdown ve Python kod renklendirmesi.
+  - Canlı Token Sayacı Rozeti (Yeşil: < 2048, Sarı: 2048-4096, Kırmızı: > 4096).
+  - Görsel Diff Bileşeni: DPO'da Chosen ve Rejected metinleri arasındaki farkları yeşil/kırmızı arka planla anlık gösteren görselleştirici.
+
+### 6.2. Klavye Kısayolları ile Seri Veri İnceleme
+Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleyebilmesi için tasarlanan kısayol şeması:
+- `Ctrl + Enter`: Kaydı **Approved** olarak işaretle ve doğrudan bir sonraki kayda odaklan.
+- `Ctrl + Backspace`: Kaydı **Archived / Rejected** yap ve sonrakine geç.
+- `Ctrl + Down / Up`: Kayıtlar arasında hızlı gezinme.
+- `Alt + 1 .. 5`: Kayda hızlı etiket (Tag) veya kategori atama.
+- `Ctrl + Shift + F`: PII Maskeleme önizlemesini çalıştır.
+
+---
+
+## 7. YEREL TOKEN VE CONTEXT ANALİZ MOTORU (TOKEN & CONTEXT ENGINE)
+
+### 7.1. Amaç
+Fine-tuning sürecinde eğitim scriptlerinin en sık patlama sebebi olan **CUDA Out-of-Memory (OOM)** hatalarını ve context kırpılmalarını masaüstü ortamında, eğitim başlamadan önce tamamen engellemek.
+
+### 7.2. Teknik Detaylar
+- **Kütüphane:** `Microsoft.ML.Tokenizers` ve `Tiktoken-CSharp` (tamamen çevrimdışı çalışır).
+- **Desteklenen BPE / Kodlama Modelleri:**
+  1. `cl100k_base` (OpenAI GPT-4, GPT-3.5-Turbo)
+  2. `o200k_base` (OpenAI GPT-4o, GPT-4o-mini)
+  3. `Llama-3 Tokenizer` (Meta Llama 3 8B / 70B BPE kodlaması - 128k context)
+  4. `Mistral / Gemma Tokenizer` (SentencePiece tabanlı kodlama)
+
+### 7.3. Fonksiyonlar ve Raporlama
+- **Anlık Satır Analizi:** Kullanıcı metni yazarken milisaniyeler içinde Input Token, Output Token ve Toplam Token hesabı.
+- **Context Window Eşik Uyarıları:** 2048, 4096, 8192, 16k, 32k ve 128k sınırlarını aşan satırların DataGrid üzerinde kırmızı bayrakla işaretlenmesi ve tek tıkla filtrelenebilmesi.
+- **Token Histogramı:** Veri setinin genel token dağılımını gösteren görsel yoğunluk grafiği (kaç satır 500 token altında, kaç satır 4000 üzerinde).
+- **Eğitim Maliyet Hesaplayıcısı:** Güncel OpenAI fine-tuning ($/1M token) veya bulut GPU saatlik maliyet katsayılarıyla veri setinin tahmini eğitim bütçesini çıkarma.
+
+---
+
+## 8. VERİ SETİ SAĞLIK MOTORU VE KALİTE SKORU (DATASET HEALTH ENGINE)
+
+### 8.1. Kalite Skoru (Health Score: 0 - 100)
+Veri setindeki her satır bir dizi kural motorundan (IHealthRule) geçer ve veri setine 0 ile 100 arasında genel bir kalite skoru atanır.
+
+### 8.2. Denetim Kuralları
+1. **Exact Duplicate Check:** Girdi ve çıktı metinlerinin SHA-256 hash değerleri karşılaştırılarak birebir kopyaların tespiti.
+2. **Semantic & Near-Duplicate Check:** MinHash / Jaccard Benzerliği veya yerel hafif embedding algoritmalarıyla %85+ oranında benzer soruların tespiti (Örn: "Parolamı unuttum" vs "Şifremi nasıl sıfırlarım?").
+3. **Eksik & Boş Veri Kontrolü:** Boş instruction, boş yanıt, tek taraflı diyaloglar veya yalnızca boşluk karakteri içeren satırların tespiti.
+4. **Token Anomalileri:** Aşırı kısa yanıtlar ("tamam", "evet", "bilmiyorum") veya sorudan 50 kat daha uzun dengesiz yanıtlar.
+5. **Veri Sızıntısı (Leakage / Repetition):** Model çıktısının girdideki metni olduğu gibi anlamsızca tekrar etmesi durumu.
+6. **Sözdizimi ve Format Doğrulama:** Kapanmamış kod blokları (```), geçersiz JSON veya XML etiketleri, bozuk markdown yapıları.
+7. **Çelişki Tespiti (Contradiction):** Birebir aynı soruya verilmiş taban tabana zıt iki farklı yanıtın bulunması.
+
+### 8.3. Tek Tıkla Temizleme (Auto-Cleaner Wizard)
+Tespit edilen sorunları kullanıcıya listeler: "142 adet yinelenen satırı arşivle", "12 adet boş kaydı sil", "Bozuk markdown etiketlerini otomatik onar".
+
+---
+
+## 9. HASSAS VERİ VE PII MASKELEME MOTORU (PII SCRUBBER)
+
+### 9.1. Yerel Maskeleme Prensipleri
+Şirket içi veri setleri modele beslenmeden önce müşteri veya çalışan verilerinden arındırılmalıdır. Hiçbir harici bulut servisine bağlanmadan, yerel kural motorlarıyla çalışır:
+- **E-posta Adresleri:** `([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})` ➔ `[EMAIL]`
+- **Telefon Numaraları:** Uluslararası ve yerel telefon formatları ➔ `[PHONE]`
+- **T.C. Kimlik / Kimlik Numaraları:** 11 haneli algoritma doğrulamalı kimlik numaraları ➔ `[ID_NUMBER]`
+- **Kredi Kartı Numaraları:** Luhn Algoritması doğrulamalı 16 haneli kart numaraları ➔ `[CREDIT_CARD]`
+- **Dahili IP ve URL'ler:** `192.168.x.x`, `10.x.x.x` ve dahili şirket alan adları ➔ `[INTERNAL_IP]` / `[INTERNAL_URL]`
+- **API Anahtarları & Gizli Şifreler:** OpenAI (`sk-...`), AWS Access Key (`AKIA...`), GitHub Token (`ghp_...`), Bearer tokenlar ➔ `[API_KEY]`
+- **Özel Yasaklı Sözlük (Blacklist):** Kullanıcının tanımladığı şirket unvanları, CEO isimleri veya gizli proje kod adları için maskeleme.
+
+---
+
+## 10. EĞİTİM BÖLME MOTORU (TRAIN / VALIDATION / TEST SPLIT)
+
+### 10.1. Bölme Stratejisi
+Veri setini model eğitimine göndermeden önce bilimsel standartlarda 3 parçaya bölme:
+- **Preset Seçenekleri:**
+  - `%80 Train / %10 Validation / %10 Test` (Standart)
+  - `%90 Train / %10 Validation` (Büyük veri setleri)
+  - Kullanıcı tanımlı özel oranlar.
+- **Stratified Sampling (Tabakalı Dağıtım):** Veri setindeki belirli etiketlerin (örneğin "kategori:hukuk", "kategori:teknik") her bir bölüntüye (train/val/test) eşit oranlarla dağılmasını garanti eder.
+- **Tekrarlanabilirlik (Random Seed):** `Seed = 42` girildiğinde, aylar sonra bile veri seti bölündüğünde birebir aynı satırların train ve test kümelerine düşmesi sağlanır.
+- **Export Çıktısı:** Tek tıkla `train.jsonl`, `val.jsonl`, `test.jsonl` olarak ayrıştırılmış dosyalar oluşturulur.
+
+---
+
+## 11. GELİŞMİŞ ARAMA VE SORGULAMA MOTORU (FTS5 QUERY ENGINE)
+
+### 11.1. SQLite FTS5 (Full-Text Search) Mimarisi
+Girdi, çıktı, sistem talimatı ve meta veriler arka planda SQLite'ın sanal FTS5 tablosu ile indekslenir.
+- 100.000 satırlık bir veri setinde arama yaparken tüm metinleri bellekte aramak yerine, FTS5 B-Tree indeksi üzerinden milisaniyeler (10-20 ms) içinde sonuç döner.
+
+### 11.2. Yapısal Filtreleme (Query Builder)
+Kullanıcı şu tip karmaşık sorguları arayüzdeki filtre chipleriyle kolayca yapabilir:
+- `Status == 'InReview' AND TokenCount > 2048`
+- `Tag IN ('v2-rag', 'finance') AND HealthScore < 80`
+- `GeneratedByAI == true AND AIModelName == 'gpt-4o'`
+
+---
+
+## 12. İÇE AKTARMA SİSTEMİ (IMPORT SYSTEM)
+
+### 12.1. V1 (MVP) Kapsamı
+- **CSV Import Sihirbazı:** Otomatik delimiter (virgül, noktalı virgül, tab) tespiti. Kullanıcı dostu kolon eşleme ekranı (Hangi sütun `Instruction`, hangi sütun `Input`, hangi sütun `Output` olacak?).
+- **JSONL Import:** OpenAI messages dizilerini, ShareGPT formatını veya Alpaca anahtarlarını otomatik tanıyan akıllı JSONL okuyucu.
+- **JSON Array Import:** Standart JSON nesne dizilerinin içe aktarımı.
+- **Doğrulama ve Önizleme:** İlk 20 satırı tablo halinde göstererek eksik veya hatalı kolon eşleştirmelerinde kullanıcıyı uyarma.
 
-Amaç:
-- Retriever Evaluation
-- RAG Pipeline Benchmark
-
---------------------------------------------------
-8. DATASET RECORD
---------------------------------------------------
-
-Record Alanları:
-
-- Id (Guid)
-- DatasetId (Guid)
-- Type (DatasetType Enum)
-- Status (RecordStatus Enum)
-- DataPayload (string - JSON1 / Complex Type)
-- TokenCount (int - Toplam Token)
-- InputTokenCount (int)
-- OutputTokenCount (int)
-- Metadata (JSON Dictionary)
-- Tags (List<string>)
-- Relations (List<RecordRelation>)
-- Lineage (RecordLineage Value Object)
-- CreatedAt (DateTimeOffset UTC)
-- UpdatedAt (DateTimeOffset UTC)
-
---------------------------------------------------
-9. RECORD LIFECYCLE & SERİ İNCELEME UX
---------------------------------------------------
-
-Akış:
-
-Draft
-↓
-Review (InReview)
-↓
-Approved
-↓
-Export Ready
-↓
-Archived
-
-Özellikler:
-- Toplu Durum Değiştirme (Bulk Status Transition)
-- Yalnızca "Approved" veya "Export Ready" durumundakileri export etme filtresi.
-
-Seri Düzenleme & İnceleme UX (Speed-Review):
-- Klavye Kısayolları:
-  * Ctrl + Enter: Onayla (Approved) ve sonraki kayda geç.
-  * Ctrl + Backspace: Reddet / Arşivle ve sonrakine geç.
-  * Alt + 1..5: Hızlı Durum / Tag atama.
-- Split-View: Sol tarafta sanallaştırılmış liste, sağ tarafta seçili kaydın zengin editörü.
-- Markdown & Code Highlighting: AvaloniaEdit ile sözdizimi renklendirmesi.
-- Preference (DPO) Diff View: Chosen ve Rejected metinleri arasındaki farkları renkli gösteren diff paneli.
-
---------------------------------------------------
-10. DATA LINEAGE & AUDITING
---------------------------------------------------
-
-Her kayıt için tutulacak denetim alanları:
-
-- CreatedDate
-- UpdatedDate
-- CreatedBy (Kullanıcı / Agent / Importer)
-- ReviewedBy
-- ApprovedBy
-- Source (CSV, Scraping, Synthetic, Manual, PDF Chunk)
-- SourceDocument (Dosya adı veya URI)
-- GeneratedByAI (bool)
-- AIModelName (örn: gpt-4o, claude-3-5-sonnet, ollama/llama3)
-- GenerationPromptHash (Sentetik üretimde kullanılan prompt referansı)
-
---------------------------------------------------
-11. DATASET RELATIONSHIPS
---------------------------------------------------
-
-Desteklenecek ilişki türleri:
-
-- Parent
-- Child
-- Related
-- Duplicate
-- Derived
-- Contradictory (Çelişen veriler uyarısı)
-
---------------------------------------------------
-12. VERSIONING & SNAPSHOT SYSTEM
---------------------------------------------------
-
-Semantic Versioning:
-
-v1.0
-v1.1
-v1.2
-v2.0
-
-Özellikler:
-
-- Snapshot (Dondurulmuş, değiştirilemez anlık görüntü)
-- Rollback (Eski versiyona güvenle geri dönme)
-- Compare & Diff (Versiyonlar arası eklenen, silinen, değişen kayıt analizi)
-- History (Tüm değişiklik kayıtlarının geçmişi)
-- Git Mantığında Snapshot: Her versiyonda 100k kaydı kopyalamak yerine VersionMapping tablosu ile hafif depolama.
-
---------------------------------------------------
-13. TOKEN & CONTEXT ENGINE
---------------------------------------------------
-
-Amaç: Out-of-Memory (OOM) ve context kırpılmasını önlemek.
-
-Özellikler:
-- Yerel Tokenizer Kütüphaneleri (Microsoft.ML.Tokenizers, Tiktoken-CSharp)
-- Desteklenen Kodlamalar:
-  * cl100k_base (OpenAI GPT-4 / GPT-3.5)
-  * o200k_base (GPT-4o)
-  * Llama-3 BPE (8k / 128k context)
-  * Gemma / Mistral SentencePiece
-- Analiz ve Raporlama:
-  * Satır bazında Input / Output / Toplam Token hesabı
-  * Context Window Aşım Uyarıları (2048, 4096, 8192, 16k, 32k, 128k sınırlarını geçenleri filtreleme)
-  * Token Dağılım Histogramı (Görsel token yoğunluk grafiği)
-  * Tahmini Eğitim Maliyeti (Fine-tuning API maliyet hesabı)
-
---------------------------------------------------
-14. DATASET HEALTH ENGINE & QUALITY SCORING
---------------------------------------------------
-
-Amaç:
-
-Dataset Quality Score (0-100) üretmek ve temizleme sihirbazı sunmak.
-
-Kontroller:
-
-- Duplicate Detection (Exact Hash MD5/SHA256 eşleşmeleri)
-- Similarity Detection (MinHash / Jaccard / Levenshtein veya yerel Embedding)
-- Missing Data Detection (Boş instruction, boş yanıt vb.)
-- Metadata Validation
-- Tag Validation
-- Consistency Analysis (Aynı veya benzer soruya zıt yanıt tespiti)
-- Token Anomaly Detection (Aşırı kısa veya aşırı uzun yanıtlar)
-- Leakage / Repetition Check (Cevabın girdi içinde birebir tekrar etmesi)
-- Markdown & JSON Validation (Kapanmamış kod blokları, bozuk JSON yanıtları)
-
-Çıktı:
-
-- Health Score: 0-100
-- Tek Tıkla Temizleme (Auto-Fix) Sihirbazı
-
---------------------------------------------------
-15. PII & SENSITIVE DATA SCRUBBER
---------------------------------------------------
-
-Amaç: Kişisel veya gizli verilerin eğitim setine girmesini engellemek.
-
-Kontroller & Maskeleme:
-- E-posta Adresleri (örn: test@company.com ➔ [EMAIL])
-- Telefon Numaraları (➔ [PHONE])
-- T.C. Kimlik / Kimlik Numaraları (➔ [ID_NUMBER])
-- Kredi Kartı Numaraları (Luhn algoritması doğrulamalı ➔ [CREDIT_CARD])
-- IP Adresleri ve Dahili URL'ler (➔ [INTERNAL_IP] / [URL])
-- API Anahtarları ve Secret Token'lar (OpenAI sk-..., AWS, Bearer token ➔ [API_KEY])
-- Özel Yasaklı Kelime Sözlüğü (Blacklist)
-
---------------------------------------------------
-16. TRAIN / VALIDATION / TEST SPLIT & STRATIFICATION
---------------------------------------------------
-
-Eğitim için bilimsel ve dengeli veri bölme:
-
-- Oransal Bölme (Split Presets):
-  * %80 Train / %10 Validation / %10 Test
-  * %90 Train / %10 Validation
-  * Özel yüzdelik dilim belirleme
-- Stratified Sampling (Tabakalı Örnekleme):
-  * Belirli etiketlerin (Tags) veya sınıfların train ve test setlerine eşit dağılması
-- Reproducibility (Random Seed):
-  * Aynı seed kullanıldığında birebir aynı bölmenin üretilmesi
-- Export Entegrasyonu: Tek tıkla train.jsonl, val.jsonl, test.jsonl olarak ayrı dosyalara yazma
-
---------------------------------------------------
-17. ADVANCED SEARCH & FILTER ENGINE
---------------------------------------------------
-
-- SQLite FTS5 (Full-Text Search) İndeksi: Girdi, çıktı ve konuşma metinlerinde milisaniyede tam metin arama.
-- Filtreleme Kriterleri:
-  * Status bazlı (InReview, Approved vb.)
-  * Token aralığı (örn: TokenCount > 4096)
-  * Tag & Kategori bazlı
-  * AI Üretimi bazlı (GeneratedByAI == true)
-  * Hata / Kalite uyarısı bazlı filtreleme
-
---------------------------------------------------
-18. DATASET ANALYZER
---------------------------------------------------
-
-Amaç:
-
-Dataset'i analiz etmek ve eğitim önerisi sunmak.
-
-Analizler:
-
-- Dataset Type Detection
-- Quality Analysis
-- Size Analysis
-- Complexity Analysis
-- Training Recommendation
-
-Örnek Çıktı:
-
-Dataset Type: Instruction
-Record Count: 3500
-Quality Score: 92
-
-Recommended Training:
-★★★★★ QLoRA
-★★★★☆ LoRA
-★★★☆☆ DoRA
-★★☆☆☆ Full Fine Tune
-
---------------------------------------------------
-19. TRAINING ADVISOR
---------------------------------------------------
-
-Dataset tipine göre öneriler sunar:
-
-Instruction Dataset
-- SFT
-- LoRA
-- QLoRA
-- DoRA
-- Full Fine Tune
-
-Chat Dataset
-- SFT
-- LoRA
-- QLoRA
-
-Preference Dataset
-- DPO
-- ORPO
-- RLHF
-
-Evaluation Dataset
-- Benchmark
-- Evaluation
-
-Ayrıca:
-- Donanım önerisi (7B, 14B, 70B için önerilen VRAM miktarı)
-- Tahmini eğitim süresi
-- Tahmini adapter dosya boyutu (MB)
-
---------------------------------------------------
-20. IMPORT SYSTEM
---------------------------------------------------
-
-V1 (MVP):
-- CSV (Kolon eşleme sihirbazı ve ayırıcı tespiti ile)
-- JSONL (Tek satırlık JSON array/object)
-- Standart JSON
-- HuggingFace Dataset JSON desteği
-
-V2:
-- Excel (.xlsx)
-- Word (.docx)
-- Markdown (.md)
-- TXT / Raw metin yığınları
-
-V3:
-- Notion
-- Confluence
-- Website / Scraping
-
---------------------------------------------------
-21. EXPORT SYSTEM
---------------------------------------------------
-
-Felsefe:
-
-Veri modele göre saklanmaz. Modele göre export edilir.
-
-Desteklenecek Formatlar:
-
-- OpenAI (JSONL - messages formatı)
-- ShareGPT (conversations formatı)
-- ChatML (<|im_start|>...)
-- Alpaca (instruction, input, output)
-- Qwen
-- DeepSeek
-- Gemma
-- Mistral
-- Llama (Llama 3 Instruct template)
-- HuggingFace DPO (prompt, chosen, rejected)
-- Unsloth & Llama-Factory uyumlu konfigürasyon şablonları
-
---------------------------------------------------
-22. PLUGIN ARCHITECTURE
---------------------------------------------------
-
-IExportProvider
-IImportProvider
-IAIProvider
-IDatasetAnalyzer
-IHealthRule
-ITokenizerProvider
-
---------------------------------------------------
-23. AI PROVIDERS
---------------------------------------------------
-
-Desteklenecek Sağlayıcılar:
-
-Yerel (Gizlilik Odaklı):
-- Ollama
-- LM Studio / LocalAI
-- vLLM
-
-Bulut / Ticari:
-- OpenAI
-- Claude (Anthropic)
-- Azure OpenAI
-- OpenRouter
-- Groq
-- DeepSeek API
-
---------------------------------------------------
-24. AI DATASET GENERATION
---------------------------------------------------
-
-PDF → Dataset
-
-PDF
-↓
-Chunk
-↓
-Question Generation
-↓
-Review
-↓
-Dataset
-
---------------------------------------------------
-
-Chat → Dataset
-
-Conversation
-↓
-Record
-
---------------------------------------------------
-
-Website → Dataset
-
-Website
-↓
-Content
-↓
-Dataset
-
---------------------------------------------------
-
-Synthetic Dataset Generation
-
-Prompt
-↓
-AI Generation
-↓
-Review
-↓
-Dataset
-
---------------------------------------------------
-25. EVALUATION SYSTEM
---------------------------------------------------
-
-Amaç:
-
-Fine-Tuning veya LoRA sonrası kalite ölçmek.
-
-Ölçümler:
-
-- Accuracy
-- Consistency
-- Instruction Following
-- Reasoning
-- Domain Knowledge
-- Win-Rate (Chosen vs Rejected)
-
---------------------------------------------------
-26. DATABASE TABLES (SQLITE & EF CORE 9)
---------------------------------------------------
-
-- Workspaces
-- Projects
-- Datasets
-- DatasetVersions
-- DatasetRecords
-- VersionRecordMappings
-- Tags
-- RecordTags
-- Category
-- Relation
-- RecordRelations
-- Metadata
-- ExportHistory
-- BenchmarkRun
-- QualityRuleResults
-- Records_FTS (FTS5 Sanal Arama Tablosu)
-
---------------------------------------------------
-27. UI MODULES (AVALONIA MVVM)
---------------------------------------------------
-
-- Workspace Explorer
-- Project Explorer
-- Dataset Explorer & Tree View
-- Virtualized Record Grid (100k+ satırı kasmadan listeleyen DataGrid)
-- Record Editor (Split-view, Markdown, Kod renklendirme, DPO Diff view)
-- Health Dashboard & Cleaning Wizard
-- Dataset Analyzer
-- Training Advisor Tab
-- Import Wizard (Kolon eşleme ve önizleme ekranı)
-- Export Wizard (Model şablonu, Token filtresi, Train/Test Split)
-- Version History & Diff View
-- Settings & API Key Vault (Yerel şifreli anahtar kasası)
-
---------------------------------------------------
-28. MVP SCOPE (V1)
---------------------------------------------------
-
-1. Workspace & Proje Yönetimi (.aids SQLite taşınabilir proje dosyası)
-2. Dataset Yönetimi
-3. Instruction Dataset & Chat Dataset (DPO şema desteği ile)
-4. Sanallaştırılmış Record Grid & Record Editor (Split-view + kısayollar)
-5. Arama & Filtreleme (FTS5 tam metin arama)
-6. Versioning (Snapshot dondurma)
-7. CSV & JSONL Import Wizard (Kolon eşleme desteği ile)
-8. OpenAI Export, ShareGPT Export & Alpaca Export
-9. Train / Validation / Test Split (Rastgele seed desteği ile)
-10. Token Sayacı & Context Sınır Kontrolü (cl100k_base / Tiktoken)
-11. Dataset Health v1 (Duplicate, boş alan, anomali kontrolü)
-12. Temel PII Scrubber (E-posta, telefon ve API anahtarı maskeleme)
-
---------------------------------------------------
-29. ROADMAP
---------------------------------------------------
-
-V1 (MVP):
-- Dataset Management
-- Format Dönüştürücü Export (OpenAI, ShareGPT, Alpaca)
-- CSV / JSONL Import
-- Token Analizi & Context Limiti
-- Train/Val Split
-- Dataset Health v1 & Temel PII Maskeleme
-
-V2:
-- Health Engine v2 & Gelişmiş Semantik Benzerlik
-- Evaluation Modülü
-- Import Wizard (Excel, Markdown)
-- Sürüm Diff & Snapshot Karşılaştırma
-- DPO / Preference Özel Görsel Editörü
-
-V3:
-- AI Dataset Generation (Sentetik Veri)
-- PDF Import & Chunking
-- Word Import
-- Ollama & LM Studio Entegrasyonu
-
-V4:
-- Enterprise Features
-- Experiment Tracking
-- Training History
-- Llama-Factory / Axolotl Eğitim Konfigürasyonları
-
---------------------------------------------------
-30. LONG TERM VISION
---------------------------------------------------
-
-Dataset Studio
-↓
-Knowledge Asset Management
-↓
-AI Training Asset Platform
-
---------------------------------------------------
-31. UNIQUE FEATURES
---------------------------------------------------
-
-- Dataset Analyzer
-- Training Advisor
-- Health Engine
-- Data Lineage
-- Model Independent Storage
-- Export Based Architecture
-- Local & Offline First Privacy
-- Real-time Context / Token Engine
-- Zero-leak PII Scrubber
-
---------------------------------------------------
-32. ARCHITECTURE DECISION RECORDS (ADR)
---------------------------------------------------
-
-ADR-001: SQLite (WAL Mode, FTS5, .aids taşınabilir proje dosyası)
-ADR-002: Avalonia UI (.NET 9 cross-platform, yüksek performanslı XAML)
-ADR-003: Model bağımsız veri saklanacak (Unified JSON Schema)
-ADR-004: Export sırasında dönüşüm yapılacak (Export-time transformation)
-ADR-005: Plugin mimarisi kullanılacak (IExportProvider, IImportProvider vb.)
-ADR-006: Clean Architecture kullanılacak (Domain, Application, Infrastructure, Desktop)
-ADR-007: MVVM kullanılacak (CommunityToolkit.Mvvm)
-ADR-008: Yerel veri saklama yapılacak (Zero-telemetry, offline-first)
-ADR-009: Data Virtualization kullanılacak (100k+ kayıtta akıcı UI performansı)
-ADR-010: Yerel Tokenizasyon Motoru (Tiktoken ile API bağımsız token ve maliyet hesabı)
-ADR-011: Deterministik Train/Val/Test Split (Seed tabanlı tekrarlanabilir veri bölme)
+### 12.2. V2 Kapsamı
+- **Excel (.xlsx) Import:** Çoklu çalışma sayfalarını (sheets) destekleyen içe aktarma.
+- **Markdown (.md) & Düz Metin:** Başlık hiyerarşisine göre bölerek instruction türetme.
+
+### 12.3. V3 Kapsamı
+- **PDF & Word (.docx) Import:** Belgeyi anlamlı parçalara (chunks) bölme.
+- **Notion & Confluence Exportları:** Kurumsal dokümantasyon arşivlerini veri setine dönüştürme.
+
+---
+
+## 13. DIŞA AKTARMA SİSTEMİ (EXPORT SYSTEM & MODEL TEMPLATES)
+
+### 13.1. Desteklenen Model Formatları
+Veri iç sistemde evrensel JSON olarak saklanır; dışa aktarılırken hedef modele dönüştürülür:
+
+1. **OpenAI JSONL:**
+   `{"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}`
+2. **ShareGPT Formatı:**
+   `{"conversations": [{"from": "human", "value": "..."}, {"from": "gpt", "value": "..."}]}`
+3. **ChatML Formatı:**
+   `<|im_start|>system\n...<|im_end|>\n<|im_start|>user\n...<|im_end|>\n<|im_start|>assistant\n...<|im_end|>`
+4. **Alpaca Formatı:**
+   `{"instruction": "...", "input": "...", "output": "..."}`
+5. **Llama-3 Instruct Formatı:**
+   `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n...<|eot_id|><|start_header_id|>user<|end_header_id|>\n...<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n...<|eot_id|>`
+6. **Mistral & Gemma Formatları:**
+   Modelin resmi prompt şablonuna göre formatlama.
+7. **HuggingFace DPO Formatı:**
+   `{"prompt": "...", "chosen": "...", "rejected": "..."}`
+8. **Eğitim Aracı Konfigürasyonları:**
+   Axolotl, Unsloth ve Llama-Factory için hazır `dataset_info.json` ve eğitim YAML şablonları.
+
+### 13.2. Dışa Aktarma Filtreleme Seçenekleri
+- **Durum Filtresi:** Sadece "Approved" ve "ExportReady" kayıtları alma.
+- **Token Tavanı:** Belirlenen sınırın (örn: 4096 token) üzerindeki kayıtları otomatik dışarıda bırakma.
+- **PII Sansürleme:** Export anında maskeleme kurallarını uygulama seçeneği.
+- **Split Ayrımı:** Tek dosya veya `train / val / test` olarak 3 ayrı dosya çıkarma.
+
+---
+
+## 14. SÜRÜMLEME VE ANLIK GÖRÜNTÜ SİSTEMİ (VERSIONING & SNAPSHOTS)
+
+### 14.1. Semantic Versioning
+Veri setleri `v1.0.0`, `v1.1.0`, `v2.0.0` formatında semantik olarak sürümlecektir.
+
+### 14.2. Değişiklik Takibi ve Dondurma (Freeze)
+- **Snapshot (Dondurma):** Bir versiyon eğitime gönderildiğinde "Frozen" (salt okunur) olarak kilitlenir. Bu versiyondaki kayıtlar artık değiştirilemez.
+- **Depolama Tasarrufu (Mapping Yaklaşımı):** Her versiyonda 100.000 satırı tekrar kopyalamak yerine, `VersionRecordMappings` tablosunda kaydın o versiyondaki durumu (Unchanged, Added, Modified, Deleted) tutulur.
+- **Diff & Compare:** İki versiyon karşılaştırıldığında hangi satırların eklendiği (+), silindiği (-) veya metninin güncellendiği (~) renkli görsel arayüzle sunulur.
+- **Rollback:** İstenildiğinde önceki bir versiyonun durumuna tek tıkla geri dönülebilir.
+
+---
+
+## 15. EĞİTİM REHBERİ VE ANALİZ MOTORU (DATASET ANALYZER & TRAINING ADVISOR)
+
+### 15.1. Dataset Analyzer
+Veri setinin boyutunu, ortalama token uzunluğunu, kelime çeşitliliğini ve kalite skorunu analiz ederek karne çıkarır.
+
+### 15.2. Training Advisor Önerileri
+- **Örnek Çıktı ve Karar Matrisi:**
+  - *Kayıt Sayısı < 1.000:* Few-Shot In-Context Learning veya Düşük Rank LoRA önerilir.
+  - *Kayıt Sayısı 1.000 - 10.000:* QLoRA veya LoRA (Rank 16-64) önerilir.
+  - *Kayıt Sayısı 10.000+:* DoRA veya Full Fine-Tune önerilir.
+- **Donanım ve VRAM Tahminleyicisi:**
+  - Hedef model boyutuna (7B, 14B, 70B) ve seçilen context uzunluğuna göre gereken minimum GPU VRAM miktarını (örn: "7B QLoRA için minimum 16GB VRAM gerekir") listeler.
+  - Tahmini LoRA ağırlık dosya boyutunu (MB) hesaplar.
+
+---
+
+## 16. EKLENTİ MİMARİSİ VE ARAYÜZLER (PLUGIN ARCHITECTURE)
+
+Uygulama genişletilebilir C# arayüzleri (interfaces) üzerine inşa edilir:
+- `IExportProvider`: Yeni bir model formatı (örneğin DeepSeek V3 formatı) çıktığında ana koda dokunmadan yeni format ekleyebilme.
+- `IImportProvider`: Yeni bir dosya tipi (örneğin Parquet) desteği ekleyebilme.
+- `IAIProvider`: Yerel veya uzak LLM bağlantılarını standartlaştırma.
+- `IDatasetAnalyzer`: Yeni istatistiksel analiz algoritmaları ekleyebilme.
+- `IHealthRule`: Özel doğrulama ve temizlik kuralları tanımlayabilme.
+- `ITokenizerProvider`: Yeni tokenizasyon algoritmalarını sisteme bağlayabilme.
+
+---
+
+## 17. YAPAY ZEKA ENTEGRASYONLARI VE SENTETİK VERİ ÜRETİMİ (V3)
+
+### 17.1. Desteklenecek Sağlayıcılar
+- **Yerel (Gizlilik Odaklı):** Ollama, LM Studio, vLLM, LocalAI (OpenAI uyumlu yerel HTTP endpointleri).
+- **Bulut API'ları:** OpenAI, Anthropic Claude, Azure OpenAI, OpenRouter, Groq, DeepSeek.
+
+### 17.2. Sentetik Veri Üretim Akışları (Workflows)
+
+```text
+[PDF Belgesi] ──> [Akıllı Chunking] ──> [LLM Soru-Cevap Çıkarımı] ──> [İnceleme Ekranı] ──> [Dataset Kaydı]
+
+[Müşteri Sohbetleri] ──> [Diyalog Ayrıştırma] ──> [Chat Kaydı]
+
+[Web Sitesi / Dokümantasyon] ──> [HTML Temizleme] ──> [Instruction Üretimi] ──> [Dataset Kaydı]
+
+[Tekil Prompt] ──> [LLM Sentetik Çeşitlendirme (Augmentation)] ──> [Onaylama] ──> [Dataset Kaydı]
+```
+
+### 17.3. LLM-as-a-Judge Değerlendirmesi
+Üretilen veya düzenlenen yanıtların doğruluğunu ve talimata uygunluğunu yerel bir LLM'e puanlatma (1-5 puan arası) ve gerekçelendirme.
+
+---
+
+## 18. VERİTABANI ŞEMASI (SQLITE & EF CORE 9)
+
+Veritabanı tabloları ve temel ilişkileri:
+- `Workspaces`: Id, Name, Description, CreatedAt
+- `Projects`: Id, WorkspaceId, Name, Description, CreatedAt
+- `Datasets`: Id, ProjectId, Name, Type, CreatedAt, DefaultTokenizer
+- `DatasetVersions`: Id, DatasetId, VersionTag, Description, IsFrozen, CreatedAt
+- `DatasetRecords`: Id, DatasetId, Type, Status, DataPayload, TokenCount, InputTokenCount, OutputTokenCount, MetadataJson, CreatedAt, UpdatedAt
+- `VersionRecordMappings`: VersionId, RecordId, ChangeType
+- `Tags`: Id, Name, ColorHex
+- `RecordTags`: RecordId, TagId
+- `Category`: Id, Name, Description
+- `Relation`: Id, Name
+- `RecordRelations`: SourceRecordId, TargetRecordId, RelationType
+- `QualityRuleResults`: Id, RecordId, RuleName, Severity, Message
+- `ExportHistories`: Id, DatasetId, VersionId, TargetFormat, FilePath, ExportedAt, SplitType
+- `BenchmarkRuns`: Id, EvaluationSetId, ModelName, Score, ExecutedAt
+- `Records_FTS`: SQLite FTS5 Sanal Tablosu (Tam metin arama motoru)
+
+---
+
+## 19. ARAYÜZ MODÜLLERİ (UI MODULES - AVALONIA MVVM)
+
+1. **Workspace Explorer:** Çalışma alanlarını oluşturma, açma, son kullanılanları listeleme.
+2. **Project Explorer:** Bir çalışma alanı altındaki projeleri ve görevleri organize etme.
+3. **Dataset Explorer & Tree View:** Veri setlerini, türlerini ve versiyonlarını hiyerarşik gösterme.
+4. **Virtualized Record Grid:** 100k+ satırı belleği şişirmeden listeleyen ana veri tablosu.
+5. **Record Editor:** Seçili kaydı düzenleyen split-view panel (Markdown/Code renklendirme, DPO fark paneli).
+6. **Token & Context Inspector:** Histogram ve context limit aşım barları.
+7. **Health Dashboard & Cleaning Wizard:** Kalite skor kartı ve tek tıkla temizleme araçları.
+8. **Dataset Analyzer:** Veri karmaşıklığı ve istatistik paneli.
+9. **Training Advisor Tab:** Donanım önerisi, VRAM hesabı ve fine-tuning metot tavsiyeleri.
+10. **Import Wizard:** Kolon eşleştirme, ayırıcı seçimi ve 20 satırlık canlı önizleme sihirbazı.
+11. **Export Wizard:** Model şablon seçimi, token eşiği filtresi ve Train/Test Split ayar ekranı.
+12. **Version History & Diff View:** Sürüm dondurma, geri alma ve iki versiyon arası görsel diff.
+13. **Settings & API Key Vault:** Yerel işletim sistemi şifrelemesiyle korunan API anahtarı kasası.
+
+---
+
+## 20. MVP KAPSAMI (SÜRÜM V1)
+
+MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
+1. **Çalışma Alanı & Proje Yönetimi:** Taşınabilir `.aids` SQLite proje dosyası altyapısı.
+2. **Temel Veri Tipleri:** Instruction Dataset ve Multi-turn Chat Dataset (DPO veri modeli desteği dahil).
+3. **Sanallaştırılmış Liste ve Editör:** Kasmayan DataGrid, iki bölmeli split-view editör ve temel klavye kısayolları.
+4. **FTS5 Tam Metin Arama & Filtreleme:** Anlık metin ve durum filtreleme.
+5. **CSV & JSONL Import Sihirbazı:** Kolon eşleştirme ve önizleme desteği.
+6. **Çoklu Model Export:** OpenAI JSONL, ShareGPT ve Alpaca formatlarında dışa aktarım.
+7. **Train / Validation / Test Split:** Rastgele tohum (seed) ve oran seçimi ile ayrı dosyalara kaydetme.
+8. **Yerel Token Sayacı:** Tiktoken (`cl100k_base` / `o200k_base`) ile context sınır uyarıları.
+9. **Temel Health Engine:** Yinelenen (duplicate), boş veya biçim anomalisi olan kayıtları yakalama.
+10. **Temel PII Maskeleme:** E-posta, telefon ve API anahtarı maskeleme filtresi.
+
+---
+
+## 21. DETAYLI YOL HARİTASI (ROADMAP)
+
+- **V1 (MVP):** Çekirdek stüdyo, `.aids` dosya sistemi, CSV/JSONL import, OpenAI/ShareGPT/Alpaca export, Train/Val split, yerel token motoru, temel health kontrolleri ve PII filtresi.
+- **V2:** DPO / Preference özel görsel editörü, Semantik benzerlik motoru (MinHash / Embedding), Sürüm dondurma ve görsel diff, Excel (.xlsx) ve Markdown importu, Llama-3 ve HuggingFace DPO export şablonları.
+- **V3:** Yerel LLM entegrasyonu (Ollama / LM Studio), PDF ve Word belge chunking & soru-cevap çıkarımı, sentetik veri çoğaltma motoru, LLM-as-a-Judge kalite denetimi.
+- **V4:** Model Benchmark & Evaluation modülü, Axolotl / Unsloth / Llama-Factory doğrudan eğitim konfigürasyon exportu, çoklu proje birleştirme sihirbazı.
+
+---
+
+## 22. UZUN VADELİ VİZYON (LONG TERM VISION)
+
+```text
+[Dataset Studio] (Veri Seti Hazırlama & Temizleme)
+       ↓
+[Knowledge Asset Management] (Kurumsal Bilgi Varlıklarının Yapay Zeka Formatında Yönetimi)
+       ↓
+[AI Training Asset Platform] (Eğitim, Sentetik Veri, Değerlendirme ve Model Hizalama Ekosistemi)
+```
+
+---
+
+## 23. MİMARİ KARAR KAYITLARI (ARCHITECTURE DECISION RECORDS - ADR)
+
+- **ADR-001: SQLite WAL Mode & .aids Proje Formatı:** Veriler tek ve taşınabilir bir dosya formatında tutulacak; WAL modu ile yüksek okuma/yazma performansı sağlanacak.
+- **ADR-002: Avalonia UI 11+:** .NET 9 tabanlı, tüm masaüstü işletim sistemlerinde (Win/Mac/Linux) yerel hızda çalışan modern XAML arayüzü kullanılacak.
+- **ADR-003: Model Bağımsız Dahili Depolama:** Veri tabanında kayıtlar modele özel değil, evrensel JSON şemasında saklanacak.
+- **ADR-004: Export Zamanı Model Dönüşümü:** Format dönüşümleri sadece export motorunda gerçekleşecek, kaynak veri asla bozulmayacak.
+- **ADR-005: Eklenti ve Arayüz Tabanlı Tasarım:** İçe/dışa aktarma ve kurallar `IExportProvider`, `IImportProvider` gibi soyutlamalarla gevşek bağlı (loosely coupled) tutulacak.
+- **ADR-006: Clean Architecture & CQRS:** Kod yapısı `Domain`, `Application`, `Infrastructure` ve `Desktop` olarak 4 katmana ayrılacak; iş mantığı arayüzden tamamen izole edilecek.
+- **ADR-007: MVVM Deseni:** Arayüz veri bağlama ve komut mantığı `CommunityToolkit.Mvvm` ile yönetilecek.
+- **ADR-008: Zero-Telemetry & Çevrimdışı Çalışma:** Gizlilik öncelikli olacak, hiçbir kullanıcı verisi izinsiz dış ağlara aktarılmayacak.
+- **ADR-009: Data Virtualization:** Büyük veri kümelerinde UI donmalarını engellemek için sadece ekranda görünen öğeler belleğe alınacak.
+- **ADR-010: Yerel Tokenizasyon Motoru:** API maliyetine katlanmadan doğrudan işlemci üzerinde Tiktoken kütüphanesiyle token ve context hesabı yapılacak.
+- **ADR-011: Deterministik Train/Val/Test Split:** Rastgelelik tohumu (seed) kullanılarak tekrarlanabilir ve bilimsel veri bölme sağlanacak.
