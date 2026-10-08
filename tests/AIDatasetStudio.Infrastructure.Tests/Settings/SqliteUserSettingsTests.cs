@@ -31,6 +31,20 @@ public sealed class SqliteUserSettingsTests : IDisposable
     }
 
     [Fact]
+    public void Theme_survives_a_restart_independently_of_language()
+    {
+        var settings = new SqliteUserSettings(_directory, _clock);
+        settings.SetUiTheme("dark");
+        settings.SetUiLanguage("tr");
+        settings.SetUiTheme(null);
+        settings.SetUiTheme("light");
+
+        var reloaded = new SqliteUserSettings(_directory, _clock);
+        Assert.Equal("light", reloaded.UiTheme);
+        Assert.Equal("tr", reloaded.UiLanguage);
+    }
+
+    [Fact]
     public void Recent_workspaces_are_most_recent_first_without_duplicates()
     {
         var settings = new SqliteUserSettings(_directory, _clock);

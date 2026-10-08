@@ -2,32 +2,62 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
              xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:conv="using:AIDatasetStudio.Desktop.Converters"
              x:Class="AIDatasetStudio.Desktop.Views.ExplorerView"
              x:DataType="vm:MainWindowViewModel">
   <DockPanel>
-    <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Explorer}" />
-
-    <!-- No workspace open -->
-    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="12,0,12,12" IsVisible="{Binding !HasWorkspace}">
-      <TextBlock Classes="muted" Text="{l:Tr Explorer_NoWorkspace}" />
-      <Button Content="{l:Tr Button_NewWorkspace}" Command="{Binding NewWorkspaceCommand}" HorizontalAlignment="Stretch" />
-      <Button Content="{l:Tr Button_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}" HorizontalAlignment="Stretch" />
-    </StackPanel>
-
-    <!-- Workspace open -->
-    <DockPanel DataContext="{Binding Explorer}" x:DataType="vm:ExplorerViewModel" IsVisible="{Binding IsWorkspaceOpen}">
-      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="12,0,12,8">
-        <Button Content="{l:Tr Explorer_NewProject}" Command="{Binding NewProjectCommand}" />
-        <Button Content="{l:Tr Explorer_NewDataset}" Command="{Binding NewDatasetCommand}" />
+    <!-- Workspace header -->
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="14,14,14,16">
+      <Border Classes="brand" Width="32" Height="32" CornerRadius="9" VerticalAlignment="Center">
+        <ic:SymbolIcon Symbol="Sparkle" IconVariant="Filled" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+      <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+        <TextBlock Classes="strong" Text="{Binding Workspace.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="caption muted" Text="{l:Tr Sidebar_Workspace}" />
       </StackPanel>
-      <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="12,4,12,0" Text="{l:Tr Explorer_Empty}" IsVisible="{Binding IsEmpty}" />
+    </Grid>
 
-      <TreeView ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedNode}" Margin="4,0,4,8">
+    <DockPanel DataContext="{Binding Explorer}" x:DataType="vm:ExplorerViewModel">
+      <!-- Section header with actions -->
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="16,0,10,4">
+        <TextBlock Classes="overline" VerticalAlignment="Center" Text="{l:Tr Sidebar_Projects}" />
+        <Button Grid.Column="1" Classes="subtle icon" Width="26" Height="26" Command="{Binding NewProjectCommand}" ToolTip.Tip="{l:Tr Explorer_NewProject}">
+          <ic:SymbolIcon Symbol="FolderAdd" />
+        </Button>
+        <Button Grid.Column="2" Classes="subtle icon" Width="26" Height="26" Command="{Binding NewDatasetCommand}" ToolTip.Tip="{l:Tr Explorer_NewDataset}">
+          <ic:SymbolIcon Symbol="DocumentAdd" />
+        </Button>
+      </Grid>
+
+      <!-- Empty workspace -->
+      <StackPanel DockPanel.Dock="Top" Classes="empty" VerticalAlignment="Top" Margin="16,24" IsVisible="{Binding IsEmpty}">
+        <Border Classes="empty-icon">
+          <ic:SymbolIcon Symbol="Folder" />
+        </Border>
+        <TextBlock Classes="strong" Text="{l:Tr Explorer_EmptyTitle}" />
+        <TextBlock Classes="small muted" Text="{l:Tr Explorer_EmptyHint}" />
+        <Button Classes="accent" HorizontalAlignment="Center" Margin="0,8,0,0" Command="{Binding NewProjectCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="FolderAdd" />
+            <TextBlock Text="{l:Tr Explorer_NewProject}" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <TreeView Classes="nav" ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedNode}" Margin="0,0,0,8">
         <TreeView.ContextMenu>
           <ContextMenu>
-            <MenuItem Header="{l:Tr Explorer_NewDataset}" Command="{Binding NewDatasetCommand}" />
-            <MenuItem Header="{l:Tr Explorer_Rename}" Command="{Binding RenameCommand}" />
-            <MenuItem Header="{l:Tr Explorer_Delete}" Command="{Binding DeleteCommand}" />
+            <MenuItem Header="{l:Tr Explorer_NewDataset}" Command="{Binding NewDatasetCommand}">
+              <MenuItem.Icon><ic:SymbolIcon Symbol="DocumentAdd" /></MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="{l:Tr Explorer_Rename}" Command="{Binding RenameCommand}">
+              <MenuItem.Icon><ic:SymbolIcon Symbol="Rename" /></MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="{l:Tr Explorer_Delete}" Command="{Binding DeleteCommand}">
+              <MenuItem.Icon><ic:SymbolIcon Symbol="Delete" /></MenuItem.Icon>
+            </MenuItem>
           </ContextMenu>
         </TreeView.ContextMenu>
         <TreeView.Styles>
@@ -37,13 +67,18 @@
         </TreeView.Styles>
         <TreeView.DataTemplates>
           <TreeDataTemplate DataType="vm:ProjectNodeViewModel" ItemsSource="{Binding Datasets}">
-            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ic:SymbolIcon Symbol="Folder" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" />
+              <TextBlock Classes="strong" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </StackPanel>
           </TreeDataTemplate>
           <DataTemplate DataType="vm:DatasetNodeViewModel">
-            <StackPanel Spacing="1" Margin="0,2">
-              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="muted" FontSize="11" Text="{Binding Details}" />
-            </StackPanel>
+            <Grid ColumnDefinitions="Auto,*,Auto" MinWidth="170">
+              <ic:SymbolIcon Symbol="{Binding Type, Converter={x:Static conv:IconConverters.DatasetType}}" FontSize="16"
+                             Foreground="{DynamicResource TextMutedBrush}" ToolTip.Tip="{Binding TypeLabel}" />
+              <TextBlock Grid.Column="1" Margin="8,0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Classes="caption muted numeric" Text="{Binding CountText}" VerticalAlignment="Center" />
+            </Grid>
           </DataTemplate>
         </TreeView.DataTemplates>
       </TreeView>

@@ -9,7 +9,9 @@ public sealed class RecentWorkspaceViewModel(string filePath, IAsyncRelayCommand
     /// <summary>
     /// File name without the folder; the full path is the tooltip.
     /// </summary>
-    public string DisplayName { get; } = Path.GetFileName(filePath);
+    public string DisplayName { get; } = Path.GetFileNameWithoutExtension(filePath);
+
+    public string FolderPath { get; } = Path.GetDirectoryName(filePath) ?? string.Empty;
 
     public IAsyncRelayCommand<string> OpenCommand { get; } = openCommand;
 }

@@ -2,43 +2,118 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
              xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
+             xmlns:conv="using:AIDatasetStudio.Desktop.Converters"
              x:Class="AIDatasetStudio.Desktop.Views.RecordListView"
              x:DataType="vm:RecordListViewModel">
-  <DockPanel>
-    <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Records}" />
-
-    <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-               Text="{l:Tr Records_Placeholder}" IsVisible="{Binding !HasDataset}" />
+  <Panel>
+    <!-- Nothing selected -->
+    <StackPanel Classes="empty" IsVisible="{Binding !HasDataset}">
+      <Border Classes="empty-icon">
+        <ic:SymbolIcon Symbol="TextBulletListSquare" />
+      </Border>
+      <TextBlock Classes="subtitle" Text="{l:Tr Records_NoDatasetTitle}" />
+      <TextBlock Classes="muted" Text="{l:Tr Records_NoDatasetHint}" />
+    </StackPanel>
 
     <DockPanel IsVisible="{Binding HasDataset}">
-      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="12,0,12,8">
-        <TextBox Text="{Binding SearchText}" PlaceholderText="{l:Tr Records_SearchWatermark}" />
-        <ComboBox Grid.Column="1" Margin="8,0,0,0" MinWidth="150"
-                  ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding SelectedStatusFilter}">
-          <ComboBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:StatusFilterOption">
-              <TextBlock Text="{Binding Label}" />
-            </DataTemplate>
-          </ComboBox.ItemTemplate>
-        </ComboBox>
-        <TextBlock Grid.Column="2" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" Text="{Binding CountText}" />
-      </Grid>
+      <!-- Dataset header -->
+      <StackPanel DockPanel.Dock="Top" Margin="20,18,20,12" Spacing="12">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource AccentSubtleBrush}" VerticalAlignment="Center">
+            <ic:SymbolIcon Symbol="{Binding Dataset.Type, Converter={x:Static conv:IconConverters.DatasetType}, FallbackValue=DocumentText}"
+                           FontSize="20" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="title" Text="{Binding Dataset.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
+              <Border Classes="tag">
+                <TextBlock Text="{Binding Dataset.TypeLabel, FallbackValue=''}" />
+              </Border>
+            </StackPanel>
+            <TextBlock Classes="small muted" Text="{Binding Dataset.Subtitle, FallbackValue=''}" />
+          </StackPanel>
+        </Grid>
 
-      <Panel>
-        <ListBox x:Name="RecordList" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+        <TextBox Classes="search clearButton" Text="{Binding SearchText}" PlaceholderText="{l:Tr Records_SearchWatermark}"
+                 IsVisible="{Binding !IsEmptyDataset}">
+          <TextBox.InnerLeftContent>
+            <ic:SymbolIcon Symbol="Search" FontSize="16" Margin="10,0,4,0" Foreground="{DynamicResource TextMutedBrush}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+
+        <ListBox Classes="chips" ItemsSource="{Binding StatusFilters}" SelectedItem="{Binding SelectedStatusFilter}" SelectionMode="AlwaysSelected"
+                 IsVisible="{Binding !IsEmptyDataset}">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="vm:RecordRowViewModel">
-              <Grid ColumnDefinitions="64,96,*">
-                <TextBlock Classes="muted" Text="{Binding OrdinalText}" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Classes="muted" Text="{Binding StatusLabel}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                <TextBlock Grid.Column="2" Text="{Binding Preview}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              </Grid>
+            <DataTemplate x:DataType="vm:StatusFilterOption">
+              <Border Classes="chip">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Classes="small strong" Text="{Binding Label}" />
+                  <TextBlock Classes="small muted numeric" Text="{Binding CountText}" />
+                </StackPanel>
+              </Border>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-        <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Margin="24"
-                   Text="{Binding EmptyMessage}" IsVisible="{Binding EmptyMessage, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <!-- Column headers -->
+      <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1" Padding="16,6,20,6"
+              Background="{DynamicResource AppBackgroundBrush}" IsVisible="{Binding !IsEmptyDataset}">
+        <Grid ColumnDefinitions="64,116,*">
+          <TextBlock Classes="overline" Text="#" />
+          <TextBlock Grid.Column="1" Classes="overline" Text="{l:Tr Records_ColumnStatus}" />
+          <TextBlock Grid.Column="2" Classes="overline" Text="{l:Tr Records_ColumnContent}" />
+        </Grid>
+      </Border>
+
+      <Panel>
+        <ListBox x:Name="RecordList" Classes="records" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:RecordRowViewModel">
+              <Panel>
+                <Border Classes="row">
+                  <Grid ColumnDefinitions="64,116,*">
+                    <TextBlock Classes="small muted numeric" Text="{Binding OrdinalText}" VerticalAlignment="Center" />
+                    <controls:StatusBadge Grid.Column="1" Status="{Binding Status}" Text="{Binding StatusLabel}" />
+                    <TextBlock Grid.Column="2" Text="{Binding Preview}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  </Grid>
+                </Border>
+                <Border Classes="row-indicator" />
+              </Panel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Empty list -->
+        <StackPanel Classes="empty" IsVisible="{Binding IsEmptyDataset}">
+          <Border Classes="empty-icon">
+            <ic:SymbolIcon Symbol="DocumentText" />
+          </Border>
+          <TextBlock Classes="subtitle" Text="{l:Tr Records_EmptyTitle}" />
+          <TextBlock Classes="muted" Text="{l:Tr Records_EmptyHint}" />
+          <Button Classes="accent" HorizontalAlignment="Center" Margin="0,8,0,0"
+                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).GenerateSampleDataCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Sparkle" />
+              <TextBlock Text="{l:Tr Action_GenerateSamples}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+        <StackPanel Classes="empty" IsVisible="{Binding IsNoMatches}">
+          <Border Classes="empty-icon">
+            <ic:SymbolIcon Symbol="Search" />
+          </Border>
+          <TextBlock Classes="subtitle" Text="{l:Tr Records_NoMatchesTitle}" />
+          <TextBlock Classes="muted" Text="{l:Tr Records_NoMatches}" />
+        </StackPanel>
       </Panel>
     </DockPanel>
-  </DockPanel>
+  </Panel>
 </UserControl>

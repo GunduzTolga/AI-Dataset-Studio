@@ -9,7 +9,41 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AIDatasetStudio.Desktop.ViewModels;
 
-public sealed record DetailField(string Label, string Value, bool IsEmpty);
+/// <summary>
+/// A labelled value in the record's info section.
+/// </summary>
+public sealed record InfoItem(string Label, string Value, bool IsMonospace = false);
+
+/// <summary>
+/// A piece of record content shown in the inspector: a field card or a chat message.
+/// </summary>
+public abstract record ContentBlock(string Label, string Value, bool IsEmpty);
+
+public enum FieldTone
+{
+    Neutral,
+    System,
+    Positive,
+    Negative,
+}
+
+public sealed record FieldBlock(string Label, string Value, bool IsEmpty, FieldTone Tone) : ContentBlock(Label, Value, IsEmpty)
+{
+    public bool IsPositive => Tone == FieldTone.Positive;
+
+    public bool IsNegative => Tone == FieldTone.Negative;
+
+    public bool IsSystem => Tone == FieldTone.System;
+}
+
+public sealed record MessageBlock(string Label, string Value, bool IsEmpty, ChatRole Role) : ContentBlock(Label, Value, IsEmpty)
+{
+    public bool IsUser => Role == ChatRole.User;
+
+    public bool IsAssistant => Role == ChatRole.Assistant;
+
+    public bool IsSystem => Role == ChatRole.System;
+}
 
 public sealed record RecordStatusChange(Guid RecordId, RecordStatus Status);
 
@@ -46,7 +80,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public event EventHandler<Guid>? Deleted;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRecord), nameof(Title), nameof(StatusLabel), nameof(Fields), nameof(Metadata))]
+    [NotifyPropertyChangedFor(nameof(HasRecord), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Blocks), nameof(Info))]
+    [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand), nameof(DeleteCommand))]
     public partial RecordDetails? Record { get; private set; }
 
@@ -54,11 +89,22 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     public string Title => Record is { } record ? _localizer.Format("Details_Title", record.Ordinal) : string.Empty;
 
+    public RecordStatus Status => Record?.Status ?? RecordStatus.Draft;
+
     public string StatusLabel => Record is { } record ? Labels.For(_localizer, record.Status) : string.Empty;
 
-    public IReadOnlyList<DetailField> Fields => Record is { } record ? BuildFields(record.Payload) : [];
+    public IReadOnlyList<ContentBlock> Blocks => Record is { } record ? BuildBlocks(record.Payload) : [];
 
-    public IReadOnlyList<DetailField> Metadata => Record is { } record ? BuildMetadata(record) : [];
+    public IReadOnlyList<InfoItem> Info => Record is { } record ? BuildInfo(record) : [];
+
+    // Only the actions that make sense for the current status are shown.
+    public bool ShowApprove => CanApprove();
+
+    public bool ShowSendToReview => CanSendToReview();
+
+    public bool ShowArchive => CanArchive();
+
+    public bool ShowRestore => CanRestore();
 
     public async Task ShowAsync(Guid? recordId)
     {
@@ -101,7 +147,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             || !await _dialogs.ConfirmAsync(
                 _localizer["Dialog_DeleteRecordTitle"],
                 _localizer.Format("Dialog_DeleteRecordMessage", record.Ordinal),
-                _localizer["Action_Delete"]))
+                _localizer["Action_Delete"],
+                isDestructive: true))
         {
             return;
         }
@@ -153,7 +200,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
-    private List<DetailField> BuildFields(RecordPayload payload) => payload switch
+    private List<ContentBlock> BuildBlocks(RecordPayload payload) => payload switch
     {
         InstructionPayload p =>
         [
@@ -163,46 +210,52 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         ],
         ChatPayload p =>
         [
-            .. p.SystemPrompt is null ? [] : new[] { Field("Field_SystemPrompt", p.SystemPrompt) },
-            .. p.Messages.Select(m => Field($"Field_{m.Role}", m.Content)),
+            .. p.SystemPrompt is null ? [] : new ContentBlock[] { Field("Field_SystemPrompt", p.SystemPrompt, FieldTone.System) },
+            .. p.Messages.Select(m => Message(m.Role, m.Content)),
         ],
         PreferencePayload p =>
         [
             Field("Field_Prompt", p.Prompt),
-            Field("Field_Chosen", p.Chosen),
-            Field("Field_Rejected", p.Rejected),
+            Field("Field_Chosen", p.Chosen, FieldTone.Positive),
+            Field("Field_Rejected", p.Rejected, FieldTone.Negative),
         ],
         _ => [],
     };
 
-    private List<DetailField> BuildMetadata(RecordDetails record)
+    private List<InfoItem> BuildInfo(RecordDetails record)
     {
-        var fields = new List<DetailField> { Text("Meta_Source", Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(record.Lineage.SourceReference)) };
+        var items = new List<InfoItem>
+        {
+            new(_localizer["Meta_Source"], Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(record.Lineage.SourceReference)),
+        };
         if (record.Lineage.GeneratedByModel is { } model)
         {
-            fields.Add(Text("Meta_GeneratedBy", model));
+            items.Add(new InfoItem(_localizer["Meta_GeneratedBy"], model));
         }
 
-        fields.Add(Text("Meta_Created", record.CreatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
-        fields.Add(Text("Meta_Updated", record.UpdatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
-        fields.Add(Text("Meta_ContentHash", record.ContentHash[..12]));
-        return fields;
+        items.Add(new InfoItem(_localizer["Meta_Created"], record.CreatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
+        items.Add(new InfoItem(_localizer["Meta_Updated"], record.UpdatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)));
+        items.Add(new InfoItem(_localizer["Meta_ContentHash"], record.ContentHash[..12], IsMonospace: true));
+        return items;
 
         static string Suffix(string? reference) => reference is null ? string.Empty : $" ({reference})";
     }
 
-    private DetailField Field(string labelKey, string value) =>
+    private FieldBlock Field(string labelKey, string value, FieldTone tone = FieldTone.Neutral) =>
         string.IsNullOrEmpty(value)
-            ? new DetailField(_localizer[labelKey], _localizer["Field_Empty"], IsEmpty: true)
-            : new DetailField(_localizer[labelKey], value, IsEmpty: false);
+            ? new FieldBlock(_localizer[labelKey], _localizer["Field_Empty"], IsEmpty: true, tone)
+            : new FieldBlock(_localizer[labelKey], value, IsEmpty: false, tone);
 
-    private DetailField Text(string labelKey, string value) => new(_localizer[labelKey], value, IsEmpty: false);
+    private MessageBlock Message(ChatRole role, string value) =>
+        string.IsNullOrEmpty(value)
+            ? new MessageBlock(_localizer[$"Field_{role}"], _localizer["Field_Empty"], IsEmpty: true, role)
+            : new MessageBlock(_localizer[$"Field_{role}"], value, IsEmpty: false, role);
 
     private void Refresh()
     {
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(StatusLabel));
-        OnPropertyChanged(nameof(Fields));
-        OnPropertyChanged(nameof(Metadata));
+        OnPropertyChanged(nameof(Blocks));
+        OnPropertyChanged(nameof(Info));
     }
 }

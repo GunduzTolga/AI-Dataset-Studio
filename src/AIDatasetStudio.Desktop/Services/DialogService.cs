@@ -61,13 +61,14 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
         return await ShowAsync(dialog) && dialog.SelectedOption is { Value: T value } ? value : null;
     }
 
-    public Task<bool> ConfirmAsync(string title, string message, string confirmText) =>
+    public Task<bool> ConfirmAsync(string title, string message, string confirmText, bool isDestructive = false) =>
         ShowAsync(new InputDialogViewModel
         {
             Title = title,
             Message = message,
             ConfirmText = confirmText,
             CancelText = localizer["Dialog_Cancel"],
+            IsDestructive = isDestructive,
         });
 
     private async Task<bool> ShowAsync(InputDialogViewModel viewModel)

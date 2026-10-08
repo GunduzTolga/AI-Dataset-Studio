@@ -63,6 +63,25 @@ public sealed class RecordQueryServiceTests
         Assert.Equal(2, await ws.Queries.CountAsync(datasetId, approved, Ct));
     }
 
+    [Fact]
+    public async Task Counts_records_per_status_with_optional_search()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var ids = await AddAsync(ws, datasetId, ["izin a", "izin b", "şifre c", "izin d"]);
+        await ws.Commands.SetStatusAsync([ids[0], ids[2]], RecordStatus.Approved, Ct);
+
+        var all = await ws.Queries.CountByStatusAsync(datasetId, searchText: null, Ct);
+        var izin = await ws.Queries.CountByStatusAsync(datasetId, "izin", Ct);
+
+        Assert.Equal(2, all[RecordStatus.Draft]);
+        Assert.Equal(2, all[RecordStatus.Approved]);
+        Assert.Equal(0, all[RecordStatus.Archived]);
+        Assert.Equal(4, all.Count);
+        Assert.Equal(2, izin[RecordStatus.Draft]);
+        Assert.Equal(1, izin[RecordStatus.Approved]);
+    }
+
     [Theory]
     [InlineData("izin", 1)]
     [InlineData("İZİN", 1)]

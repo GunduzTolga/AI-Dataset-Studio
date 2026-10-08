@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+             xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             x:Class="AIDatasetStudio.Desktop.Views.WelcomeView"
+             x:DataType="vm:MainWindowViewModel">
+  <ScrollViewer>
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="560" Margin="24,48" Spacing="28">
+
+      <!-- Brand -->
+      <StackPanel Spacing="14">
+        <Border Classes="brand" Width="56" Height="56" CornerRadius="16" HorizontalAlignment="Left">
+          <ic:SymbolIcon Symbol="Sparkle" IconVariant="Filled" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Spacing="6">
+          <TextBlock Classes="display" Text="AI Dataset Studio" />
+          <TextBlock Classes="secondary" FontSize="15" TextWrapping="Wrap" Text="{l:Tr Welcome_Tagline}" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Primary actions -->
+      <Grid ColumnDefinitions="*,12,*">
+        <Button Grid.Column="0" Classes="tile" VerticalAlignment="Stretch" VerticalContentAlignment="Top" Command="{Binding NewWorkspaceCommand}">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+            <Border Grid.RowSpan="2" Width="36" Height="36" CornerRadius="8" Background="{DynamicResource AccentSubtleBrush}" Margin="0,0,12,0" VerticalAlignment="Top">
+              <ic:SymbolIcon Symbol="DocumentAdd" FontSize="20" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Grid.Column="1" Classes="strong" Text="{l:Tr Welcome_NewTitle}" />
+            <TextBlock Grid.Column="1" Grid.Row="1" Classes="small muted" Margin="0,2,0,0" TextWrapping="Wrap" Text="{l:Tr Welcome_NewDescription}" />
+          </Grid>
+        </Button>
+        <Button Grid.Column="2" Classes="tile" VerticalAlignment="Stretch" VerticalContentAlignment="Top" Command="{Binding OpenWorkspaceCommand}">
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+            <Border Grid.RowSpan="2" Width="36" Height="36" CornerRadius="8" Background="{DynamicResource SubtleFillBrush}" Margin="0,0,12,0" VerticalAlignment="Top">
+              <ic:SymbolIcon Symbol="FolderOpen" FontSize="20" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Grid.Column="1" Classes="strong" Text="{l:Tr Welcome_OpenTitle}" />
+            <TextBlock Grid.Column="1" Grid.Row="1" Classes="small muted" Margin="0,2,0,0" TextWrapping="Wrap" Text="{l:Tr Welcome_OpenDescription}" />
+          </Grid>
+        </Button>
+      </Grid>
+
+      <!-- Recent workspaces -->
+      <StackPanel Spacing="6" IsVisible="{Binding HasRecentWorkspaces}">
+        <TextBlock Classes="overline" Margin="4,0" Text="{l:Tr Welcome_Recent}" />
+        <ItemsControl ItemsSource="{Binding RecentWorkspaces}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RecentWorkspaceViewModel">
+              <Button Classes="subtle" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,7"
+                      Command="{Binding OpenCommand}" CommandParameter="{Binding FilePath}" ToolTip.Tip="{Binding FilePath}">
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                  <ic:SymbolIcon Symbol="DocumentText" Margin="0,0,10,0" />
+                  <TextBlock Grid.Column="1" Classes="strong" Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Classes="small muted" Margin="12,0,0,0" Text="{Binding FolderPath}"
+                             TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" />
+                </Grid>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- Privacy promise -->
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="4,0">
+        <ic:SymbolIcon Symbol="ShieldLock" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+        <TextBlock Classes="small muted" Text="{l:Tr Welcome_Privacy}" />
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

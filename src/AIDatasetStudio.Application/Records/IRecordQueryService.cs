@@ -1,3 +1,5 @@
+using AIDatasetStudio.Domain.Enums;
+
 namespace AIDatasetStudio.Application.Records;
 
 /// <summary>
@@ -17,6 +19,15 @@ public interface IRecordQueryService
         CancellationToken cancellationToken = default);
 
     Task<long> CountAsync(Guid datasetId, RecordFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Record counts per status for the dataset, optionally narrowed by a full-text search.
+    /// Statuses without records are present with a count of zero.
+    /// </summary>
+    Task<IReadOnlyDictionary<RecordStatus, long>> CountByStatusAsync(
+        Guid datasetId,
+        string? searchText,
+        CancellationToken cancellationToken = default);
 
     /// <returns>The record, or <c>null</c> if it does not exist.</returns>
     Task<RecordDetails?> GetAsync(Guid recordId, CancellationToken cancellationToken = default);

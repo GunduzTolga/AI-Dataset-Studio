@@ -4,13 +4,16 @@
         x:Class="AIDatasetStudio.Desktop.Views.Dialogs.InputDialog"
         x:DataType="vm:InputDialogViewModel"
         Title="{Binding Title}"
-        SizeToContent="WidthAndHeight"
+        SizeToContent="Height"
+        Width="460"
         CanResize="False"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        MinWidth="380">
-  <StackPanel Margin="20" Spacing="12" MaxWidth="480">
-    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+        Background="{DynamicResource SurfaceBrush}"
+        >
+  <StackPanel Margin="24,22,24,20" Spacing="14">
+    <TextBlock Classes="subtitle" Text="{Binding Title}" />
+    <TextBlock Classes="secondary content" Text="{Binding Message}" />
     <TextBox x:Name="InputBox" Text="{Binding Text}" IsVisible="{Binding ShowText}" MaxLength="{Binding MaxLength}" />
     <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
               IsVisible="{Binding ShowOptions}" HorizontalAlignment="Stretch">
@@ -20,10 +23,10 @@
         </DataTemplate>
       </ComboBox.ItemTemplate>
     </ComboBox>
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
-      <Button Content="{Binding CancelText}" IsCancel="True" Click="OnCancel" MinWidth="88" />
-      <Button Content="{Binding ConfirmText}" IsDefault="True" Classes="accent" MinWidth="88"
-              IsEnabled="{Binding CanConfirm}" Click="OnConfirm" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+      <Button Classes="subtle" Content="{Binding CancelText}" IsCancel="True" Click="OnCancel" MinWidth="88" HorizontalContentAlignment="Center" />
+      <Button Classes.accent="{Binding IsNotDestructive}" Classes.danger="{Binding IsDestructive}" Content="{Binding ConfirmText}"
+              IsDefault="True" MinWidth="88" HorizontalContentAlignment="Center" IsEnabled="{Binding CanConfirm}" Click="OnConfirm" />
     </StackPanel>
   </StackPanel>
 </Window>

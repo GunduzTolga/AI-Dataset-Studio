@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
@@ -7,7 +8,22 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace AIDatasetStudio.Desktop.ViewModels;
 
-public sealed record StatusFilterOption(RecordStatus? Status, string Label);
+/// <summary>
+/// A status filter chip: "All" (<see cref="Status"/> is <c>null</c>) or one status, with its record count.
+/// </summary>
+public sealed partial class StatusFilterOption(RecordStatus? status) : ViewModelBase
+{
+    public RecordStatus? Status { get; } = status;
+
+    [ObservableProperty]
+    public partial string Label { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CountText))]
+    public partial long Count { get; set; }
+
+    public string CountText => Count.ToString("N0", CultureInfo.CurrentCulture);
+}
 
 /// <summary>
 /// The records of the selected dataset, loaded page by page as the list scrolls (data
@@ -23,42 +39,41 @@ public sealed partial class RecordListViewModel : ViewModelBase
     private RecordCursor? _next;
     private int _generation;
     private CancellationTokenSource? _searchDelay;
-    private bool _suppressFilterReload;
 
     public RecordListViewModel(IRecordQueryService queries, StatusBarViewModel status, Localizer localizer)
     {
         _queries = queries;
         _status = status;
         _localizer = localizer;
-        StatusFilters = CreateStatusFilters();
+        StatusFilters = [new StatusFilterOption(null), .. Enum.GetValues<RecordStatus>().Select(status => new StatusFilterOption(status))];
+        RefreshFilterLabels();
         SelectedStatusFilter = StatusFilters[0];
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
     }
 
     public ObservableCollection<RecordRowViewModel> Items { get; } = [];
 
-    [ObservableProperty]
-    public partial IReadOnlyList<StatusFilterOption> StatusFilters { get; private set; }
+    public IReadOnlyList<StatusFilterOption> StatusFilters { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasDataset), nameof(EmptyMessage))]
+    [NotifyPropertyChangedFor(nameof(HasDataset), nameof(IsEmptyDataset), nameof(IsNoMatches))]
     public partial DatasetNodeViewModel? Dataset { get; private set; }
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
 
     /// <summary>
-    /// The status filter; <c>null</c> (e.g. while the combo box swaps its items) means all statuses.
+    /// The selected chip; <c>null</c> is treated as "all statuses".
     /// </summary>
     [ObservableProperty]
     public partial StatusFilterOption? SelectedStatusFilter { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CountText), nameof(EmptyMessage))]
+    [NotifyPropertyChangedFor(nameof(CountText), nameof(IsEmptyDataset), nameof(IsNoMatches))]
     public partial long TotalCount { get; private set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EmptyMessage))]
+    [NotifyPropertyChangedFor(nameof(IsEmptyDataset), nameof(IsNoMatches))]
     [NotifyCanExecuteChangedFor(nameof(LoadMoreCommand))]
     public partial bool IsLoading { get; private set; }
 
@@ -77,13 +92,14 @@ public sealed partial class RecordListViewModel : ViewModelBase
     public string CountText => _localizer.Format("Common_RecordCount", TotalCount);
 
     /// <summary>
-    /// Shown over an empty list; <c>null</c> while there are rows (or nothing is selected).
+    /// The dataset has no records at all (not merely none matching the filter).
     /// </summary>
-    public string? EmptyMessage =>
-        Dataset is null || Items.Count > 0 ? null
-        : IsLoading ? _localizer["Records_Loading"]
-        : IsFiltered ? _localizer["Records_NoMatches"]
-        : _localizer["Records_EmptyDataset"];
+    public bool IsEmptyDataset => Dataset is not null && Items.Count == 0 && !IsLoading && !IsFiltered;
+
+    /// <summary>
+    /// Records exist but none match the search or status filter.
+    /// </summary>
+    public bool IsNoMatches => Dataset is not null && Items.Count == 0 && !IsLoading && IsFiltered;
 
     private bool IsFiltered => !string.IsNullOrWhiteSpace(SearchText) || SelectedStatusFilter?.Status is not null;
 
@@ -107,30 +123,40 @@ public sealed partial class RecordListViewModel : ViewModelBase
         SelectedItem = null;
         Items.Clear();
         TotalCount = 0;
+        foreach (var option in StatusFilters)
+        {
+            option.Count = 0;
+        }
+
         OnPropertyChanged(nameof(HasMore));
 
         if (Dataset is not { } dataset)
         {
-            OnPropertyChanged(nameof(EmptyMessage));
+            OnPropertyChanged(nameof(IsEmptyDataset));
+            OnPropertyChanged(nameof(IsNoMatches));
             return;
         }
 
         IsLoading = true;
         try
         {
-            var filter = Filter;
-            var count = await _queries.CountAsync(dataset.Id, filter);
-            var page = await _queries.GetPageAsync(dataset.Id, filter, after: null, PageSize);
+            var counts = await _queries.CountByStatusAsync(dataset.Id, SearchText);
+            var page = await _queries.GetPageAsync(dataset.Id, Filter, after: null, PageSize);
             if (generation != _generation)
             {
                 return; // a newer reload started meanwhile
             }
 
-            TotalCount = count;
-            Append(page);
-            if (!IsFiltered)
+            foreach (var option in StatusFilters)
             {
-                dataset.RecordCount = count;
+                option.Count = option.Status is { } status ? counts[status] : counts.Values.Sum();
+            }
+
+            UpdateTotal();
+            Append(page);
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                dataset.RecordCount = counts.Values.Sum();
             }
         }
         catch (Exception ex) when (_status.TryReport(ex))
@@ -177,12 +203,21 @@ public sealed partial class RecordListViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Reflects a status change made elsewhere. The row stays in place until the next reload,
+    /// even if it no longer matches the filter, so the selection does not jump.
+    /// </summary>
     public void UpdateStatus(Guid recordId, RecordStatus status)
     {
-        if (Items.FirstOrDefault(row => row.Id == recordId) is { } row)
+        if (Items.FirstOrDefault(row => row.Id == recordId) is not { } row || row.Status == status)
         {
-            row.Status = status;
+            return;
         }
+
+        Option(row.Status).Count--;
+        Option(status).Count++;
+        row.Status = status;
+        UpdateTotal();
     }
 
     /// <summary>
@@ -196,13 +231,17 @@ public sealed partial class RecordListViewModel : ViewModelBase
         }
 
         Items.Remove(row);
-        TotalCount = Math.Max(0, TotalCount - 1);
+        Option(row.Status).Count--;
+        StatusFilters[0].Count--;
+        UpdateTotal();
         if (Dataset is { } dataset)
         {
             dataset.RecordCount = Math.Max(0, dataset.RecordCount - 1);
         }
 
-        OnPropertyChanged(nameof(EmptyMessage));
+        OnPropertyChanged(nameof(IsEmptyDataset));
+
+        OnPropertyChanged(nameof(IsNoMatches));
     }
 
     partial void OnSearchTextChanged(string value)
@@ -212,13 +251,7 @@ public sealed partial class RecordListViewModel : ViewModelBase
         _ = ReloadAfterDelayAsync(_searchDelay.Token);
     }
 
-    partial void OnSelectedStatusFilterChanged(StatusFilterOption? value)
-    {
-        if (!_suppressFilterReload)
-        {
-            _ = ReloadAsync();
-        }
-    }
+    partial void OnSelectedStatusFilterChanged(StatusFilterOption? value) => _ = ReloadAsync();
 
     private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
     {
@@ -243,38 +276,33 @@ public sealed partial class RecordListViewModel : ViewModelBase
 
         _next = page.Next;
         OnPropertyChanged(nameof(HasMore));
-        OnPropertyChanged(nameof(EmptyMessage));
+        OnPropertyChanged(nameof(IsEmptyDataset));
+        OnPropertyChanged(nameof(IsNoMatches));
         LoadMoreCommand.NotifyCanExecuteChanged();
     }
 
-    private List<StatusFilterOption> CreateStatusFilters() =>
-    [
-        new StatusFilterOption(null, _localizer["Filter_AllStatuses"]),
-        .. Enum.GetValues<RecordStatus>().Select(status => new StatusFilterOption(status, Labels.For(_localizer, status))),
-    ];
+    private StatusFilterOption Option(RecordStatus status) => StatusFilters.First(option => option.Status == status);
+
+    private void UpdateTotal() => TotalCount = (SelectedStatusFilter ?? StatusFilters[0]).Count;
+
+    private void RefreshFilterLabels()
+    {
+        foreach (var option in StatusFilters)
+        {
+            option.Label = option.Status is { } status ? Labels.For(_localizer, status) : _localizer["Filter_AllStatuses"];
+        }
+    }
 
     private void OnLanguageChanged()
     {
-        // Swap in translated filter options; the filter itself does not change, so don't reload.
-        var selected = SelectedStatusFilter?.Status;
-        var filters = CreateStatusFilters();
-        _suppressFilterReload = true;
-        try
-        {
-            StatusFilters = filters;
-            SelectedStatusFilter = filters.First(option => option.Status == selected);
-        }
-        finally
-        {
-            _suppressFilterReload = false;
-        }
-
+        RefreshFilterLabels();
         foreach (var row in Items)
         {
             row.RefreshLabels();
         }
 
         OnPropertyChanged(nameof(CountText));
-        OnPropertyChanged(nameof(EmptyMessage));
+        OnPropertyChanged(nameof(IsEmptyDataset));
+        OnPropertyChanged(nameof(IsNoMatches));
     }
 }

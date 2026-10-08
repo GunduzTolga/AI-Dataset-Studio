@@ -63,7 +63,7 @@ public sealed partial class ExplorerViewModel : ViewModelBase
             var node = new ProjectNodeViewModel(project.Id, project.Name) { IsExpanded = expanded.Contains(project.Id) || project.Id == selectedId };
             foreach (var dataset in project.Datasets)
             {
-                node.Datasets.Add(new DatasetNodeViewModel(dataset.Id, dataset.ProjectId, dataset.Name, dataset.Type, dataset.RecordCount, _localizer));
+                node.Datasets.Add(new DatasetNodeViewModel(dataset.Id, dataset.ProjectId, project.Name, dataset.Name, dataset.Type, dataset.RecordCount, _localizer));
                 if (dataset.Id == selectedId)
                 {
                     node.IsExpanded = true;
@@ -176,11 +176,13 @@ public sealed partial class ExplorerViewModel : ViewModelBase
             ProjectNodeViewModel => await _dialogs.ConfirmAsync(
                 _localizer["Dialog_DeleteProjectTitle"],
                 _localizer.Format("Dialog_DeleteProjectMessage", node.Name),
-                _localizer["Action_Delete"]),
+                _localizer["Action_Delete"],
+                isDestructive: true),
             DatasetNodeViewModel dataset => await _dialogs.ConfirmAsync(
                 _localizer["Dialog_DeleteDatasetTitle"],
                 _localizer.Format("Dialog_DeleteDatasetMessage", node.Name, dataset.RecordCount),
-                _localizer["Action_Delete"]),
+                _localizer["Action_Delete"],
+                isDestructive: true),
             _ => false,
         };
         if (!confirmed)

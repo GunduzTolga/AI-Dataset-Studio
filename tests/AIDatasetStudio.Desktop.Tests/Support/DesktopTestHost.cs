@@ -104,6 +104,8 @@ internal sealed class FakeDialogs : IDialogService
 
     public List<string> ConfirmMessages { get; } = [];
 
+    public List<bool> ConfirmWasDestructive { get; } = [];
+
     public Task<string?> PromptTextAsync(string title, string message, string initialText) =>
         Task.FromResult(TextAnswers.Count > 0 ? TextAnswers.Dequeue() : null);
 
@@ -112,9 +114,10 @@ internal sealed class FakeDialogs : IDialogService
     public Task<T?> ChooseAsync<T>(string title, string message, IReadOnlyList<(T Value, string Label)> options, int selectedIndex)
         where T : struct => Task.FromResult(ChoiceAnswer is T value ? value : (T?)null);
 
-    public Task<bool> ConfirmAsync(string title, string message, string confirmText)
+    public Task<bool> ConfirmAsync(string title, string message, string confirmText, bool isDestructive = false)
     {
         ConfirmMessages.Add(message);
+        ConfirmWasDestructive.Add(isDestructive);
         return Task.FromResult(ConfirmAnswer);
     }
 }

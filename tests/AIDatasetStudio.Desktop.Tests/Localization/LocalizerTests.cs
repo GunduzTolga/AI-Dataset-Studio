@@ -29,7 +29,7 @@ public sealed class LocalizerTests
     [Fact]
     public void Turkish_capitals_keep_the_dotted_I()
     {
-        Assert.Equal("GEZGİN", new Localizer(Localizer.Turkish)["Pane_Explorer"]);
+        Assert.Equal("İÇERİK", new Localizer(Localizer.Turkish)["Records_ColumnContent"]);
     }
 
     [Fact]

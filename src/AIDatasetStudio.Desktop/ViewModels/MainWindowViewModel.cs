@@ -57,6 +57,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Records.PropertyChanged += OnRecordsPropertyChanged;
         Details.StatusChanged += (_, change) => Records.UpdateStatus(change.RecordId, change.Status);
         Details.Deleted += (_, recordId) => Records.Remove(recordId);
+        Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }
 
@@ -83,6 +84,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public string Title => Workspace is { } workspace ? $"{workspace.Name} — {AppTitle}" : AppTitle;
 
     public bool IsEnglish => _localizer.Culture.Equals(Localizer.English);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSystemTheme), nameof(IsLightTheme), nameof(IsDarkTheme))]
+    public partial AppTheme Theme { get; private set; }
+
+    public bool IsSystemTheme => Theme == AppTheme.System;
+
+    public bool IsLightTheme => Theme == AppTheme.Light;
+
+    public bool IsDarkTheme => Theme == AppTheme.Dark;
 
     public bool IsTurkish => _localizer.Culture.Equals(Localizer.Turkish);
 
@@ -135,6 +146,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         _localizer.SetCulture(CultureInfo.GetCultureInfo(cultureName));
         _settings.SetUiLanguage(_localizer.Culture.Name);
+    }
+
+    [RelayCommand]
+    private void SetTheme(string value)
+    {
+        var theme = Enum.Parse<AppTheme>(value, ignoreCase: true);
+        ThemeService.Apply(theme);
+        _settings.SetUiTheme(ThemeService.ToSetting(theme));
+        Theme = theme;
     }
 
     private bool CanGenerateSampleData() => !IsBusy && Explorer.SelectedDataset is not null;

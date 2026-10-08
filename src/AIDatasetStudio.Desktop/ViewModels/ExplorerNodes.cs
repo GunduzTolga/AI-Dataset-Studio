@@ -25,10 +25,11 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
 {
     private readonly Localizer _localizer;
 
-    public DatasetNodeViewModel(Guid id, Guid projectId, string name, DatasetType type, long recordCount, Localizer localizer)
+    public DatasetNodeViewModel(Guid id, Guid projectId, string projectName, string name, DatasetType type, long recordCount, Localizer localizer)
         : base(id, name)
     {
         ProjectId = projectId;
+        ProjectName = projectName;
         Type = type;
         RecordCount = recordCount;
         _localizer = localizer;
@@ -36,16 +37,29 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
 
     public Guid ProjectId { get; }
 
+    public string ProjectName { get; }
+
     public DatasetType Type { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Details))]
+    [NotifyPropertyChangedFor(nameof(CountText), nameof(Subtitle))]
     public partial long RecordCount { get; set; }
 
-    /// <summary>
-    /// "Chat · 1,234 records".
-    /// </summary>
-    public string Details => $"{Labels.For(_localizer, Type)} · {_localizer.Format("Common_RecordCount", RecordCount)}";
+    public string TypeLabel => Labels.For(_localizer, Type);
 
-    public void RefreshLabels() => OnPropertyChanged(nameof(Details));
+    /// <summary>
+    /// Compact count for the tree, e.g. "1.234".
+    /// </summary>
+    public string CountText => RecordCount.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
+
+    /// <summary>
+    /// "Project · 1,234 records" under the dataset title.
+    /// </summary>
+    public string Subtitle => $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)}";
+
+    public void RefreshLabels()
+    {
+        OnPropertyChanged(nameof(TypeLabel));
+        OnPropertyChanged(nameof(Subtitle));
+    }
 }

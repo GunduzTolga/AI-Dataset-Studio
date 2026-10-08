@@ -14,6 +14,7 @@ internal sealed class SqliteUserSettings : IUserSettings
     public const int MaxRecentWorkspaces = 10;
 
     private const string UiLanguageKey = "ui.language";
+    private const string UiThemeKey = "ui.theme";
 
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -22,6 +23,7 @@ internal sealed class SqliteUserSettings : IUserSettings
     private readonly TimeProvider _timeProvider;
     private string? _connectionString;
     private string? _uiLanguage;
+    private string? _uiTheme;
     private readonly List<string> _recent = [];
 
     public SqliteUserSettings(string directory, TimeProvider timeProvider)
@@ -61,6 +63,17 @@ internal sealed class SqliteUserSettings : IUserSettings
         }
     }
 
+    public string? UiTheme
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _uiTheme;
+            }
+        }
+    }
+
     public IReadOnlyList<string> RecentWorkspaces
     {
         get
@@ -76,23 +89,17 @@ internal sealed class SqliteUserSettings : IUserSettings
     {
         lock (_lock)
         {
-            _uiLanguage = string.IsNullOrWhiteSpace(cultureName) ? null : cultureName;
-            var value = _uiLanguage;
-            Write(command =>
-            {
-                command.Parameters.AddWithValue("$key", UiLanguageKey);
-                if (value is null)
-                {
-                    command.CommandText = "DELETE FROM Settings WHERE Key = $key;";
-                }
-                else
-                {
-                    command.CommandText = "INSERT INTO Settings (Key, Value) VALUES ($key, $value) ON CONFLICT (Key) DO UPDATE SET Value = excluded.Value;";
-                    command.Parameters.AddWithValue("$value", value);
-                }
+            _uiLanguage = Normalize(cultureName);
+            SaveValue(UiLanguageKey, _uiLanguage);
+        }
+    }
 
-                command.ExecuteNonQuery();
-            });
+    public void SetUiTheme(string? theme)
+    {
+        lock (_lock)
+        {
+            _uiTheme = Normalize(theme);
+            SaveValue(UiThemeKey, _uiTheme);
         }
     }
 
@@ -141,12 +148,8 @@ internal sealed class SqliteUserSettings : IUserSettings
             create.ExecuteNonQuery();
         }
 
-        using (var read = connection.CreateCommand())
-        {
-            read.CommandText = "SELECT Value FROM Settings WHERE Key = $key;";
-            read.Parameters.AddWithValue("$key", UiLanguageKey);
-            _uiLanguage = read.ExecuteScalar() as string;
-        }
+        _uiLanguage = ReadValue(connection, UiLanguageKey);
+        _uiTheme = ReadValue(connection, UiThemeKey);
 
         using (var read = connection.CreateCommand())
         {
@@ -159,6 +162,32 @@ internal sealed class SqliteUserSettings : IUserSettings
             }
         }
     }
+
+    private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? ReadValue(SqliteConnection connection, string key)
+    {
+        using var read = connection.CreateCommand();
+        read.CommandText = "SELECT Value FROM Settings WHERE Key = $key;";
+        read.Parameters.AddWithValue("$key", key);
+        return read.ExecuteScalar() as string;
+    }
+
+    private void SaveValue(string key, string? value) => Write(command =>
+    {
+        command.Parameters.AddWithValue("$key", key);
+        if (value is null)
+        {
+            command.CommandText = "DELETE FROM Settings WHERE Key = $key;";
+        }
+        else
+        {
+            command.CommandText = "INSERT INTO Settings (Key, Value) VALUES ($key, $value) ON CONFLICT (Key) DO UPDATE SET Value = excluded.Value;";
+            command.Parameters.AddWithValue("$value", value);
+        }
+
+        command.ExecuteNonQuery();
+    });
 
     // Rewrites the whole (at most ten row) list so the stored order always matches memory.
     private void SaveRecent()

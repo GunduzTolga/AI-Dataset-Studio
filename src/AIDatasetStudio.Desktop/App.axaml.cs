@@ -2,6 +2,7 @@ using System.Globalization;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
+using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.Views;
 using AIDatasetStudio.Infrastructure;
@@ -23,8 +24,11 @@ public sealed partial class App : Avalonia.Application
             .AddDesktop(() => (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow)
             .BuildServiceProvider();
 
-        ApplySavedLanguage(_services.GetRequiredService<IUserSettings>());
+        var settings = _services.GetRequiredService<IUserSettings>();
+        ApplySavedLanguage(settings);
         AvaloniaXamlLoader.Load(this);
+        // After loading App.axaml, which sets the default theme variant.
+        ThemeService.Apply(ThemeService.Parse(settings.UiTheme));
     }
 
     public override void OnFrameworkInitializationCompleted()

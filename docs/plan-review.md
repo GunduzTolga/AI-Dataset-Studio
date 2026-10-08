@@ -135,6 +135,6 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 | **M4** | Token motoru (`cl100k_base`/`o200k_base`), temel sağlık kuralları, PII maskeleme önizlemesi | |
 | **M5** | Export (OpenAI JSONL, ShareGPT, Alpaca) + hash tabanlı Train/Val/Test bölmesi | |
 | **M6** | Paketleme, imzalama, ilk sürüm | |
-| **M7** | Görsel tasarım: renk paleti, tipografi, ikonlar, boşluklar, boş durumlar. Mevcut arayüz beğenilmedi; işlevler tamamlandıktan sonra tek seferde ele alınacak. M6'dan önce yapılabilir. | |
+| **M7** | Görsel tasarım sistemi: renk tokenları (açık/koyu), tipografi, ikonlar, bileşenler, karşılama ekranı, boş durumlar, tema tercihi | ✅ PR #1 (öne alındı) |
 
-> Not: M1–M5 arasında arayüz bilerek yalın tutuluyor; görünüm kararları M7'ye bırakıldı.
+> Not: Tasarım, kullanıcının isteğiyle sona bırakılmak yerine M1'in hemen ardından yapıldı. Kurallar `docs/design-system.md` dosyasında; M2–M6'daki yeni ekranlar bu sisteme göre yapılacak.

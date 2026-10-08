@@ -2,58 +2,123 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
              xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             xmlns:ic="using:FluentIcons.Avalonia"
+             xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
+             xmlns:conv="using:AIDatasetStudio.Desktop.Converters"
              x:Class="AIDatasetStudio.Desktop.Views.RecordDetailsView"
              x:DataType="vm:RecordDetailsViewModel">
-  <DockPanel>
-    <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_RecordEditor}" />
+  <Panel>
+    <StackPanel Classes="empty" IsVisible="{Binding !HasRecord}">
+      <Border Classes="empty-icon">
+        <ic:SymbolIcon Symbol="DocumentText" />
+      </Border>
+      <TextBlock Classes="subtitle" Text="{l:Tr Details_NoRecordTitle}" />
+      <TextBlock Classes="muted" Text="{l:Tr Details_NoRecordHint}" />
+    </StackPanel>
 
-    <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-               Margin="16" Text="{l:Tr Editor_Placeholder}" IsVisible="{Binding !HasRecord}" />
-
-    <ScrollViewer IsVisible="{Binding HasRecord}">
-      <StackPanel Margin="12,0,12,16" Spacing="12">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Classes="muted" Text="{Binding StatusLabel}" VerticalAlignment="Bottom" />
+    <DockPanel IsVisible="{Binding HasRecord}">
+      <!-- Header and actions -->
+      <StackPanel DockPanel.Dock="Top" Margin="20,18,20,14" Spacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Classes="title numeric" Text="{Binding Title}" />
+          <controls:StatusBadge Status="{Binding Status}" Text="{Binding StatusLabel}" />
         </StackPanel>
-
-        <WrapPanel>
-          <WrapPanel.Styles>
-            <Style Selector="Button">
-              <Setter Property="Margin" Value="0,0,6,6" />
-            </Style>
-          </WrapPanel.Styles>
-          <Button Classes="accent" Content="{l:Tr Action_Approve}" Command="{Binding ApproveCommand}" />
-          <Button Content="{l:Tr Action_SendToReview}" Command="{Binding SendToReviewCommand}" />
-          <Button Content="{l:Tr Action_Archive}" Command="{Binding ArchiveCommand}" />
-          <Button Content="{l:Tr Action_Restore}" Command="{Binding RestoreCommand}" />
-          <Button Content="{l:Tr Action_Delete}" Command="{Binding DeleteCommand}" />
-        </WrapPanel>
-
-        <ItemsControl ItemsSource="{Binding Fields}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:DetailField">
-              <StackPanel Spacing="2" Margin="0,0,0,10">
-                <TextBlock Classes="muted" FontSize="11" FontWeight="SemiBold" Text="{Binding Label}" />
-                <SelectableTextBlock Text="{Binding Value}" TextWrapping="Wrap" Classes.muted="{Binding IsEmpty}" />
+        <Grid ColumnDefinitions="*,Auto">
+          <WrapPanel>
+            <WrapPanel.Styles>
+              <Style Selector="Button">
+                <Setter Property="Margin" Value="0,0,6,6" />
+              </Style>
+            </WrapPanel.Styles>
+            <Button Classes="accent" Command="{Binding ApproveCommand}" IsVisible="{Binding ShowApprove}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Checkmark" />
+                <TextBlock Text="{l:Tr Action_Approve}" />
               </StackPanel>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-
-        <Border Height="1" Background="{DynamicResource PaneBorderBrush}" />
-
-        <ItemsControl ItemsSource="{Binding Metadata}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="vm:DetailField">
-              <Grid ColumnDefinitions="110,*" Margin="0,0,0,4">
-                <TextBlock Classes="muted" FontSize="12" Text="{Binding Label}" />
-                <SelectableTextBlock Grid.Column="1" FontSize="12" Text="{Binding Value}" TextWrapping="Wrap" />
-              </Grid>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+            </Button>
+            <Button Command="{Binding SendToReviewCommand}" IsVisible="{Binding ShowSendToReview}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Eye" />
+                <TextBlock Text="{l:Tr Action_SendToReview}" />
+              </StackPanel>
+            </Button>
+            <Button Command="{Binding ArchiveCommand}" IsVisible="{Binding ShowArchive}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Archive" />
+                <TextBlock Text="{l:Tr Action_Archive}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="accent" Command="{Binding RestoreCommand}" IsVisible="{Binding ShowRestore}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ArrowUndo" />
+                <TextBlock Text="{l:Tr Action_Restore}" />
+              </StackPanel>
+            </Button>
+          </WrapPanel>
+          <Button Grid.Column="1" Classes="danger-subtle icon" VerticalAlignment="Top" Command="{Binding DeleteCommand}" ToolTip.Tip="{l:Tr Action_Delete}">
+            <ic:SymbolIcon Symbol="Delete" />
+          </Button>
+        </Grid>
       </StackPanel>
-    </ScrollViewer>
-  </DockPanel>
+
+      <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderBrush}" />
+
+      <ScrollViewer>
+        <StackPanel Margin="20,16,20,24" Spacing="10">
+          <ItemsControl ItemsSource="{Binding Blocks}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="10" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.DataTemplates>
+              <!-- A labelled field (instruction, input, output, prompt, chosen, rejected, system prompt) -->
+              <DataTemplate DataType="vm:FieldBlock">
+                <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}">
+                  <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <ic:SymbolIcon Symbol="ThumbLike" FontSize="14" IsVisible="{Binding IsPositive}" />
+                      <ic:SymbolIcon Symbol="ThumbDislike" FontSize="14" IsVisible="{Binding IsNegative}" />
+                      <ic:SymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsSystem}" />
+                      <TextBlock Classes="overline card-label" Text="{Binding Label}" />
+                    </StackPanel>
+                    <SelectableTextBlock Classes="content" Classes.muted="{Binding IsEmpty}" Text="{Binding Value}" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+              <!-- A chat turn -->
+              <DataTemplate DataType="vm:MessageBlock">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="5" Margin="2,0"
+                              HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}">
+                    <ic:SymbolIcon Symbol="{Binding Role, Converter={x:Static conv:IconConverters.ChatRole}}" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" />
+                    <TextBlock Classes="caption muted strong" Text="{Binding Label}" />
+                  </StackPanel>
+                  <Border Classes="bubble" Classes.user="{Binding IsUser}" Classes.assistant="{Binding IsAssistant}"
+                          HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}" MaxWidth="440">
+                    <SelectableTextBlock Classes="content" Classes.muted="{Binding IsEmpty}" Text="{Binding Value}" />
+                  </Border>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+
+          <!-- Info -->
+          <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Details_Info}" />
+          <Border Classes="card" Padding="14,10">
+            <ItemsControl ItemsSource="{Binding Info}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:InfoItem">
+                  <Grid ColumnDefinitions="120,*" Margin="0,3">
+                    <TextBlock Classes="small muted" Text="{Binding Label}" />
+                    <SelectableTextBlock Grid.Column="1" Classes="small" Classes.mono="{Binding IsMonospace}" Text="{Binding Value}" TextWrapping="Wrap" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Panel>
 </UserControl>

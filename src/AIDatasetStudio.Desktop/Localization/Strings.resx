@@ -33,36 +33,6 @@
   <data name="Menu_Language" xml:space="preserve">
     <value>_Language</value>
   </data>
-  <data name="Pane_Explorer" xml:space="preserve">
-    <value>EXPLORER</value>
-    <comment>Pane header, shown in capitals.</comment>
-  </data>
-  <data name="Pane_Records" xml:space="preserve">
-    <value>RECORDS</value>
-    <comment>Pane header, shown in capitals.</comment>
-  </data>
-  <data name="Pane_RecordEditor" xml:space="preserve">
-    <value>RECORD EDITOR</value>
-    <comment>Pane header, shown in capitals.</comment>
-  </data>
-  <data name="Explorer_NoWorkspace" xml:space="preserve">
-    <value>No workspace is open.</value>
-  </data>
-  <data name="Explorer_Placeholder" xml:space="preserve">
-    <value>Projects and datasets will appear here.</value>
-  </data>
-  <data name="Button_NewWorkspace" xml:space="preserve">
-    <value>New Workspace…</value>
-  </data>
-  <data name="Button_OpenWorkspace" xml:space="preserve">
-    <value>Open Workspace…</value>
-  </data>
-  <data name="Records_Placeholder" xml:space="preserve">
-    <value>Select a dataset to see its records.</value>
-  </data>
-  <data name="Editor_Placeholder" xml:space="preserve">
-    <value>Select a record to edit it.</value>
-  </data>
   <data name="Status_Ready" xml:space="preserve">
     <value>Ready</value>
   </data>
@@ -128,11 +98,11 @@
     <value>_Generate Sample Records…</value>
   </data>
   <data name="Explorer_NewProject" xml:space="preserve">
-    <value>+ Project</value>
+    <value>New project</value>
     <comment>Toolbar button</comment>
   </data>
   <data name="Explorer_NewDataset" xml:space="preserve">
-    <value>+ Dataset</value>
+    <value>New dataset</value>
     <comment>Toolbar button</comment>
   </data>
   <data name="Explorer_Rename" xml:space="preserve">
@@ -140,9 +110,6 @@
   </data>
   <data name="Explorer_Delete" xml:space="preserve">
     <value>Delete…</value>
-  </data>
-  <data name="Explorer_Empty" xml:space="preserve">
-    <value>This workspace has no projects yet. Create one with “+ Project”.</value>
   </data>
   <data name="Common_RecordCount" xml:space="preserve">
     <value>{0:N0} records</value>
@@ -176,13 +143,7 @@
     <value>Search records…</value>
   </data>
   <data name="Records_NoMatches" xml:space="preserve">
-    <value>No records match the search or filter.</value>
-  </data>
-  <data name="Records_EmptyDataset" xml:space="preserve">
-    <value>This dataset has no records yet. Try Tools › Generate Sample Records.</value>
-  </data>
-  <data name="Records_Loading" xml:space="preserve">
-    <value>Loading…</value>
+    <value>Try other words or another status.</value>
   </data>
   <data name="Details_Title" xml:space="preserve">
     <value>Record #{0}</value>
@@ -359,5 +320,88 @@
   <data name="Error_InvalidInput" xml:space="preserve">
     <value>The operation could not be completed: {0}</value>
     <comment>{0} = technical detail</comment>
+  </data>
+  <data name="Menu_Theme" xml:space="preserve">
+    <value>_Theme</value>
+  </data>
+  <data name="Theme_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Welcome_Tagline" xml:space="preserve">
+    <value>Curate, clean and export LLM training data — entirely on this computer.</value>
+  </data>
+  <data name="Welcome_NewTitle" xml:space="preserve">
+    <value>New workspace</value>
+  </data>
+  <data name="Welcome_NewDescription" xml:space="preserve">
+    <value>Create an empty .adstudio file</value>
+  </data>
+  <data name="Welcome_OpenTitle" xml:space="preserve">
+    <value>Open workspace</value>
+  </data>
+  <data name="Welcome_OpenDescription" xml:space="preserve">
+    <value>Continue with an existing file</value>
+  </data>
+  <data name="Welcome_Recent" xml:space="preserve">
+    <value>RECENT</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Welcome_Privacy" xml:space="preserve">
+    <value>Your data never leaves this computer.</value>
+  </data>
+  <data name="Sidebar_Projects" xml:space="preserve">
+    <value>PROJECTS</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Sidebar_Workspace" xml:space="preserve">
+    <value>Workspace</value>
+  </data>
+  <data name="Explorer_EmptyTitle" xml:space="preserve">
+    <value>No projects yet</value>
+  </data>
+  <data name="Explorer_EmptyHint" xml:space="preserve">
+    <value>Projects group related datasets, e.g. one per assistant.</value>
+  </data>
+  <data name="Records_NoDatasetTitle" xml:space="preserve">
+    <value>Select a dataset</value>
+  </data>
+  <data name="Records_NoDatasetHint" xml:space="preserve">
+    <value>Pick a dataset from the tree on the left, or create a new one.</value>
+  </data>
+  <data name="Records_EmptyTitle" xml:space="preserve">
+    <value>No records yet</value>
+  </data>
+  <data name="Records_EmptyHint" xml:space="preserve">
+    <value>Import arrives in the next version. Until then, try sample records.</value>
+  </data>
+  <data name="Records_NoMatchesTitle" xml:space="preserve">
+    <value>No matches</value>
+  </data>
+  <data name="Records_ColumnStatus" xml:space="preserve">
+    <value>STATUS</value>
+    <comment>Column header, shown in capitals.</comment>
+  </data>
+  <data name="Records_ColumnContent" xml:space="preserve">
+    <value>CONTENT</value>
+    <comment>Column header, shown in capitals.</comment>
+  </data>
+  <data name="Details_NoRecordTitle" xml:space="preserve">
+    <value>No record selected</value>
+  </data>
+  <data name="Details_NoRecordHint" xml:space="preserve">
+    <value>Select a record in the list to see its content.</value>
+  </data>
+  <data name="Details_Info" xml:space="preserve">
+    <value>DETAILS</value>
+    <comment>Section header, shown in capitals.</comment>
+  </data>
+  <data name="Action_GenerateSamples" xml:space="preserve">
+    <value>Generate sample records</value>
   </data>
 </root>

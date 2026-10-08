@@ -22,15 +22,15 @@ public sealed class MainWindowLanguageTests
             var window = new MainWindow { DataContext = host.Main };
             window.Show();
 
-            Assert.Contains("EXPLORER", VisibleTexts(window));
+            Assert.Contains("New workspace", VisibleTexts(window));
             Assert.Equal("Ready", host.Main.Status.Message);
 
             host.Main.SetLanguageCommand.Execute("tr");
             Dispatcher.UIThread.RunJobs();
 
             var texts = VisibleTexts(window);
-            Assert.Contains("GEZGİN", texts);
-            Assert.DoesNotContain("EXPLORER", texts);
+            Assert.Contains("Yeni çalışma alanı", texts);
+            Assert.DoesNotContain("New workspace", texts);
             Assert.Equal("Hazır", host.Main.Status.Message);
             Assert.True(host.Main.IsTurkish);
             Assert.Equal("tr", host.Settings.UiLanguage);

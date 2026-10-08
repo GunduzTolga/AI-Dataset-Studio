@@ -15,11 +15,18 @@ public interface IUserSettings
     string? UiLanguage { get; }
 
     /// <summary>
+    /// The chosen color theme ("light" or "dark"), or <c>null</c> to follow the OS.
+    /// </summary>
+    string? UiTheme { get; }
+
+    /// <summary>
     /// Recently opened workspace files, most recent first.
     /// </summary>
     IReadOnlyList<string> RecentWorkspaces { get; }
 
     void SetUiLanguage(string? cultureName);
+
+    void SetUiTheme(string? theme);
 
     void AddRecentWorkspace(string filePath);
 

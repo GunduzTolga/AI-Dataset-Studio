@@ -84,6 +84,29 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
     }
 
+    public async Task<IReadOnlyDictionary<RecordStatus, long>> CountByStatusAsync(
+        Guid datasetId,
+        string? searchText,
+        CancellationToken cancellationToken = default)
+    {
+        var match = SearchText.ToMatchExpression(searchText);
+        await using var connection = await database.OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+
+        var sql = new StringBuilder("SELECT r.Status, COUNT(*) FROM DatasetRecords r");
+        AppendFilter(sql, command, datasetId, RecordFilter.None, match);
+        command.CommandText = sql.Append(" GROUP BY r.Status;").ToString();
+
+        var counts = Enum.GetValues<RecordStatus>().ToDictionary(status => status, _ => 0L);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            counts[(RecordStatus)reader.GetInt32(0)] = reader.GetInt64(1);
+        }
+
+        return counts;
+    }
+
     public async Task<RecordDetails?> GetAsync(Guid recordId, CancellationToken cancellationToken = default)
     {
         await using var context = database.CreateDbContext();

@@ -22,6 +22,13 @@ public sealed partial class InputDialogViewModel : ViewModelBase
     /// </summary>
     public bool ShowText { get; init; }
 
+    /// <summary>
+    /// The confirming action deletes data; the button is styled as dangerous.
+    /// </summary>
+    public bool IsDestructive { get; init; }
+
+    public bool IsNotDestructive => !IsDestructive;
+
     public int MaxLength { get; init; } = 200;
 
     public IReadOnlyList<DialogOption> Options { get; init; } = [];

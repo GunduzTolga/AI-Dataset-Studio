@@ -19,5 +19,9 @@ public interface IDialogService
     Task<T?> ChooseAsync<T>(string title, string message, IReadOnlyList<(T Value, string Label)> options, int selectedIndex)
         where T : struct;
 
-    Task<bool> ConfirmAsync(string title, string message, string confirmText);
+    /// <param name="title">Dialog title.</param>
+    /// <param name="message">The question.</param>
+    /// <param name="confirmText">Label of the confirming button.</param>
+    /// <param name="isDestructive">Styles the confirming button as dangerous (deletes).</param>
+    Task<bool> ConfirmAsync(string title, string message, string confirmText, bool isDestructive = false);
 }

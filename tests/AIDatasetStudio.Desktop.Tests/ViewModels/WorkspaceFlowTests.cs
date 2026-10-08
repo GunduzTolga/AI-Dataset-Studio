@@ -50,6 +50,7 @@ public sealed class WorkspaceFlowTests
         Assert.Empty(explorer.Projects);
         Assert.True(explorer.IsEmpty);
         Assert.Contains("HR Assistant", host.Dialogs.ConfirmMessages[^1], StringComparison.Ordinal);
+        Assert.All(host.Dialogs.ConfirmWasDestructive, Assert.True);
     });
 
     [Fact]
@@ -70,9 +71,13 @@ public sealed class WorkspaceFlowTests
         Assert.False(records.HasMore);
         Assert.Equal(Enumerable.Range(1, 450).Select(i => (long)i), records.Items.Select(r => r.Ordinal));
 
+        Assert.Equal(450, records.StatusFilters[0].Count);
+
         records.SearchText = "üçlü";
         await DesktopTestHost.WaitUntilAsync(() => !records.IsLoading && records.TotalCount == 150);
         Assert.All(records.Items, row => Assert.Equal(0, row.Ordinal % 3));
+        Assert.Equal(150, records.StatusFilters[0].Count);
+        Assert.Equal(150, records.StatusFilters.Single(f => f.Status == RecordStatus.Draft).Count);
 
         var approved = records.Items.Take(5).Select(r => r.Id).ToList();
         await host.Get<IRecordCommandService>().SetStatusAsync(approved, RecordStatus.Approved);
@@ -82,7 +87,8 @@ public sealed class WorkspaceFlowTests
 
         records.SearchText = "zzz-no-such-word";
         await DesktopTestHost.WaitUntilAsync(() => !records.IsLoading && records.TotalCount == 0);
-        Assert.Equal("No records match the search or filter.", records.EmptyMessage);
+        Assert.True(records.IsNoMatches);
+        Assert.False(records.IsEmptyDataset);
         Assert.Equal(450, dataset.RecordCount); // filtered counts never overwrite the dataset total
     });
 
@@ -97,17 +103,20 @@ public sealed class WorkspaceFlowTests
         records.SelectedItem = records.Items[0];
         await DesktopTestHost.WaitUntilAsync(() => details.Record?.Id == records.Items[0].Id);
         Assert.Equal("Record #1", details.Title);
-        Assert.Equal(["Instruction", "Input", "Output"], details.Fields.Select(f => f.Label));
-        Assert.True(details.ApproveCommand.CanExecute(null));
-        Assert.False(details.RestoreCommand.CanExecute(null));
+        Assert.Equal(["Instruction", "Input", "Output"], details.Blocks.Select(f => f.Label));
+        Assert.True(details.ShowApprove);
+        Assert.False(details.ShowRestore);
 
         await details.ApproveCommand.ExecuteAsync(null);
         Assert.Equal(RecordStatus.Approved, records.Items[0].Status);
         Assert.Equal("Approved", records.Items[0].StatusLabel);
-        Assert.False(details.ApproveCommand.CanExecute(null));
+        Assert.False(details.ShowApprove);
+        Assert.Equal(1, records.StatusFilters.Single(f => f.Status == RecordStatus.Approved).Count);
+        Assert.Equal(2, records.StatusFilters.Single(f => f.Status == RecordStatus.Draft).Count);
 
         await details.ArchiveCommand.ExecuteAsync(null);
-        Assert.True(details.RestoreCommand.CanExecute(null));
+        Assert.True(details.ShowRestore);
+        Assert.False(details.ShowArchive);
 
         await details.DeleteCommand.ExecuteAsync(null);
         Assert.Equal(2, records.Items.Count);
@@ -139,14 +148,78 @@ public sealed class WorkspaceFlowTests
     {
         await using var host = new DesktopTestHost();
         var dataset = await CreateDatasetWithRecordsAsync(host, 0, DatasetType.Preference);
-        Assert.Equal("This dataset has no records yet. Try Tools › Generate Sample Records.", host.Main.Records.EmptyMessage);
+        Assert.True(host.Main.Records.IsEmptyDataset);
 
         host.Dialogs.ChoiceAnswer = 100;
         await host.Main.GenerateSampleDataCommand.ExecuteAsync(null);
 
         Assert.Equal(100, host.Main.Records.TotalCount);
         Assert.Equal(100, dataset.RecordCount);
+        Assert.False(host.Main.Records.IsEmptyDataset);
         Assert.Equal("Added 100 sample records to 'Dataset'.", host.Main.Status.Message);
+    });
+
+    [Fact]
+    public Task Chat_records_show_turns_and_preference_records_show_tones() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        await host.CreateWorkspaceAsync();
+        var commands = host.Get<IRecordCommandService>();
+        var explorer = host.Main.Explorer;
+        host.Dialogs.TextAnswers.Enqueue("Project");
+        await explorer.NewProjectCommand.ExecuteAsync(null);
+        host.Dialogs.DatasetAnswer = new NewDatasetRequest("Chats", DatasetType.Chat);
+        await explorer.NewDatasetCommand.ExecuteAsync(null);
+        var chats = explorer.SelectedDataset!;
+        host.Dialogs.DatasetAnswer = new NewDatasetRequest("Pairs", DatasetType.Preference);
+        await explorer.NewDatasetCommand.ExecuteAsync(null);
+        var pairs = explorer.SelectedDataset!;
+
+        var chatId = await commands.AddAsync(chats.Id, new ChatPayload("Be brief.", [
+            new ChatMessage(ChatRole.User, "Hi"),
+            new ChatMessage(ChatRole.Assistant, ""),
+        ]), RecordLineage.Manual());
+        var pairId = await commands.AddAsync(pairs.Id, new PreferencePayload("p", "good", "bad"), RecordLineage.Manual());
+
+        await host.Main.Details.ShowAsync(chatId);
+        var blocks = host.Main.Details.Blocks;
+        var system = Assert.IsType<FieldBlock>(blocks[0]);
+        Assert.True(system.IsSystem);
+        var user = Assert.IsType<MessageBlock>(blocks[1]);
+        Assert.True(user.IsUser);
+        var assistant = Assert.IsType<MessageBlock>(blocks[2]);
+        Assert.True(assistant.IsEmpty);
+        Assert.Equal("(empty)", assistant.Value);
+
+        await host.Main.Details.ShowAsync(pairId);
+        var tones = host.Main.Details.Blocks.Cast<FieldBlock>().Select(b => b.Tone);
+        Assert.Equal([FieldTone.Neutral, FieldTone.Positive, FieldTone.Negative], tones);
+    });
+
+    [Fact]
+    public Task Theme_choice_is_applied_and_saved() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var application = Avalonia.Application.Current!;
+        var original = application.RequestedThemeVariant;
+        try
+        {
+            Assert.True(host.Main.IsSystemTheme);
+
+            host.Main.SetThemeCommand.Execute("Dark");
+
+            Assert.True(host.Main.IsDarkTheme);
+            Assert.Equal(Avalonia.Styling.ThemeVariant.Dark, application.RequestedThemeVariant);
+            Assert.Equal("dark", host.Settings.UiTheme);
+
+            host.Main.SetThemeCommand.Execute("System");
+            Assert.Null(host.Settings.UiTheme);
+            Assert.Equal(Avalonia.Styling.ThemeVariant.Default, application.RequestedThemeVariant);
+        }
+        finally
+        {
+            application.RequestedThemeVariant = original;
+        }
     });
 
     [Fact]
