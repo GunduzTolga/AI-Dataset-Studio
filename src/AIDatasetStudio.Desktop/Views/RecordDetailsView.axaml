@@ -230,8 +230,8 @@
                       <ic:SymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsSystem}" />
                       <TextBlock Classes="overline card-label" Text="{Binding Label}" />
                     </StackPanel>
-                    <TextBox Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}"
-                             IsReadOnly="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived}" />
+                    <controls:CodeEditor Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}"
+                                         IsReadOnly="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived}" />
                   </StackPanel>
                 </Border>
               </DataTemplate>
@@ -288,8 +288,8 @@
                   </StackPanel>
                   <Border Classes="bubble" Classes.user="{Binding IsUser}" Classes.assistant="{Binding IsAssistant}"
                           HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}" MinWidth="120" MaxWidth="440">
-                    <TextBox Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}"
-                             IsReadOnly="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived}" />
+                    <controls:CodeEditor Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}"
+                                         IsReadOnly="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived}" />
                   </Border>
                 </StackPanel>
               </DataTemplate>

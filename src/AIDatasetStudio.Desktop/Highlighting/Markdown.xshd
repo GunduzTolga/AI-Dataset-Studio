@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The record editor's text: Markdown structure, with fenced code blocks coloured in their
+  language (```json, ```python …). Element regexes ignore white space: spaces and "#" are escaped.
+-->
+<SyntaxDefinition name="Markdown" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Heading" fontWeight="bold" />
+  <Color name="Strong" fontWeight="bold" />
+  <Color name="Emphasis" fontStyle="italic" />
+  <Color name="Code" />
+  <Color name="Link" />
+  <Color name="Marker" />
+  <Color name="Quote" fontStyle="italic" />
+  <Color name="Fence" />
+  <!-- No colour of its own: code blocks are set in the monospace font (CodeHighlighting). The
+       weight is only there because AvaloniaEdit skips colours that set nothing but a font. -->
+  <Color name="CodeBlock" fontWeight="normal" />
+  <RuleSet>
+    <Span color="CodeBlock" ruleSet="Json/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:json|jsonc|jsonl|json5)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <Span color="CodeBlock" ruleSet="Python/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:python|py|python3|ipython)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <Span color="CodeBlock" ruleSet="JavaScript/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:javascript|js|jsx|mjs|typescript|ts|tsx|node)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <Span color="CodeBlock" ruleSet="CSharp/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:csharp|cs|c\#)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <Span color="CodeBlock" ruleSet="Sql/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:sql|sqlite|postgresql|postgres|mysql|tsql)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <Span color="CodeBlock" ruleSet="Shell/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:bash|sh|shell|zsh|console|terminal|powershell|pwsh|ps1)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <Span color="CodeBlock" ruleSet="Xml/" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*(?i:xml|html|xaml|axaml|svg|xhtml)(?![\w+\#-]).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+    <!-- Any other fence: the block is code without colours of its own. -->
+    <Span color="Code" multiline="true">
+      <Begin color="Fence">^[ \t]{0,3}(?:```|~~~).*$</Begin>
+      <End color="Fence">^[ \t]{0,3}(?:```|~~~)[ \t]*$</End>
+    </Span>
+
+    <Rule color="Heading">^[ \t]{0,3}\#{1,6}(?:[ \t].*)?$</Rule>
+    <Rule color="Quote">^[ \t]{0,3}&gt;.*$</Rule>
+    <Rule color="Marker">^[ \t]{0,3}(?:=+|-+|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$</Rule>
+    <Rule color="Marker">^[ \t]*(?:[-*+]|\d{1,9}[.)])(?=[ \t])</Rule>
+    <Rule color="Code">`[^`]+`</Rule>
+    <Rule color="Strong">\*\*[^\s*](?:[^*]*?[^\s*])?\*\*|__[^\s_](?:[^_]*?[^\s_])?__</Rule>
+    <Rule color="Emphasis">(?&lt;![*\w])\*[^\s*](?:[^*]*?[^\s*])?\*(?![*\w])|(?&lt;![_\w])_[^\s_](?:[^_]*?[^\s_])?_(?![_\w])</Rule>
+    <Rule color="Link">!?\[[^\]]*\]\([^)\s]*(?:[ \t]+"[^"]*")?\)|&lt;?https?://[^\s&lt;&gt;)]+&gt;?</Rule>
+  </RuleSet>
+</SyntaxDefinition>

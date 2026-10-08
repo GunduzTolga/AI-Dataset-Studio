@@ -17,6 +17,16 @@ public sealed record DelimiterOption(char Value, string Label);
 public sealed record EncodingOption(string Name, string Label);
 
 /// <summary>
+/// A way to read the file, such as a .txt file as a table or as paragraphs.
+/// </summary>
+public sealed record FormatOption(ImportFormat Value, string Label);
+
+/// <summary>
+/// A sheet of a workbook; <see cref="Name"/> is <c>null</c> for "all sheets".
+/// </summary>
+public sealed record SheetOption(string? Name, string Label);
+
+/// <summary>
 /// A source column in a mapping list; <see cref="Column"/> is <c>null</c> for "not mapped".
 /// </summary>
 public sealed record ColumnOption(string? Column, string Label);
@@ -49,18 +59,26 @@ public sealed partial class ColumnMappingViewModel(TargetFieldInfo target, strin
 /// </summary>
 public sealed class ImportRowViewModel
 {
-    private ImportRowViewModel(long number, bool isValid, string primary, string? secondary, string? badge)
+    private ImportRowViewModel(long number, bool isValid, string primary, string? secondary, string? badge, string? sheet = null)
     {
         Number = number;
         IsValid = isValid;
         Primary = primary;
         Secondary = secondary;
         Badge = badge;
+        Sheet = sheet;
     }
 
     public long Number { get; }
 
-    public string NumberText => Number.ToString("N0", CultureInfo.CurrentCulture);
+    /// <summary>
+    /// The workbook sheet of the row, shown when every sheet is read.
+    /// </summary>
+    public string? Sheet { get; }
+
+    public string NumberText => Sheet is null
+        ? Number.ToString("N0", CultureInfo.CurrentCulture)
+        : $"{Sheet} · {Number.ToString("N0", CultureInfo.CurrentCulture)}";
 
     public bool IsValid { get; }
 
@@ -85,27 +103,31 @@ public sealed class ImportRowViewModel
 
     public bool HasBadge => Badge is not null;
 
-    public static ImportRowViewModel From(ImportRowResult row, Localizer localizer) =>
-        row.Payload is { } payload ? FromPayload(row.RowNumber, payload, localizer) : FromError(row.Error!, localizer);
+    /// <param name="showSheet">Whether to show the row's sheet with its number (rows of several sheets).</param>
+    public static ImportRowViewModel From(ImportRowResult row, Localizer localizer, bool showSheet = false) =>
+        row.Payload is { } payload
+            ? FromPayload(row.RowNumber, payload, localizer, showSheet ? row.Sheet : null)
+            : FromError(row.Error!, localizer, showSheet);
 
-    public static ImportRowViewModel FromError(ImportRowError error, Localizer localizer) =>
-        new(error.RowNumber, isValid: false, ImportText.Error(localizer, error), secondary: null, badge: null);
+    public static ImportRowViewModel FromError(ImportRowError error, Localizer localizer, bool showSheet = false) =>
+        new(error.RowNumber, isValid: false, ImportText.Error(localizer, error), secondary: null, badge: null, showSheet ? error.Sheet : null);
 
-    private static ImportRowViewModel FromPayload(long number, RecordPayload payload, Localizer localizer)
+    private static ImportRowViewModel FromPayload(long number, RecordPayload payload, Localizer localizer, string? sheet)
     {
         string Text(string? value) => string.IsNullOrWhiteSpace(value) ? localizer["Field_Empty"] : Flatten(value);
 
         return payload switch
         {
-            InstructionPayload p => new(number, true, Text(p.Instruction), Text(p.Output), badge: null),
+            InstructionPayload p => new(number, true, Text(p.Instruction), Text(p.Output), badge: null, sheet),
             ChatPayload p => new(
                 number,
                 true,
                 Text(p.Messages.FirstOrDefault(m => m.Role == ChatRole.User)?.Content),
                 Text(p.Messages.FirstOrDefault(m => m.Role == ChatRole.Assistant)?.Content),
-                p.Messages.Count > 2 ? localizer.Format("Import_MessageCount", p.Messages.Count) : null),
-            PreferencePayload p => new(number, true, Text(p.Prompt), Text(p.Chosen), badge: null),
-            _ => new(number, true, Text(payload.GetPreviewText()), secondary: null, badge: null),
+                p.Messages.Count > 2 ? localizer.Format("Import_MessageCount", p.Messages.Count) : null,
+                sheet),
+            PreferencePayload p => new(number, true, Text(p.Prompt), Text(p.Chosen), badge: null, sheet),
+            _ => new(number, true, Text(payload.GetPreviewText()), secondary: null, badge: null, sheet),
         };
     }
 
@@ -121,6 +143,13 @@ internal static class ImportText
     public static string Format(Localizer localizer, ImportFormat format) => localizer[$"ImportFormat_{format}"];
 
     public static string Layout(Localizer localizer, SourceLayout layout) => localizer[$"Layout_{layout}"];
+
+    /// <summary>
+    /// A source column as the mapping lists show it: the columns of Markdown sections and text
+    /// paragraphs have localized names, file columns keep their own.
+    /// </summary>
+    public static string Column(Localizer localizer, ImportFormat format, string column) =>
+        format is ImportFormat.Markdown or ImportFormat.PlainText ? localizer[$"ImportColumn_{column}"] : column;
 
     public static string Error(Localizer localizer, ImportRowError error) =>
         localizer.Format($"ImportError_{error.Code}", error.Detail);
@@ -152,6 +181,9 @@ internal static class ImportText
         {
             ImportFileError.NotFound => localizer.Format("Error_ImportFileNotFound", name),
             ImportFileError.InvalidJson => localizer.Format("Error_ImportInvalidJson", name, exception.Line),
+            ImportFileError.LegacyWorkbook => localizer.Format("Error_ImportLegacyWorkbook", name),
+            ImportFileError.InvalidWorkbook => localizer.Format("Error_ImportInvalidWorkbook", name),
+            ImportFileError.SheetNotFound => localizer.Format("Error_ImportSheetNotFound", name),
             _ => localizer.Format("Error_ImportFileUnreadable", name, exception.InnerException?.Message),
         };
     }

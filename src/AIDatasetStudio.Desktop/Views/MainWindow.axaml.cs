@@ -74,7 +74,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var inTextBox = FocusManager?.GetFocusedElement() is TextBox;
+        // Editor fields (CodeEditor) take the focus in their TextArea.
+        var inTextBox = FocusManager?.GetFocusedElement() is TextBox or AvaloniaEdit.Editing.TextArea;
         foreach (var shortcut in _shortcuts)
         {
             if (!shortcut.Gesture.Matches(e) || (inTextBox && !shortcut.InTextBox) || shortcut.When?.Invoke() == false)

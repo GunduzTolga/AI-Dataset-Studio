@@ -417,7 +417,7 @@
     <value>Choose a file to import</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Datasets (JSONL, JSON, CSV)</value>
+    <value>Datasets (JSONL, JSON, CSV, Excel, Markdown, text)</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Import from file</value>
@@ -451,6 +451,27 @@
   </data>
   <data name="Import_HasHeader" xml:space="preserve">
     <value>First row contains column names</value>
+  </data>
+  <data name="Import_ReadAs" xml:space="preserve">
+    <value>Read as</value>
+  </data>
+  <data name="Import_SectionWorkbook" xml:space="preserve">
+    <value>WORKBOOK</value>
+  </data>
+  <data name="Import_Sheet" xml:space="preserve">
+    <value>Sheet</value>
+  </data>
+  <data name="Import_AllSheets" xml:space="preserve">
+    <value>All sheets ({0:N0})</value>
+  </data>
+  <data name="Import_AllSheetsHint" xml:space="preserve">
+    <value>Every sheet is read with its own first row as column names; columns with the same name are mapped together.</value>
+  </data>
+  <data name="Import_SectionsHint" xml:space="preserve">
+    <value>Each heading with text under it becomes a record: the heading asks and the text answers. Text before the first heading is left out.</value>
+  </data>
+  <data name="Import_ParagraphsHint" xml:space="preserve">
+    <value>Each paragraph (lines between blank lines) becomes a record: its first line asks and the lines after it answer.</value>
   </data>
   <data name="Import_NotMapped" xml:space="preserve">
     <value>— Not mapped —</value>
@@ -518,6 +539,15 @@
   <data name="ImportFormat_Csv" xml:space="preserve">
     <value>CSV</value>
   </data>
+  <data name="ImportFormat_Excel" xml:space="preserve">
+    <value>Excel workbook</value>
+  </data>
+  <data name="ImportFormat_Markdown" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="ImportFormat_PlainText" xml:space="preserve">
+    <value>Plain text</value>
+  </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Custom columns</value>
   </data>
@@ -538,6 +568,33 @@
   </data>
   <data name="Layout_OpenAiPreference" xml:space="preserve">
     <value>OpenAI preference</value>
+  </data>
+  <data name="Layout_Sections" xml:space="preserve">
+    <value>Sections by heading</value>
+  </data>
+  <data name="Layout_Paragraphs" xml:space="preserve">
+    <value>Paragraphs</value>
+  </data>
+  <data name="ImportColumn_heading" xml:space="preserve">
+    <value>Heading</value>
+  </data>
+  <data name="ImportColumn_heading_path" xml:space="preserve">
+    <value>Heading with the ones above</value>
+  </data>
+  <data name="ImportColumn_parent_headings" xml:space="preserve">
+    <value>Headings above</value>
+  </data>
+  <data name="ImportColumn_content" xml:space="preserve">
+    <value>Text under the heading</value>
+  </data>
+  <data name="ImportColumn_first_line" xml:space="preserve">
+    <value>First line</value>
+  </data>
+  <data name="ImportColumn_rest" xml:space="preserve">
+    <value>Lines after the first</value>
+  </data>
+  <data name="ImportColumn_paragraph" xml:space="preserve">
+    <value>Whole paragraph</value>
   </data>
   <data name="Delimiter_Comma" xml:space="preserve">
     <value>Comma ( , )</value>
@@ -601,6 +658,15 @@
   </data>
   <data name="Error_ImportInvalidJson" xml:space="preserve">
     <value>“{0}” is not a valid JSON array (line {1}).</value>
+  </data>
+  <data name="Error_ImportLegacyWorkbook" xml:space="preserve">
+    <value>“{0}” is an Excel 97–2003 or password-protected workbook. Save it in Excel as an .xlsx workbook without a password and try again.</value>
+  </data>
+  <data name="Error_ImportInvalidWorkbook" xml:space="preserve">
+    <value>“{0}” is not a readable Excel workbook; it may be damaged.</value>
+  </data>
+  <data name="Error_ImportSheetNotFound" xml:space="preserve">
+    <value>The workbook “{0}” has no such sheet any more. Choose another sheet.</value>
   </data>
   <data name="Status_Imported" xml:space="preserve">
     <value>{0:N0} records imported into “{1}”</value>
@@ -700,6 +766,18 @@
   </data>
   <data name="Editor_Placeholder" xml:space="preserve">
     <value>Empty</value>
+  </data>
+  <data name="Editor_Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="Editor_Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Editor_Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Editor_SelectAll" xml:space="preserve">
+    <value>Select all</value>
   </data>
   <data name="Editor_SwitchRole" xml:space="preserve">
     <value>Switch between user and assistant</value>

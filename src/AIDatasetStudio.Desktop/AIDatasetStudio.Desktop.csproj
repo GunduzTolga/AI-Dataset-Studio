@@ -25,6 +25,8 @@
   <ItemGroup>
     <!-- Window icon; app.icns and app.png are used by the macOS and Linux packages (see build/). -->
     <AvaloniaResource Include="Assets\app.ico" />
+    <!-- Syntax definitions of the record editor, loaded by CodeHighlighting. -->
+    <EmbeddedResource Include="Highlighting\*.xshd" LogicalName="Highlighting.%(Filename).xshd" />
     <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -44,6 +46,7 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="FluentIcons.Avalonia" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Velopack" />
   </ItemGroup>

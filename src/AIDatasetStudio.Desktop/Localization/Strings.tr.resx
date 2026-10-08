@@ -385,7 +385,7 @@
     <value>İçe aktarılacak dosyayı seçin</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Veri setleri (JSONL, JSON, CSV)</value>
+    <value>Veri setleri (JSONL, JSON, CSV, Excel, Markdown, metin)</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Dosyadan içe aktar</value>
@@ -419,6 +419,27 @@
   </data>
   <data name="Import_HasHeader" xml:space="preserve">
     <value>İlk satır sütun adlarını içeriyor</value>
+  </data>
+  <data name="Import_ReadAs" xml:space="preserve">
+    <value>Okuma biçimi</value>
+  </data>
+  <data name="Import_SectionWorkbook" xml:space="preserve">
+    <value>ÇALIŞMA KİTABI</value>
+  </data>
+  <data name="Import_Sheet" xml:space="preserve">
+    <value>Sayfa</value>
+  </data>
+  <data name="Import_AllSheets" xml:space="preserve">
+    <value>Tüm sayfalar ({0:N0})</value>
+  </data>
+  <data name="Import_AllSheetsHint" xml:space="preserve">
+    <value>Her sayfa kendi ilk satırı sütun adı olarak okunur; aynı adlı sütunlar birlikte eşlenir.</value>
+  </data>
+  <data name="Import_SectionsHint" xml:space="preserve">
+    <value>Altında metin olan her başlık bir kayıt olur: başlık soruyu, altındaki metin yanıtı verir. İlk başlıktan önceki metin alınmaz.</value>
+  </data>
+  <data name="Import_ParagraphsHint" xml:space="preserve">
+    <value>Her paragraf (boş satırlar arasındaki satırlar) bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
   </data>
   <data name="Import_NotMapped" xml:space="preserve">
     <value>— Eşlenmedi —</value>
@@ -486,6 +507,15 @@
   <data name="ImportFormat_Csv" xml:space="preserve">
     <value>CSV</value>
   </data>
+  <data name="ImportFormat_Excel" xml:space="preserve">
+    <value>Excel çalışma kitabı</value>
+  </data>
+  <data name="ImportFormat_Markdown" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="ImportFormat_PlainText" xml:space="preserve">
+    <value>Düz metin</value>
+  </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Özel sütunlar</value>
   </data>
@@ -506,6 +536,33 @@
   </data>
   <data name="Layout_OpenAiPreference" xml:space="preserve">
     <value>OpenAI tercih</value>
+  </data>
+  <data name="Layout_Sections" xml:space="preserve">
+    <value>Başlığa göre bölümler</value>
+  </data>
+  <data name="Layout_Paragraphs" xml:space="preserve">
+    <value>Paragraflar</value>
+  </data>
+  <data name="ImportColumn_heading" xml:space="preserve">
+    <value>Başlık</value>
+  </data>
+  <data name="ImportColumn_heading_path" xml:space="preserve">
+    <value>Üst başlıklarıyla başlık</value>
+  </data>
+  <data name="ImportColumn_parent_headings" xml:space="preserve">
+    <value>Üst başlıklar</value>
+  </data>
+  <data name="ImportColumn_content" xml:space="preserve">
+    <value>Başlığın altındaki metin</value>
+  </data>
+  <data name="ImportColumn_first_line" xml:space="preserve">
+    <value>İlk satır</value>
+  </data>
+  <data name="ImportColumn_rest" xml:space="preserve">
+    <value>İlk satırdan sonrakiler</value>
+  </data>
+  <data name="ImportColumn_paragraph" xml:space="preserve">
+    <value>Paragrafın tamamı</value>
   </data>
   <data name="Delimiter_Comma" xml:space="preserve">
     <value>Virgül ( , )</value>
@@ -569,6 +626,15 @@
   </data>
   <data name="Error_ImportInvalidJson" xml:space="preserve">
     <value>“{0}” geçerli bir JSON dizisi değil ({1}. satır).</value>
+  </data>
+  <data name="Error_ImportLegacyWorkbook" xml:space="preserve">
+    <value>“{0}” bir Excel 97–2003 ya da parolalı çalışma kitabı. Excel'de parolasız .xlsx olarak kaydedip yeniden deneyin.</value>
+  </data>
+  <data name="Error_ImportInvalidWorkbook" xml:space="preserve">
+    <value>“{0}” okunabilir bir Excel çalışma kitabı değil; dosya bozuk olabilir.</value>
+  </data>
+  <data name="Error_ImportSheetNotFound" xml:space="preserve">
+    <value>“{0}” çalışma kitabında bu sayfa artık yok. Başka bir sayfa seçin.</value>
   </data>
   <data name="Status_Imported" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı</value>
@@ -668,6 +734,18 @@
   </data>
   <data name="Editor_Placeholder" xml:space="preserve">
     <value>Boş</value>
+  </data>
+  <data name="Editor_Cut" xml:space="preserve">
+    <value>Kes</value>
+  </data>
+  <data name="Editor_Copy" xml:space="preserve">
+    <value>Kopyala</value>
+  </data>
+  <data name="Editor_Paste" xml:space="preserve">
+    <value>Yapıştır</value>
+  </data>
+  <data name="Editor_SelectAll" xml:space="preserve">
+    <value>Tümünü seç</value>
   </data>
   <data name="Editor_SwitchRole" xml:space="preserve">
     <value>Kullanıcı / asistan arasında değiştir</value>

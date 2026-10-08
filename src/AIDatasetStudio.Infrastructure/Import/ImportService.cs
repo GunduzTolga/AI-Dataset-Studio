@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
+using System.Xml;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
@@ -12,17 +14,17 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
     private const int SampleSize = 100;
     private const int ProgressInterval = 500;
 
-    public IReadOnlyList<string> SupportedExtensions { get; } = [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt"];
+    public IReadOnlyList<string> SupportedExtensions { get; } = [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown"];
 
     // File reading is synchronous, so every operation runs off the caller's (usually the UI) thread.
     public Task<ImportAnalysis> AnalyzeAsync(
         string filePath,
         DatasetType targetType,
-        CsvOptions? csvOverride = null,
+        ImportOverrides? overrides = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        return ReadFileAsync(filePath, () => Task.FromResult(Analyze(filePath, targetType, csvOverride, cancellationToken)), cancellationToken);
+        return ReadFileAsync(filePath, () => Task.FromResult(Analyze(filePath, targetType, overrides, cancellationToken)), cancellationToken);
     }
 
     public Task<ImportPreview> PreviewAsync(ImportPlan plan, int maxRows = 20, CancellationToken cancellationToken = default)
@@ -33,7 +35,7 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         return ReadFileAsync(plan.FilePath, () =>
         {
             var rows = new List<ImportRowResult>(maxRows);
-            foreach (var item in SourceFile.Read(plan.FilePath, plan.Format, plan.Csv))
+            foreach (var item in SourceFile.Read(plan.FilePath, plan.Format, plan.Csv, plan.Sheet))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 rows.Add(item.Convert(plan));
@@ -58,7 +60,7 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         var fileName = Path.GetFileName(plan.FilePath);
         var unit = plan.Format switch
         {
-            ImportFormat.JsonLines => "line",
+            ImportFormat.JsonLines or ImportFormat.Markdown or ImportFormat.PlainText => "line",
             ImportFormat.JsonArray => "item",
             _ => "row",
         };
@@ -70,14 +72,16 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         // Converted lazily while the records are inserted, so the file is never held in memory.
         IEnumerable<NewRecord> Records()
         {
-            foreach (var item in SourceFile.Read(plan.FilePath, plan.Format, plan.Csv))
+            foreach (var item in SourceFile.Read(plan.FilePath, plan.Format, plan.Csv, plan.Sheet))
             {
                 read++;
                 var result = item.Convert(plan);
                 if (result.Payload is { } payload)
                 {
                     converted++;
-                    var reference = string.Create(CultureInfo.InvariantCulture, $"{fileName}#{unit}={item.Number}");
+                    var reference = item.Sheet is { } sheet
+                        ? string.Create(CultureInfo.InvariantCulture, $"{fileName}#sheet={EscapeSheet(sheet)}&row={item.Number}")
+                        : string.Create(CultureInfo.InvariantCulture, $"{fileName}#{unit}={item.Number}");
                     yield return new NewRecord(payload, new RecordLineage(RecordSourceKind.FileImport, reference));
                 }
                 else
@@ -105,9 +109,28 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         return new ImportResult(imported, skipped, errors);
     }
 
-    private static ImportAnalysis Analyze(string filePath, DatasetType targetType, CsvOptions? csvOverride, CancellationToken cancellationToken)
+    private static ImportAnalysis Analyze(string filePath, DatasetType targetType, ImportOverrides? overrides, CancellationToken cancellationToken)
     {
-        var format = SourceFile.DetectFormat(filePath);
+        var (detected, readableAs) = SourceFile.DetectFormat(filePath);
+        var format = overrides?.Format is { } chosen && readableAs.Contains(chosen) ? chosen : detected;
+        var analysis = format switch
+        {
+            ImportFormat.Excel => AnalyzeWorkbook(filePath, targetType, overrides?.Sheet, cancellationToken),
+            ImportFormat.Markdown or ImportFormat.PlainText => AnalyzeText(filePath, format, targetType, cancellationToken),
+            _ => AnalyzeRows(filePath, format, targetType, overrides?.Csv, cancellationToken),
+        };
+
+        // A Markdown file without headings has no sections; its paragraphs are read instead.
+        if (format == ImportFormat.Markdown && overrides?.Format is null && analysis.RowCount == 0)
+        {
+            analysis = AnalyzeText(filePath, ImportFormat.PlainText, targetType, cancellationToken);
+        }
+
+        return analysis with { ReadableAs = readableAs };
+    }
+
+    private static ImportAnalysis AnalyzeRows(string filePath, ImportFormat format, DatasetType targetType, CsvOptions? csvOverride, CancellationToken cancellationToken)
+    {
         var csv = format == ImportFormat.Csv ? csvOverride ?? SourceFile.DetectCsvOptions(filePath) : null;
         var csvSource = csv is null ? null : new CsvSource(filePath, csv);
         var items = csvSource?.Read() ?? SourceFile.Read(filePath, format, csv);
@@ -138,10 +161,70 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
             layout = csv!.HasHeader ? ImportLayouts.DetectFromColumns(columns) : SourceLayout.Custom;
         }
 
+        return ColumnAnalysis(filePath, format, csv, layout, columns, rowCount, targetType);
+    }
+
+    private static ImportAnalysis AnalyzeWorkbook(string filePath, DatasetType targetType, SheetOptions? sheetOverride, CancellationToken cancellationToken)
+    {
+        var (sheets, active) = ExcelSource.ListSheets(filePath);
+        var options = sheetOverride ?? new SheetOptions(active, HasHeader: true);
+        var source = new ExcelSource(filePath, options);
+        var rowCount = Count(source.Read(), cancellationToken);
+        var columns = source.ColumnNames;
+        var layout = options.HasHeader ? ImportLayouts.DetectFromColumns(columns) : SourceLayout.Custom;
+        return ColumnAnalysis(filePath, ImportFormat.Excel, null, layout, columns, rowCount, targetType) with { Sheet = options, Sheets = sheets };
+    }
+
+    private static ImportAnalysis AnalyzeText(string filePath, ImportFormat format, DatasetType targetType, CancellationToken cancellationToken)
+    {
+        var (layout, columns) = format == ImportFormat.Markdown
+            ? (SourceLayout.Sections, TextColumns.Markdown)
+            : (SourceLayout.Paragraphs, TextColumns.PlainText);
+        var rowCount = Count(SourceFile.Read(filePath, format, csv: null), cancellationToken);
+        return new ImportAnalysis(
+            filePath,
+            format,
+            null,
+            layout,
+            columns,
+            rowCount,
+            ImportLayouts.SuggestTextMapping(layout, targetType),
+            ImportLayouts.Supports(layout, targetType));
+    }
+
+    private static ImportAnalysis ColumnAnalysis(
+        string filePath, ImportFormat format, CsvOptions? csv, SourceLayout layout, IReadOnlyList<string> columns, long rowCount, DatasetType targetType)
+    {
         var mapping = ImportLayouts.IsColumnBased(layout)
             ? ImportLayouts.SuggestMapping(columns, targetType)
             : new Dictionary<TargetField, string>();
         return new ImportAnalysis(filePath, format, csv, layout, columns, rowCount, mapping, ImportLayouts.Supports(layout, targetType));
+    }
+
+    private static long Count(IEnumerable<SourceItem> items, CancellationToken cancellationToken)
+    {
+        long count = 0;
+        foreach (var _ in items)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// A sheet name in a lineage reference, with the characters that separate its parts escaped.
+    /// </summary>
+    private static string EscapeSheet(string sheet)
+    {
+        var builder = new StringBuilder(sheet.Length);
+        foreach (var c in sheet)
+        {
+            _ = c is '%' or '&' or '#' or '=' ? builder.Append(CultureInfo.InvariantCulture, $"%{(int)c:X2}") : builder.Append(c);
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>
@@ -156,6 +239,11 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
             throw new ImportFileException(ImportFileError.NotFound, filePath, $"'{filePath}' was not found.", innerException: ex);
+        }
+        catch (Exception ex) when (ex is InvalidDataException or XmlException)
+        {
+            // Raised while a workbook's parts are read: the archive or its XML is damaged.
+            throw XlsxWorkbook.Invalid(filePath, ex);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

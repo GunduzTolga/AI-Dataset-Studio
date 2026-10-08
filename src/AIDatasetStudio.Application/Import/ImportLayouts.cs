@@ -51,7 +51,8 @@ public static class ImportLayouts
     };
 
     public static bool IsColumnBased(SourceLayout layout) =>
-        layout is SourceLayout.Custom or SourceLayout.Alpaca or SourceLayout.PromptCompletion or SourceLayout.HuggingFaceDpo;
+        layout is SourceLayout.Custom or SourceLayout.Alpaca or SourceLayout.PromptCompletion or SourceLayout.HuggingFaceDpo
+            or SourceLayout.Sections or SourceLayout.Paragraphs;
 
     /// <summary>
     /// Whether rows of <paramref name="layout"/> can become records of <paramref name="type"/>.
@@ -176,6 +177,30 @@ public static class ImportLayouts
                     break;
                 }
             }
+        }
+
+        return mapping;
+    }
+
+    /// <summary>
+    /// For Markdown sections and paragraphs of text: the heading or first line asks, the text
+    /// under it answers. Optional fields (input, system prompt) and the rejected answer stay
+    /// unmapped.
+    /// </summary>
+    public static IReadOnlyDictionary<TargetField, string> SuggestTextMapping(SourceLayout layout, DatasetType type)
+    {
+        var (question, answer) = layout switch
+        {
+            SourceLayout.Sections => (TextColumns.Heading, TextColumns.Content),
+            SourceLayout.Paragraphs => (TextColumns.FirstLine, TextColumns.Rest),
+            _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, "Not a text layout."),
+        };
+        var required = FieldsFor(type).Where(f => f.IsRequired).Select(f => f.Field).ToList();
+        var mapping = new Dictionary<TargetField, string>();
+        if (required.Count >= 2)
+        {
+            mapping[required[0]] = question;
+            mapping[required[1]] = answer;
         }
 
         return mapping;

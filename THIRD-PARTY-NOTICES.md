@@ -14,6 +14,7 @@ the full license texts are available at the linked projects. This file ships wit
 | Tmds.DBus (Linux) | MIT | https://github.com/tmds/Tmds.DBus |
 | CommunityToolkit.Mvvm | MIT | https://github.com/CommunityToolkit/dotnet |
 | FluentIcons.Avalonia / Fluent UI System Icons | MIT | https://github.com/davidxuang/FluentIcons, https://github.com/microsoft/fluentui-system-icons |
+| AvaloniaEdit (Avalonia.AvaloniaEdit) | MIT | https://github.com/AvaloniaUI/AvaloniaEdit |
 | Entity Framework Core, Microsoft.Data.Sqlite | MIT | https://github.com/dotnet/efcore |
 | SQLitePCLRaw | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw |
 | SQLite | Public domain | https://sqlite.org |

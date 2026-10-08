@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- XML, HTML and XAML. -->
+<SyntaxDefinition name="Xml" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" fontStyle="italic" />
+  <Color name="Tag" />
+  <Color name="Attribute" />
+  <Color name="String" />
+  <Color name="Literal" />
+  <RuleSet>
+    <Span color="Comment" multiline="true" begin="&lt;!--" end="--&gt;" />
+    <Span color="Tag" multiline="true" begin="&lt;[/?!]?[\w:.-]*" end="[/?]?&gt;">
+      <RuleSet>
+        <Span color="String" multiline="true" begin="&quot;" end="&quot;" />
+        <Span color="String" multiline="true" begin="'" end="'" />
+        <Rule color="Attribute">[\w:.-]+</Rule>
+      </RuleSet>
+    </Span>
+    <Rule color="Literal">&amp;\#?\w+;</Rule>
+  </RuleSet>
+</SyntaxDefinition>

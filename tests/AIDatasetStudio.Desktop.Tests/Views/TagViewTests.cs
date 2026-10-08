@@ -1,4 +1,5 @@
 using AIDatasetStudio.Application.Tags;
+using AIDatasetStudio.Desktop.Controls;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Tests.Support;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
@@ -34,8 +35,8 @@ public sealed class TagViewTests
         host.Main.Records.SelectedItem = row;
         await host.WaitForDetailsAsync(row.Id);
 
-        var field = Visible<TextBox>(window).First(box => box.Classes.Contains("field"));
-        field.Focus();
+        var field = Visible<CodeEditor>(window).First(box => box.Classes.Contains("field"));
+        field.TextArea.Focus(); // an editor field takes the focus in its text area
         Press(window, Key.D1, RawInputModifiers.Control);
         await DesktopTestHost.WaitUntilAsync(() => row.Tags.Count == 1);
 

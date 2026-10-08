@@ -13,6 +13,8 @@
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="FluentIcons.Avalonia" Version="2.1.343" />
+    <!-- The record editor's text fields: JSON, Markdown and code highlighting (MIT). -->
+    <PackageVersion Include="Avalonia.AvaloniaEdit" Version="12.0.0" />
     <!-- Installers and opt-in updates; keep in step with the vpk tool in .config/dotnet-tools.json. -->
     <PackageVersion Include="Velopack" Version="1.2.158" />
   </ItemGroup>

@@ -8,6 +8,7 @@ using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
+using AIDatasetStudio.Infrastructure.Tests.Support;
 
 namespace AIDatasetStudio.Desktop.Tests.ViewModels;
 
@@ -204,6 +205,136 @@ public sealed class ImportWizardTests
 
         await CreateDatasetAsync(host, DatasetType.Chat, createWorkspace: false);
         Assert.True(host.Main.ImportCommand.CanExecute(null));
+    });
+
+    [Fact]
+    public Task A_workbook_sheet_or_every_sheet_is_read() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await CreateDatasetAsync(host, DatasetType.Instruction);
+        var path = XlsxFile.Write(
+            Path.Combine(host.Directory, "sss.xlsx"),
+            new XlsxFile.Sheet("Kargo", [["Soru", "Cevap"], ["Kargo ücreti?", "Ücretsiz."], ["Kaç günde?", "2 gün."]]),
+            new XlsxFile.Sheet("İade", [["Cevap", "Soru"], ["14 gün.", "İade süresi?"]]));
+        var wizard = Wizard(host, path, dataset);
+
+        await wizard.InitializeAsync();
+
+        Assert.True(wizard.IsExcel);
+        Assert.False(wizard.IsCsv);
+        Assert.False(wizard.HasFormatChoice);
+        Assert.Equal("Excel workbook", wizard.FormatText);
+        Assert.Equal(["Kargo", "İade", "All sheets (2)"], wizard.Sheets.Select(s => s.Label));
+        Assert.Equal("Kargo", wizard.SelectedSheet?.Name);
+        Assert.True(wizard.HasHeader);
+        Assert.Equal(["Soru", null, "Cevap"], Mapped(wizard));
+        Assert.Equal(["2", "3"], wizard.Preview.Select(r => r.NumberText));
+        Assert.Equal("Import 2 rows", wizard.StartText);
+
+        wizard.SelectedSheet = wizard.Sheets[^1];
+        await wizard.PendingWork;
+
+        Assert.True(wizard.IsAllSheets);
+        Assert.Equal(["Soru", null, "Cevap"], Mapped(wizard));
+        Assert.Equal(["Kargo · 2", "Kargo · 3", "İade · 2"], wizard.Preview.Select(r => r.NumberText));
+        Assert.Equal(["Kargo ücreti?", "Kaç günde?", "İade süresi?"], wizard.Preview.Select(r => r.Primary));
+
+        wizard.HasHeader = false;
+        await wizard.PendingWork;
+
+        Assert.Equal(["A", "B"], wizard.Analysis!.Columns);
+        Assert.Equal(5, wizard.Analysis.RowCount);
+        Assert.Null(wizard.SelectedSheet?.Name);
+        Assert.True(wizard.HasMissingFields);
+
+        var instruction = wizard.Mappings.Single(m => m.Field == TargetField.Instruction);
+        instruction.SelectedColumn = instruction.Options.Single(o => o.Column == "A");
+        await wizard.PendingWork;
+        await wizard.ImportCommand.ExecuteAsync(null);
+
+        Assert.Equal(5, wizard.Result!.Imported);
+    });
+
+    [Fact]
+    public Task A_text_file_can_be_read_as_paragraphs_or_as_a_table() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await CreateDatasetAsync(host, DatasetType.Chat);
+        var path = WriteFile(host, "notlar.txt", "Kargo ücreti ne kadar?\n500 TL üzeri ücretsiz.\n\nİade süresi, kaç gün?\n14 gün.\n");
+        var wizard = Wizard(host, path, dataset);
+
+        await wizard.InitializeAsync();
+
+        Assert.True(wizard.HasFormatChoice);
+        Assert.Equal(["CSV", "Plain text"], wizard.FormatOptions.Select(f => f.Label));
+        Assert.Equal(ImportFormat.PlainText, wizard.SelectedFormat?.Value);
+        Assert.Equal("Paragraphs", wizard.LayoutText);
+        Assert.True(wizard.HasTextLayoutHint);
+        Assert.False(wizard.IsCsv);
+        var user = wizard.Mappings.Single(m => m.Field == TargetField.User);
+        Assert.Equal(["— Not mapped —", "First line", "Lines after the first", "Whole paragraph"], user.Options.Select(o => o.Label));
+        Assert.Equal([null, TextColumns.FirstLine, TextColumns.Rest], Mapped(wizard));
+        Assert.Equal(["Kargo ücreti ne kadar?", "İade süresi, kaç gün?"], wizard.Preview.Select(r => r.Primary));
+        Assert.Equal(["1", "4"], wizard.Preview.Select(r => r.NumberText));
+
+        wizard.SelectedFormat = wizard.FormatOptions[0];
+        await wizard.PendingWork;
+
+        Assert.True(wizard.IsCsv);
+        Assert.False(wizard.HasTextLayoutHint);
+        Assert.Equal(',', wizard.SelectedDelimiter?.Value);
+        Assert.Equal(["Kargo ücreti ne kadar?"], wizard.Analysis!.Columns);
+
+        // CSV settings keep the chosen reading.
+        wizard.HasHeader = false;
+        await wizard.PendingWork;
+        Assert.Equal(ImportFormat.Csv, wizard.Analysis!.Format);
+        Assert.Equal(["#1", "#2"], wizard.Analysis.Columns);
+    });
+
+    [Fact]
+    public Task Markdown_sections_are_mapped_by_heading() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await CreateDatasetAsync(host, DatasetType.Instruction);
+        var path = WriteFile(host, "kilavuz.md", "# Sipariş\n## Kargo ücreti?\nÜcretsiz.\n## İade süresi?\n14 gün.\n");
+        var wizard = Wizard(host, path, dataset);
+
+        await wizard.InitializeAsync();
+
+        Assert.Equal(("Markdown", "Sections by heading"), (wizard.FormatText, wizard.LayoutText));
+        Assert.Equal(["Markdown", "Plain text"], wizard.FormatOptions.Select(f => f.Label));
+        Assert.Equal([TextColumns.Heading, null, TextColumns.Content], Mapped(wizard));
+        Assert.Equal(["Kargo ücreti?", "İade süresi?"], wizard.Preview.Select(r => r.Primary));
+        Assert.Equal(["Ücretsiz.", "14 gün."], wizard.Preview.Select(r => r.Secondary));
+
+        var input = wizard.Mappings.Single(m => m.Field == TargetField.Input);
+        input.SelectedColumn = input.Options.Single(o => o.Label == "Headings above");
+        await wizard.PendingWork;
+        await wizard.ImportCommand.ExecuteAsync(null);
+
+        var queries = host.Get<IRecordQueryService>();
+        var page = await queries.GetPageAsync(dataset.Id, RecordFilter.None, after: null, pageSize: 10);
+        var record = await queries.GetAsync(page.Items[0].Id);
+        Assert.Equal(new InstructionPayload("Kargo ücreti?", "Sipariş", "Ücretsiz."), record!.Payload);
+        Assert.Equal("kilavuz.md#line=2", record.Lineage.SourceReference);
+    });
+
+    [Fact]
+    public Task Old_excel_workbooks_are_explained() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await CreateDatasetAsync(host, DatasetType.Instruction);
+        var path = Path.Combine(host.Directory, "eski.xls");
+        File.WriteAllBytes(path, [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]);
+        var wizard = Wizard(host, path, dataset);
+
+        await wizard.InitializeAsync();
+
+        Assert.Equal(
+            "“eski.xls” is an Excel 97–2003 or password-protected workbook. Save it in Excel as an .xlsx workbook without a password and try again.",
+            wizard.ErrorMessage);
+        Assert.False(wizard.ImportCommand.CanExecute(null));
     });
 
     private static ImportWizardViewModel Wizard(DesktopTestHost host, string path, ImportTarget target) =>

@@ -6,6 +6,8 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
+        xmlns:ae="using:AvaloniaEdit"
+        xmlns:editing="using:AvaloniaEdit.Editing"
         xmlns:ic="using:FluentIcons.Avalonia">
 
   <!-- ===== Base ===== -->
@@ -726,24 +728,27 @@
 
   <!-- ===== Record editor ===== -->
   <!-- Inline field: text inside a card or bubble without a box of its own; the container shows focus. -->
-  <Style Selector="TextBox.field">
+  <!-- Editor fields are CodeEditors (AvaloniaEdit), styled by the TextEditor theme: borderless
+       text in the card's font, with Markdown, code and JSON coloured by the Syntax* tokens. -->
+  <Style Selector="ae|TextEditor.field">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="MinHeight" Value="20" />
-    <Setter Property="AcceptsReturn" Value="True" />
-    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="FontSize" Value="{DynamicResource ControlContentThemeFontSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
-  <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+  <Style Selector="ae|TextEditor.field.json">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
   </Style>
-  <Style Selector="TextBox.field:focus /template/ Border#PART_BorderElement">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+  <Style Selector="ae|TextEditor.field editing|TextArea">
+    <Setter Property="SelectionBrush" Value="{DynamicResource AccentSubtleHoverBrush}" />
+    <Setter Property="SelectionForeground" Value="{x:Null}" />
+    <Setter Property="SelectionBorder" Value="{x:Null}" />
   </Style>
-  <Style Selector="TextBox.field:disabled /template/ Border#PART_BorderElement">
-    <Setter Property="Background" Value="Transparent" />
+  <Style Selector="ae|TextEditor.field editing|TextArea /template/ TextBlock#PART_Watermark">
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="Opacity" Value="1" />
   </Style>
   <!-- A focus ring around the edited card or bubble, keeping its tone border. -->
   <Style Selector="Border.card:focus-within">
