@@ -681,7 +681,7 @@
     <value>Redone: {0}</value>
   </data>
   <data name="Status_UndoNothing" xml:space="preserve">
-    <value>The records of that step no longer exist; it was removed from the history.</value>
+    <value>The records or tag of that step no longer exist; it was removed from the history.</value>
   </data>
   <data name="Status_RecordSaved" xml:space="preserve">
     <value>Saved record #{0}; it is now in review.</value>
@@ -720,7 +720,7 @@
     <value>{0:N0} records selected</value>
   </data>
   <data name="Batch_Hint" xml:space="preserve">
-    <value>Actions apply to every selected record whose status allows them; the others are skipped. Edit › Undo reverts a batch action in one step.</value>
+    <value>Actions apply to every selected record whose status allows them; the others are skipped. Tags (also Mod+1…5) go on or off all of them. Edit › Undo reverts a batch action in one step.</value>
   </data>
   <data name="Dialog_DeleteRecordsTitle" xml:space="preserve">
     <value>Delete Records</value>
@@ -1428,7 +1428,7 @@
     <value>Go Back to Version</value>
   </data>
   <data name="Dialog_RollbackMessage" xml:space="preserve">
-    <value>Make the records match v{0}? {1:N0} contents and {2:N0} statuses go back, {3:N0} deleted records return and {4:N0} records added since are archived (not deleted). You can take this back with Edit › Undo.</value>
+    <value>Make the records match v{0}? {1:N0} contents and {2:N0} statuses or tag sets go back, {3:N0} deleted records return and {4:N0} records added since are archived (not deleted). You can take this back with Edit › Undo.</value>
   </data>
   <data name="Dialog_RollbackConfirm" xml:space="preserve">
     <value>Go Back</value>
@@ -1453,5 +1453,149 @@
   </data>
   <data name="Export_LastExportVersion" xml:space="preserve">
     <value>Last export: {0} · v{3} · {1} · {2:N0} records</value>
+  </data>
+  <data name="Difference_TagsChanged" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Versions_CountTagsChanged" xml:space="preserve">
+    <value>{0:N0} tag changes</value>
+  </data>
+  <data name="Field_Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="TagFilter_All" xml:space="preserve">
+    <value>All tags</value>
+  </data>
+  <data name="TagFilter_Untagged" xml:space="preserve">
+    <value>Untagged</value>
+  </data>
+  <data name="Records_TagFilter" xml:space="preserve">
+    <value>Show records with a tag</value>
+  </data>
+  <data name="History_AddTag" xml:space="preserve">
+    <value>Add “{0}” to {1}</value>
+  </data>
+  <data name="History_RemoveTag" xml:space="preserve">
+    <value>Remove “{0}” from {1}</value>
+  </data>
+  <data name="Status_TagAdded" xml:space="preserve">
+    <value>Record #{0}: tagged “{1}”.</value>
+  </data>
+  <data name="Status_TagRemoved" xml:space="preserve">
+    <value>Record #{0}: “{1}” removed.</value>
+  </data>
+  <data name="Status_TagAddedMany" xml:space="preserve">
+    <value>“{1}” added to {0:N0} records.</value>
+  </data>
+  <data name="Status_TagRemovedMany" xml:space="preserve">
+    <value>“{1}” removed from {0:N0} records.</value>
+  </data>
+  <data name="Status_NoTagShortcut" xml:space="preserve">
+    <value>No tag uses {0}. Give tags shortcuts in Tools › Tags.</value>
+  </data>
+  <data name="Editor_AddTag" xml:space="preserve">
+    <value>Add tag</value>
+  </data>
+  <data name="Editor_RemoveTag" xml:space="preserve">
+    <value>Remove tag</value>
+  </data>
+  <data name="TagPicker_Watermark" xml:space="preserve">
+    <value>Find or create a tag</value>
+  </data>
+  <data name="TagPicker_Create" xml:space="preserve">
+    <value>Create “{0}”</value>
+  </data>
+  <data name="TagPicker_Empty" xml:space="preserve">
+    <value>No tags yet: type a name to create one.</value>
+  </data>
+  <data name="TagPicker_Hint" xml:space="preserve">
+    <value>A prefix makes a group (kategori:hukuk) that exports can be split by.</value>
+  </data>
+  <data name="Batch_Tags" xml:space="preserve">
+    <value>TAGS</value>
+  </data>
+  <data name="Batch_AddTag" xml:space="preserve">
+    <value>Add tag to all</value>
+  </data>
+  <data name="Batch_RemoveTag" xml:space="preserve">
+    <value>Remove from the selected records</value>
+  </data>
+  <data name="Menu_TagRecord" xml:space="preserve">
+    <value>_Tag</value>
+  </data>
+  <data name="Menu_Tags" xml:space="preserve">
+    <value>T_ags…</value>
+  </data>
+  <data name="Tags_Title" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Tags_Subtitle" xml:space="preserve">
+    <value>Shared by all datasets of the workspace. Mod+1…5 toggle the tags with a shortcut; a prefix such as kategori: groups tags for split exports.</value>
+  </data>
+  <data name="Tags_NewWatermark" xml:space="preserve">
+    <value>New tag, e.g. kategori:hukuk</value>
+  </data>
+  <data name="Tags_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Tags_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Tags_Shortcut" xml:space="preserve">
+    <value>Shortcut</value>
+  </data>
+  <data name="Tags_NoShortcut" xml:space="preserve">
+    <value>No shortcut</value>
+  </data>
+  <data name="Tags_ShowRecords" xml:space="preserve">
+    <value>Show its records</value>
+  </data>
+  <data name="Tags_Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Tags_EmptyTitle" xml:space="preserve">
+    <value>No tags yet</value>
+  </data>
+  <data name="Tags_EmptyHint" xml:space="preserve">
+    <value>Create one above, or with “Add tag” in the record editor.</value>
+  </data>
+  <data name="Tags_RecordCount" xml:space="preserve">
+    <value>{0:N0} records</value>
+  </data>
+  <data name="Tags_Created" xml:space="preserve">
+    <value>“{0}” created.</value>
+  </data>
+  <data name="Tags_Deleted" xml:space="preserve">
+    <value>“{0}” deleted and removed from {1:N0} records.</value>
+  </data>
+  <data name="Dialog_RenameTagTitle" xml:space="preserve">
+    <value>Rename Tag</value>
+  </data>
+  <data name="Dialog_RenameTagMessage" xml:space="preserve">
+    <value>New name for “{0}”:</value>
+  </data>
+  <data name="Dialog_DeleteTagTitle" xml:space="preserve">
+    <value>Delete Tag</value>
+  </data>
+  <data name="Dialog_DeleteTagMessage" xml:space="preserve">
+    <value>Delete “{0}”? It is removed from {1:N0} records, also as they are in versions. This cannot be undone.</value>
+  </data>
+  <data name="Export_Stratify" xml:space="preserve">
+    <value>Split within</value>
+  </data>
+  <data name="Export_StratifyTip" xml:space="preserve">
+    <value>Gives every tag (or every tag of a group) exactly these shares</value>
+  </data>
+  <data name="Export_StratifyNone" xml:space="preserve">
+    <value>No strata</value>
+  </data>
+  <data name="Export_StratifyAnyTag" xml:space="preserve">
+    <value>Each tag (a record's first tag)</value>
+  </data>
+  <data name="Export_StratifyGroup" xml:space="preserve">
+    <value>Group “{0}”</value>
+  </data>
+  <data name="Export_StratifyHint" xml:space="preserve">
+    <value>Within every tag the records are ordered by the seed and cut at exactly these shares; records asking the same question stay together. New records can move a few at the cut.</value>
   </data>
 </root>

@@ -4,6 +4,7 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
+using AIDatasetStudio.Application.Tags;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Infrastructure.Analysis;
@@ -13,6 +14,7 @@ using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Persistence;
 using AIDatasetStudio.Infrastructure.Records;
 using AIDatasetStudio.Infrastructure.Settings;
+using AIDatasetStudio.Infrastructure.Tags;
 using AIDatasetStudio.Infrastructure.Versions;
 using AIDatasetStudio.Infrastructure.Workspaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +42,7 @@ public static class DependencyInjection
         services.AddSingleton<IRecordAnalysisService, RecordAnalysisService>();
         services.AddSingleton<IExportService, ExportService>();
         services.AddSingleton<IVersionService, VersionService>();
+        services.AddSingleton<ITagService, TagService>();
         return services;
     }
 }

@@ -221,6 +221,25 @@ public sealed class DatasetRecord
         return true;
     }
 
+    /// <summary>
+    /// Replaces the tags (undo, redo and going back to a version).
+    /// </summary>
+    /// <returns><c>true</c> if they changed.</returns>
+    public bool SetTags(IReadOnlyCollection<Tag> tags, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+        var wanted = tags.DistinctBy(t => t.Id).ToList();
+        if (wanted.Count == _tags.Count && wanted.All(t => _tags.Any(existing => existing.Id == t.Id)))
+        {
+            return false;
+        }
+
+        _tags.Clear();
+        _tags.AddRange(wanted);
+        UpdatedAt = now;
+        return true;
+    }
+
     public bool RemoveTag(Guid tagId, DateTimeOffset now)
     {
         if (_tags.RemoveAll(t => t.Id == tagId) == 0)

@@ -39,6 +39,13 @@ public interface IRecordCommandService
     /// </summary>
     Task<StatusChangeResult> SetStatusAsync(IReadOnlyCollection<Guid> recordIds, RecordStatus status, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Adds a tag to records or removes it; records that already are as asked are left alone.
+    /// The content and status do not change.
+    /// </summary>
+    /// <returns>The records that changed, for undo.</returns>
+    Task<IReadOnlyList<Guid>> SetTagAsync(IReadOnlyCollection<Guid> recordIds, Guid tagId, bool present, CancellationToken cancellationToken = default);
+
     /// <returns>The number of records deleted.</returns>
     Task<int> DeleteAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default);
 

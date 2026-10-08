@@ -3,6 +3,7 @@ using AIDatasetStudio.Desktop.Controls;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.Tests.Support;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Desktop.Views.Dialogs;
 using AIDatasetStudio.Domain.Enums;
@@ -37,7 +38,7 @@ public sealed class VersionsWindowTests
         await host.Get<Application.Records.IRecordCommandService>().UpdatePayloadAsync(
             host.Main.Records.Items[0].Id, new InstructionPayload("İade süresi?", "", "30 gün."));
         var viewModel = new VersionsViewModel(
-            versions, host.Get<RecordOperations>(), host.Dialogs, Localizer.Instance, new VersionsTarget(dataset.Id, dataset.Name, dataset.Type, 2));
+            versions, host.Get<RecordOperations>(), host.Dialogs, Localizer.Instance, host.Get<TagCatalog>(), new VersionsTarget(dataset.Id, dataset.Name, dataset.Type, 2));
         var window = new VersionsWindow { DataContext = viewModel };
 
         window.Show();

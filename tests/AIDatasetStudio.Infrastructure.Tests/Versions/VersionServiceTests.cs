@@ -4,12 +4,10 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Domain.Common;
-using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
 using AIDatasetStudio.Infrastructure.Tests.Support;
-using Microsoft.EntityFrameworkCore;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Versions;
 
@@ -169,25 +167,53 @@ public sealed class VersionServiceTests
     }
 
     [Fact]
-    public async Task Going_back_brings_deleted_records_back_with_their_tags()
+    public async Task Going_back_restores_tags_and_brings_deleted_records_back_with_theirs()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
         var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
-        var ids = await AddAsync(ws, datasetId, Q("Bir"), Q("İki"));
-        await using (var context = ws.Workspace.CreateDbContext())
-        {
-            var tag = Tag.Create("kategori:hukuk", TestWorkspace.Now);
-            context.Tags.Add(tag);
-            (await context.Records.SingleAsync(r => r.Id == ids[1], Ct)).AddTag(tag, TestWorkspace.Now);
-            await context.SaveChangesAsync(Ct);
-        }
-
+        var ids = await AddAsync(ws, datasetId, Q("Bir"), Q("İki"), Q("Üç"));
+        var hukuk = await ws.Tags.CreateAsync("kategori:hukuk", Ct);
+        var teknik = await ws.Tags.CreateAsync("kategori:teknik", Ct);
+        await ws.Commands.SetTagAsync([ids[0], ids[1]], hukuk.Id, present: true, Ct);
         var version = await ws.Versions.CreateAsync(datasetId, "1.0.0", null, cancellationToken: Ct);
+
         await ws.Commands.DeleteAsync([ids[1]], Ct);
+        await ws.Commands.SetTagAsync([ids[0]], hukuk.Id, present: false, Ct);
+        await ws.Commands.SetTagAsync([ids[0], ids[2]], teknik.Id, present: true, Ct);
 
-        await ws.Versions.RollbackAsync(version.Id, Ct);
+        var comparison = await ws.Versions.CompareAsync(datasetId, version.Id, null, Ct);
+        Assert.Equal([DifferenceKind.TagsChanged, DifferenceKind.Removed, DifferenceKind.TagsChanged], comparison.Differences.Select(d => d.Kind));
+        Assert.Equal([hukuk.Id], comparison.Differences[0].OldTagIds!);
+        Assert.Equal([teknik.Id], comparison.Differences[0].NewTagIds!);
 
-        Assert.Equal(["kategori:hukuk"], (await ws.Queries.GetAsync(ids[1], Ct))!.Tags);
+        var result = await ws.Versions.RollbackAsync(version.Id, Ct);
+
+        Assert.Equal((0, 2, 0), (result.ContentRestored, result.StatusRestored, result.Archived));
+        Assert.Equal([hukuk.Id], (await ws.Queries.GetAsync(ids[0], Ct))!.TagIds);
+        Assert.Equal([hukuk.Id], (await ws.Queries.GetAsync(ids[1], Ct))!.TagIds);
+        Assert.Empty((await ws.Queries.GetAsync(ids[2], Ct))!.TagIds);
+        Assert.Empty((await ws.Versions.CompareAsync(datasetId, version.Id, null, Ct)).Differences);
+
+        // Undo puts the tags back as they were.
+        await ws.Commands.RestoreStatesAsync(result.Before, Ct);
+        Assert.Equal([teknik.Id], (await ws.Queries.GetAsync(ids[0], Ct))!.TagIds);
+        Assert.Equal([teknik.Id], (await ws.Queries.GetAsync(ids[2], Ct))!.TagIds);
+    }
+
+    [Fact]
+    public async Task A_deleted_tag_no_longer_counts_as_a_difference()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var ids = await AddAsync(ws, datasetId, Q("Bir"));
+        var tag = await ws.Tags.CreateAsync("geçici", Ct);
+        await ws.Commands.SetTagAsync(ids, tag.Id, present: true, Ct);
+        var version = await ws.Versions.CreateAsync(datasetId, "1.0.0", null, cancellationToken: Ct);
+
+        await ws.Tags.DeleteAsync(tag.Id, Ct);
+
+        Assert.Empty((await ws.Versions.CompareAsync(datasetId, version.Id, null, Ct)).Differences);
+        Assert.Equal(0, (await ws.Versions.RollbackAsync(version.Id, Ct)).Changed);
     }
 
     [Fact]

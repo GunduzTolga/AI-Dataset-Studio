@@ -55,6 +55,7 @@ public sealed partial class MainWindowViewModel
             _operations,
             _dialogs,
             _localizer,
+            _tags,
             new VersionsTarget(dataset.Id, dataset.Name, dataset.Type, dataset.RecordCount),
             async version => await ExportDatasetAsync(dataset, await _versions.ListAsync(dataset.Id), version.Id));
         await _dialogs.ShowVersionsAsync(versions);

@@ -76,16 +76,16 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
 
     public async Task<IReadOnlyDictionary<RecordStatus, long>> CountByStatusAsync(
         Guid datasetId,
-        string? searchText,
-        QualityFilter quality = QualityFilter.None,
+        RecordFilter filter,
         CancellationToken cancellationToken = default)
     {
-        var match = SearchText.ToMatchExpression(searchText);
+        ArgumentNullException.ThrowIfNull(filter);
+        var match = SearchText.ToMatchExpression(filter.SearchText);
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
 
         var sql = new StringBuilder($"SELECT r.Status, COUNT(*) {From}");
-        AppendFilter(sql, command, datasetId, new RecordFilter(Quality: quality), match);
+        AppendFilter(sql, command, datasetId, filter with { Statuses = null }, match);
         command.CommandText = sql.Append(" GROUP BY r.Status;").ToString();
 
         var counts = Enum.GetValues<RecordStatus>().ToDictionary(status => status, _ => 0L);
@@ -130,7 +130,7 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
                 record.Payload,
                 record.ContentHash,
                 record.Lineage,
-                record.Tags.Select(t => t.Name).Order(StringComparer.Ordinal).ToList(),
+                [.. record.Tags.OrderBy(t => t.NameKey, StringComparer.Ordinal).Select(t => t.Id)],
                 record.CreatedAt,
                 record.UpdatedAt);
     }
@@ -187,14 +187,28 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         {
             sql.Append(" AND ").Append(quality);
         }
+
+        if (filter.TagId is { } tagId)
+        {
+            sql.Append(" AND EXISTS (SELECT 1 FROM RecordTags rt WHERE rt.RecordId = r.Id AND rt.TagId = $tag)");
+            command.Parameters.AddWithValue("$tag", SqliteValues.Guid(tagId));
+        }
+        else if (filter.Untagged)
+        {
+            sql.Append(" AND NOT EXISTS (SELECT 1 FROM RecordTags rt WHERE rt.RecordId = r.Id)");
+        }
     }
 
     // Lists read the record's up-to-date analysis (if any) for tokens, score and quality filters.
     private static readonly string From = $"FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}";
 
+    // Tags as a JSON array of ids, or NULL without tags.
     private static readonly string SummaryColumns =
         $"SELECT r.Id, r.Ordinal, r.Status, r.Preview, r.UpdatedAt, a.TotalTokens, {AnalysisSql.Score}, " +
-        $"COALESCE({AnalysisSql.IsOverLimit}, 0) {From}";
+        $"COALESCE({AnalysisSql.IsOverLimit}, 0), " +
+        $"(SELECT json_group_array(rt.TagId) FROM RecordTags rt WHERE rt.RecordId = r.Id HAVING COUNT(*) > 0) {From}";
+
+    private static List<Guid> ReadIds(string json) => [.. (JsonSerializer.Deserialize<List<string>>(json) ?? []).Select(SqliteValues.ReadGuid)];
 
     private static async Task<List<RecordSummary>> ReadSummariesAsync(SqliteCommand command, int capacity, CancellationToken cancellationToken)
     {
@@ -210,7 +224,8 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
                 SqliteValues.ReadTimestamp(reader.GetInt64(4)),
                 reader.IsDBNull(5) ? null : reader.GetInt32(5),
                 reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                reader.GetBoolean(7)));
+                reader.GetBoolean(7),
+                reader.IsDBNull(8) ? null : ReadIds(reader.GetString(8))));
         }
 
         return items;

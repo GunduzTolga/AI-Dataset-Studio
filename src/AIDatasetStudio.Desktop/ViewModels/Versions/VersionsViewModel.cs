@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,7 +13,7 @@ namespace AIDatasetStudio.Desktop.ViewModels.Versions;
 /// <summary>
 /// The versions of a dataset (SDD §14): the working copy and the frozen versions, newest first.
 /// The selected one is compared with another (by default the one before it): which records were
-/// added, removed or changed, and for a selected record its fields side by side with the
+/// added, removed or changed, and for a selected record its fields and tags side by side with the
 /// differences marked. A version can be exported, gone back to or deleted; the working copy can
 /// be frozen as a new version.
 /// </summary>
@@ -22,6 +23,7 @@ public sealed partial class VersionsViewModel : ViewModelBase
     private readonly RecordOperations _operations;
     private readonly IDialogService _dialogs;
     private readonly Localizer _localizer;
+    private readonly TagCatalog _tags;
     private readonly Func<VersionInfo, Task>? _export;
     private CancellationTokenSource? _work;
     private IReadOnlyList<ChangeItemViewModel> _allChanges = [];
@@ -32,6 +34,7 @@ public sealed partial class VersionsViewModel : ViewModelBase
     /// <param name="operations">Records the rollback in the undo history.</param>
     /// <param name="dialogs">Questions and the "new version" dialog.</param>
     /// <param name="localizer">Texts.</param>
+    /// <param name="tags">Names and colors of the tags.</param>
     /// <param name="target">The dataset.</param>
     /// <param name="export">Opens the export wizard for a version.</param>
     public VersionsViewModel(
@@ -39,6 +42,7 @@ public sealed partial class VersionsViewModel : ViewModelBase
         RecordOperations operations,
         IDialogService dialogs,
         Localizer localizer,
+        TagCatalog tags,
         VersionsTarget target,
         Func<VersionInfo, Task>? export = null)
     {
@@ -46,6 +50,7 @@ public sealed partial class VersionsViewModel : ViewModelBase
         _operations = operations;
         _dialogs = dialogs;
         _localizer = localizer;
+        _tags = tags;
         _export = export;
         _recordCount = target.RecordCount;
         Target = target;
@@ -272,7 +277,7 @@ public sealed partial class VersionsViewModel : ViewModelBase
             BusyText = _localizer["Versions_Comparing"];
             var changes = await _versions.CompareAsync(Target.DatasetId, version.Id, null);
             var content = changes.Count(DifferenceKind.Modified);
-            var status = changes.Count(DifferenceKind.StatusChanged);
+            var status = changes.Count(DifferenceKind.StatusChanged) + changes.Count(DifferenceKind.TagsChanged);
             var deleted = changes.Count(DifferenceKind.Removed);
             var archived = changes.Differences.Count(d => d.Kind == DifferenceKind.Added && d.NewStatus != RecordStatus.Archived);
             if (content + status + deleted + archived == 0)
@@ -495,6 +500,11 @@ public sealed partial class VersionsViewModel : ViewModelBase
             {
                 Fields.Add(field);
             }
+
+            if (TagsField(difference) is { } tags)
+            {
+                Fields.Add(tags);
+            }
         }
         catch (Exception ex) when (Describe(ex) is { } message)
         {
@@ -532,6 +542,41 @@ public sealed partial class VersionsViewModel : ViewModelBase
         }
 
         return fields;
+    }
+
+    // The tags as one more field: removed ones struck on the older side, added ones on the newer.
+    private FieldDiffViewModel? TagsField(RecordDifference difference)
+    {
+        var older = difference.OldTagIds is { } o ? _tags.Resolve(o) : null;
+        var newer = difference.NewTagIds is { } n ? _tags.Resolve(n) : null;
+        if ((older?.Count ?? 0) == 0 && (newer?.Count ?? 0) == 0)
+        {
+            return null;
+        }
+
+        var label = _localizer["Field_Tags"];
+        if (older is null || newer is null || !difference.TagsDiffer)
+        {
+            var plain = Segments(older ?? newer!, _ => false, DiffKind.Equal);
+            return new FieldDiffViewModel(label, null, older is null ? [] : plain, newer is null ? [] : plain, older is not null, newer is not null);
+        }
+
+        var olderIds = older.Select(t => t.Id).ToHashSet();
+        var newerIds = newer.Select(t => t.Id).ToHashSet();
+        return new FieldDiffViewModel(
+            label,
+            _localizer["Versions_FieldChanged"],
+            Segments(older, t => !newerIds.Contains(t.Id), DiffKind.Deleted),
+            Segments(newer, t => !olderIds.Contains(t.Id), DiffKind.Inserted),
+            HasOld: true,
+            HasNew: true);
+
+        IReadOnlyList<DiffSegment> Segments(IReadOnlyList<TagViewModel> tags, Func<TagViewModel, bool> marked, DiffKind kind) =>
+            VersionText.OrEmpty(_localizer, [.. tags.SelectMany((tag, i) => new[]
+            {
+                new DiffSegment(DiffKind.Equal, i == 0 ? string.Empty : ", "),
+                new DiffSegment(marked(tag) ? kind : DiffKind.Equal, tag.Name),
+            }).Where(segment => segment.Text.Length > 0)]);
     }
 
     private ChangeItemViewModel ToItem(RecordDifference difference)

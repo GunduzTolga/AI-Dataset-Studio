@@ -43,9 +43,20 @@ public enum SplitPart
 /// <param name="ValidationPercent">Share of the validation file, 0–99.</param>
 /// <param name="TestPercent">Share of the test file, 0–99. The three add up to 100.</param>
 /// <param name="Seed">The same seed always puts the same records in the same files.</param>
-public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int TestPercent, int Seed = SplitOptions.DefaultSeed)
+/// <param name="StratifyBy">
+/// Splits each tag stratum on its own with exact shares (SDD §10.1): <c>null</c> for no strata,
+/// <see cref="AnyTag"/> for the record's first tag, or a tag group such as "kategori".
+/// </param>
+public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int TestPercent, int Seed = SplitOptions.DefaultSeed, string? StratifyBy = null)
 {
     public const int DefaultSeed = 42;
+
+    /// <summary>
+    /// <see cref="StratifyBy"/> value for "by tag": a record's stratum is its first tag by name.
+    /// </summary>
+    public const string AnyTag = "";
+
+    public bool IsStratified => StratifyBy is not null;
 
     /// <summary>80 / 10 / 10, the usual choice.</summary>
     public static SplitOptions Standard { get; } = new(80, 10, 10);

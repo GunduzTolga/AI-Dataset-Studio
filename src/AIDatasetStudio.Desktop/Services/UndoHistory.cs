@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
@@ -173,6 +174,37 @@ public sealed record DeleteAction(Guid DatasetId, IReadOnlyList<RecordSnapshot> 
     public Task<int> UndoAsync(IRecordCommandService commands) => commands.RestoreAsync(Snapshots);
 
     public Task<int> RedoAsync(IRecordCommandService commands) => commands.DeleteAsync(RecordIds);
+}
+
+/// <summary>
+/// A tag was added to or removed from records; undo does the opposite on the same records.
+/// </summary>
+/// <param name="TagName">The tag's name when the change was made, for the description.</param>
+/// <param name="Changed">The records that changed (those that already were as asked are not included).</param>
+/// <param name="Ordinal">The record number when a single record changed, for the description.</param>
+public sealed record TagAction(Guid DatasetId, Guid TagId, string TagName, bool Added, IReadOnlyList<Guid> Changed, long? Ordinal) : IUndoableAction
+{
+    public IReadOnlyList<Guid> RecordIds => Changed;
+
+    public string Describe(Localizer localizer) =>
+        localizer.Format(Added ? "History_AddTag" : "History_RemoveTag", TagName, HistoryText.Subject(localizer, Ordinal, Changed.Count));
+
+    public Task<int> UndoAsync(IRecordCommandService commands) => SetAsync(commands, !Added);
+
+    public Task<int> RedoAsync(IRecordCommandService commands) => SetAsync(commands, Added);
+
+    // A tag deleted since (Tools › Tags) leaves nothing to undo; the step is dropped.
+    private async Task<int> SetAsync(IRecordCommandService commands, bool present)
+    {
+        try
+        {
+            return (await commands.SetTagAsync(Changed, TagId, present)).Count;
+        }
+        catch (NotFoundException)
+        {
+            return 0;
+        }
+    }
 }
 
 /// <summary>

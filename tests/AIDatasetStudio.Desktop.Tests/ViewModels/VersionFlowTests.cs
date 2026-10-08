@@ -125,7 +125,7 @@ public sealed class VersionFlowTests
         await host.Main.VersionsCommand.ExecuteAsync(null);
 
         Assert.Equal(
-            "Make the records match v1.0.0? 1 contents and 0 statuses go back, 1 deleted records return and 0 records added since are archived (not deleted). You can take this back with Edit › Undo.",
+            "Make the records match v1.0.0? 1 contents and 0 statuses or tag sets go back, 1 deleted records return and 0 records added since are archived (not deleted). You can take this back with Edit › Undo.",
             host.Dialogs.ConfirmMessages[^1]);
         var window = host.Dialogs.LastVersions!;
         Assert.True(window.HasChangedData);

@@ -3,6 +3,7 @@ using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 
@@ -64,4 +65,9 @@ public interface IDialogService
     /// Shows the versions of a dataset until the window is closed.
     /// </summary>
     Task ShowVersionsAsync(VersionsViewModel versions);
+
+    /// <summary>
+    /// Shows Tools › Tags until the window is closed.
+    /// </summary>
+    Task ShowTagManagerAsync(TagManagerViewModel tags);
 }

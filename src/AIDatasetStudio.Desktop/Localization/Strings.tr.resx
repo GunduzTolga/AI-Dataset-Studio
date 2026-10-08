@@ -649,7 +649,7 @@
     <value>Yinelendi: {0}</value>
   </data>
   <data name="Status_UndoNothing" xml:space="preserve">
-    <value>O adımın kayıtları artık yok; adım geçmişten kaldırıldı.</value>
+    <value>O adımın kayıtları ya da etiketi artık yok; adım geçmişten kaldırıldı.</value>
   </data>
   <data name="Status_RecordSaved" xml:space="preserve">
     <value>#{0} numaralı kayıt kaydedildi ve incelemeye alındı.</value>
@@ -688,7 +688,7 @@
     <value>{0:N0} kayıt seçili</value>
   </data>
   <data name="Batch_Hint" xml:space="preserve">
-    <value>Aksiyonlar, durumu uygun olan tüm seçili kayıtlara uygulanır; diğerleri atlanır. Düzen › Geri Al toplu işlemi tek adımda geri alır.</value>
+    <value>Aksiyonlar, durumu uygun olan tüm seçili kayıtlara uygulanır; diğerleri atlanır. Etiketler (Mod+1…5 dahil) hepsine eklenir ya da hepsinden kaldırılır. Düzen › Geri Al toplu işlemi tek adımda geri alır.</value>
   </data>
   <data name="Dialog_DeleteRecordsTitle" xml:space="preserve">
     <value>Kayıtları Sil</value>
@@ -1366,7 +1366,7 @@
     <value>Sürüme Dön</value>
   </data>
   <data name="Dialog_RollbackMessage" xml:space="preserve">
-    <value>Kayıtlar v{0} ile aynı hâle getirilsin mi? {1:N0} içerik ve {2:N0} durum geri döner, {3:N0} silinmiş kayıt geri gelir ve sonradan eklenen {4:N0} kayıt arşivlenir (silinmez). Düzen › Geri Al ile geri alabilirsiniz.</value>
+    <value>Kayıtlar v{0} ile aynı hâle getirilsin mi? {1:N0} içerik ve {2:N0} durum ya da etiket kümesi geri döner, {3:N0} silinmiş kayıt geri gelir ve sonradan eklenen {4:N0} kayıt arşivlenir (silinmez). Düzen › Geri Al ile geri alabilirsiniz.</value>
   </data>
   <data name="Dialog_RollbackConfirm" xml:space="preserve">
     <value>Geri Dön</value>
@@ -1391,5 +1391,149 @@
   </data>
   <data name="Export_LastExportVersion" xml:space="preserve">
     <value>Son dışa aktarım: {0} · v{3} · {1} · {2:N0} kayıt</value>
+  </data>
+  <data name="Difference_TagsChanged" xml:space="preserve">
+    <value>Etiketler</value>
+  </data>
+  <data name="Versions_CountTagsChanged" xml:space="preserve">
+    <value>{0:N0} etiket değişikliği</value>
+  </data>
+  <data name="Field_Tags" xml:space="preserve">
+    <value>Etiketler</value>
+  </data>
+  <data name="TagFilter_All" xml:space="preserve">
+    <value>Tüm etiketler</value>
+  </data>
+  <data name="TagFilter_Untagged" xml:space="preserve">
+    <value>Etiketsiz</value>
+  </data>
+  <data name="Records_TagFilter" xml:space="preserve">
+    <value>Bir etiketi olan kayıtları göster</value>
+  </data>
+  <data name="History_AddTag" xml:space="preserve">
+    <value>“{0}” etiketini ekleme ({1})</value>
+  </data>
+  <data name="History_RemoveTag" xml:space="preserve">
+    <value>“{0}” etiketini kaldırma ({1})</value>
+  </data>
+  <data name="Status_TagAdded" xml:space="preserve">
+    <value>#{0} numaralı kayıt: “{1}” etiketi eklendi.</value>
+  </data>
+  <data name="Status_TagRemoved" xml:space="preserve">
+    <value>#{0} numaralı kayıt: “{1}” etiketi kaldırıldı.</value>
+  </data>
+  <data name="Status_TagAddedMany" xml:space="preserve">
+    <value>“{1}” etiketi {0:N0} kayda eklendi.</value>
+  </data>
+  <data name="Status_TagRemovedMany" xml:space="preserve">
+    <value>“{1}” etiketi {0:N0} kayıttan kaldırıldı.</value>
+  </data>
+  <data name="Status_NoTagShortcut" xml:space="preserve">
+    <value>{0} kısayolu bir etikete atanmamış. Kısayolları Araçlar › Etiketler'den atayabilirsiniz.</value>
+  </data>
+  <data name="Editor_AddTag" xml:space="preserve">
+    <value>Etiket ekle</value>
+  </data>
+  <data name="Editor_RemoveTag" xml:space="preserve">
+    <value>Etiketi kaldır</value>
+  </data>
+  <data name="TagPicker_Watermark" xml:space="preserve">
+    <value>Etiket bul ya da oluştur</value>
+  </data>
+  <data name="TagPicker_Create" xml:space="preserve">
+    <value>“{0}” etiketini oluştur</value>
+  </data>
+  <data name="TagPicker_Empty" xml:space="preserve">
+    <value>Henüz etiket yok: oluşturmak için bir ad yazın.</value>
+  </data>
+  <data name="TagPicker_Hint" xml:space="preserve">
+    <value>Önek bir grup oluşturur (kategori:hukuk); dışa aktarım bu gruba göre bölünebilir.</value>
+  </data>
+  <data name="Batch_Tags" xml:space="preserve">
+    <value>ETİKETLER</value>
+  </data>
+  <data name="Batch_AddTag" xml:space="preserve">
+    <value>Hepsine etiket ekle</value>
+  </data>
+  <data name="Batch_RemoveTag" xml:space="preserve">
+    <value>Seçili kayıtlardan kaldır</value>
+  </data>
+  <data name="Menu_TagRecord" xml:space="preserve">
+    <value>_Etiketle</value>
+  </data>
+  <data name="Menu_Tags" xml:space="preserve">
+    <value>_Etiketler…</value>
+  </data>
+  <data name="Tags_Title" xml:space="preserve">
+    <value>Etiketler</value>
+  </data>
+  <data name="Tags_Subtitle" xml:space="preserve">
+    <value>Çalışma alanındaki tüm veri setlerinde ortaktır. Kısayolu olan etiketler Mod+1…5 ile eklenip kaldırılır; kategori: gibi bir önek etiketleri dışa aktarımda bölmek için gruplar.</value>
+  </data>
+  <data name="Tags_NewWatermark" xml:space="preserve">
+    <value>Yeni etiket, ör. kategori:hukuk</value>
+  </data>
+  <data name="Tags_Add" xml:space="preserve">
+    <value>Ekle</value>
+  </data>
+  <data name="Tags_Color" xml:space="preserve">
+    <value>Renk</value>
+  </data>
+  <data name="Tags_Shortcut" xml:space="preserve">
+    <value>Kısayol</value>
+  </data>
+  <data name="Tags_NoShortcut" xml:space="preserve">
+    <value>Kısayol yok</value>
+  </data>
+  <data name="Tags_ShowRecords" xml:space="preserve">
+    <value>Kayıtlarını göster</value>
+  </data>
+  <data name="Tags_Rename" xml:space="preserve">
+    <value>Yeniden adlandır</value>
+  </data>
+  <data name="Tags_EmptyTitle" xml:space="preserve">
+    <value>Henüz etiket yok</value>
+  </data>
+  <data name="Tags_EmptyHint" xml:space="preserve">
+    <value>Yukarıdan ya da kayıt editöründeki “Etiket ekle” ile oluşturabilirsiniz.</value>
+  </data>
+  <data name="Tags_RecordCount" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Tags_Created" xml:space="preserve">
+    <value>“{0}” oluşturuldu.</value>
+  </data>
+  <data name="Tags_Deleted" xml:space="preserve">
+    <value>“{0}” silindi ve {1:N0} kayıttan kaldırıldı.</value>
+  </data>
+  <data name="Dialog_RenameTagTitle" xml:space="preserve">
+    <value>Etiketi Yeniden Adlandır</value>
+  </data>
+  <data name="Dialog_RenameTagMessage" xml:space="preserve">
+    <value>“{0}” için yeni ad:</value>
+  </data>
+  <data name="Dialog_DeleteTagTitle" xml:space="preserve">
+    <value>Etiketi Sil</value>
+  </data>
+  <data name="Dialog_DeleteTagMessage" xml:space="preserve">
+    <value>“{0}” silinsin mi? {1:N0} kayıttan, sürümlerdeki hâlleri dahil, kaldırılır. Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Export_Stratify" xml:space="preserve">
+    <value>Tabakalara göre böl</value>
+  </data>
+  <data name="Export_StratifyTip" xml:space="preserve">
+    <value>Her etikete (ya da bir grubun her etiketine) tam olarak bu oranları verir</value>
+  </data>
+  <data name="Export_StratifyNone" xml:space="preserve">
+    <value>Tabaka yok</value>
+  </data>
+  <data name="Export_StratifyAnyTag" xml:space="preserve">
+    <value>Her etiket (kaydın ilk etiketi)</value>
+  </data>
+  <data name="Export_StratifyGroup" xml:space="preserve">
+    <value>“{0}” grubu</value>
+  </data>
+  <data name="Export_StratifyHint" xml:space="preserve">
+    <value>Her etiketin içinde kayıtlar tohuma göre sıralanır ve tam bu oranlarda kesilir; aynı soruyu soran kayıtlar birlikte kalır. Yeni kayıtlar kesim noktasındaki birkaç kaydı yer değiştirebilir.</value>
   </data>
 </root>

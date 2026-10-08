@@ -220,10 +220,17 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("Shortcut")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NameKey")
                         .IsUnique();
+
+                    b.HasIndex("Shortcut")
+                        .IsUnique()
+                        .HasFilter("Shortcut IS NOT NULL");
 
                     b.ToTable("Tags", (string)null);
                 });

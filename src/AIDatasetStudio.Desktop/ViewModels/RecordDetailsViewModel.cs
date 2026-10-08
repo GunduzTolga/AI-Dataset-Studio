@@ -5,6 +5,7 @@ using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,8 +15,8 @@ namespace AIDatasetStudio.Desktop.ViewModels;
 
 /// <summary>
 /// The inspector: edits the selected record with fields that match its type (SDD §6.1), offers
-/// the review actions its status allows, and turns into a batch panel when several records are
-/// selected. Edits are saved explicitly or automatically when another record is shown.
+/// the review actions its status allows and its tags, and turns into a batch panel when several
+/// records are selected. Edits are saved explicitly or automatically when another record is shown.
 /// </summary>
 public sealed partial class RecordDetailsViewModel : ViewModelBase
 {
@@ -26,6 +27,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private readonly Localizer _localizer;
     private readonly IRecordAnalysisService _analysis;
     private readonly ITokenizerProvider _tokenizers;
+    private readonly TagCatalog _tags;
     private PiiScanner _scanner = new();
     private IReadOnlyList<QualityIssue> _crossIssues = [];
     private PiiMaskResult? _mask;
@@ -41,7 +43,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         ITokenizerProvider tokenizers,
         IDialogService dialogs,
         StatusBarViewModel status,
-        Localizer localizer)
+        Localizer localizer,
+        TagCatalog tags)
     {
         _queries = queries;
         _analysis = analysis;
@@ -50,6 +53,10 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         _dialogs = dialogs;
         _status = status;
         _localizer = localizer;
+        _tags = tags;
+        TagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
+        BatchTagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
+        _tags.Changed += (_, _) => RefreshTags();
         _localizer.CultureChanged += (_, _) => Refresh();
     }
 
@@ -61,6 +68,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand))]
     public partial RecordDetails? Record { get; private set; }
 
     /// <summary>
@@ -221,6 +229,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBatch), nameof(IsEmpty), nameof(BatchTitle), nameof(BatchCounts))]
     [NotifyPropertyChangedFor(nameof(ShowBatchApprove), nameof(ShowBatchSendToReview), nameof(ShowBatchArchive), nameof(ShowBatchRestore))]
+    [NotifyCanExecuteChangedFor(nameof(OpenBatchTagPickerCommand))]
     public partial IReadOnlyList<RecordRowViewModel> BatchRows { get; private set; } = [];
 
     public bool IsBatch => BatchRows.Count > 1;
@@ -237,6 +246,33 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public bool ShowBatchArchive => BatchCan(RecordStatus.Archived);
 
     public bool ShowBatchRestore => BatchRows.Any(r => r.Status == RecordStatus.Archived);
+
+    // ===== Tags (SDD §6.2) =====
+
+    /// <summary>
+    /// The tags of the shown record, by name.
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<TagViewModel> RecordTags { get; private set; } = [];
+
+    /// <summary>
+    /// "Add tag" for the shown record.
+    /// </summary>
+    public TagPickerViewModel TagPicker { get; }
+
+    /// <summary>
+    /// "Add tag" for all selected records.
+    /// </summary>
+    public TagPickerViewModel BatchTagPicker { get; }
+
+    /// <summary>
+    /// The tags of the selected records, with how many of them carry each.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBatchTags))]
+    public partial IReadOnlyList<TagCountItem> BatchTags { get; private set; } = [];
+
+    public bool HasBatchTags => BatchTags.Count > 0;
 
     /// <summary>
     /// Shows one record (or nothing), saving unsaved edits of the previous one first.
@@ -443,6 +479,86 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
         }
     }
+
+    [RelayCommand(CanExecute = nameof(HasRecord))]
+    private void OpenTagPicker() => TagPicker.Open(() => Record?.TagIds ?? []);
+
+    [RelayCommand(CanExecute = nameof(IsBatch))]
+    private void OpenBatchTagPicker() => BatchTagPicker.Open(TagsOnEveryRow);
+
+    /// <summary>
+    /// Takes a tag off the shown record, or off all selected records.
+    /// </summary>
+    [RelayCommand]
+    private Task RemoveTagAsync(TagViewModel? tag) => tag is null ? Task.CompletedTask : SetTagAsync(tag, present: false);
+
+    /// <summary>
+    /// Mod+1…5: adds the tag, or removes it when the record (every selected record) already has it.
+    /// </summary>
+    public Task ToggleTagAsync(TagViewModel tag)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+        if (IsBatch)
+        {
+            return SetTagAsync(tag, present: !TagsOnEveryRow().Contains(tag.Id));
+        }
+
+        return Record is { } record ? SetTagAsync(tag, present: !record.TagIds.Contains(tag.Id)) : Task.CompletedTask;
+    }
+
+    private async Task SetTagAsync(TagViewModel tag, bool present)
+    {
+        try
+        {
+            if (IsBatch)
+            {
+                var changed = await _operations.SetTagAsync(_batchDatasetId, BatchRows.Select(r => r.Id).ToList(), tag.Id, tag.Name, present);
+                _status.Set(present ? "Status_TagAddedMany" : "Status_TagRemovedMany", changed.Count, tag.Name);
+                RefreshTags(); // the rows were updated by the list
+            }
+            else if (Record is { } record)
+            {
+                var changed = await _operations.SetTagAsync(record.DatasetId, [record.Id], tag.Id, tag.Name, present, record.Ordinal);
+                if (changed.Count > 0 && Record is { } shown && shown.Id == record.Id)
+                {
+                    Record = shown with { TagIds = present ? [.. shown.TagIds, tag.Id] : [.. shown.TagIds.Where(id => id != tag.Id)] };
+                }
+
+                _status.Set(present ? "Status_TagAdded" : "Status_TagRemoved", record.Ordinal, tag.Name);
+            }
+        }
+        catch (Exception ex) when (_status.TryReport(ex))
+        {
+        }
+    }
+
+    // The tags all selected records have: "add" leaves them out, toggling removes them.
+    private HashSet<Guid> TagsOnEveryRow()
+    {
+        var rows = BatchRows;
+        var common = rows.Count == 0 ? [] : rows[0].TagIds.ToHashSet();
+        foreach (var row in rows.Skip(1))
+        {
+            common.IntersectWith(row.TagIds);
+        }
+
+        return common;
+    }
+
+    partial void OnRecordChanged(RecordDetails? value) => RecordTags = value is null ? [] : _tags.Resolve(value.TagIds);
+
+    partial void OnBatchRowsChanged(IReadOnlyList<RecordRowViewModel> value) => RefreshBatchTags();
+
+    // Tags were added, renamed, recolored or deleted.
+    private void RefreshTags()
+    {
+        RecordTags = Record is { } record ? _tags.Resolve(record.TagIds) : [];
+        RefreshBatchTags();
+    }
+
+    private void RefreshBatchTags() =>
+        BatchTags = [.. _tags.Resolve(BatchRows.SelectMany(r => r.TagIds).Distinct())
+            .Select(tag => new TagCountItem(tag, BatchRows.Count(r => r.TagIds.Contains(tag.Id))))];
 
     private bool CanSave() => IsDirty && IsEditable;
 

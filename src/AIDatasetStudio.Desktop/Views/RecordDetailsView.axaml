@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+             xmlns:tags="using:AIDatasetStudio.Desktop.ViewModels.Tags"
              xmlns:l="using:AIDatasetStudio.Desktop.Localization"
              xmlns:ic="using:FluentIcons.Avalonia"
              xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
@@ -12,6 +13,60 @@
       <Setter Property="Margin" Value="0,0,6,6" />
     </Style>
   </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- A tag on the shown or selected records: dot, name and a button that takes it off -->
+    <DataTemplate x:Key="TagChip" x:DataType="tags:TagViewModel">
+      <Border Classes="tag-chip" Margin="0,0,6,6" ToolTip.Tip="{Binding ShortcutText}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Ellipse Width="8" Height="8" Fill="{Binding Color}" VerticalAlignment="Center" />
+          <TextBlock Classes="small" Text="{Binding Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" />
+          <Button Classes="mini" ToolTip.Tip="{l:Tr Editor_RemoveTag}" CommandParameter="{Binding}"
+                  Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).RemoveTagCommand}">
+            <ic:SymbolIcon Symbol="Dismiss" />
+          </Button>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+
+    <!-- "Add tag": filter or create -->
+    <DataTemplate x:Key="TagPickerContent" x:DataType="tags:TagPickerViewModel">
+      <Border Classes="popup" Width="280">
+        <StackPanel Spacing="6">
+          <TextBox Classes="tag-query" Text="{Binding Query}" PlaceholderText="{l:Tr TagPicker_Watermark}" MaxLength="100">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding ConfirmCommand}" />
+              <KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <ScrollViewer MaxHeight="240" IsVisible="{Binding HasMatches}">
+            <ItemsControl ItemsSource="{Binding Matches}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="tags:TagViewModel">
+                  <Button Classes="menu-item" CommandParameter="{Binding}"
+                          Command="{Binding $parent[ItemsControl].((tags:TagPickerViewModel)DataContext).PickCommand}">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                      <Ellipse Width="9" Height="9" Fill="{Binding Color}" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="1" Classes="small" Text="{Binding Name}" Margin="8,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Classes="caption muted" Text="{Binding ShortcutText}" VerticalAlignment="Center" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <Button Classes="menu-item" Command="{Binding CreateCommand}" IsVisible="{Binding CanCreate}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ic:SymbolIcon Symbol="Add" FontSize="14" />
+              <TextBlock Classes="small" Text="{Binding CreateText}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Button>
+          <TextBlock Classes="caption muted" Text="{l:Tr TagPicker_Empty}" TextWrapping="Wrap" Margin="4,2" IsVisible="{Binding IsEmpty}" />
+          <TextBlock Classes="caption muted" Text="{l:Tr TagPicker_Hint}" TextWrapping="Wrap" Margin="4,2,4,0" />
+        </StackPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
 
   <Panel>
     <!-- One record: editor -->
@@ -74,6 +129,26 @@
             </Button>
           </StackPanel>
         </Grid>
+        <!-- Tags (SDD §6.2): Mod+1…5 toggles the tags with a shortcut -->
+        <WrapPanel Margin="0,-6,0,-6">
+          <ItemsControl x:Name="RecordTagList" ItemsSource="{Binding RecordTags}" ItemTemplate="{StaticResource TagChip}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+          </ItemsControl>
+          <Button x:Name="AddTagButton" Classes="subtle small" Margin="0,0,0,6" Command="{Binding OpenTagPickerCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <ic:SymbolIcon Symbol="TagAdd" FontSize="14" />
+              <TextBlock Classes="small" Text="{l:Tr Editor_AddTag}" />
+            </StackPanel>
+          </Button>
+          <Popup x:Name="TagPopup" IsOpen="{Binding TagPicker.IsOpen, Mode=TwoWay}" PlacementTarget="{Binding #AddTagButton}"
+                 Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="True">
+            <ContentControl Content="{Binding TagPicker}" ContentTemplate="{StaticResource TagPickerContent}" />
+          </Popup>
+        </WrapPanel>
       </StackPanel>
 
       <!-- Personal data preview -->
@@ -302,6 +377,45 @@
           </StackPanel>
         </Button>
       </WrapPanel>
+
+      <!-- Tags of the selected records: × takes one off all of them -->
+      <StackPanel Spacing="8">
+        <TextBlock Classes="overline" Text="{l:Tr Batch_Tags}" />
+        <WrapPanel>
+          <ItemsControl ItemsSource="{Binding BatchTags}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="tags:TagCountItem">
+                <Border Classes="tag-chip" Margin="0,0,6,6">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="8" Height="8" Fill="{Binding Tag.Color}" VerticalAlignment="Center" />
+                    <TextBlock Classes="small" Text="{Binding Tag.Name}" VerticalAlignment="Center" MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="small muted numeric" Text="{Binding CountText}" VerticalAlignment="Center" />
+                    <Button Classes="mini" ToolTip.Tip="{l:Tr Batch_RemoveTag}" CommandParameter="{Binding Tag}"
+                            Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).RemoveTagCommand}">
+                      <ic:SymbolIcon Symbol="Dismiss" />
+                    </Button>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button x:Name="BatchAddTagButton" Classes="subtle small" Margin="0,0,0,6" Command="{Binding OpenBatchTagPickerCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <ic:SymbolIcon Symbol="TagAdd" FontSize="14" />
+              <TextBlock Classes="small" Text="{l:Tr Batch_AddTag}" />
+            </StackPanel>
+          </Button>
+          <Popup x:Name="BatchTagPopup" IsOpen="{Binding BatchTagPicker.IsOpen, Mode=TwoWay}" PlacementTarget="{Binding #BatchAddTagButton}"
+                 Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="True">
+            <ContentControl Content="{Binding BatchTagPicker}" ContentTemplate="{StaticResource TagPickerContent}" />
+          </Popup>
+        </WrapPanel>
+      </StackPanel>
 
       <TextBlock Classes="small muted" Text="{l:Tr Batch_Hint}" TextWrapping="Wrap" />
     </StackPanel>

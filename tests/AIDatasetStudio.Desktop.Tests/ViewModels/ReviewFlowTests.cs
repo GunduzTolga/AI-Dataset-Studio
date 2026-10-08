@@ -264,7 +264,7 @@ public sealed class ReviewFlowTests
 
         await main.UndoCommand.ExecuteAsync(null);
 
-        Assert.Equal("The records of that step no longer exist; it was removed from the history.", main.Status.Message);
+        Assert.Equal("The records or tag of that step no longer exist; it was removed from the history.", main.Status.Message);
         Assert.False(main.UndoCommand.CanExecute(null));
         Assert.False(main.RedoCommand.CanExecute(null));
     });

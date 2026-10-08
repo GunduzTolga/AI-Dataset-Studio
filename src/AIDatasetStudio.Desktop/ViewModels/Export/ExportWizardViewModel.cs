@@ -38,6 +38,15 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 ExportFormats.IsLossy(format, target.Type) ? localizer["Export_AlpacaChatWarning"] : null))
             .ToList();
         SplitModes = Enum.GetValues<SplitMode>().Select(mode => new SplitModeOption(mode, localizer[$"Export_Split{mode}"])).ToList();
+        // Only tags the dataset uses can form strata; groups come from "group:value" names.
+        var used = (target.Tags ?? []).Where(t => t.RecordCount > 0).ToList();
+        StratifyOptions =
+        [
+            new StratifyOption(null, localizer["Export_StratifyNone"]),
+            .. used.Count > 0 ? [new StratifyOption(SplitOptions.AnyTag, localizer["Export_StratifyAnyTag"])] : Array.Empty<StratifyOption>(),
+            .. used.Select(t => t.Group).OfType<string>().DistinctBy(Domain.Entities.Tag.FoldName).Order(StringComparer.CurrentCulture)
+                .Select(group => new StratifyOption(group, localizer.Format("Export_StratifyGroup", group))),
+        ];
         Sources =
         [
             new SourceOption(null, localizer["Export_SourceCurrent"]),
@@ -47,6 +56,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         _applying = true;
         SelectedFormat = Formats.FirstOrDefault();
         SelectedSplitMode = SplitModes[0];
+        SelectedStratify = StratifyOptions[0];
         SelectedSource = Sources.FirstOrDefault(s => s.VersionId == target.VersionId) ?? Sources[0];
         _applying = false;
     }
@@ -63,6 +73,16 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     public IReadOnlyList<FormatOption> Formats { get; }
 
     public IReadOnlyList<SplitModeOption> SplitModes { get; }
+
+    /// <summary>
+    /// No strata, by tag, then one entry per tag group the dataset uses.
+    /// </summary>
+    public IReadOnlyList<StratifyOption> StratifyOptions { get; }
+
+    /// <summary>
+    /// The dataset has tags, so a split can be made within them.
+    /// </summary>
+    public bool CanStratify => StratifyOptions.Count > 1;
 
     /// <summary>
     /// The current records, then the versions newest first.
@@ -136,6 +156,17 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     [ObservableProperty]
     public partial decimal? Seed { get; set; } = SplitOptions.DefaultSeed;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStratified), nameof(SplitHint))]
+    public partial StratifyOption? SelectedStratify { get; set; }
+
+    public bool IsStratified => SelectedStratify?.StratifyBy is not null;
+
+    /// <summary>
+    /// How records are placed: by hash alone, or cut to exact shares within each stratum.
+    /// </summary>
+    public string SplitHint => _localizer[IsStratified ? "Export_StratifyHint" : "Export_SplitHint"];
+
     public bool IsSplit => SelectedSplitMode is { Mode: not SplitMode.None };
 
     public bool IsCustomSplit => SelectedSplitMode?.Mode == SplitMode.Custom;
@@ -153,11 +184,12 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             }
 
             var seed = (int)(Seed ?? SplitOptions.DefaultSeed);
+            var stratifyBy = SelectedStratify?.StratifyBy;
             SplitOptions? split = SelectedSplitMode?.Mode switch
             {
-                SplitMode.Standard => SplitOptions.Standard with { Seed = seed },
-                SplitMode.TrainValidation => SplitOptions.TrainValidation with { Seed = seed },
-                SplitMode.Custom => new SplitOptions((int)(TrainPercent ?? 0), (int)(ValidationPercent ?? 0), (int)(TestPercent ?? 0), seed),
+                SplitMode.Standard => SplitOptions.Standard with { Seed = seed, StratifyBy = stratifyBy },
+                SplitMode.TrainValidation => SplitOptions.TrainValidation with { Seed = seed, StratifyBy = stratifyBy },
+                SplitMode.Custom => new SplitOptions((int)(TrainPercent ?? 0), (int)(ValidationPercent ?? 0), (int)(TestPercent ?? 0), seed, stratifyBy),
                 _ => null,
             };
             return split is { IsValid: false } ? null : new ExportOptions(format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split);
@@ -461,6 +493,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     partial void OnSeedChanged(decimal? value) => OnOptionChanged();
 
+    partial void OnSelectedStratifyChanged(StratifyOption? value) => OnOptionChanged();
+
     private void OnOptionChanged()
     {
         if (!_applying)
@@ -565,17 +599,23 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             SkipOverContextLimit = options.SkipOverContextLimit;
             SkipDuplicates = options.SkipDuplicates;
             MaskPersonalData = options.MaskPersonalData;
-            var mode = options.Split switch
+            // The shares decide the mode; seed and strata are set apart.
+            var shares = options.Split is { } chosen ? chosen with { Seed = SplitOptions.DefaultSeed, StratifyBy = null } : null;
+            var mode = shares switch
             {
                 null => SplitMode.None,
-                var s when s with { Seed = SplitOptions.DefaultSeed } == SplitOptions.Standard => SplitMode.Standard,
-                var s when s with { Seed = SplitOptions.DefaultSeed } == SplitOptions.TrainValidation => SplitMode.TrainValidation,
+                var s when s == SplitOptions.Standard => SplitMode.Standard,
+                var s when s == SplitOptions.TrainValidation => SplitMode.TrainValidation,
                 _ => SplitMode.Custom,
             };
             SelectedSplitMode = SplitModes.First(m => m.Mode == mode);
             if (options.Split is { } split)
             {
                 (TrainPercent, ValidationPercent, TestPercent, Seed) = (split.TrainPercent, split.ValidationPercent, split.TestPercent, split.Seed);
+
+                // A group the dataset no longer uses is dropped (the split stays plain).
+                SelectedStratify = StratifyOptions.FirstOrDefault(o => o.StratifyBy is { } by && split.StratifyBy is { } last
+                    && Domain.Entities.Tag.FoldName(by) == Domain.Entities.Tag.FoldName(last)) ?? StratifyOptions[0];
             }
         }
         finally

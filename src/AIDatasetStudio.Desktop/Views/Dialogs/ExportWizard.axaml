@@ -148,10 +148,22 @@
                     <NumericUpDown Value="{Binding TestPercent}" Minimum="0" Maximum="99" Increment="5" />
                   </StackPanel>
                 </Grid>
+                <!-- Exact shares within each tag or tag group (stratified) -->
+                <StackPanel IsVisible="{Binding IsSplit}">
+                  <TextBlock Classes="label" Text="{l:Tr Export_Stratify}" />
+                  <ComboBox x:Name="StratifyBox" ItemsSource="{Binding StratifyOptions}" SelectedItem="{Binding SelectedStratify}"
+                            HorizontalAlignment="Stretch" IsEnabled="{Binding CanStratify}" ToolTip.Tip="{l:Tr Export_StratifyTip}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:StratifyOption">
+                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
                 <StackPanel IsVisible="{Binding IsSplit}">
                   <TextBlock Classes="label" Text="{l:Tr Export_Seed}" />
                   <NumericUpDown Value="{Binding Seed}" Minimum="0" Maximum="2147483647" Increment="1" />
-                  <TextBlock Classes="caption muted" Text="{l:Tr Export_SplitHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Classes="caption muted" Text="{Binding SplitHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
                 </StackPanel>
               </StackPanel>
             </StackPanel>

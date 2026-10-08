@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+        xmlns:tags="using:AIDatasetStudio.Desktop.ViewModels.Tags"
         xmlns:views="using:AIDatasetStudio.Desktop.Views"
         xmlns:l="using:AIDatasetStudio.Desktop.Localization"
         xmlns:ic="using:FluentIcons.Avalonia"
@@ -108,6 +109,24 @@
           <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldLock" /></MenuItem.Icon>
         </MenuItem>
         <Separator />
+        <!-- Each tag toggles on the shown or selected records; those with a shortcut show Mod+N -->
+        <MenuItem x:Name="TagMenuItem" Header="{l:Tr Menu_TagRecord}" ItemsSource="{Binding Tags.Tags}" IsEnabled="{Binding !Tags.IsEmpty}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Tag" /></MenuItem.Icon>
+          <MenuItem.Styles>
+            <Style Selector="MenuItem" x:DataType="tags:TagViewModel">
+              <Setter Property="Header" Value="{Binding Name}" />
+              <Setter Property="InputGesture" Value="{Binding Gesture}" />
+              <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ToggleTagCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding}" />
+              <Setter Property="Icon">
+                <Template>
+                  <Ellipse Width="10" Height="10" Fill="{Binding Color}" />
+                </Template>
+              </Setter>
+            </Style>
+          </MenuItem.Styles>
+        </MenuItem>
+        <Separator />
         <MenuItem x:Name="DeleteMenuItem" Header="{l:Tr Menu_DeleteRecords}" Command="{Binding DeleteSelectionCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="Delete" /></MenuItem.Icon>
         </MenuItem>
@@ -118,6 +137,9 @@
         </MenuItem>
         <MenuItem x:Name="CustomTermsMenuItem" Header="{l:Tr Menu_CustomTerms}" Command="{Binding EditCustomTermsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldKeyhole" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="TagsMenuItem" Header="{l:Tr Menu_Tags}" Command="{Binding ManageTagsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="TagMultiple" /></MenuItem.Icon>
         </MenuItem>
       </MenuItem>
       <MenuItem Header="{l:Tr Menu_Help}">

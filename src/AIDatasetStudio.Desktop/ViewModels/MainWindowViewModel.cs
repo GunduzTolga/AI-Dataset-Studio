@@ -6,12 +6,14 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
+using AIDatasetStudio.Application.Tags;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -37,6 +39,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly RecordOperations _operations;
     private readonly IRecordAnalysisService _analysis;
     private readonly IUserSettings _settings;
+    private readonly ITagService _tagService;
+    private readonly TagCatalog _tags;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -53,6 +57,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         RecordOperations operations,
         IRecordAnalysisService analysis,
         IUserSettings settings,
+        ITagService tagService,
+        TagCatalog tags,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -73,6 +79,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _operations = operations;
         _analysis = analysis;
         _settings = settings;
+        _tagService = tagService;
+        _tags = tags;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -120,8 +128,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand))]
     [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
-    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleTagCommand), nameof(ToggleTagSlotCommand))]
     public partial bool IsBusy { get; set; }
 
     public WorkspaceInfo? Workspace => _workspaces.Current;
@@ -356,7 +365,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private async Task ExportDatasetAsync(DatasetNodeViewModel dataset, IReadOnlyList<VersionInfo> versions, Guid? versionId)
     {
-        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type, versions, versionId));
+        var tags = await _tagService.ListAsync(dataset.Id);
+        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type, versions, versionId, tags));
         if (await _dialogs.ShowExportWizardAsync(wizard) is { } result)
         {
             Status.Set("Status_Exported", result.Exported, dataset.Name, string.Join(", ", result.Files.Select(f => Path.GetFileName(f.Path))));
@@ -553,10 +563,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         Explorer.IsWorkspaceOpen = HasWorkspace;
         EditCustomTermsCommand.NotifyCanExecuteChanged();
+        ManageTagsCommand.NotifyCanExecuteChanged();
         if (HasWorkspace)
         {
             try
             {
+                // Tags first, so the first rows of the list already show theirs.
+                await _tags.ReloadAsync();
                 await Explorer.ReloadAsync();
                 Details.CustomTerms = await _analysis.GetCustomTermsAsync();
             }
@@ -566,6 +579,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
         else
         {
+            _tags.Clear();
             Explorer.Clear();
         }
     }
@@ -627,6 +641,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 }
 
                 break;
+            case TagsChanged tags:
+                Records.UpdateTag(tags.RecordIds, tags.TagId, tags.Added);
+                break;
         }
     }
 
@@ -637,6 +654,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         NextRecordCommand.NotifyCanExecuteChanged();
         PreviousRecordCommand.NotifyCanExecuteChanged();
         DeleteSelectionCommand.NotifyCanExecuteChanged();
+        ToggleTagCommand.NotifyCanExecuteChanged();
+        ToggleTagSlotCommand.NotifyCanExecuteChanged();
     }
 
     private void OnHistoryChanged()

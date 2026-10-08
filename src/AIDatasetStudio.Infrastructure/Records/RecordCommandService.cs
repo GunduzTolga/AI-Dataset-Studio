@@ -125,6 +125,29 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return new StatusChangeResult(changes, ids.Count - changes.Count);
     }
 
+    public async Task<IReadOnlyList<Guid>> SetTagAsync(IReadOnlyCollection<Guid> recordIds, Guid tagId, bool present, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(recordIds);
+        if (recordIds.Count == 0)
+        {
+            return [];
+        }
+
+        await using var context = database.CreateDbContext();
+        var tag = await context.Tags.SingleOrDefaultAsync(t => t.Id == tagId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Tag), tagId);
+        var ids = recordIds.Distinct().ToList();
+        var records = await context.Records.Include(r => r.Tags).Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var changed = records
+            .Where(record => present ? record.AddTag(tag, now) : record.RemoveTag(tagId, now))
+            .OrderBy(record => record.Ordinal)
+            .Select(record => record.Id)
+            .ToList();
+        await context.SaveChangesAsync(cancellationToken);
+        return changed;
+    }
+
     public async Task<int> DeleteAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(recordIds);
@@ -188,7 +211,13 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         }
 
         var ids = byId.Keys.ToList();
-        var records = await context.Records.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var withTags = byId.Values.Any(state => state.TagIds is not null);
+        IQueryable<DatasetRecord> query = withTags ? context.Records.Include(r => r.Tags) : context.Records;
+        var records = await query.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var tagIds = byId.Values.SelectMany(state => state.TagIds ?? []).Distinct().ToList();
+        var tags = tagIds.Count == 0
+            ? new Dictionary<Guid, Tag>()
+            : await context.Tags.Where(t => tagIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, cancellationToken);
         var before = new List<RecordState>(records.Count);
         var reindex = new List<DatasetRecord>();
         foreach (var record in records)
@@ -196,8 +225,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             var target = byId[record.Id];
             var previousPayload = record.Payload;
             var previousStatus = record.Status;
+            var previousTags = record.Tags.Select(t => t.Id).ToList();
             var contentChanged = record.RestoreState(target.Status, target.Payload, now);
-            before.Add(new RecordState(record.Id, previousStatus, contentChanged ? previousPayload : null));
+            var tagsChanged = target.TagIds is { } wanted
+                && record.SetTags([.. wanted.Where(tags.ContainsKey).Select(id => tags[id])], now);
+            before.Add(new RecordState(record.Id, previousStatus, contentChanged ? previousPayload : null, tagsChanged ? previousTags : null));
             if (contentChanged)
             {
                 reindex.Add(record);

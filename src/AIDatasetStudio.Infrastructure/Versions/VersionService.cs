@@ -210,12 +210,12 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
             }
             else if (now.ContentHash != row.ContentHash)
             {
-                states.Add(new RecordState(recordId, row.Status, revisions[row.RevisionId].Payload));
+                states.Add(new RecordState(recordId, row.Status, revisions[row.RevisionId].Payload, TagsIfChanged(now.TagIds, row.TagIds)));
                 contentRestored++;
             }
-            else if (now.Status != row.Status)
+            else if (now.Status != row.Status || !SameTags(now.TagIds, row.TagIds))
             {
-                states.Add(new RecordState(recordId, row.Status));
+                states.Add(new RecordState(recordId, row.Status, TagIds: TagsIfChanged(now.TagIds, row.TagIds)));
                 statusRestored++;
             }
         }
@@ -255,21 +255,25 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         var older = await ReadStatesAsync(connection, snapshot, datasetId, olderVersionId, cancellationToken);
         var newer = await ReadStatesAsync(connection, snapshot, datasetId, newerVersionId, cancellationToken);
 
-        var differences = new List<(Guid Id, DifferenceKind Kind, long Ordinal, RecordStatus? Old, RecordStatus? New)>();
+        var differences = new List<(Guid Id, DifferenceKind Kind, long Ordinal, StateRow? Old, StateRow? New)>();
         long unchanged = 0;
         foreach (var (recordId, now) in newer)
         {
             if (!older.TryGetValue(recordId, out var then))
             {
-                differences.Add((recordId, DifferenceKind.Added, now.Ordinal, null, now.Status));
+                differences.Add((recordId, DifferenceKind.Added, now.Ordinal, null, now));
             }
             else if (then.ContentHash != now.ContentHash)
             {
-                differences.Add((recordId, DifferenceKind.Modified, now.Ordinal, then.Status, now.Status));
+                differences.Add((recordId, DifferenceKind.Modified, now.Ordinal, then, now));
             }
             else if (then.Status != now.Status)
             {
-                differences.Add((recordId, DifferenceKind.StatusChanged, now.Ordinal, then.Status, now.Status));
+                differences.Add((recordId, DifferenceKind.StatusChanged, now.Ordinal, then, now));
+            }
+            else if (!SameTags(then.TagIds, now.TagIds))
+            {
+                differences.Add((recordId, DifferenceKind.TagsChanged, now.Ordinal, then, now));
             }
             else
             {
@@ -281,7 +285,7 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         {
             if (!newer.ContainsKey(recordId))
             {
-                differences.Add((recordId, DifferenceKind.Removed, then.Ordinal, then.Status, null));
+                differences.Add((recordId, DifferenceKind.Removed, then.Ordinal, then, null));
             }
         }
 
@@ -299,8 +303,10 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
                     d.Kind,
                     d.Ordinal,
                     (d.Kind == DifferenceKind.Removed ? olderPreviews : newerPreviews).GetValueOrDefault(d.Id, string.Empty),
-                    d.Old,
-                    d.New))],
+                    d.Old?.Status,
+                    d.New?.Status,
+                    d.Old?.TagIds,
+                    d.New?.TagIds))],
             unchanged);
     }
 
@@ -321,14 +327,14 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         }
     }
 
-    // Every record of the working copy or a version: position, status and content hash.
+    // Every record of the working copy or a version: position, status, content hash and tags.
     private static async Task<Dictionary<Guid, StateRow>> ReadStatesAsync(
         SqliteConnection connection, SqliteTransaction transaction, Guid datasetId, Guid? versionId, CancellationToken cancellationToken)
     {
         await using var command = Command(connection, transaction, versionId is null
-            ? "SELECT Id, Ordinal, Status, ContentHash FROM DatasetRecords WHERE DatasetId = $ds;"
-            : """
-              SELECT x.RecordId, m.Ordinal, m.Status, x.ContentHash
+            ? $"SELECT r.Id, r.Ordinal, r.Status, r.ContentHash, {CurrentTagsSql} FROM DatasetRecords r WHERE r.DatasetId = $ds;"
+            : $"""
+              SELECT x.RecordId, m.Ordinal, m.Status, x.ContentHash, {VersionTagsSql}
               FROM VersionRecordMappings m JOIN RecordRevisions x ON x.Id = m.RevisionId
               WHERE m.VersionId = $version;
               """);
@@ -342,7 +348,8 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            rows[SqliteValues.ReadGuid(reader.GetString(0))] = new StateRow(reader.GetInt64(1), (RecordStatus)reader.GetInt32(2), reader.GetString(3));
+            rows[SqliteValues.ReadGuid(reader.GetString(0))] =
+                new StateRow(reader.GetInt64(1), (RecordStatus)reader.GetInt32(2), reader.GetString(3), ReadTags(reader, 4));
         }
 
         return rows;
@@ -351,8 +358,8 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
     private static async Task<Dictionary<Guid, VersionRow>> ReadVersionRowsAsync(
         SqliteConnection connection, SqliteTransaction transaction, Guid versionId, CancellationToken cancellationToken)
     {
-        await using var command = Command(connection, transaction, """
-            SELECT x.RecordId, m.Ordinal, m.Status, x.ContentHash, x.Id, m.TagIds
+        await using var command = Command(connection, transaction, $"""
+            SELECT x.RecordId, m.Ordinal, m.Status, x.ContentHash, x.Id, {VersionTagsSql}
             FROM VersionRecordMappings m JOIN RecordRevisions x ON x.Id = m.RevisionId
             WHERE m.VersionId = $version;
             """);
@@ -362,11 +369,8 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
         {
-            var tags = reader.IsDBNull(5)
-                ? []
-                : (JsonSerializer.Deserialize<List<string>>(reader.GetString(5)) ?? []).Select(SqliteValues.ReadGuid).ToList();
             rows[SqliteValues.ReadGuid(reader.GetString(0))] =
-                new VersionRow(reader.GetInt64(1), (RecordStatus)reader.GetInt32(2), reader.GetString(3), reader.GetInt64(4), tags);
+                new VersionRow(reader.GetInt64(1), (RecordStatus)reader.GetInt32(2), reader.GetString(3), reader.GetInt64(4), ReadTags(reader, 5));
         }
 
         return rows;
@@ -431,6 +435,22 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         return previews;
     }
 
+    // Tags as a JSON array of ids or NULL. A version's tags that were deleted since no longer count.
+    private const string CurrentTagsSql = "(SELECT json_group_array(rt.TagId) FROM RecordTags rt WHERE rt.RecordId = r.Id HAVING COUNT(*) > 0)";
+
+    private const string VersionTagsSql =
+        "(SELECT json_group_array(j.value) FROM json_each(m.TagIds) j WHERE j.value IN (SELECT Id FROM Tags) HAVING COUNT(*) > 0)";
+
+    private static IReadOnlyList<Guid> ReadTags(SqliteDataReader reader, int ordinal) =>
+        reader.IsDBNull(ordinal)
+            ? []
+            : [.. (JsonSerializer.Deserialize<List<string>>(reader.GetString(ordinal)) ?? []).Select(SqliteValues.ReadGuid).Order()];
+
+    private static bool SameTags(IReadOnlyList<Guid> a, IReadOnlyList<Guid> b) => a.SequenceEqual(b);
+
+    private static IReadOnlyList<Guid>? TagsIfChanged(IReadOnlyList<Guid> current, IReadOnlyList<Guid> target) =>
+        SameTags(current, target) ? null : target;
+
     private static (SqliteConnection Connection, SqliteTransaction Transaction) Raw(WorkspaceDbContext context, IDbContextTransaction transaction) =>
         ((SqliteConnection)context.Database.GetDbConnection(), (SqliteTransaction)transaction.GetDbTransaction());
 
@@ -445,7 +465,8 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
     private static VersionInfo ToInfo(DatasetVersion v) =>
         new(v.Id, v.DatasetId, v.Number, v.Description, v.Tokenizer, v.ContextLength, v.RecordCount, v.ApprovedCount, v.CreatedAt);
 
-    private sealed record StateRow(long Ordinal, RecordStatus Status, string ContentHash);
+    /// <param name="TagIds">Sorted.</param>
+    private sealed record StateRow(long Ordinal, RecordStatus Status, string ContentHash, IReadOnlyList<Guid> TagIds);
 
     private sealed record VersionRow(long Ordinal, RecordStatus Status, string ContentHash, long RevisionId, IReadOnlyList<Guid> TagIds);
 

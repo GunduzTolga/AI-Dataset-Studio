@@ -18,6 +18,11 @@ public sealed record ContentChanged(Guid DatasetId, Guid RecordId, string Previe
 public sealed record RecordsDeleted(Guid DatasetId, IReadOnlyList<Guid> RecordIds) : RecordChange(DatasetId);
 
 /// <summary>
+/// A tag was added to (<see cref="Added"/>) or removed from records.
+/// </summary>
+public sealed record TagsChanged(Guid DatasetId, Guid TagId, bool Added, IReadOnlyList<Guid> RecordIds) : RecordChange(DatasetId);
+
+/// <summary>
 /// Records were put back into earlier states by undo or redo; views reload them.
 /// </summary>
 public sealed record RecordsReplaced(Guid DatasetId, IReadOnlyList<Guid> RecordIds) : RecordChange(DatasetId);
@@ -50,6 +55,29 @@ public sealed class RecordOperations(IRecordCommandService commands, IRecordQuer
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Adds a tag to records or removes it (SDD §6.2); one step in the history.
+    /// </summary>
+    /// <param name="datasetId">The dataset of the records.</param>
+    /// <param name="recordIds">The records; those already as asked are left alone.</param>
+    /// <param name="tagId">The tag.</param>
+    /// <param name="tagName">Its name, for the history.</param>
+    /// <param name="present">Add (<c>true</c>) or remove.</param>
+    /// <param name="ordinal">The record number when a single record is changed, for the history.</param>
+    /// <returns>The records that changed.</returns>
+    public async Task<IReadOnlyList<Guid>> SetTagAsync(
+        Guid datasetId, IReadOnlyCollection<Guid> recordIds, Guid tagId, string tagName, bool present, long? ordinal = null)
+    {
+        var changed = await commands.SetTagAsync(recordIds, tagId, present);
+        if (changed.Count > 0)
+        {
+            history.Push(new TagAction(datasetId, tagId, tagName, present, changed, recordIds.Count == 1 ? ordinal : null));
+            Changed?.Invoke(this, new TagsChanged(datasetId, tagId, present, changed));
+        }
+
+        return changed;
     }
 
     /// <summary>

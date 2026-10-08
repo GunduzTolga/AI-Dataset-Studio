@@ -83,8 +83,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         if (sampleLines > 0)
         {
             var scanner = options.MaskPersonalData ? new PiiScanner(await analysis.GetCustomTermsAsync(cancellationToken)) : null;
-            var pipeline = new Pipeline(options, scanner);
-            await foreach (var record in ReadAsync(connection, null, source, options, cancellationToken))
+            var pipeline = new Pipeline(options, scanner, parts: null);
+            await foreach (var record in ReadAsync(connection, null, source, options, withTags: false, cancellationToken))
             {
                 if (pipeline.Convert(record) is { } line)
                 {
@@ -169,15 +169,19 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 file.Open();
             }
 
-            var pipeline = new Pipeline(options, scanner);
+            Pipeline pipeline;
             await using (var connection = await database.OpenConnectionAsync(cancellationToken))
             {
                 // One deferred read transaction: a consistent snapshot that does not block edits (WAL).
                 await using var snapshot = connection.BeginTransaction(deferred: true);
+                var parts = options.Split is { IsStratified: true } stratified
+                    ? await StratifyAsync(connection, snapshot, source, options, stratified, cancellationToken)
+                    : null;
+                pipeline = new Pipeline(options, scanner, parts);
                 var total = await CountSelectedAsync(connection, snapshot, source, options, cancellationToken);
                 long processed = 0;
                 progress?.Report(new ExportProgress(0, total));
-                await foreach (var record in ReadAsync(connection, snapshot, source, options, cancellationToken))
+                await foreach (var record in ReadAsync(connection, snapshot, source, options, withTags: false, cancellationToken))
                 {
                     if (pipeline.Convert(record) is { } line)
                     {
@@ -327,12 +331,47 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
     }
 
+    /// <summary>
+    /// A first pass over the records that will be written (same checks, nothing rendered): their
+    /// groups, strata and sizes, assigned to parts with exact shares per stratum (SDD §10.1).
+    /// </summary>
+    private static async Task<IReadOnlyDictionary<string, SplitPart>> StratifyAsync(
+        SqliteConnection connection, SqliteTransaction transaction, Source source, ExportOptions options, SplitOptions split, CancellationToken cancellationToken)
+    {
+        var checks = new Pipeline(options, scanner: null, parts: null);
+        var groups = new Dictionary<string, (string Stratum, int Count)>(StringComparer.Ordinal);
+        var order = new List<string>();
+        await foreach (var record in ReadAsync(connection, transaction, source, options, withTags: true, cancellationToken))
+        {
+            if (checks.Accept(record) is not { } payload)
+            {
+                continue;
+            }
+
+            var key = ExportSplit.GroupKey(payload, record.Id);
+            if (groups.TryGetValue(key, out var group))
+            {
+                groups[key] = group with { Count = group.Count + 1 };
+            }
+            else
+            {
+                // A group is split within the stratum of its first record.
+                var tags = JsonSerializer.Deserialize<List<string>>(record.TagNames ?? "[]") ?? [];
+                groups[key] = (ExportSplit.StratumOf(split.StratifyBy, tags), 1);
+                order.Add(key);
+            }
+        }
+
+        return ExportSplit.AssignStratified(split, [.. order.Select(key => new StratifiedGroup(key, groups[key].Stratum, groups[key].Count))]);
+    }
+
     // Records with a chosen status in list order, in batches, with whether they are over the context length.
     private static async IAsyncEnumerable<ExportRecord> ReadAsync(
         SqliteConnection connection,
         SqliteTransaction? transaction,
         Source source,
         ExportOptions options,
+        bool withTags,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (options.Statuses.Count == 0)
@@ -349,7 +388,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 command.Transaction = transaction;
                 command.CommandText = $"""
                     {SourceSql(source)}
-                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit
+                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}
                     FROM s WHERE s.Status IN ({StatusList(options)}) AND s.Ordinal > $after
                     ORDER BY s.Ordinal
                     LIMIT {BatchSize};
@@ -363,7 +402,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                         SqliteValues.ReadGuid(reader.GetString(0)),
                         reader.GetString(2),
                         reader.GetString(3),
-                        reader.GetBoolean(4)));
+                        reader.GetBoolean(4),
+                        reader.IsDBNull(5) ? null : reader.GetString(5)));
                     after = reader.GetInt64(1);
                 }
             }
@@ -382,21 +422,23 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     /// <summary>
     /// The records to export as a common table <c>s</c> (Id, Ordinal, Status, ContentHash,
-    /// DataPayload, OverLimit, NotAnalyzed): the dataset's records with their up-to-date analysis,
+    /// DataPayload, OverLimit, NotAnalyzed, TagNames): the dataset's records with their up-to-date analysis,
     /// or a version's records with the token counts and context length frozen with it.
     /// </summary>
     private static string SourceSql(Source source) => source.VersionId is null
         ? $"""
           WITH s AS (
               SELECT r.Id AS Id, r.Ordinal AS Ordinal, r.Status AS Status, r.ContentHash AS ContentHash, r.DataPayload AS DataPayload,
-                     (a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength) AS OverLimit, (a.RecordId IS NULL) AS NotAnalyzed
+                     (a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength) AS OverLimit, (a.RecordId IS NULL) AS NotAnalyzed,
+                     (SELECT json_group_array(t.Name) FROM RecordTags rt JOIN Tags t ON t.Id = rt.TagId WHERE rt.RecordId = r.Id) AS TagNames
               FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
               WHERE r.DatasetId = $ds)
           """
         : """
           WITH s AS (
               SELECT x.RecordId AS Id, m.Ordinal AS Ordinal, m.Status AS Status, x.ContentHash AS ContentHash, x.DataPayload AS DataPayload,
-                     (m.Tokens IS NOT NULL AND m.Tokens > v.ContextLength) AS OverLimit, 0 AS NotAnalyzed
+                     (m.Tokens IS NOT NULL AND m.Tokens > v.ContextLength) AS OverLimit, 0 AS NotAnalyzed,
+                     (SELECT json_group_array(t.Name) FROM json_each(m.TagIds) j JOIN Tags t ON t.Id = j.value) AS TagNames
               FROM VersionRecordMappings m
               JOIN RecordRevisions x ON x.Id = m.RevisionId
               JOIN DatasetVersions v ON v.Id = m.VersionId
@@ -426,7 +468,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         }
     }
 
-    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit);
+    /// <param name="TagNames">The record's tag names as a JSON array, when asked for.</param>
+    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null);
 
     private readonly record struct ExportLine(SplitPart? Part, string Text);
 
@@ -468,7 +511,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     /// Decides for each record, in list order, whether and how it is written. The order of the
     /// checks (unsupported, too long, copy) matches the preview counts.
     /// </summary>
-    private sealed class Pipeline(ExportOptions options, PiiScanner? scanner)
+    /// <param name="parts">The parts of a stratified split by group key; <c>null</c> to assign by hash alone.</param>
+    private sealed class Pipeline(ExportOptions options, PiiScanner? scanner, IReadOnlyDictionary<string, SplitPart>? parts)
     {
         private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
 
@@ -483,6 +527,32 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         public long Masked { get; private set; }
 
         public ExportLine? Convert(ExportRecord record)
+        {
+            if (Accept(record) is not { } payload)
+            {
+                return null;
+            }
+
+            // The split follows the stored question, so masking never moves a record to another file.
+            SplitPart? part = options.Split is { } split
+                ? parts is not null && parts.TryGetValue(ExportSplit.GroupKey(payload, record.Id), out var assigned)
+                    ? assigned
+                    : ExportSplit.Assign(split, ExportSplit.GroupKey(payload, record.Id))
+                : null;
+            if (scanner is not null && scanner.Mask(payload) is { HasFindings: true } masked)
+            {
+                payload = masked.Payload;
+                Masked++;
+            }
+
+            Exported++;
+            return new ExportLine(part, ExportRenderer.Render(options.Format, payload));
+        }
+
+        /// <summary>
+        /// The checks alone: the record's content if it is written, otherwise <c>null</c> (counted).
+        /// </summary>
+        public RecordPayload? Accept(ExportRecord record)
         {
             RecordPayload payload;
             try
@@ -513,16 +583,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 return null;
             }
 
-            // The split follows the stored question, so masking never moves a record to another file.
-            SplitPart? part = options.Split is { } split ? ExportSplit.Assign(split, ExportSplit.GroupKey(payload, record.Id)) : null;
-            if (scanner is not null && scanner.Mask(payload) is { HasFindings: true } masked)
-            {
-                payload = masked.Payload;
-                Masked++;
-            }
-
-            Exported++;
-            return new ExportLine(part, ExportRenderer.Render(options.Format, payload));
+            return payload;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Tags;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
@@ -11,7 +12,14 @@ namespace AIDatasetStudio.Desktop.ViewModels.Export;
 /// </summary>
 /// <param name="Versions">Its frozen versions, which can be exported instead of the current records.</param>
 /// <param name="VersionId">The version to start with; <c>null</c> for the current records.</param>
-public sealed record ExportTarget(Guid DatasetId, string Name, DatasetType Type, IReadOnlyList<VersionInfo>? Versions = null, Guid? VersionId = null);
+/// <param name="Tags">The workspace's tags with their counts in the dataset, for splitting by tag.</param>
+public sealed record ExportTarget(
+    Guid DatasetId,
+    string Name,
+    DatasetType Type,
+    IReadOnlyList<VersionInfo>? Versions = null,
+    Guid? VersionId = null,
+    IReadOnlyList<TagInfo>? Tags = null);
 
 /// <summary>
 /// What to export: the current records or a frozen version (SDD §14).
@@ -39,6 +47,12 @@ public enum SplitMode
 }
 
 public sealed record SplitModeOption(SplitMode Mode, string Label);
+
+/// <summary>
+/// What the split is made within: nothing, each record's first tag, or a tag group (SDD §10.1).
+/// </summary>
+/// <param name="StratifyBy">The <see cref="SplitOptions.StratifyBy"/> value.</param>
+public sealed record StratifyOption(string? StratifyBy, string Label);
 
 /// <summary>
 /// A written file on the result screen.

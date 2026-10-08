@@ -1,6 +1,7 @@
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,6 +25,7 @@ public static class AppServices
         services.AddSingleton<IUpdateService, VelopackUpdateService>();
         services.AddSingleton<UndoHistory>();
         services.AddSingleton<RecordOperations>();
+        services.AddSingleton<TagCatalog>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();

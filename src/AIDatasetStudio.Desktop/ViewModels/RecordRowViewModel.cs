@@ -19,6 +19,11 @@ public enum ScoreTone
 
 public sealed partial class RecordRowViewModel : ViewModelBase
 {
+    /// <summary>
+    /// Tags shown in the row; the rest are counted ("+2").
+    /// </summary>
+    public const int MaxVisibleTags = 2;
+
     private readonly Localizer _localizer;
 
     public RecordRowViewModel(RecordSummary summary, Localizer localizer)
@@ -58,6 +63,37 @@ public sealed partial class RecordRowViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsOverContextLimit { get; private set; }
 
+    /// <summary>
+    /// The record's tags, kept in step with tag changes made elsewhere.
+    /// </summary>
+    public IReadOnlyList<Guid> TagIds { get; private set; } = [];
+
+    /// <summary>
+    /// The tags (colored dot and name), by name.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTags), nameof(VisibleTags), nameof(MoreTagsText), nameof(HasMoreTags), nameof(TagsTip))]
+    public partial IReadOnlyList<Tags.TagViewModel> Tags { get; private set; } = [];
+
+    public bool HasTags => Tags.Count > 0;
+
+    /// <summary>
+    /// The first <see cref="MaxVisibleTags"/> tags, shown next to the content.
+    /// </summary>
+    public IReadOnlyList<Tags.TagViewModel> VisibleTags => Tags.Count <= MaxVisibleTags ? Tags : [.. Tags.Take(MaxVisibleTags)];
+
+    /// <summary>
+    /// "+2" for the tags that do not fit.
+    /// </summary>
+    public string MoreTagsText => HasMoreTags ? "+" + (Tags.Count - MaxVisibleTags).ToString(CultureInfo.CurrentCulture) : string.Empty;
+
+    public bool HasMoreTags => Tags.Count > MaxVisibleTags;
+
+    /// <summary>
+    /// All tag names, for the tooltip.
+    /// </summary>
+    public string? TagsTip => HasTags ? string.Join(", ", Tags.Select(t => t.Name)) : null;
+
     public string StatusLabel => Labels.For(_localizer, Status);
 
     public string TokenText => TotalTokens?.ToString("N0", CultureInfo.CurrentCulture) ?? "—";
@@ -92,6 +128,15 @@ public sealed partial class RecordRowViewModel : ViewModelBase
         TotalTokens = summary.TotalTokens;
         Score = summary.Score;
         IsOverContextLimit = summary.IsOverContextLimit;
+    }
+
+    /// <summary>
+    /// Shows these tags; <paramref name="catalog"/> gives their names and colors.
+    /// </summary>
+    public void SetTags(IReadOnlyList<Guid> tagIds, Tags.TagCatalog catalog)
+    {
+        TagIds = tagIds;
+        Tags = catalog.Resolve(tagIds);
     }
 
     public void RefreshLabels()

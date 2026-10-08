@@ -265,7 +265,7 @@ public sealed class RecordCommandServiceTests
     private sealed class RecordDetailsComparer : IEqualityComparer<RecordDetails?>
     {
         public bool Equals(RecordDetails? x, RecordDetails? y) =>
-            x is not null && y is not null && x with { Tags = [] } == y with { Tags = [] } && x.Tags.SequenceEqual(y.Tags);
+            x is not null && y is not null && x with { TagIds = [] } == y with { TagIds = [] } && x.TagIds.SequenceEqual(y.TagIds);
 
         public int GetHashCode(RecordDetails? obj) => obj?.Id.GetHashCode() ?? 0;
     }

@@ -8,6 +8,7 @@ using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -257,6 +258,19 @@ internal sealed class FakeDialogs : IDialogService
     {
         LastVersions = versions;
         await VersionsScript(versions);
+    }
+
+    /// <summary>
+    /// What the user does in Tools › Tags; by default opens it.
+    /// </summary>
+    public Func<TagManagerViewModel, Task> TagManagerScript { get; set; } = tags => tags.InitializeAsync();
+
+    public TagManagerViewModel? LastTagManager { get; private set; }
+
+    public async Task ShowTagManagerAsync(TagManagerViewModel tags)
+    {
+        LastTagManager = tags;
+        await TagManagerScript(tags);
     }
 
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
