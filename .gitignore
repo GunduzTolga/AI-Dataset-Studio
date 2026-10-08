@@ -1,0 +1,51 @@
+## Build and Architecture
+bin/
+obj/
+out/
+dist/
+publish/
+app.settings.db
+*.aids
+*.db
+*.sqlite
+*.sqlite3
+
+## Visual Studio / JetBrains Rider / VS Code
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+
+## Logs & Temp
+*.log
+logs/
+temp/
+tmp/
+*.tmp
+TestResults/
+[Bb]uild[Ll]og.*
+
+## OS Generated
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Secrets / Environment
+.env
+.env.local
+*.secrets.json
+appsettings*.local.json
