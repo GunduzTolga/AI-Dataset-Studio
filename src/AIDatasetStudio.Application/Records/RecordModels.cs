@@ -53,6 +53,38 @@ public sealed record RecordDetails(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
-/// <param name="Changed">Records whose status changed.</param>
+/// <summary>
+/// One record moved from <see cref="From"/> to <see cref="To"/>.
+/// </summary>
+public sealed record RecordStatusUpdate(Guid RecordId, RecordStatus From, RecordStatus To);
+
+/// <param name="Changes">Records whose status changed, with their previous status (for undo).</param>
 /// <param name="Skipped">Records left as they were because the transition is not allowed or they no longer exist.</param>
-public sealed record StatusChangeResult(int Changed, int Skipped);
+public sealed record StatusChangeResult(IReadOnlyList<RecordStatusUpdate> Changes, int Skipped)
+{
+    public static StatusChangeResult None { get; } = new([], 0);
+
+    public int Changed => Changes.Count;
+}
+
+/// <summary>
+/// A record's status, and optionally its content, at one moment; undo and redo put records
+/// back into such states.
+/// </summary>
+/// <param name="Payload">The content, or <c>null</c> to leave the content as it is.</param>
+public sealed record RecordState(Guid RecordId, RecordStatus Status, RecordPayload? Payload = null);
+
+/// <summary>
+/// Everything needed to bring back a deleted record exactly as it was.
+/// </summary>
+public sealed record RecordSnapshot(
+    Guid Id,
+    Guid DatasetId,
+    long Ordinal,
+    RecordStatus Status,
+    RecordPayload Payload,
+    RecordLineage Lineage,
+    string MetadataJson,
+    IReadOnlyList<Guid> TagIds,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

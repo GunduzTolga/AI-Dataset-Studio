@@ -3,6 +3,7 @@ using System.Globalization;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
+using Avalonia.Controls.Selection;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -48,10 +49,57 @@ public sealed partial class RecordListViewModel : ViewModelBase
         StatusFilters = [new StatusFilterOption(null), .. Enum.GetValues<RecordStatus>().Select(status => new StatusFilterOption(status))];
         RefreshFilterLabels();
         SelectedStatusFilter = StatusFilters[0];
+        Selection = new SelectionModel<RecordRowViewModel>(Items) { SingleSelect = false };
+        Selection.SelectionChanged += (_, _) => OnSelectionChanged();
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
     }
 
+    /// <summary>
+    /// Raised when the selected rows change (click, keyboard, reload or code).
+    /// </summary>
+    public event EventHandler? SelectionChanged;
+
     public ObservableCollection<RecordRowViewModel> Items { get; } = [];
+
+    /// <summary>
+    /// The selected rows; several can be selected with Ctrl/Shift-click for batch actions.
+    /// </summary>
+    public SelectionModel<RecordRowViewModel> Selection { get; }
+
+    /// <summary>
+    /// The first selected row, or <c>null</c>. Setting it selects only that row.
+    /// </summary>
+    public RecordRowViewModel? SelectedItem
+    {
+        get => Selection.SelectedItem;
+        set
+        {
+            if (value is null)
+            {
+                Selection.Clear();
+                return;
+            }
+
+            var index = Items.IndexOf(value);
+            if (index >= 0 && !(Selection.Count == 1 && Selection.SelectedIndex == index))
+            {
+                using (Selection.BatchUpdate())
+                {
+                    Selection.Clear();
+                    Selection.Select(index);
+                }
+            }
+        }
+    }
+
+    public IReadOnlyList<RecordRowViewModel> SelectedRows => Selection.SelectedItems.OfType<RecordRowViewModel>().ToList();
+
+    public int SelectionCount => Selection.Count;
+
+    /// <summary>
+    /// The latest reload; awaited when the dataset changes as part of another operation.
+    /// </summary>
+    public Task Loading { get; private set; } = Task.CompletedTask;
 
     public IReadOnlyList<StatusFilterOption> StatusFilters { get; }
 
@@ -76,9 +124,6 @@ public sealed partial class RecordListViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsEmptyDataset), nameof(IsNoMatches))]
     [NotifyCanExecuteChangedFor(nameof(LoadMoreCommand))]
     public partial bool IsLoading { get; private set; }
-
-    [ObservableProperty]
-    public partial RecordRowViewModel? SelectedItem { get; set; }
 
     /// <summary>
     /// How long typing must pause before the search runs.
@@ -116,7 +161,74 @@ public sealed partial class RecordListViewModel : ViewModelBase
     /// <summary>
     /// Discards loaded rows and loads the first page for the current dataset and filter.
     /// </summary>
-    public async Task ReloadAsync()
+    public Task ReloadAsync() => Loading = ReloadCoreAsync();
+
+    /// <summary>
+    /// Selects the row after the current one, loading the next page when needed.
+    /// </summary>
+    /// <returns><c>false</c> at the end of the list.</returns>
+    public async Task<bool> SelectNextAsync()
+    {
+        var index = SelectedItem is { } current ? Items.IndexOf(current) + 1 : 0;
+        if (index >= Items.Count && HasMore)
+        {
+            await LoadMoreAsync();
+        }
+
+        if (index >= Items.Count)
+        {
+            return false;
+        }
+
+        SelectedItem = Items[index];
+        return true;
+    }
+
+    /// <returns><c>false</c> at the start of the list.</returns>
+    public bool SelectPrevious()
+    {
+        var index = SelectedItem is { } current ? Items.IndexOf(current) - 1 : -1;
+        if (index < 0)
+        {
+            return false;
+        }
+
+        SelectedItem = Items[index];
+        return true;
+    }
+
+    /// <summary>
+    /// Selects the loaded rows with these ids.
+    /// </summary>
+    /// <returns><c>true</c> if at least one is loaded.</returns>
+    public bool Select(IReadOnlyCollection<Guid> recordIds)
+    {
+        var indexes = Items.Select((row, index) => (row, index)).Where(x => recordIds.Contains(x.row.Id)).Select(x => x.index).ToList();
+        using (Selection.BatchUpdate())
+        {
+            Selection.Clear();
+            foreach (var index in indexes)
+            {
+                Selection.Select(index);
+            }
+        }
+
+        return indexes.Count > 0;
+    }
+
+    /// <summary>
+    /// Reflects edited content made elsewhere.
+    /// </summary>
+    public void UpdateRow(Guid recordId, string preview, RecordStatus status)
+    {
+        if (Items.FirstOrDefault(row => row.Id == recordId) is { } row)
+        {
+            row.Preview = preview;
+            UpdateStatus(recordId, status);
+        }
+    }
+
+    private async Task ReloadCoreAsync()
     {
         var generation = ++_generation;
         _next = null;
@@ -242,6 +354,13 @@ public sealed partial class RecordListViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEmptyDataset));
 
         OnPropertyChanged(nameof(IsNoMatches));
+    }
+
+    private void OnSelectionChanged()
+    {
+        OnPropertyChanged(nameof(SelectedItem));
+        OnPropertyChanged(nameof(SelectionCount));
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     partial void OnSearchTextChanged(string value)

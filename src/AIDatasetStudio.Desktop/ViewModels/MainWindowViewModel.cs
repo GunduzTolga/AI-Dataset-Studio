@@ -26,6 +26,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordCommandService _commands;
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
+    private readonly RecordOperations _operations;
     private readonly IUserSettings _settings;
     private readonly Localizer _localizer;
 
@@ -36,6 +37,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordCommandService commands,
         IRecordQueryService queries,
         IImportService import,
+        RecordOperations operations,
         IUserSettings settings,
         Localizer localizer,
         StatusBarViewModel status,
@@ -49,6 +51,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _commands = commands;
         _queries = queries;
         _import = import;
+        _operations = operations;
         _settings = settings;
         _localizer = localizer;
         Status = status;
@@ -59,9 +62,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _workspaces.CurrentChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = OnWorkspaceChangedAsync());
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
         Explorer.PropertyChanged += OnExplorerPropertyChanged;
-        Records.PropertyChanged += OnRecordsPropertyChanged;
-        Details.StatusChanged += (_, change) => Records.UpdateStatus(change.RecordId, change.Status);
-        Details.Deleted += (_, recordId) => Records.Remove(recordId);
+        Records.SelectionChanged += (_, _) => OnRecordSelectionChanged();
+        Records.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(RecordListViewModel.HasDataset))
+            {
+                NotifyReviewCommands();
+            }
+        };
+        _operations.Changed += (_, change) => OnRecordsChanged(change);
+        _operations.History.PropertyChanged += (_, _) => OnHistoryChanged();
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }
@@ -80,6 +90,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
     public partial bool IsBusy { get; set; }
 
     public WorkspaceInfo? Workspace => _workspaces.Current;
@@ -102,6 +114,87 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public bool IsTurkish => _localizer.Culture.Equals(Localizer.Turkish);
 
+    /// <summary>
+    /// "Undo Approve #12", or plain "Undo" when there is nothing to undo.
+    /// </summary>
+    public string UndoHeader => _operations.History.NextUndo is { } action
+        ? _localizer.Format("Menu_UndoAction", action.Describe(_localizer))
+        : _localizer["Menu_Undo"];
+
+    public string RedoHeader => _operations.History.NextRedo is { } action
+        ? _localizer.Format("Menu_RedoAction", action.Describe(_localizer))
+        : _localizer["Menu_Redo"];
+
+    private bool CanUndo() => !IsBusy && _operations.History.CanUndo;
+
+    private bool CanReview() => !IsBusy && Records.HasDataset;
+
+    private bool CanRedo() => !IsBusy && _operations.History.CanRedo;
+
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    private Task UndoAsync() => ReplayAsync(undo: true);
+
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    private Task RedoAsync() => ReplayAsync(undo: false);
+
+    /// <summary>
+    /// Approves the shown record (saving pending edits) and moves to the next one — Mod+Enter (SDD §6.2).
+    /// With several records selected, approves them all.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReview))]
+    private async Task ApproveAndNextAsync()
+    {
+        if (Details.IsBatch)
+        {
+            await Details.BatchApproveCommand.ExecuteAsync(null);
+            return;
+        }
+
+        if (Details.HasRecord)
+        {
+            await Details.ApproveCommand.ExecuteAsync(null);
+            await Records.SelectNextAsync();
+        }
+    }
+
+    /// <summary>
+    /// Archives the shown record and moves to the next one — Mod+Shift+Backspace (SDD §6.2).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReview))]
+    private async Task ArchiveAndNextAsync()
+    {
+        if (Details.IsBatch)
+        {
+            await Details.BatchArchiveCommand.ExecuteAsync(null);
+            return;
+        }
+
+        if (Details.HasRecord)
+        {
+            await Details.ArchiveCommand.ExecuteAsync(null);
+            await Records.SelectNextAsync();
+        }
+    }
+
+    /// <summary>
+    /// F8: the next record (unsaved edits are saved).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReview))]
+    private Task NextRecordAsync() => Records.SelectNextAsync();
+
+    /// <summary>
+    /// Shift+F8: the previous record.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReview))]
+    private void PreviousRecord() => Records.SelectPrevious();
+
+    /// <summary>
+    /// Delete: the shown record or the selected records, after confirmation.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReview))]
+    private Task DeleteSelectionAsync() => Details.IsBatch
+        ? Details.BatchDeleteCommand.ExecuteAsync(null)
+        : Details.HasRecord ? Details.DeleteCommand.ExecuteAsync(null) : Task.CompletedTask;
     [RelayCommand(CanExecute = nameof(IsIdle))]
     private async Task NewWorkspaceAsync()
     {
@@ -250,6 +343,59 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private async Task ReplayAsync(bool undo)
+    {
+        // Pending edits count as the latest change: they are saved, so undo takes them back first.
+        await Details.SaveIfDirtyAsync();
+        IsBusy = true;
+        try
+        {
+            var result = undo ? await _operations.UndoAsync() : await _operations.RedoAsync();
+            if (result is null)
+            {
+                return;
+            }
+
+            if (result.Count == 0)
+            {
+                Status.Set("Status_UndoNothing");
+                return;
+            }
+
+            await ShowAffectedAsync(result.Action);
+            Status.Set(undo ? "Status_Undone" : "Status_Redone", result.Action.Describe(_localizer));
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    // Shows the records an undo or redo changed: their dataset, reloaded, with them selected.
+    private async Task ShowAffectedAsync(IUndoableAction action)
+    {
+        Explorer.SetRecordCount(action.DatasetId, await _queries.CountAsync(action.DatasetId, RecordFilter.None));
+        if (Records.Dataset?.Id != action.DatasetId)
+        {
+            if (Explorer.FindDataset(action.DatasetId) is not { } node)
+            {
+                return;
+            }
+
+            Explorer.SelectedNode = node;
+            await Records.Loading;
+        }
+        else
+        {
+            await Records.ReloadAsync();
+        }
+
+        Records.Select(action.RecordIds);
+    }
+
     private bool IsIdle() => !IsBusy;
 
     private bool CanCloseWorkspace() => !IsBusy && HasWorkspace;
@@ -287,6 +433,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasWorkspace));
         OnPropertyChanged(nameof(Title));
         CloseWorkspaceCommand.NotifyCanExecuteChanged();
+        _operations.History.Clear();
 
         Explorer.IsWorkspaceOpen = HasWorkspace;
         if (HasWorkspace)
@@ -316,12 +463,59 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void OnRecordsPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnRecordSelectionChanged()
     {
-        if (e.PropertyName == nameof(RecordListViewModel.SelectedItem))
+        var rows = Records.SelectedRows;
+        _ = rows.Count > 1 && Records.Dataset is { } dataset
+            ? Details.ShowBatchAsync(dataset.Id, rows)
+            : Details.ShowAsync(rows.FirstOrDefault()?.Id);
+    }
+
+    // Keeps the list in step with changes made in the inspector; undo and redo reload instead.
+    private void OnRecordsChanged(RecordChange change)
+    {
+        if (Records.Dataset?.Id != change.DatasetId)
         {
-            _ = Details.ShowAsync(Records.SelectedItem?.Id);
+            return;
         }
+
+        switch (change)
+        {
+            case StatusesChanged statuses:
+                foreach (var update in statuses.Changes)
+                {
+                    Records.UpdateStatus(update.RecordId, update.To);
+                }
+
+                break;
+            case ContentChanged content:
+                Records.UpdateRow(content.RecordId, content.Preview, content.Status);
+                break;
+            case RecordsDeleted deleted:
+                foreach (var recordId in deleted.RecordIds)
+                {
+                    Records.Remove(recordId);
+                }
+
+                break;
+        }
+    }
+
+    private void NotifyReviewCommands()
+    {
+        ApproveAndNextCommand.NotifyCanExecuteChanged();
+        ArchiveAndNextCommand.NotifyCanExecuteChanged();
+        NextRecordCommand.NotifyCanExecuteChanged();
+        PreviousRecordCommand.NotifyCanExecuteChanged();
+        DeleteSelectionCommand.NotifyCanExecuteChanged();
+    }
+
+    private void OnHistoryChanged()
+    {
+        OnPropertyChanged(nameof(UndoHeader));
+        OnPropertyChanged(nameof(RedoHeader));
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
     }
 
     private void RefreshRecentWorkspaces()
@@ -339,5 +533,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsEnglish));
         OnPropertyChanged(nameof(IsTurkish));
+        OnPropertyChanged(nameof(UndoHeader));
+        OnPropertyChanged(nameof(RedoHeader));
     }
 }

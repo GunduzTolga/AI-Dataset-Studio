@@ -44,6 +44,18 @@
         <Separator />
         <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
       </MenuItem>
+      <MenuItem Header="{l:Tr Menu_Edit}">
+        <MenuItem x:Name="UndoMenuItem" Header="{Binding UndoHeader}" Command="{Binding UndoCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowUndo" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="RedoMenuItem" Header="{Binding RedoHeader}" Command="{Binding RedoCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowRedo" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem x:Name="FindMenuItem" Header="{l:Tr Menu_Find}" Click="OnFindClick" IsEnabled="{Binding Records.HasDataset}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Search" /></MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
       <MenuItem Header="{l:Tr Menu_View}">
         <MenuItem Header="{l:Tr Menu_Theme}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="DarkTheme" /></MenuItem.Icon>
@@ -61,6 +73,29 @@
                     Command="{Binding SetLanguageCommand}" CommandParameter="en" />
           <MenuItem Header="Türkçe" ToggleType="Radio" GroupName="language" IsChecked="{Binding IsTurkish, Mode=OneWay}"
                     Command="{Binding SetLanguageCommand}" CommandParameter="tr" />
+        </MenuItem>
+      </MenuItem>
+      <MenuItem Header="{l:Tr Menu_Record}">
+        <MenuItem x:Name="SaveMenuItem" Header="{l:Tr Menu_SaveRecord}" Command="{Binding Details.SaveCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Save" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem x:Name="ApproveNextMenuItem" Header="{l:Tr Menu_ApproveAndNext}" Command="{Binding ApproveAndNextCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Checkmark" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="ArchiveNextMenuItem" Header="{l:Tr Menu_ArchiveAndNext}" Command="{Binding ArchiveAndNextCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Archive" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem x:Name="NextMenuItem" Header="{l:Tr Menu_NextRecord}" Command="{Binding NextRecordCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowDown" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="PreviousMenuItem" Header="{l:Tr Menu_PreviousRecord}" Command="{Binding PreviousRecordCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowUp" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem x:Name="DeleteMenuItem" Header="{l:Tr Menu_DeleteRecords}" Command="{Binding DeleteSelectionCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Delete" /></MenuItem.Icon>
         </MenuItem>
       </MenuItem>
       <MenuItem Header="{l:Tr Menu_Tools}">
@@ -97,7 +132,7 @@
         <GridSplitter Grid.Column="1" Width="5" ResizeDirection="Columns" />
 
         <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0">
-          <views:RecordListView DataContext="{Binding Records}" />
+          <views:RecordListView x:Name="RecordListView" DataContext="{Binding Records}" />
         </Border>
 
         <GridSplitter Grid.Column="3" Width="5" ResizeDirection="Columns" />

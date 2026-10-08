@@ -14,6 +14,20 @@ public sealed partial class RecordListView : UserControl
         RecordList.AddHandler(ScrollViewer.ScrollChangedEvent, OnScrollChanged);
     }
 
+    /// <summary>
+    /// Mod+F: puts the cursor in the search box.
+    /// </summary>
+    public void FocusSearch()
+    {
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    /// <summary>
+    /// Whether the record list itself (not a text box) has keyboard focus.
+    /// </summary>
+    public bool IsListFocused => RecordList.IsKeyboardFocusWithin;
+
     private void OnScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
         if (e.Source is not ScrollViewer viewer || DataContext is not RecordListViewModel viewModel)

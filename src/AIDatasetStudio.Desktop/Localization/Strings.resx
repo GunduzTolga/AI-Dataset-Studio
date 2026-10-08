@@ -266,7 +266,7 @@
     <value>Delete Record</value>
   </data>
   <data name="Dialog_DeleteRecordMessage" xml:space="preserve">
-    <value>Delete record #{0}? This cannot be undone.</value>
+    <value>Delete record #{0}? You can bring it back with Edit › Undo.</value>
     <comment>{0} = record number</comment>
   </data>
   <data name="Dialog_SampleDataTitle" xml:space="preserve">
@@ -299,7 +299,7 @@
     <comment>{0} = name</comment>
   </data>
   <data name="Status_RecordDeleted" xml:space="preserve">
-    <value>Deleted record #{0}.</value>
+    <value>Deleted record #{0}. Edit › Undo brings it back.</value>
     <comment>{0} = record number</comment>
   </data>
   <data name="Status_RecordStatusChanged" xml:space="preserve">
@@ -395,7 +395,7 @@
     <value>No record selected</value>
   </data>
   <data name="Details_NoRecordHint" xml:space="preserve">
-    <value>Select a record in the list to see its content.</value>
+    <value>Select a record in the list to edit it. Hold Shift or Ctrl to select several.</value>
   </data>
   <data name="Details_Info" xml:space="preserve">
     <value>DETAILS</value>
@@ -610,5 +610,125 @@
   </data>
   <data name="Import_NoPreview" xml:space="preserve">
     <value>Nothing to preview</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>_Edit</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>_Undo</value>
+  </data>
+  <data name="Menu_UndoAction" xml:space="preserve">
+    <value>_Undo {0}</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>_Redo</value>
+  </data>
+  <data name="Menu_RedoAction" xml:space="preserve">
+    <value>_Redo {0}</value>
+  </data>
+  <data name="Menu_Find" xml:space="preserve">
+    <value>_Find in Records</value>
+  </data>
+  <data name="Menu_Record" xml:space="preserve">
+    <value>_Record</value>
+  </data>
+  <data name="Menu_SaveRecord" xml:space="preserve">
+    <value>_Save Changes</value>
+  </data>
+  <data name="Menu_ApproveAndNext" xml:space="preserve">
+    <value>_Approve and Next</value>
+  </data>
+  <data name="Menu_ArchiveAndNext" xml:space="preserve">
+    <value>Arc_hive and Next</value>
+  </data>
+  <data name="Menu_NextRecord" xml:space="preserve">
+    <value>_Next Record</value>
+  </data>
+  <data name="Menu_PreviousRecord" xml:space="preserve">
+    <value>_Previous Record</value>
+  </data>
+  <data name="Menu_DeleteRecords" xml:space="preserve">
+    <value>_Delete…</value>
+  </data>
+  <data name="History_Approve" xml:space="preserve">
+    <value>Approve {0}</value>
+  </data>
+  <data name="History_SendToReview" xml:space="preserve">
+    <value>Send {0} to review</value>
+  </data>
+  <data name="History_Archive" xml:space="preserve">
+    <value>Archive {0}</value>
+  </data>
+  <data name="History_Restore" xml:space="preserve">
+    <value>Restore {0}</value>
+  </data>
+  <data name="History_Edit" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="History_Delete" xml:space="preserve">
+    <value>Delete {0}</value>
+  </data>
+  <data name="History_One" xml:space="preserve">
+    <value>#{0}</value>
+  </data>
+  <data name="History_Many" xml:space="preserve">
+    <value>{0:N0} records</value>
+  </data>
+  <data name="Status_Undone" xml:space="preserve">
+    <value>Undone: {0}</value>
+  </data>
+  <data name="Status_Redone" xml:space="preserve">
+    <value>Redone: {0}</value>
+  </data>
+  <data name="Status_UndoNothing" xml:space="preserve">
+    <value>The records of that step no longer exist; it was removed from the history.</value>
+  </data>
+  <data name="Status_RecordSaved" xml:space="preserve">
+    <value>Saved record #{0}; it is now in review.</value>
+  </data>
+  <data name="Status_RecordsDeleted" xml:space="preserve">
+    <value>Deleted {0:N0} records.</value>
+  </data>
+  <data name="Status_RecordsStatusChanged" xml:space="preserve">
+    <value>{0:N0} records set to {1}; {2:N0} skipped.</value>
+  </data>
+  <data name="Editor_Unsaved" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="Editor_ArchivedReadOnly" xml:space="preserve">
+    <value>Archived records cannot be edited. Restore the record to change it.</value>
+  </data>
+  <data name="Editor_Placeholder" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="Editor_SwitchRole" xml:space="preserve">
+    <value>Switch between user and assistant</value>
+  </data>
+  <data name="Editor_RemoveMessage" xml:space="preserve">
+    <value>Remove this message</value>
+  </data>
+  <data name="Editor_AddMessage" xml:space="preserve">
+    <value>Add message</value>
+  </data>
+  <data name="Action_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Action_Discard" xml:space="preserve">
+    <value>Discard</value>
+  </data>
+  <data name="Batch_Title" xml:space="preserve">
+    <value>{0:N0} records selected</value>
+  </data>
+  <data name="Batch_Hint" xml:space="preserve">
+    <value>Actions apply to every selected record whose status allows them; the others are skipped. Edit › Undo reverts a batch action in one step.</value>
+  </data>
+  <data name="Dialog_DeleteRecordsTitle" xml:space="preserve">
+    <value>Delete Records</value>
+  </data>
+  <data name="Dialog_DeleteRecordsMessage" xml:space="preserve">
+    <value>Delete {0:N0} records? You can bring them back with Edit › Undo.</value>
+  </data>
+  <data name="Status_RecordsStatusChangedAll" xml:space="preserve">
+    <value>{0:N0} records set to {1}.</value>
   </data>
 </root>

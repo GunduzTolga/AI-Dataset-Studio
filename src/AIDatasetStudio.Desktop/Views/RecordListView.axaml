@@ -44,7 +44,7 @@
           </Button>
         </Grid>
 
-        <TextBox Classes="search clearButton" Text="{Binding SearchText}" PlaceholderText="{l:Tr Records_SearchWatermark}"
+        <TextBox x:Name="SearchBox" Classes="search clearButton" Text="{Binding SearchText}" PlaceholderText="{l:Tr Records_SearchWatermark}"
                  IsVisible="{Binding !IsEmptyDataset}">
           <TextBox.InnerLeftContent>
             <ic:SymbolIcon Symbol="Search" FontSize="16" Margin="10,0,4,0" Foreground="{DynamicResource TextMutedBrush}" />
@@ -82,7 +82,7 @@
       </Border>
 
       <Panel>
-        <ListBox x:Name="RecordList" Classes="records" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+        <ListBox x:Name="RecordList" Classes="records" ItemsSource="{Binding Items}" Selection="{Binding Selection}" SelectionMode="Multiple">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:RecordRowViewModel">
               <Panel>

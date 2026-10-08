@@ -129,6 +129,37 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
                 record.UpdatedAt);
     }
 
+    public async Task<IReadOnlyList<RecordSnapshot>> GetSnapshotsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(recordIds);
+        if (recordIds.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = recordIds.Distinct().ToList();
+        await using var context = database.CreateDbContext();
+        var records = await context.Records.AsNoTracking()
+            .Include(r => r.Tags)
+            .Where(r => ids.Contains(r.Id))
+            .ToListAsync(cancellationToken);
+
+        return records
+            .OrderBy(r => r.Ordinal)
+            .Select(r => new RecordSnapshot(
+                r.Id,
+                r.DatasetId,
+                r.Ordinal,
+                r.Status,
+                r.Payload,
+                r.Lineage,
+                r.MetadataJson,
+                r.Tags.Select(t => t.Id).ToList(),
+                r.CreatedAt,
+                r.UpdatedAt))
+            .ToList();
+    }
+
     private static void AppendFilter(StringBuilder sql, SqliteCommand command, Guid datasetId, RecordFilter filter, string? match)
     {
         sql.Append(" WHERE r.DatasetId = $datasetId");

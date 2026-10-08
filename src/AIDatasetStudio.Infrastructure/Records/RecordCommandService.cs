@@ -103,7 +103,7 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         ArgumentNullException.ThrowIfNull(recordIds);
         if (recordIds.Count == 0)
         {
-            return new StatusChangeResult(0, 0);
+            return StatusChangeResult.None;
         }
 
         await using var context = database.CreateDbContext();
@@ -111,18 +111,18 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         var records = await context.Records.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
         var now = timeProvider.GetUtcNow();
 
-        var changed = 0;
+        var changes = new List<RecordStatusUpdate>();
         foreach (var record in records)
         {
             if (record.Status != status && RecordStatusTransitions.CanTransition(record.Status, status))
             {
+                changes.Add(new RecordStatusUpdate(record.Id, record.Status, status));
                 record.ChangeStatus(status, now);
-                changed++;
             }
         }
 
         await context.SaveChangesAsync(cancellationToken);
-        return new StatusChangeResult(changed, ids.Count - changed);
+        return new StatusChangeResult(changes, ids.Count - changes.Count);
     }
 
     public async Task<int> DeleteAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)
@@ -139,6 +139,103 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return await context.Records.Where(r => ids.Contains(r.Id)).ExecuteDeleteAsync(cancellationToken);
     }
 
+    public async Task<int> RestoreStatesAsync(IReadOnlyCollection<RecordState> states, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(states);
+        if (states.Count == 0)
+        {
+            return 0;
+        }
+
+        // The last state given for a record wins.
+        var byId = new Dictionary<Guid, RecordState>();
+        foreach (var state in states)
+        {
+            byId[state.RecordId] = state;
+        }
+
+        await using var context = database.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var ids = byId.Keys.ToList();
+        var records = await context.Records.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var reindex = records.Where(record => record.RestoreState(byId[record.Id].Status, byId[record.Id].Payload, now)).ToList();
+
+        await context.SaveChangesAsync(cancellationToken);
+        if (reindex.Count > 0)
+        {
+            await using var index = Writer(context, transaction);
+            foreach (var record in reindex)
+            {
+                await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return records.Count;
+    }
+
+    public async Task<int> RestoreAsync(IReadOnlyCollection<RecordSnapshot> snapshots, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(snapshots);
+        if (snapshots.Count == 0)
+        {
+            return 0;
+        }
+
+        await using var context = database.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        var datasetIds = snapshots.Select(s => s.DatasetId).Distinct().ToList();
+        var datasets = await context.Datasets.Where(d => datasetIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
+        if (datasetIds.FirstOrDefault(id => !datasets.ContainsKey(id)) is var missing && missing != Guid.Empty)
+        {
+            throw new NotFoundException(nameof(Dataset), missing);
+        }
+
+        var ids = snapshots.Select(s => s.Id).ToList();
+        var existing = (await context.Records.Where(r => ids.Contains(r.Id)).Select(r => r.Id).ToListAsync(cancellationToken)).ToHashSet();
+        var tagIds = snapshots.SelectMany(s => s.TagIds).Distinct().ToList();
+        var tags = await context.Tags.Where(t => tagIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, cancellationToken);
+
+        var restored = new List<DatasetRecord>();
+        foreach (var snapshot in snapshots.Where(s => existing.Add(s.Id)))
+        {
+            var record = DatasetRecord.Recreate(
+                datasets[snapshot.DatasetId],
+                snapshot.Id,
+                snapshot.Ordinal,
+                snapshot.Status,
+                snapshot.Payload,
+                snapshot.Lineage,
+                snapshot.MetadataJson,
+                snapshot.CreatedAt,
+                snapshot.UpdatedAt);
+            foreach (var tagId in snapshot.TagIds)
+            {
+                if (tags.TryGetValue(tagId, out var tag))
+                {
+                    record.AddTag(tag, snapshot.UpdatedAt);
+                }
+            }
+
+            restored.Add(record);
+        }
+
+        context.Records.AddRange(restored);
+        await context.SaveChangesAsync(cancellationToken);
+        await using (var index = Writer(context, transaction))
+        {
+            foreach (var record in restored)
+            {
+                await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
+            }
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return restored.Count;
+    }
+
     private static async Task<long> NextOrdinalAsync(WorkspaceDbContext context, Guid datasetId, CancellationToken cancellationToken) =>
         (await context.Records.Where(r => r.DatasetId == datasetId).MaxAsync(r => (long?)r.Ordinal, cancellationToken) ?? 0) + 1;
 
@@ -149,10 +246,12 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         RecordPayload payload,
         CancellationToken cancellationToken)
     {
-        var connection = (SqliteConnection)context.Database.GetDbConnection();
-        await using var index = new SearchIndex.Writer(connection, (SqliteTransaction)transaction.GetDbTransaction());
+        await using var index = Writer(context, transaction);
         await index.UpsertAsync(recordId, SearchText.ForPayload(payload), cancellationToken);
     }
+
+    private static SearchIndex.Writer Writer(WorkspaceDbContext context, IDbContextTransaction transaction) =>
+        new((SqliteConnection)context.Database.GetDbConnection(), (SqliteTransaction)transaction.GetDbTransaction());
 
     private static async Task<long> ScalarAsync(SqliteConnection connection, SqliteTransaction transaction, string sql, string datasetId, CancellationToken cancellationToken)
     {

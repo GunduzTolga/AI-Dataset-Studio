@@ -18,6 +18,8 @@ public static class AppServices
         services.AddSingleton(Localizer.Instance);
         services.AddSingleton<IFileDialogService>(provider => new FileDialogService(mainWindow, provider.GetRequiredService<Localizer>()));
         services.AddSingleton<IDialogService>(provider => new DialogService(mainWindow, provider.GetRequiredService<Localizer>()));
+        services.AddSingleton<UndoHistory>();
+        services.AddSingleton<RecordOperations>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();

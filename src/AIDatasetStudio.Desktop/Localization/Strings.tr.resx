@@ -250,7 +250,7 @@
     <value>Kaydı Sil</value>
   </data>
   <data name="Dialog_DeleteRecordMessage" xml:space="preserve">
-    <value>#{0} numaralı kayıt silinsin mi? Bu işlem geri alınamaz.</value>
+    <value>#{0} numaralı kayıt silinsin mi? Düzen › Geri Al ile geri getirebilirsiniz.</value>
   </data>
   <data name="Dialog_SampleDataTitle" xml:space="preserve">
     <value>Örnek Kayıt Üret</value>
@@ -277,7 +277,7 @@
     <value>'{0}' silindi.</value>
   </data>
   <data name="Status_RecordDeleted" xml:space="preserve">
-    <value>#{0} numaralı kayıt silindi.</value>
+    <value>#{0} numaralı kayıt silindi. Düzen › Geri Al ile geri getirebilirsiniz.</value>
   </data>
   <data name="Status_RecordStatusChanged" xml:space="preserve">
     <value>#{0} numaralı kayıt: {1}.</value>
@@ -364,7 +364,7 @@
     <value>Kayıt seçilmedi</value>
   </data>
   <data name="Details_NoRecordHint" xml:space="preserve">
-    <value>İçeriğini görmek için listeden bir kayıt seçin.</value>
+    <value>Düzenlemek için listeden bir kayıt seçin. Birden fazla seçmek için Shift veya Ctrl'ye basılı tutun.</value>
   </data>
   <data name="Details_Info" xml:space="preserve">
     <value>BİLGİLER</value>
@@ -578,5 +578,125 @@
   </data>
   <data name="Import_NoPreview" xml:space="preserve">
     <value>Önizlenecek satır yok</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>Düz_en</value>
+  </data>
+  <data name="Menu_Undo" xml:space="preserve">
+    <value>_Geri Al</value>
+  </data>
+  <data name="Menu_UndoAction" xml:space="preserve">
+    <value>_Geri Al: {0}</value>
+  </data>
+  <data name="Menu_Redo" xml:space="preserve">
+    <value>_Yinele</value>
+  </data>
+  <data name="Menu_RedoAction" xml:space="preserve">
+    <value>_Yinele: {0}</value>
+  </data>
+  <data name="Menu_Find" xml:space="preserve">
+    <value>Kayıtlarda _Ara</value>
+  </data>
+  <data name="Menu_Record" xml:space="preserve">
+    <value>_Kayıt</value>
+  </data>
+  <data name="Menu_SaveRecord" xml:space="preserve">
+    <value>Değişiklikleri _Kaydet</value>
+  </data>
+  <data name="Menu_ApproveAndNext" xml:space="preserve">
+    <value>_Onayla ve Sonrakine Geç</value>
+  </data>
+  <data name="Menu_ArchiveAndNext" xml:space="preserve">
+    <value>_Arşivle ve Sonrakine Geç</value>
+  </data>
+  <data name="Menu_NextRecord" xml:space="preserve">
+    <value>_Sonraki Kayıt</value>
+  </data>
+  <data name="Menu_PreviousRecord" xml:space="preserve">
+    <value>Ö_nceki Kayıt</value>
+  </data>
+  <data name="Menu_DeleteRecords" xml:space="preserve">
+    <value>Si_l…</value>
+  </data>
+  <data name="History_Approve" xml:space="preserve">
+    <value>{0} onaylama</value>
+  </data>
+  <data name="History_SendToReview" xml:space="preserve">
+    <value>{0} incelemeye alma</value>
+  </data>
+  <data name="History_Archive" xml:space="preserve">
+    <value>{0} arşivleme</value>
+  </data>
+  <data name="History_Restore" xml:space="preserve">
+    <value>{0} geri yükleme</value>
+  </data>
+  <data name="History_Edit" xml:space="preserve">
+    <value>{0} düzenleme</value>
+  </data>
+  <data name="History_Delete" xml:space="preserve">
+    <value>{0} silme</value>
+  </data>
+  <data name="History_One" xml:space="preserve">
+    <value>#{0}</value>
+  </data>
+  <data name="History_Many" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Status_Undone" xml:space="preserve">
+    <value>Geri alındı: {0}</value>
+  </data>
+  <data name="Status_Redone" xml:space="preserve">
+    <value>Yinelendi: {0}</value>
+  </data>
+  <data name="Status_UndoNothing" xml:space="preserve">
+    <value>O adımın kayıtları artık yok; adım geçmişten kaldırıldı.</value>
+  </data>
+  <data name="Status_RecordSaved" xml:space="preserve">
+    <value>#{0} numaralı kayıt kaydedildi ve incelemeye alındı.</value>
+  </data>
+  <data name="Status_RecordsDeleted" xml:space="preserve">
+    <value>{0:N0} kayıt silindi.</value>
+  </data>
+  <data name="Status_RecordsStatusChanged" xml:space="preserve">
+    <value>{0:N0} kayıt “{1}” yapıldı; {2:N0} kayıt atlandı.</value>
+  </data>
+  <data name="Editor_Unsaved" xml:space="preserve">
+    <value>Kaydedilmemiş değişiklikler</value>
+  </data>
+  <data name="Editor_ArchivedReadOnly" xml:space="preserve">
+    <value>Arşivlenmiş kayıtlar düzenlenemez. Değiştirmek için kaydı geri yükleyin.</value>
+  </data>
+  <data name="Editor_Placeholder" xml:space="preserve">
+    <value>Boş</value>
+  </data>
+  <data name="Editor_SwitchRole" xml:space="preserve">
+    <value>Kullanıcı / asistan arasında değiştir</value>
+  </data>
+  <data name="Editor_RemoveMessage" xml:space="preserve">
+    <value>Bu mesajı kaldır</value>
+  </data>
+  <data name="Editor_AddMessage" xml:space="preserve">
+    <value>Mesaj ekle</value>
+  </data>
+  <data name="Action_Save" xml:space="preserve">
+    <value>Kaydet</value>
+  </data>
+  <data name="Action_Discard" xml:space="preserve">
+    <value>Vazgeç</value>
+  </data>
+  <data name="Batch_Title" xml:space="preserve">
+    <value>{0:N0} kayıt seçili</value>
+  </data>
+  <data name="Batch_Hint" xml:space="preserve">
+    <value>Aksiyonlar, durumu uygun olan tüm seçili kayıtlara uygulanır; diğerleri atlanır. Düzen › Geri Al toplu işlemi tek adımda geri alır.</value>
+  </data>
+  <data name="Dialog_DeleteRecordsTitle" xml:space="preserve">
+    <value>Kayıtları Sil</value>
+  </data>
+  <data name="Dialog_DeleteRecordsMessage" xml:space="preserve">
+    <value>{0:N0} kayıt silinsin mi? Düzen › Geri Al ile geri getirebilirsiniz.</value>
+  </data>
+  <data name="Status_RecordsStatusChangedAll" xml:space="preserve">
+    <value>{0:N0} kayıt “{1}” yapıldı.</value>
   </data>
 </root>

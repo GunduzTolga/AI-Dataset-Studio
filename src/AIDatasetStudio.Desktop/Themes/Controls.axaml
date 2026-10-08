@@ -525,4 +525,47 @@
   <Style Selector="ScrollViewer">
     <Setter Property="AllowAutoHide" Value="True" />
   </Style>
+
+  <!-- ===== Record editor ===== -->
+  <!-- Inline field: text inside a card or bubble without a box of its own; the container shows focus. -->
+  <Style Selector="TextBox.field">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="20" />
+    <Setter Property="AcceptsReturn" Value="True" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TextBox.field:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TextBox.field:disabled /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <!-- A focus ring around the edited card or bubble, keeping its tone border. -->
+  <Style Selector="Border.card:focus-within">
+    <Setter Property="BoxShadow" Value="0 0 0 3 #504F46E5" />
+  </Style>
+  <Style Selector="Border.bubble:focus-within">
+    <Setter Property="BoxShadow" Value="0 0 0 3 #504F46E5" />
+  </Style>
+  <!-- Small icon buttons on a chat turn (switch role, remove). -->
+  <Style Selector="Button.mini">
+    <Setter Property="Width" Value="22" />
+    <Setter Property="Height" Value="22" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.mini ic|SymbolIcon">
+    <Setter Property="FontSize" Value="14" />
+  </Style>
 </Styles>

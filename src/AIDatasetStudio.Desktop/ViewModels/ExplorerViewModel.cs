@@ -84,6 +84,8 @@ public sealed partial class ExplorerViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsEmpty));
     }
 
+    public DatasetNodeViewModel? FindDataset(Guid datasetId) => AllDatasets().FirstOrDefault(d => d.Id == datasetId);
+
     public void SetRecordCount(Guid datasetId, long count)
     {
         if (AllDatasets().FirstOrDefault(d => d.Id == datasetId) is { } dataset)
