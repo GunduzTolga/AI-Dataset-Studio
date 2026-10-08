@@ -15,6 +15,7 @@ public sealed class SqliteUserSettingsTests : IDisposable
         Assert.True(settings.IsPersistent);
         Assert.Null(settings.UiLanguage);
         Assert.Empty(settings.RecentWorkspaces);
+        Assert.False(settings.CheckForUpdates); // no network request unless the user asks
         Assert.True(File.Exists(Path.Combine(_directory, SqliteUserSettings.FileName)));
     }
 
@@ -28,6 +29,17 @@ public sealed class SqliteUserSettingsTests : IDisposable
 
         reloaded.SetUiLanguage(null);
         Assert.Null(new SqliteUserSettings(_directory, _clock).UiLanguage);
+    }
+
+    [Fact]
+    public void Update_check_choice_survives_a_restart()
+    {
+        new SqliteUserSettings(_directory, _clock).SetCheckForUpdates(true);
+        var reloaded = new SqliteUserSettings(_directory, _clock);
+        Assert.True(reloaded.CheckForUpdates);
+
+        reloaded.SetCheckForUpdates(false);
+        Assert.False(new SqliteUserSettings(_directory, _clock).CheckForUpdates);
     }
 
     [Fact]

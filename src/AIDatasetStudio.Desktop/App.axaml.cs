@@ -9,6 +9,7 @@ using AIDatasetStudio.Infrastructure;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AIDatasetStudio.Desktop;
@@ -35,11 +36,17 @@ public sealed partial class App : Avalonia.Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && _services is not null)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = _services.GetRequiredService<MainWindowViewModel>(),
-            };
+            var main = _services.GetRequiredService<MainWindowViewModel>();
+            desktop.MainWindow = new MainWindow { DataContext = main };
             desktop.Exit += (_, _) => Shutdown();
+
+            // An unexpected error is logged and reported instead of closing the app with unsaved work.
+            Dispatcher.UIThread.UnhandledException += (_, e) =>
+            {
+                main.ReportUnexpectedError(e.Exception);
+                e.Handled = true;
+            };
+            desktop.MainWindow.Opened += (_, _) => _ = main.CheckForUpdatesAtStartupAsync();
         }
 
         base.OnFrameworkInitializationCompleted();

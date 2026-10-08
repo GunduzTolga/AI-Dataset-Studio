@@ -20,6 +20,8 @@ public static class AppServices
         Func<Window?> owner = () => ActiveWindow.Find(mainWindow);
         services.AddSingleton<IFileDialogService>(provider => new FileDialogService(owner, provider.GetRequiredService<Localizer>()));
         services.AddSingleton<IDialogService>(provider => new DialogService(owner, provider.GetRequiredService<Localizer>()));
+        services.AddSingleton<IShellService>(_ => new ShellService(owner));
+        services.AddSingleton<IUpdateService, VelopackUpdateService>();
         services.AddSingleton<UndoHistory>();
         services.AddSingleton<RecordOperations>();
         services.AddSingleton<StatusBarViewModel>();

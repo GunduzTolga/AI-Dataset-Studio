@@ -1128,4 +1128,73 @@
   <data name="Export_TestShare" xml:space="preserve">
     <value>Test %</value>
   </data>
+  <data name="Menu_Help" xml:space="preserve">
+    <value>_Yardım</value>
+  </data>
+  <data name="Menu_CheckForUpdates" xml:space="preserve">
+    <value>_Güncellemeleri Denetle…</value>
+  </data>
+  <data name="Menu_CheckForUpdatesAtStartup" xml:space="preserve">
+    <value>_Açılışta Güncellemeleri Denetle</value>
+  </data>
+  <data name="Menu_About" xml:space="preserve">
+    <value>AI Dataset Studio _Hakkında</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>AI Dataset Studio Hakkında</value>
+  </data>
+  <data name="About_Version" xml:space="preserve">
+    <value>Sürüm {0}</value>
+  </data>
+  <data name="About_Tagline" xml:space="preserve">
+    <value>LLM eğitim veri setlerini düzenlemek, temizlemek, denetlemek ve dışa aktarmak için çevrimdışı öncelikli bir stüdyo.</value>
+  </data>
+  <data name="About_Privacy" xml:space="preserve">
+    <value>Verileriniz bu bilgisayardan çıkmaz. Uygulama telemetri göndermez; yalnızca güncelleme denetlediğinizde internete bağlanır.</value>
+  </data>
+  <data name="About_DataFolder" xml:space="preserve">
+    <value>Ayarlar ve hata günlükleri</value>
+  </data>
+  <data name="About_OpenLogs" xml:space="preserve">
+    <value>Günlük Klasörünü Aç</value>
+  </data>
+  <data name="About_Notices" xml:space="preserve">
+    <value>Üçüncü Taraf Bildirimleri</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>© AI Dataset Studio. Tüm hakları saklıdır.</value>
+  </data>
+  <data name="Status_CheckingForUpdates" xml:space="preserve">
+    <value>Güncellemeler denetleniyor…</value>
+  </data>
+  <data name="Status_UpToDate" xml:space="preserve">
+    <value>AI Dataset Studio {0} en güncel sürüm.</value>
+  </data>
+  <data name="Status_UpdateAvailable" xml:space="preserve">
+    <value>{0} sürümü yayımlandı. Yardım › Güncellemeleri Denetle ile kurabilirsiniz.</value>
+  </data>
+  <data name="Status_UpdatesNotInstalled" xml:space="preserve">
+    <value>Güncellemeler kurulu uygulamada yapılır; bu kopya ({0}) bir derlemeden başlatıldı.</value>
+  </data>
+  <data name="Status_DownloadingUpdate" xml:space="preserve">
+    <value>{0} sürümü indiriliyor… %{1}</value>
+  </data>
+  <data name="Status_UpdateFailed" xml:space="preserve">
+    <value>Güncellemeler denetlenemedi: {0}</value>
+  </data>
+  <data name="Dialog_UpdateTitle" xml:space="preserve">
+    <value>Güncelleme Var</value>
+  </data>
+  <data name="Dialog_UpdateMessage" xml:space="preserve">
+    <value>{0} sürümü yayımlandı (sizdeki {1}). İndirilip uygulama yeniden başlatılsın mı? Önce çalışmanız kaydedilir.</value>
+  </data>
+  <data name="Dialog_UpdateConfirm" xml:space="preserve">
+    <value>Güncelle ve Yeniden Başlat</value>
+  </data>
+  <data name="Error_Unexpected" xml:space="preserve">
+    <value>Beklenmeyen bir hata oluştu. Ayrıntılar şuraya yazıldı: {0}</value>
+  </data>
+  <data name="Error_UnexpectedNoLog" xml:space="preserve">
+    <value>Beklenmeyen bir hata oluştu.</value>
+  </data>
 </root>

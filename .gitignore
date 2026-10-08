@@ -4,6 +4,9 @@ obj/
 out/
 dist/
 publish/
+# Velopack output (dotnet vpk pack) and generated release notes
+Releases/
+release-notes.md
 app.settings.db
 *.adstudio
 *.db
@@ -45,6 +48,8 @@ Thumbs.db
 desktop.ini
 
 ## Secrets / Environment
+*.pfx
+*.p12
 .env
 .env.local
 *.secrets.json

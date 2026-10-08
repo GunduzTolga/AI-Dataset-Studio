@@ -10,6 +10,7 @@
         x:Class="AIDatasetStudio.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding Title}"
+        Icon="/Assets/app.ico"
         Width="1440" Height="860"
         MinWidth="980" MinHeight="600"
         WindowStartupLocation="CenterScreen">
@@ -110,6 +111,16 @@
         </MenuItem>
         <MenuItem x:Name="CustomTermsMenuItem" Header="{l:Tr Menu_CustomTerms}" Command="{Binding EditCustomTermsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldKeyhole" /></MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
+      <MenuItem Header="{l:Tr Menu_Help}">
+        <MenuItem x:Name="CheckForUpdatesMenuItem" Header="{l:Tr Menu_CheckForUpdates}" Command="{Binding CheckForUpdatesCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowSync" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="{l:Tr Menu_CheckForUpdatesAtStartup}" ToggleType="CheckBox" IsChecked="{Binding CheckForUpdatesAtStartup}" />
+        <Separator />
+        <MenuItem x:Name="AboutMenuItem" Header="{l:Tr Menu_About}" Command="{Binding AboutCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Info" /></MenuItem.Icon>
         </MenuItem>
       </MenuItem>
     </Menu>

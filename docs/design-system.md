@@ -95,7 +95,8 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 
 | Kavram | İkon |
 |---|---|
-| Uygulama / marka | `Sparkle` (dolu, gradyan zemin) |
+| Uygulama / marka | `Sparkle` (dolu, gradyan zemin); uygulama ikonları (`Assets/app.ico`, `.icns`, `.png`) aynı işaretten `build/make-icon.cs` ile üretilir: 1024 px tuvalde %6 boşluk, köşe yarıçapı karenin %27'si, simge %56 |
+| Güncellemeleri denetle / Hakkında | `ArrowSync` / `Info` |
 | Proje | `Folder` · yeni: `FolderAdd` |
 | Veri seti: Talimat / Sohbet / Tercih | `TextBulletListSquare` / `ChatMultiple` / `ThumbLike` · yeni: `DocumentAdd` |
 | Kullanıcı / Asistan / Sistem mesajı | `Person` / `BotSparkle` / `Settings` |
@@ -201,9 +202,10 @@ Etiket `TextBlock.label` (küçük, yarı kalın, ikincil renk) kontrolün üst�
 |---|---|
 | Karşılama (çalışma alanı yok) | Marka simgesi, başlık, slogan; "Yeni çalışma alanı" ve "Çalışma alanı aç" kutucukları; son açılanlar; gizlilik notu |
 | Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı (analiz sürerken küçük ilerleme; sağda "İçe aktar" ve "Dışa aktar"), arama + kalite filtresi, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: seçim yokken veri seti özeti; kayıtta başlık + durum + token ve skor hapları, aksiyonlar, içerik kartları/balonları, "KALİTE", "BİLGİLER" |
+| Hakkında | 460 px; marka işareti (56 px) + ad + sürüm · kısa tanım · gizlilik bildirimi (`ShieldLock`, telemetri yok) · ayar ve günlük klasörü (`mono`, seçilebilir) · "Günlük klasörünü aç" ve "Üçüncü taraf bildirimleri" (`subtle`) · telif + Kapat (`accent`) |
 | Diyaloglar | 460 px; başlık, açıklama, giriş, sağa yaslı İptal (`subtle`) + onay (`accent` veya `danger`) |
 | Kayıt editörü (sağ panel) | Başlık + durum rozeti + token ve skor hapları, duruma uygun aksiyonlar ve sağda maskelenmiş önizleme + sil · maskelenmiş önizleme bildirimi · kaydedilmemiş değişiklik çubuğu · alan kartları veya sohbet balonları (düzenlenebilir) · "Mesaj ekle" · KALİTE · BİLGİLER. Çoklu seçimde toplu panel |
-| Menüler | Dosya (… İçe aktar, Dışa aktar `Mod+E` …) · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Maskelenmiş önizleme, Sil) · Araçlar (Örnek kayıt üret, Özel hassas terimler); kısayollar menüde gösterilir |
+| Menüler | Dosya (… İçe aktar, Dışa aktar `Mod+E` …) · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Maskelenmiş önizleme, Sil) · Araçlar (Örnek kayıt üret, Özel hassas terimler) · Yardım (Güncellemeleri denetle, Açılışta denetle onay işareti, Hakkında); kısayollar menüde gösterilir |
 | Dışa aktarma sihirbazı | 1040×720, içe aktarma sihirbazıyla aynı iskelet. Sol (360 px): BİÇİM seçenek kartları · KAYITLAR (durum onay kutuları, bağlamı aşanları/kopyaları atla, kişisel verileri maskele) · BÖLME (ön ayar açılır listesi, özel oranlar için üç sayı kutusu, seed ve açıklaması) · Sağ: ÖNİZLEME kartı (büyük sayı + "kayıt dışa aktarılacak", bölmede "eğitim ≈ … · doğrulama ≈ …", dışarıda kalanlar `SubtractCircle` satırlarıyla, onaylı kayıt yoksa bilgi bildirimi) · İLK SATIRLAR (3 satır, `mono` kartlar) · klasörde dosya varsa üstte uyarı bildirimi + "Başka klasör seç" / "Üzerine yaz" · Alt çubuk: son dışa aktarım + İptal + "N kaydı dışa aktar"; sonuç ekranında yazılan dosyalar (ad, klasör, kayıt sayısı) |
 | İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir. Üst: ikon kutusu, başlık, hedef veri seti · Sol (340 px, uygulama zemini): KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri), bildirimler, CSV AYARLARI, SÜTUN EŞLEME · Sağ: ÖNİZLEME (ilk 20 satır) · Alt çubuk: adıma göre özet + İptal + "N satırı içe aktar" (`accent`), aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
 

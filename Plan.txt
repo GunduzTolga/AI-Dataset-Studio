@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.7.0 (dışa aktarma ve train/val/test bölmesi; bkz. §10, §13 ve ADR-028)
+- **Versiyon:** 1.8.0 (paketleme, güncelleme ve ilk sürüm 1.0.0; bkz. §25 ve ADR-029)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -694,3 +694,28 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-026: Geri Al / Yinele:** Geri alma, oturum boyunca tutulan bir komut geçmişidir (en fazla 100 adım; çalışma alanı değişince temizlenir, dosyaya yazılmaz). Her adım değişiklikten önceki ve sonraki durumu taşır: durum değişikliklerinde kayıt başına eski/yeni durum, düzenlemede eski/yeni içerik ve durum, silmede kaydın tam kopyası (kimlik, sıra, köken, etiketler, zaman damgaları). Geri alma, yaşam döngüsü kurallarını atlayan ayrı bir servis yöntemiyle (`RestoreStatesAsync` / `RestoreAsync`) uygulanır; kullanıcı aksiyonları ise kurallara tabidir. Kayıtları artık bulunmayan adım uyarıyla geçmişten düşer. İçe aktarma ve örnek veri üretimi geri alınamaz (kayıtlar silinerek kaldırılır). Kalıcı içerik geçmişi (`RecordRevisions`, §14) sürümleme kapsamında ayrıca ele alınır.
 - **ADR-027: Analiz Sonuçlarının Saklanması:** Token sayıları ve tek kayıt kurallarının sonuçları kayıt başına tek satırda (`RecordAnalyses`) tutulur; satır içerik özeti, tokenizer ve kural sürümüyle birlikte saklanır, bunlardan biri değişince "bayat" sayılır ve arka plan analizi yeniden hesaplar (açık bir geçersizleştirme adımı gerekmez). Kayıtlar arası kurallar (kopya, çelişen yanıt) ve veri seti ayarına bağlı kural (bağlamı aşma) saklanmaz, SQL'de sorgu anında hesaplanır; böylece bir kaydın değişmesi başka kayıtların satırını bayatlatmaz ve bağlam uzunluğu değişikliği yeniden analiz gerektirmez. Liste, filtre ve özet bu tabloyu `LEFT JOIN` ile okur; analiz edilmemiş kayıt "—" görünür. Arşivlenmiş kayıtlar özete girmez ve kayıtlar arası kurallarda karşılaştırılmaz. Kişisel veri için özel terimler çalışma alanı dosyasında (`WorkspaceSettings`) saklanır, çünkü şirket ve proje adları paylaşılan dosyayla birlikte gitmelidir.
 - **ADR-028: Dışa Aktarma Hattı ve Soru Tabanlı Bölme:** Dışa aktarma, saf bir dönüştürücüden (`ExportRenderer`, biçim başına golden testli) ve kayıtları listedeki sırayla tek bir okuma anlık görüntüsünden akıtan bir servisten oluşur; dosyalar geçici adla yazılıp tamamlanınca taşınır. Bölme anahtarı, ADR-018'deki "kopya grubunun temsilci kimliği" yerine normalleştirilmiş soru tarafıdır: aynı soruyu soran her kayıt (birebir kopya, farklı yanıt, aynı istemli tercih çifti) aynı dosyaya düşer ve temsilci kaydın silinmesi grubu taşımaz; kayıt eklemek/silmek diğer kayıtları hiç etkilemez. Bedeli, sorusu düzenlenen kaydın dosyasının değişebilmesidir. Bağlam sınırı kontrolü listedeki kırmızı bayrakla aynı içerik tokenını kullanır; şablon yükü sayılmaz.
+- **ADR-029: Paketleme ve Güncelleme Velopack ile:** Dağıtım, Velopack (MIT) ile yapılır: tek araç Windows kurulumu (Setup.exe + taşınabilir zip), macOS .pkg/.app ve Linux AppImage üretir, imzalama ve notarization'ı yönetir ve fark (delta) güncellemeleri sağlar. Her platform/mimari ayrı bir kanaldır (`win-x64`, `osx-arm64`, `osx-x64`, `linux-x64`); güncellemeler sürümün GitHub Releases'ından okunur. Sıfır telemetri ilkesi gereği uygulama kendiliğinden ağa çıkmaz: güncelleme yalnızca kullanıcı denetlediğinde ya da açılışta denetimi açtığında aranır, indirme ve yeniden başlatma onay ister. Uygulama self-contained ve ReadyToRun yayınlanır, trimming yapılmaz (EF Core ve Avalonia yansıması). İmzalama sertifikaları repo sırlarıyla verilir; yoksa paketler imzasız üretilir.
+
+---
+
+## 25. PAKETLEME, DAĞITIM VE GÜNCELLEME (PACKAGING & RELEASE)
+
+### 25.1. Paketler
+- **Platformlar:** Windows x64 (Setup.exe + taşınabilir zip), macOS Apple silicon ve Intel (.pkg + .app zip), Linux x64 (AppImage). .NET kurulumu gerekmez (self-contained, ReadyToRun).
+- **Kimlikler:** Paket kimliği `AIDatasetStudio`, macOS bundle kimliği `io.github.gunduztolga.aidatasetstudio` (değiştirilmez). İkonlar marka işaretinden `build/make-icon.cs` ile üretilir (`app.ico`, `app.icns`, `app.png`).
+- **Lisanslar:** Kullanılan açık kaynak bileşenler `THIRD-PARTY-NOTICES.md` dosyasında listelenir; dosya uygulamayla birlikte dağıtılır ve Yardım › Hakkında'dan açılır.
+
+### 25.2. Sürüm hattı
+- `v1.2.3` etiketi `.github/workflows/release.yml`'yi tetikler: testler → dört platformda yayınlama ve Velopack paketleme → tek GitHub sürümünde dört kanalın birleştirilmesi; notlar `CHANGELOG.md`'den alınır. Tireli etiketler (`-beta.1`) ön sürümdür.
+- İmzalama isteğe bağlıdır: Windows için Authenticode sertifikası, macOS için Developer ID + notarization sırları eklenince devreye girer (ayrıntılar `docs/release.md`). Paketleme dosyalarını değiştiren PR'lar paketleri yayınlamadan üretir.
+- Derleme sırasında Avalonia'nın kullanım istatistiği görevi CI'da `AVALONIA_TELEMETRY_OPTOUT` ile kapatılır.
+
+### 25.3. Uygulama içi
+- **Güncelleme:** Yardım › Güncellemeleri Denetle; bulunursa sürüm ve onay sorulur, indirilir, düzenlemeler kaydedilip çalışma alanı kapatılır (WAL checkpoint) ve uygulama yeni sürümle yeniden başlar. "Açılışta Güncellemeleri Denetle" varsayılan kapalıdır ve kullanıcı ayarlarında saklanır; açılış denetimi yalnızca yeni sürüm varsa durum çubuğunda söyler, çevrimdışıysa sessiz kalır. Kaynaktan çalışan kopyalar ağa çıkmaz.
+- **Hata günlüğü:** Beklenmeyen hatalar (UI iş parçacığında yakalanmayanlar, çökme, gözlenmeyen görevler) kullanıcı ayarları klasöründeki `logs/aidatasetstudio-YYYYMMDD.log` dosyasına sürüm ve işletim sistemi bilgisiyle yazılır; hiçbir yere gönderilmez. UI hatasında uygulama kapanmaz, durum çubuğu günlük yolunu gösterir.
+- **Hakkında:** Sürüm, gizlilik notu (telemetri yok), ayar/günlük klasörü, günlük klasörünü açma ve üçüncü taraf bildirimleri.
+
+### 25.4. Uygulama ayrıntıları (M6)
+- İlk sürüm **1.0.0**'dır: §20'deki MVP maddelerinin tamamı yapıldı; bu sürümden itibaren `.adstudio` dosyaları geriye dönük uyumlu tutulur (ADR-015).
+- Linux AppImage yerelde üretilip Xvfb altında açılarak doğrulandı; Windows paketi Linux'tan çapraz üretilerek dosya adları doğrulandı. Bu deneme, kayıt listesinin açılıştaki ilk yüklemesinde sessizce kaybolan bir hatayı hata günlüğüyle buldu ve düzeltildi.
+- **Henüz yok:** Windows arm64 ve Linux arm64 paketleri, Linux dağıtım paketleri (deb/rpm/Flatpak), aynı dosyanın iki örnekte açılmasını engelleyen kilit (plan incelemesi §5).

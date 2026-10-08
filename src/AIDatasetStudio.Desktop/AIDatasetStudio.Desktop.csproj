@@ -5,6 +5,7 @@
     <AssemblyName>AIDatasetStudio</AssemblyName>
     <RootNamespace>AIDatasetStudio.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- English is the neutral language; Turkish ships as a satellite assembly. -->
     <NeutralLanguage>en</NeutralLanguage>
@@ -19,6 +20,12 @@
       <StronglyTypedClassName>Strings</StronglyTypedClassName>
       <StronglyTypedFileName>$(IntermediateOutputPath)Strings.g.cs</StronglyTypedFileName>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Window icon; app.icns and app.png are used by the macOS and Linux packages (see build/). -->
+    <AvaloniaResource Include="Assets\app.ico" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +45,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="FluentIcons.Avalonia" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Velopack" />
   </ItemGroup>
 
 </Project>
