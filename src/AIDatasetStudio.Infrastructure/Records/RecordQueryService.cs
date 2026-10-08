@@ -5,6 +5,7 @@ using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Infrastructure.Analysis;
+using AIDatasetStudio.Infrastructure.Judgments;
 using AIDatasetStudio.Infrastructure.Persistence;
 using AIDatasetStudio.Infrastructure.Search;
 using Microsoft.Data.Sqlite;
@@ -207,7 +208,7 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
     private static readonly string SummaryColumns =
         $"SELECT r.Id, r.Ordinal, r.Status, r.Preview, r.UpdatedAt, a.TotalTokens, {AnalysisSql.Score}, " +
         $"COALESCE({AnalysisSql.IsOverLimit}, 0), " +
-        $"(SELECT json_group_array(rt.TagId) FROM RecordTags rt WHERE rt.RecordId = r.Id HAVING COUNT(*) > 0) {From}";
+        $"(SELECT json_group_array(rt.TagId) FROM RecordTags rt WHERE rt.RecordId = r.Id HAVING COUNT(*) > 0), {JudgmentSql.Score} {From}";
 
     private static List<Guid> ReadIds(string json) => [.. (JsonSerializer.Deserialize<List<string>>(json) ?? []).Select(SqliteValues.ReadGuid)];
 
@@ -226,7 +227,8 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
                 reader.IsDBNull(5) ? null : reader.GetInt32(5),
                 reader.IsDBNull(6) ? null : reader.GetInt32(6),
                 reader.GetBoolean(7),
-                reader.IsDBNull(8) ? null : ReadIds(reader.GetString(8))));
+                reader.IsDBNull(8) ? null : ReadIds(reader.GetString(8)),
+                reader.IsDBNull(9) ? null : reader.GetInt32(9)));
         }
 
         return items;

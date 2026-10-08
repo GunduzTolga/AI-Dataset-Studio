@@ -40,14 +40,16 @@ public sealed class AIAssistant
     /// Sends <paramref name="messages"/> to the connection's model and yields its answer piece by
     /// piece, without reasoning blocks.
     /// </summary>
+    /// <param name="temperature">Instead of the connection's temperature, e.g. 0 for a judgment.</param>
     /// <exception cref="AIException">The server cannot be used.</exception>
     public async IAsyncEnumerable<string> WriteAsync(
         AIConnection connection,
         IReadOnlyList<AIChatMessage> messages,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default,
+        double? temperature = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
-        var request = new AIChatRequest(messages, connection.Temperature, connection.MaxTokens);
+        var request = new AIChatRequest(messages, temperature ?? connection.Temperature, connection.MaxTokens);
         var provider = _providers.Create(connection);
         await foreach (var piece in ReasoningFilter.ApplyAsync(provider.StreamChatAsync(request, cancellationToken), cancellationToken))
         {

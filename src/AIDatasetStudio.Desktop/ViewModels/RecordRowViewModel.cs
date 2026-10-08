@@ -64,6 +64,28 @@ public sealed partial class RecordRowViewModel : ViewModelBase
     public partial bool IsOverContextLimit { get; private set; }
 
     /// <summary>
+    /// A model's score 1–5 of the record as it is now; <c>null</c> when not judged so (SDD §17.7).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsJudged), nameof(JudgeScoreText), nameof(JudgeTip), nameof(IsJudgeGood), nameof(IsJudgeFair), nameof(IsJudgePoor))]
+    public partial int? JudgeScore { get; private set; }
+
+    public bool IsJudged => JudgeScore is not null;
+
+    public string JudgeScoreText => JudgeScore?.ToString(CultureInfo.CurrentCulture) ?? string.Empty;
+
+    /// <summary>
+    /// "Score from the model: 4/5".
+    /// </summary>
+    public string? JudgeTip => JudgeScore is { } score ? _localizer.Format("Judge_ScoreTip", JudgeText.Score(score)) : null;
+
+    public bool IsJudgeGood => JudgeText.ToneOf(JudgeScore) == ScoreTone.Good;
+
+    public bool IsJudgeFair => JudgeText.ToneOf(JudgeScore) == ScoreTone.Fair;
+
+    public bool IsJudgePoor => JudgeText.ToneOf(JudgeScore) == ScoreTone.Poor;
+
+    /// <summary>
     /// The record's tags, kept in step with tag changes made elsewhere.
     /// </summary>
     public IReadOnlyList<Guid> TagIds { get; private set; } = [];
@@ -128,6 +150,7 @@ public sealed partial class RecordRowViewModel : ViewModelBase
         TotalTokens = summary.TotalTokens;
         Score = summary.Score;
         IsOverContextLimit = summary.IsOverContextLimit;
+        JudgeScore = summary.JudgeScore;
     }
 
     /// <summary>
@@ -143,5 +166,6 @@ public sealed partial class RecordRowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(TokenText));
+        OnPropertyChanged(nameof(JudgeTip));
     }
 }

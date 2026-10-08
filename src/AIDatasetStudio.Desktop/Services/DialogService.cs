@@ -123,6 +123,8 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
 
     public Task ShowVariationsAsync(VariationsViewModel variations) => new VariationsWindow { DataContext = variations }.ShowDialog(Owner);
 
+    public Task ShowJudgeAsync(JudgeViewModel judge) => new JudgeWindow { DataContext = judge }.ShowDialog(Owner);
+
     private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);
 
     private Window Owner => owner() ?? throw new InvalidOperationException("No window is available to host a dialog.");

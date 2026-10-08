@@ -44,7 +44,7 @@ public sealed partial class RecordDetailsViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsWriting), nameof(WritingText))]
-    [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand), nameof(StopWritingCommand), nameof(SaveCommand))]
+    [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand), nameof(StopWritingCommand), nameof(SaveCommand), nameof(JudgeCommand))]
     public partial AIWriteTarget? WritingTarget { get; private set; }
 
     public bool IsWriting => WritingTarget is not null;
@@ -83,9 +83,10 @@ public sealed partial class RecordDetailsViewModel
     private bool CanWriteMain() => IsWriting || (Record?.Payload is { } payload && CanWrite(AIPrompts.TargetsFor(payload.Type).FirstOrDefault()));
 
     /// <summary>
-    /// Mod+G: writes the record's main answer side, or stops the writing in progress.
+    /// Mod+G: writes the record's main answer side, or stops the writing in progress. It may run
+    /// while it runs: that is how the shortcut stops it.
     /// </summary>
-    [RelayCommand(CanExecute = nameof(CanWriteMain))]
+    [RelayCommand(CanExecute = nameof(CanWriteMain), AllowConcurrentExecutions = true)]
     private Task WriteMainAsync()
     {
         if (IsWriting)

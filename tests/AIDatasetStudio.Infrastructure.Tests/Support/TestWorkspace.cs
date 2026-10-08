@@ -5,6 +5,7 @@ using AIDatasetStudio.Infrastructure.Catalog;
 using AIDatasetStudio.Infrastructure.Documents;
 using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
+using AIDatasetStudio.Infrastructure.Judgments;
 using AIDatasetStudio.Infrastructure.Records;
 using AIDatasetStudio.Infrastructure.Tags;
 using AIDatasetStudio.Infrastructure.Versions;
@@ -32,6 +33,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Export = new ExportService(Workspace, Analysis, Clock);
         Versions = new VersionService(Workspace, Analysis, Clock);
         Tags = new TagService(Workspace, Clock);
+        Judgments = new JudgmentService(Workspace);
     }
 
     /// <summary>
@@ -48,6 +50,8 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public VersionService Versions { get; }
 
     public TagService Tags { get; }
+
+    public JudgmentService Judgments { get; }
 
     public string Directory { get; }
 

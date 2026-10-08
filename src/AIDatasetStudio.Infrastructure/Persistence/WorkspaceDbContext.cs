@@ -24,6 +24,10 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
 
     internal DbSet<RecordAnalysisRow> Analyses => Set<RecordAnalysisRow>();
 
+    internal DbSet<RecordJudgmentRow> Judgments => Set<RecordJudgmentRow>();
+
+    internal DbSet<RecordConflictRow> Conflicts => Set<RecordConflictRow>();
+
     internal DbSet<WorkspaceSetting> Settings => Set<WorkspaceSetting>();
 
     internal DbSet<ExportProfileRow> ExportProfiles => Set<ExportProfileRow>();

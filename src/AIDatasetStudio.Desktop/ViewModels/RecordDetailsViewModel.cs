@@ -4,6 +4,7 @@ using System.Globalization;
 using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Documents;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
@@ -32,6 +33,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private readonly ITokenizerProvider _tokenizers;
     private readonly TagCatalog _tags;
     private readonly AIAssistant _ai;
+    private readonly RecordJudge _judge;
     private PiiScanner _scanner = new();
     private IReadOnlyList<QualityIssue> _crossIssues = [];
     private PiiMaskResult? _mask;
@@ -49,7 +51,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         StatusBarViewModel status,
         Localizer localizer,
         TagCatalog tags,
-        AIAssistant ai)
+        AIAssistant ai,
+        RecordJudge judge)
     {
         _queries = queries;
         _analysis = analysis;
@@ -60,6 +63,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         _localizer = localizer;
         _tags = tags;
         _ai = ai;
+        _judge = judge;
         _ai.ConnectionChanged += (_, _) => OnPropertyChanged(nameof(WritingText));
         TagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
         BatchTagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
@@ -70,14 +74,14 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     // ===== Single record =====
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info))]
+    [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info), nameof(IsJudgmentOutdated))]
     [NotifyPropertyChangedFor(nameof(IsChat), nameof(ShowChatEditor), nameof(IsArchived), nameof(IsEditable))]
     [NotifyPropertyChangedFor(nameof(IsPreference), nameof(ShowPreferenceCompare))]
     [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand), nameof(TogglePreferenceCompareCommand))]
-    [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand))]
+    [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand), nameof(JudgeCommand))]
     public partial RecordDetails? Record { get; private set; }
 
     /// <summary>
@@ -148,7 +152,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// The dataset of the shown records, for its tokenizer and context length.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanVary))]
+    [NotifyPropertyChangedFor(nameof(CanVary), nameof(CanJudgeRecords))]
+    [NotifyCanExecuteChangedFor(nameof(JudgeCommand))]
     public partial DatasetNodeViewModel? Dataset { get; set; }
 
     /// <summary>
@@ -337,6 +342,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     {
         var generation = ++_generation;
         await StopWritingAsync();
+        await StopJudgingAsync();
         await SaveIfDirtyAsync();
         BatchRows = [];
         if (recordId is null)
@@ -357,6 +363,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             {
                 SetRecord(record);
                 await LoadCrossIssuesAsync(generation);
+                await LoadJudgmentAsync(generation);
             }
         }
         catch (Exception ex) when (_status.TryReport(ex))
@@ -371,6 +378,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     {
         ++_generation;
         await StopWritingAsync();
+        await StopJudgingAsync();
         await SaveIfDirtyAsync();
         SetRecord(null);
         _batchDatasetId = datasetId;
@@ -395,6 +403,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             if (generation == _generation)
             {
                 SetRecord(fresh);
+                await LoadJudgmentAsync(generation);
             }
         }
         catch (Exception ex) when (_status.TryReport(ex))
@@ -900,6 +909,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     {
         Record = record;
         _crossIssues = [];
+        Judgment = JudgmentDetails.None;
         IsPiiPreview = false;
         UpdatePiiPreview();
         if (record is null)
@@ -1019,6 +1029,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private void Refresh()
     {
         Reanalyze();
+        RefreshJudgmentTexts();
         UpdatePiiPreview();
         UpdatePreferenceCompare();
         OnPropertyChanged(nameof(Title));

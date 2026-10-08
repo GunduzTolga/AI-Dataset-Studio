@@ -160,10 +160,19 @@
                             </DataTemplate>
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Border Classes="tag-pill" IsVisible="{Binding HasMoreTags}">
+                          <Border Classes="tag-pill" IsVisible="{Binding HasMoreTags}">
                           <TextBlock Classes="numeric" Text="{Binding MoreTagsText}" />
                         </Border>
                       </StackPanel>
+                      <!-- A model's score 1–5 (M15) -->
+                      <Border DockPanel.Dock="Right" Classes="score" Classes.good="{Binding IsJudgeGood}" Classes.fair="{Binding IsJudgeFair}"
+                              Classes.poor="{Binding IsJudgePoor}" VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding IsJudged}"
+                              ToolTip.Tip="{Binding JudgeTip}">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                          <ic:SymbolIcon Symbol="Gavel" FontSize="11" />
+                          <TextBlock Classes="numeric" Text="{Binding JudgeScoreText}" />
+                        </StackPanel>
+                      </Border>
                       <TextBlock Text="{Binding Preview}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
                     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">

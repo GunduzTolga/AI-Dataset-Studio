@@ -87,4 +87,9 @@ public interface IDialogService
     /// Shows variations of records until the window is closed.
     /// </summary>
     Task ShowVariationsAsync(VariationsViewModel variations);
+
+    /// <summary>
+    /// Shows judging records with a model until the window is closed.
+    /// </summary>
+    Task ShowJudgeAsync(JudgeViewModel judge);
 }

@@ -738,6 +738,15 @@
   <data name="Status_VariationsAdded" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} varyant taslak olarak eklendi; gözden geçirin</value>
   </data>
+  <data name="Status_Judged" xml:space="preserve">
+    <value>#{0} kaydı {1} ile değerlendirildi: {2}</value>
+  </data>
+  <data name="Status_JudgingStopped" xml:space="preserve">
+    <value>Değerlendirme durduruldu; yapılanlar kaydedildi</value>
+  </data>
+  <data name="Status_JudgedMany" xml:space="preserve">
+    <value>“{1}” veri setinde {0:N0} kayıt değerlendirildi</value>
+  </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı; {2:N0} satır atlandı</value>
   </data>
@@ -2031,6 +2040,132 @@
   <data name="Variations_History" xml:space="preserve">
     <value>varyantlar</value>
   </data>
+  <data name="Action_Judge" xml:space="preserve">
+    <value>Değerlendir</value>
+  </data>
+  <data name="Judge_Title" xml:space="preserve">
+    <value>Modelle Değerlendir</value>
+  </data>
+  <data name="Judge_Section" xml:space="preserve">
+    <value>MODEL DEĞERLENDİRMESİ</value>
+  </data>
+  <data name="Judge_None" xml:space="preserve">
+    <value>Henüz değerlendirilmedi. Model kaydı 1–5 arası puanlar ve nedenini yazar.</value>
+  </data>
+  <data name="Judge_Judge" xml:space="preserve">
+    <value>Modelle değerlendir</value>
+  </data>
+  <data name="Judge_Again" xml:space="preserve">
+    <value>Yeniden değerlendir</value>
+  </data>
+  <data name="Judge_Info" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Judge_Judging" xml:space="preserve">
+    <value>{0} ile değerlendiriliyor…</value>
+  </data>
+  <data name="Judge_Comparing" xml:space="preserve">
+    <value>#{0} ile karşılaştırılıyor…</value>
+  </data>
+  <data name="Judge_Unreadable" xml:space="preserve">
+    <value>Modelin yanıtında 1–5 arası bir puan yoktu. Yeniden değerlendirin ya da başka bir model deneyin.</value>
+  </data>
+  <data name="Judge_NothingToJudge" xml:space="preserve">
+    <value>Değerlendirilecek bir şey yok: soru ya da yanıt boş.</value>
+  </data>
+  <data name="Judge_Outdated" xml:space="preserve">
+    <value>Kayıt değerlendirildikten sonra değişti.</value>
+  </data>
+  <data name="Judge_Ungrounded" xml:space="preserve">
+    <value>Kaynak metinde olmayan bilgi içeriyor.</value>
+  </data>
+  <data name="Judge_RejectedBetter" xml:space="preserve">
+    <value>Reddedilen yanıt, tercih edilenden daha iyi görünüyor.</value>
+  </data>
+  <data name="Judge_NoPreference" xml:space="preserve">
+    <value>İki yanıttan biri ötekinden belirgin şekilde iyi değil.</value>
+  </data>
+  <data name="Judge_Contradicts" xml:space="preserve">
+    <value>#{0} ile çelişiyor: {1}</value>
+  </data>
+  <data name="Judge_ScoreTip" xml:space="preserve">
+    <value>Model puanı: {0}</value>
+  </data>
+  <data name="Judge_Compare" xml:space="preserve">
+    <value>Aynı şeyi soran kayıtlarla karşılaştır</value>
+  </data>
+  <data name="Judge_CompareHint" xml:space="preserve">
+    <value>Her yanıt, aynı ya da neredeyse aynı soruyu soran veya varyantı olan en çok 3 kayıtla da karşılaştırılır; böylece birbiriyle çelişen yanıtlar bulunur. Şu anki hâlleriyle karşılaştırılmış çiftler yeniden sorulmaz.</value>
+  </data>
+  <data name="Judge_Start" xml:space="preserve">
+    <value>Değerlendir</value>
+  </data>
+  <data name="Judge_Unsupported" xml:space="preserve">
+    <value>Talimat, Sohbet ve Tercih kayıtları değerlendirilebilir.</value>
+  </data>
+  <data name="Judge_NoRecords" xml:space="preserve">
+    <value>Değerlendirilecek kayıt yok.</value>
+  </data>
+  <data name="Judge_Include" xml:space="preserve">
+    <value>Bu kayıt değerlendirilsin</value>
+  </data>
+  <data name="Judge_RewriteHint" xml:space="preserve">
+    <value>Bu kaydı modele yeniden değerlendirtir; değerlendirme yenisiyle değişir.</value>
+  </data>
+  <data name="Judge_Record" xml:space="preserve">
+    <value>KAYIT</value>
+  </data>
+  <data name="Judge_Verdict" xml:space="preserve">
+    <value>DEĞERLENDİRME</value>
+  </data>
+  <data name="Judge_NotJudged" xml:space="preserve">
+    <value>Henüz değerlendirilmedi.</value>
+  </data>
+  <data name="Judge_UnreadableHint" xml:space="preserve">
+    <value>Modelin yanıtında 1–5 arası bir puan yoktu. Yeniden değerlendirin ya da başka bir model deneyin. Modelin yazdığı:</value>
+  </data>
+  <data name="Judge_StateJudging" xml:space="preserve">
+    <value>Değerlendiriliyor…</value>
+  </data>
+  <data name="Judge_StateSkipped" xml:space="preserve">
+    <value>Boş</value>
+  </data>
+  <data name="Judge_NoneYet" xml:space="preserve">
+    <value>Kayıtları seçip Değerlendir'e basın: model her birini 1–5 arası puanlar ve nedenini yazar.</value>
+  </data>
+  <data name="Judge_Summary" xml:space="preserve">
+    <value>{1:N0} kayıttan {0:N0} tanesi değerlendirildi · ortalama {2} · {3:N0} düşük puan</value>
+  </data>
+  <data name="Judge_Progress" xml:space="preserve">
+    <value>{2} ile {0}/{1}. kayıt değerlendiriliyor…</value>
+  </data>
+  <data name="Judge_Finished" xml:space="preserve">
+    <value>{0:N0} kayıt değerlendirildi.</value>
+  </data>
+  <data name="Judge_Stopped" xml:space="preserve">
+    <value>Durduruldu; yapılanlar kaydedildi.</value>
+  </data>
+  <data name="Judge_Saved" xml:space="preserve">
+    <value>Değerlendirmeler geldikçe kaydedilir.</value>
+  </data>
+  <data name="Overview_JudgeEmpty" xml:space="preserve">
+    <value>Kayıtları bir modele gerekçesiyle 1–5 arası puanlatın. Ardından düşük puanlılar, kaynağın desteklemediği bilgiler ve birbiriyle çelişen yanıtlar listelenebilir.</value>
+  </data>
+  <data name="Overview_JudgeAverage" xml:space="preserve">
+    <value>Ortalama puan</value>
+  </data>
+  <data name="Overview_Judged" xml:space="preserve">
+    <value>{1:N0} kayıttan {0:N0} tanesi değerlendirildi</value>
+  </data>
+  <data name="Overview_JudgeOutdated" xml:space="preserve">
+    <value>{0:N0} kayıt değerlendirildikten sonra değişti</value>
+  </data>
+  <data name="Overview_JudgeRest" xml:space="preserve">
+    <value>{0:N0} kaydı değerlendir…</value>
+  </data>
+  <data name="Overview_JudgeHint" xml:space="preserve">
+    <value>Şu anki hâliyle değerlendirilmemiş kayıtlarla değerlendirme penceresini açar.</value>
+  </data>
   <data name="AIProvider_Ollama" xml:space="preserve">
     <value>Ollama</value>
   </data>
@@ -2051,6 +2186,9 @@
   </data>
   <data name="Menu_GenerateVariations" xml:space="preserve">
     <value>Varyant Üret…</value>
+  </data>
+  <data name="Menu_Judge" xml:space="preserve">
+    <value>Modelle Değerlendir</value>
   </data>
   <data name="Tags_Title" xml:space="preserve">
     <value>Etiketler</value>
@@ -2132,6 +2270,21 @@
   </data>
   <data name="QualityFilter_NearDuplicates" xml:space="preserve">
     <value>Benzer sorular</value>
+  </data>
+  <data name="QualityFilter_LowJudgeScore" xml:space="preserve">
+    <value>Model: düşük puan (1–2)</value>
+  </data>
+  <data name="QualityFilter_NotJudged" xml:space="preserve">
+    <value>Model: değerlendirilmemiş</value>
+  </data>
+  <data name="QualityFilter_Ungrounded" xml:space="preserve">
+    <value>Model: kaynakta olmayan bilgi</value>
+  </data>
+  <data name="QualityFilter_PreferenceDoubts" xml:space="preserve">
+    <value>Model: şüpheli tercih</value>
+  </data>
+  <data name="QualityFilter_Contradictions" xml:space="preserve">
+    <value>Model: çelişen yanıtlar</value>
   </data>
   <data name="Editor_PreferenceCompare" xml:space="preserve">
     <value>Yanıtları karşılaştır</value>

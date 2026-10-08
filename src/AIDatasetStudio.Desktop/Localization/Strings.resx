@@ -770,6 +770,15 @@
   <data name="Status_VariationsAdded" xml:space="preserve">
     <value>Added {0:N0} variations to “{1}” as drafts to review</value>
   </data>
+  <data name="Status_Judged" xml:space="preserve">
+    <value>Judged #{0} with {1}: {2}</value>
+  </data>
+  <data name="Status_JudgingStopped" xml:space="preserve">
+    <value>Judging stopped; what was judged is kept</value>
+  </data>
+  <data name="Status_JudgedMany" xml:space="preserve">
+    <value>Judged {0:N0} records in “{1}”</value>
+  </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>{0:N0} records imported into “{1}”; {2:N0} rows skipped</value>
   </data>
@@ -2093,6 +2102,132 @@
   <data name="Variations_History" xml:space="preserve">
     <value>variations</value>
   </data>
+  <data name="Action_Judge" xml:space="preserve">
+    <value>Judge</value>
+  </data>
+  <data name="Judge_Title" xml:space="preserve">
+    <value>Judge with AI</value>
+  </data>
+  <data name="Judge_Section" xml:space="preserve">
+    <value>AI JUDGMENT</value>
+  </data>
+  <data name="Judge_None" xml:space="preserve">
+    <value>Not judged yet. A model rates the record from 1 to 5 and says why.</value>
+  </data>
+  <data name="Judge_Judge" xml:space="preserve">
+    <value>Judge with AI</value>
+  </data>
+  <data name="Judge_Again" xml:space="preserve">
+    <value>Judge again</value>
+  </data>
+  <data name="Judge_Info" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Judge_Judging" xml:space="preserve">
+    <value>Judging with {0}…</value>
+  </data>
+  <data name="Judge_Comparing" xml:space="preserve">
+    <value>Comparing with #{0}…</value>
+  </data>
+  <data name="Judge_Unreadable" xml:space="preserve">
+    <value>The model's answer had no score from 1 to 5. Judge again or try another model.</value>
+  </data>
+  <data name="Judge_NothingToJudge" xml:space="preserve">
+    <value>There is nothing to judge yet: the question or the answer is empty.</value>
+  </data>
+  <data name="Judge_Outdated" xml:space="preserve">
+    <value>The record changed after it was judged.</value>
+  </data>
+  <data name="Judge_Ungrounded" xml:space="preserve">
+    <value>Says something the source passage does not.</value>
+  </data>
+  <data name="Judge_RejectedBetter" xml:space="preserve">
+    <value>The rejected answer looks better than the chosen one.</value>
+  </data>
+  <data name="Judge_NoPreference" xml:space="preserve">
+    <value>Neither answer is clearly better than the other.</value>
+  </data>
+  <data name="Judge_Contradicts" xml:space="preserve">
+    <value>Contradicts #{0}: {1}</value>
+  </data>
+  <data name="Judge_ScoreTip" xml:space="preserve">
+    <value>Score from the AI judge: {0}</value>
+  </data>
+  <data name="Judge_Compare" xml:space="preserve">
+    <value>Compare with records that ask the same thing</value>
+  </data>
+  <data name="Judge_CompareHint" xml:space="preserve">
+    <value>Each answer is also compared with up to 3 records that ask the same or a nearly same question, or are its variations, to find answers that contradict each other. Pairs already compared as they are now are not asked again.</value>
+  </data>
+  <data name="Judge_Start" xml:space="preserve">
+    <value>Judge</value>
+  </data>
+  <data name="Judge_Unsupported" xml:space="preserve">
+    <value>Instruction, Chat and Preference records can be judged.</value>
+  </data>
+  <data name="Judge_NoRecords" xml:space="preserve">
+    <value>There are no records to judge.</value>
+  </data>
+  <data name="Judge_Include" xml:space="preserve">
+    <value>Judge this record</value>
+  </data>
+  <data name="Judge_RewriteHint" xml:space="preserve">
+    <value>Has the model judge this record again; the judgment is replaced.</value>
+  </data>
+  <data name="Judge_Record" xml:space="preserve">
+    <value>RECORD</value>
+  </data>
+  <data name="Judge_Verdict" xml:space="preserve">
+    <value>JUDGMENT</value>
+  </data>
+  <data name="Judge_NotJudged" xml:space="preserve">
+    <value>Not judged yet.</value>
+  </data>
+  <data name="Judge_UnreadableHint" xml:space="preserve">
+    <value>The model's answer had no score from 1 to 5. Judge again or try another model. It wrote:</value>
+  </data>
+  <data name="Judge_StateJudging" xml:space="preserve">
+    <value>Judging…</value>
+  </data>
+  <data name="Judge_StateSkipped" xml:space="preserve">
+    <value>Nothing to judge</value>
+  </data>
+  <data name="Judge_NoneYet" xml:space="preserve">
+    <value>Choose the records and press Judge: the model rates each one from 1 to 5 and says why.</value>
+  </data>
+  <data name="Judge_Summary" xml:space="preserve">
+    <value>{0:N0} of {1:N0} judged · average {2} · {3:N0} low</value>
+  </data>
+  <data name="Judge_Progress" xml:space="preserve">
+    <value>Judging record {0} of {1} with {2}…</value>
+  </data>
+  <data name="Judge_Finished" xml:space="preserve">
+    <value>{0:N0} records judged.</value>
+  </data>
+  <data name="Judge_Stopped" xml:space="preserve">
+    <value>Stopped; what was judged is kept.</value>
+  </data>
+  <data name="Judge_Saved" xml:space="preserve">
+    <value>Judgments are saved as they come.</value>
+  </data>
+  <data name="Overview_JudgeEmpty" xml:space="preserve">
+    <value>Have a model rate the records from 1 to 5 with a reason. Low scores, claims the source does not support and answers that contradict each other can then be listed.</value>
+  </data>
+  <data name="Overview_JudgeAverage" xml:space="preserve">
+    <value>Average score</value>
+  </data>
+  <data name="Overview_Judged" xml:space="preserve">
+    <value>{0:N0} of {1:N0} records judged</value>
+  </data>
+  <data name="Overview_JudgeOutdated" xml:space="preserve">
+    <value>{0:N0} changed after they were judged</value>
+  </data>
+  <data name="Overview_JudgeRest" xml:space="preserve">
+    <value>Judge {0:N0} records…</value>
+  </data>
+  <data name="Overview_JudgeHint" xml:space="preserve">
+    <value>Opens the judge window with the records not judged as they are now.</value>
+  </data>
   <data name="AIProvider_Ollama" xml:space="preserve">
     <value>Ollama</value>
   </data>
@@ -2113,6 +2248,9 @@
   </data>
   <data name="Menu_GenerateVariations" xml:space="preserve">
     <value>Generate Variations…</value>
+  </data>
+  <data name="Menu_Judge" xml:space="preserve">
+    <value>Judge with AI</value>
   </data>
   <data name="Tags_Title" xml:space="preserve">
     <value>Tags</value>
@@ -2194,6 +2332,21 @@
   </data>
   <data name="QualityFilter_NearDuplicates" xml:space="preserve">
     <value>Near-duplicate questions</value>
+  </data>
+  <data name="QualityFilter_LowJudgeScore" xml:space="preserve">
+    <value>AI judge: low score (1–2)</value>
+  </data>
+  <data name="QualityFilter_NotJudged" xml:space="preserve">
+    <value>AI judge: not judged</value>
+  </data>
+  <data name="QualityFilter_Ungrounded" xml:space="preserve">
+    <value>AI judge: not in the source</value>
+  </data>
+  <data name="QualityFilter_PreferenceDoubts" xml:space="preserve">
+    <value>AI judge: doubtful preference</value>
+  </data>
+  <data name="QualityFilter_Contradictions" xml:space="preserve">
+    <value>AI judge: contradicting answers</value>
   </data>
   <data name="Editor_PreferenceCompare" xml:space="preserve">
     <value>Compare the answers</value>

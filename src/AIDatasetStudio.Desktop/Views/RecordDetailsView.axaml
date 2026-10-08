@@ -391,6 +391,59 @@
             </StackPanel>
           </Border>
 
+          <!-- Judgment by a model (SDD §17.7) -->
+          <StackPanel IsVisible="{Binding CanJudgeRecords}">
+            <Grid ColumnDefinitions="*,Auto" Margin="2,14,0,2">
+              <TextBlock Classes="overline" Text="{l:Tr Judge_Section}" VerticalAlignment="Center" />
+              <Border x:Name="JudgeScorePill" Grid.Column="1" Classes="score" Classes.good="{Binding IsJudgeGood}" Classes.fair="{Binding IsJudgeFair}"
+                      Classes.poor="{Binding IsJudgePoor}" IsVisible="{Binding HasJudgment}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <ic:SymbolIcon Symbol="Gavel" />
+                  <TextBlock Classes="numeric" Text="{Binding JudgeScoreText}" />
+                </StackPanel>
+              </Border>
+            </Grid>
+            <Border Classes="card" Padding="14,10">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="small muted" Text="{l:Tr Judge_None}" TextWrapping="Wrap" IsVisible="{Binding !HasJudgment}" />
+                <SelectableTextBlock x:Name="JudgeReasonText" Classes="small" Text="{Binding JudgeReason}" TextWrapping="Wrap"
+                                     IsVisible="{Binding HasJudgment}" />
+                <ItemsControl ItemsSource="{Binding JudgeNotes}" IsVisible="{Binding HasJudgeNotes}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+                        <ic:SymbolIcon Symbol="Warning" FontSize="16" Foreground="{DynamicResource WarningTextBrush}" Margin="0,1,8,0" VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="1" Classes="small" Text="{Binding}" TextWrapping="Wrap" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsJudgmentOutdated}">
+                  <ic:SymbolIcon Symbol="History" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+                  <TextBlock x:Name="JudgeOutdatedText" Classes="small muted" Text="{l:Tr Judge_Outdated}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="caption muted" Text="{Binding JudgeInfo}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                             IsVisible="{Binding !IsJudging}" />
+                  <TextBlock x:Name="JudgingText" Classes="caption muted" Text="{Binding JudgingText}" VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis" IsVisible="{Binding IsJudging}" />
+                  <Button x:Name="JudgeButton" Grid.Column="1" Classes="subtle small" Command="{Binding JudgeCommand}" Margin="8,0,0,0">
+                    <Panel>
+                      <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !IsJudging}">
+                        <ic:SymbolIcon Symbol="Gavel" />
+                        <TextBlock Text="{Binding JudgeActionText}" />
+                      </StackPanel>
+                      <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsJudging}">
+                        <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
+                        <TextBlock Text="{l:Tr Editor_StopWriting}" />
+                      </StackPanel>
+                    </Panel>
+                  </Button>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
           <!-- Info -->
           <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Details_Info}" />
           <Border Classes="card" Padding="14,10">
@@ -474,6 +527,12 @@
           <StackPanel Orientation="Horizontal" Spacing="6">
             <ic:SymbolIcon Symbol="ArrowUndo" />
             <TextBlock Text="{l:Tr Action_Restore}" />
+          </StackPanel>
+        </Button>
+        <Button x:Name="BatchJudgeButton" Command="{Binding JudgeSelectionCommand}" IsVisible="{Binding CanJudgeRecords}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="Gavel" />
+            <TextBlock Text="{l:Tr Action_Judge}" />
           </StackPanel>
         </Button>
         <Button x:Name="BatchVariationsButton" Command="{Binding GenerateVariationsCommand}" IsVisible="{Binding CanVary}">

@@ -100,7 +100,7 @@ internal static class AnalysisSql
         QualityFilter.Duplicates => IsDuplicate,
         QualityFilter.PersonalData => $"(a.RecordId IS NOT NULL AND (a.IssueFlags & {Bit(QualityRule.PersonalData)}) <> 0)",
         QualityFilter.NearDuplicates => $"(a.RecordId IS NOT NULL AND {IsNearDuplicate})",
-        _ => null,
+        _ => Judgments.JudgmentSql.Condition(filter),
     };
 
     public static int Archived => (int)RecordStatus.Archived;

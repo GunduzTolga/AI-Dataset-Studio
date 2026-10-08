@@ -29,6 +29,7 @@ public static class AppServices
         services.AddSingleton<AIAssistant>();
         services.AddSingleton<DocumentQuestions>();
         services.AddSingleton<RecordVariations>();
+        services.AddSingleton<RecordJudge>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();

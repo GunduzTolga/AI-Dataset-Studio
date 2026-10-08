@@ -86,6 +86,88 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    private bool CanJudge() =>
+        CanReview() && Records.SelectedRows.Count > 0 && Records.Dataset is { } dataset && Judging.Supports(dataset.Type);
+
+    /// <summary>
+    /// Record › Judge with AI (Mod+J): the model judges the shown record in the editor, or the
+    /// selected records in the judge window (SDD §17.7).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanJudge), AllowConcurrentExecutions = true)]
+    private async Task JudgeAsync()
+    {
+        if (Details.IsBatch && Records.Dataset is { } dataset)
+        {
+            await JudgeInWindowAsync(dataset, [.. Records.SelectedRows.Select(r => r.Id)]);
+        }
+        else if (Details.HasRecord)
+        {
+            await Details.JudgeCommand.ExecuteAsync(null);
+        }
+    }
+
+    // The overview's "Judge N records…": the records not judged as they are now.
+    private async Task JudgeRestAsync()
+    {
+        if (Records.Dataset is not { } dataset)
+        {
+            return;
+        }
+
+        try
+        {
+            await JudgeInWindowAsync(dataset, await _judge.Judgments.FindNotJudgedAsync(dataset.Id));
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+    }
+
+    private async Task JudgeInWindowAsync(DatasetNodeViewModel dataset, IReadOnlyCollection<Guid> recordIds)
+    {
+        // The saved records are judged.
+        if (recordIds.Count == 0 || !await Details.SaveIfDirtyAsync())
+        {
+            return;
+        }
+
+        JudgeViewModel judge;
+        try
+        {
+            judge = await _judge.CreateAsync(new QATarget(dataset.Id, dataset.Name, dataset.Type, dataset.AIGuidance), recordIds);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+            return;
+        }
+
+        judge.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
+        await _dialogs.ShowJudgeAsync(judge);
+        if (judge.JudgedIds.Count > 0)
+        {
+            await OnJudgedAsync([.. judge.JudgedIds]);
+            Status.Set("Status_JudgedMany", judge.JudgedIds.Count, dataset.Name);
+        }
+    }
+
+    // Judged records show their scores in the list, the editor and the overview.
+    private async Task OnJudgedAsync(IReadOnlyCollection<Guid> recordIds)
+    {
+        try
+        {
+            await Records.RefreshAnalysisAsync(recordIds);
+            if (Details.Record is { } record && recordIds.Contains(record.Id) && !Details.IsJudging)
+            {
+                await Details.RefreshJudgmentAsync();
+            }
+
+            await Overview.RefreshAsync();
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+    }
+
     private async Task ExtractQuestionsAsync(DatasetNodeViewModel dataset, string path)
     {
         // The added records are a step in the history after the edit in progress.

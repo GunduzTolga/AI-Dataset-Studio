@@ -44,6 +44,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly AIAssistant _ai;
     private readonly DocumentQuestions _questions;
     private readonly RecordVariations _variations;
+    private readonly RecordJudge _judge;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -65,6 +66,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         AIAssistant ai,
         DocumentQuestions questions,
         RecordVariations variations,
+        RecordJudge judge,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -90,6 +92,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _ai = ai;
         _questions = questions;
         _variations = variations;
+        _judge = judge;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -117,6 +120,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Overview.ExtractQuestionsRequested += (_, _) => ExtractQuestionsCommand.Execute(null);
         Details.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
         Details.VariationsRequested += (_, _) => GenerateVariationsCommand.Execute(null);
+        Details.JudgeSelectionRequested += (_, _) => JudgeCommand.Execute(null);
+        Details.Judged += (_, recordId) => _ = OnJudgedAsync([recordId]);
+        Overview.JudgeRequested += (_, _) => _ = JudgeRestAsync();
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }
@@ -636,6 +642,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private void OnRecordSelectionChanged()
     {
         GenerateVariationsCommand.NotifyCanExecuteChanged();
+        JudgeCommand.NotifyCanExecuteChanged();
         var rows = Records.SelectedRows;
         _ = rows.Count > 1 && Records.Dataset is { } dataset
             ? Details.ShowBatchAsync(dataset.Id, rows)
@@ -691,6 +698,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         ToggleTagCommand.NotifyCanExecuteChanged();
         ToggleTagSlotCommand.NotifyCanExecuteChanged();
         GenerateVariationsCommand.NotifyCanExecuteChanged();
+        JudgeCommand.NotifyCanExecuteChanged();
     }
 
     private void OnHistoryChanged()

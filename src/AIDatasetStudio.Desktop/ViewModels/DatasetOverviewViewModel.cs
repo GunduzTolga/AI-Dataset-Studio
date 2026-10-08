@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Catalog;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.AI;
@@ -59,6 +60,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     private readonly IDialogService _dialogs;
     private readonly StatusBarViewModel _status;
     private readonly AIAssistant _ai;
+    private readonly IJudgmentService _judgments;
     private readonly Localizer _localizer;
     private CancellationTokenSource? _guidanceDelay;
     private CancellationTokenSource? _running;
@@ -73,6 +75,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         IDialogService dialogs,
         StatusBarViewModel status,
         AIAssistant ai,
+        IJudgmentService judgments,
         Localizer localizer)
     {
         _analysis = analysis;
@@ -81,6 +84,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         _dialogs = dialogs;
         _status = status;
         _ai = ai;
+        _judgments = judgments;
         _localizer = localizer;
         _ai.ConnectionChanged += (_, _) =>
         {
@@ -220,6 +224,8 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         await FlushGuidanceAsync();
         Dataset = dataset;
         Summary = null;
+        ApplyJudgments(null);
+        OnPropertyChanged(nameof(CanJudgeRecords));
         Histogram.Clear();
         Issues.Clear();
         OnPropertyChanged(nameof(HasIssues));
@@ -285,6 +291,8 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
             {
                 Apply(summary);
             }
+
+            await LoadJudgmentsAsync(dataset);
         }
         catch (Exception ex) when (_status.TryReport(ex))
         {
@@ -560,5 +568,10 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         {
             Apply(summary);
         }
+
+        ApplyJudgments(Judgments);
+        OnPropertyChanged(nameof(JudgedText));
+        OnPropertyChanged(nameof(OutdatedText));
+        OnPropertyChanged(nameof(JudgeRestText));
     }
 }

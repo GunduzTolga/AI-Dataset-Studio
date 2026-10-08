@@ -157,6 +157,64 @@
         </StackPanel>
       </Border>
 
+      <!-- Judgments by a model (SDD §17.7) -->
+      <StackPanel IsVisible="{Binding CanJudgeRecords}">
+        <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Judge_Section}" IsVisible="{Binding HasRecords}" />
+        <Border Classes="card" Padding="14,12" IsVisible="{Binding HasRecords}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="small muted" Text="{l:Tr Overview_JudgeEmpty}" TextWrapping="Wrap" IsVisible="{Binding !HasJudgments}" />
+            <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding HasJudgments}">
+              <Border x:Name="JudgeAverageTile" Classes="score large" Classes.good="{Binding IsJudgeGood}" Classes.fair="{Binding IsJudgeFair}"
+                      Classes.poor="{Binding IsJudgePoor}">
+                <TextBlock Classes="numeric" Text="{Binding JudgeAverageText}" />
+              </Border>
+              <StackPanel Grid.Column="1" Margin="14,0,0,0" Spacing="3" VerticalAlignment="Center">
+                <TextBlock Classes="subtitle" Text="{l:Tr Overview_JudgeAverage}" />
+                <TextBlock Classes="small muted" Text="{Binding JudgedText}" TextWrapping="Wrap" />
+                <TextBlock Classes="caption muted" Text="{Binding OutdatedText}" IsVisible="{Binding HasOutdated}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Grid>
+            <ItemsControl ItemsSource="{Binding JudgeBars}" IsVisible="{Binding HasJudgments}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HistogramBar">
+                  <Grid ColumnDefinitions="78,*,Auto" Margin="0,2">
+                    <TextBlock Classes="caption muted numeric" Text="{Binding Label}" VerticalAlignment="Center" />
+                    <Border Grid.Column="1" Classes="bar-track" Width="200" HorizontalAlignment="Left" VerticalAlignment="Center">
+                      <Border Classes="bar" Classes.over="{Binding IsOverLimit}"
+                              Width="{Binding Fraction, Converter={x:Static conv:LayoutConverters.BarWidth}}" />
+                    </Border>
+                    <TextBlock Grid.Column="2" Classes="caption numeric" Text="{Binding CountText}" Margin="8,0,0,0" MinWidth="36"
+                               TextAlignment="Right" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ItemsControl x:Name="JudgeFindingList" Classes="lines" ItemsSource="{Binding JudgeFindings}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:JudgeFindingItem">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,6">
+                    <ic:SymbolIcon Symbol="Warning" FontSize="16" Foreground="{DynamicResource WarningTextBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Classes="small strong" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="caption muted numeric" Text="{Binding CountText}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="subtle" Content="{l:Tr Overview_ShowRecords}" VerticalAlignment="Center"
+                            Command="{Binding $parent[UserControl].((vm:DatasetOverviewViewModel)DataContext).ShowJudgedCommand}" CommandParameter="{Binding}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button x:Name="JudgeRestButton" Classes="subtle" HorizontalAlignment="Left" Command="{Binding JudgeCommand}" IsVisible="{Binding CanJudgeRest}"
+                    ToolTip.Tip="{l:Tr Overview_JudgeHint}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Gavel" />
+                <TextBlock Text="{Binding JudgeRestText}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
       <StackPanel Orientation="Horizontal" Spacing="8" Margin="2,10,0,0">
         <ic:SymbolIcon Symbol="Info" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Top" Margin="0,1,0,0" />
         <TextBlock Classes="small muted" Text="{l:Tr Details_NoRecordHint}" TextWrapping="Wrap" MaxWidth="340" />

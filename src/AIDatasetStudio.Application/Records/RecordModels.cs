@@ -41,6 +41,7 @@ public readonly record struct RecordCursor(long Ordinal, Guid Id);
 /// <param name="Score">Quality score 0–100; <c>null</c> until analysed.</param>
 /// <param name="IsOverContextLimit">More tokens than the dataset's context length.</param>
 /// <param name="TagIds">The record's tags; <c>null</c> is read as none.</param>
+/// <param name="JudgeScore">A model's score 1–5 of the record as it is now; <c>null</c> when not judged so (SDD §17.7).</param>
 public sealed record RecordSummary(
     Guid Id,
     long Ordinal,
@@ -50,7 +51,8 @@ public sealed record RecordSummary(
     int? TotalTokens = null,
     int? Score = null,
     bool IsOverContextLimit = false,
-    IReadOnlyList<Guid>? TagIds = null)
+    IReadOnlyList<Guid>? TagIds = null,
+    int? JudgeScore = null)
 {
     public RecordCursor Cursor => new(Ordinal, Id);
 

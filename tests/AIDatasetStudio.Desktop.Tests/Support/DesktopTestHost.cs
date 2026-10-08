@@ -328,6 +328,19 @@ internal sealed class FakeDialogs : IDialogService
         await VariationsScript(variations);
     }
 
+    /// <summary>
+    /// What the user does in the judge window; by default closes it.
+    /// </summary>
+    public Func<JudgeViewModel, Task> JudgeScript { get; set; } = _ => Task.CompletedTask;
+
+    public JudgeViewModel? LastJudge { get; private set; }
+
+    public async Task ShowJudgeAsync(JudgeViewModel judge)
+    {
+        LastJudge = judge;
+        await JudgeScript(judge);
+    }
+
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         LastImportWizard = wizard;

@@ -22,6 +22,21 @@ public enum QualityFilter
 
     /// <summary>Records with a near-duplicate question.</summary>
     NearDuplicates,
+
+    /// <summary>Records a model judged low (<see cref="AI.Judging.LowScore"/> or below) as they are now.</summary>
+    LowJudgeScore,
+
+    /// <summary>Records not judged by a model as they are now.</summary>
+    NotJudged,
+
+    /// <summary>Records whose answer, as judged now, says something its source passage does not.</summary>
+    Ungrounded,
+
+    /// <summary>Preference pairs whose rejected answer, as judged now, is as good as the chosen one or better.</summary>
+    PreferenceDoubts,
+
+    /// <summary>Records a model found to contradict another record that is not archived.</summary>
+    Contradictions,
 }
 
 /// <param name="UpperBound">Exclusive upper token bound; <see cref="int.MaxValue"/> for the last bucket.</param>
