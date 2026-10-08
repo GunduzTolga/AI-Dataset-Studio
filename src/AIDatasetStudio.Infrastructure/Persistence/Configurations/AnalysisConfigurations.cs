@@ -22,7 +22,10 @@ internal sealed class RecordAnalysisConfiguration : IEntityTypeConfiguration<Rec
             .HasForeignKey<RecordAnalysisRow>(a => a.RecordId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Property(a => a.Signature).HasMaxLength(Application.Analysis.NearDuplicates.SignatureBytes);
+
         builder.HasIndex(a => new { a.DatasetId, a.QuestionKey });
+        builder.HasIndex(a => new { a.DatasetId, a.NearGroup }).HasFilter("NearGroup IS NOT NULL");
     }
 }
 

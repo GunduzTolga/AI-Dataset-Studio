@@ -19,6 +19,9 @@ public enum QualityFilter
     Duplicates,
 
     PersonalData,
+
+    /// <summary>Records with a near-duplicate question.</summary>
+    NearDuplicates,
 }
 
 /// <param name="UpperBound">Exclusive upper token bound; <see cref="int.MaxValue"/> for the last bucket.</param>
@@ -68,7 +71,8 @@ public interface IRecordAnalysisService
     Task<long> CountPendingAsync(Guid datasetId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Analyses the records of the dataset that have no up-to-date results.
+    /// Analyses the records of the dataset that have no up-to-date results, then groups
+    /// near-duplicate questions again if any question changed.
     /// </summary>
     /// <param name="datasetId">The dataset.</param>
     /// <param name="progress">Receives the number of records analysed so far.</param>
@@ -77,9 +81,19 @@ public interface IRecordAnalysisService
     Task<int> AnalyzeAsync(Guid datasetId, IProgress<int>? progress = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Analyses the given records now, e.g. right after they were edited.
+    /// Analyses the given records now, e.g. right after they were edited. Their groups of
+    /// near-duplicate questions follow with the next <see cref="AnalyzeAsync"/> of the dataset
+    /// (until then an edited record is in none).
     /// </summary>
     Task AnalyzeRecordsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Groups the near-duplicate questions of the dataset again if a question changed since the
+    /// last time (<see cref="AnalyzeAsync"/> does this too). Records without up-to-date results
+    /// take no part.
+    /// </summary>
+    /// <returns><c>true</c> if any record's group changed.</returns>
+    Task<bool> GroupNearDuplicatesAsync(Guid datasetId, CancellationToken cancellationToken = default);
 
     Task<DatasetQualitySummary> GetSummaryAsync(Guid datasetId, CancellationToken cancellationToken = default);
 
@@ -88,8 +102,8 @@ public interface IRecordAnalysisService
 
     /// <summary>
     /// Records with an issue that are not archived, for clean-up actions (SDD §8.3). For
-    /// <see cref="QualityRule.Duplicate"/> the first record of each group is left out, so archiving
-    /// the result keeps one copy.
+    /// <see cref="QualityRule.Duplicate"/> and <see cref="QualityRule.NearDuplicate"/> the first
+    /// record of each group is left out, so archiving the result keeps one of them.
     /// </summary>
     Task<IReadOnlyList<Guid>> FindAsync(Guid datasetId, QualityRule rule, CancellationToken cancellationToken = default);
 

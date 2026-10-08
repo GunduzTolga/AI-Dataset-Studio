@@ -907,7 +907,7 @@
     <value>Göster</value>
   </data>
   <data name="Overview_ArchiveHint" xml:space="preserve">
-    <value>Bu kayıtları arşivle (kopyalarda ilki hariç). Düzen › Geri Al ile geri alınabilir.</value>
+    <value>Bu kayıtları arşivle (kopyalarda ve benzer sorularda her grubun ilki hariç). Düzen › Geri Al ile geri alınabilir.</value>
   </data>
   <data name="Dialog_ArchiveIssuesTitle" xml:space="preserve">
     <value>Kayıtları Arşivle</value>
@@ -991,7 +991,7 @@
     <value>Tohum (seed)</value>
   </data>
   <data name="Export_SplitHint" xml:space="preserve">
-    <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
+    <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı ya da neredeyse aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
   </data>
   <data name="SplitPart_Train" xml:space="preserve">
     <value>eğitim</value>
@@ -1534,6 +1534,24 @@
     <value>“{0}” grubu</value>
   </data>
   <data name="Export_StratifyHint" xml:space="preserve">
-    <value>Her etiketin içinde kayıtlar tohuma göre sıralanır ve tam bu oranlarda kesilir; aynı soruyu soran kayıtlar birlikte kalır. Yeni kayıtlar kesim noktasındaki birkaç kaydı yer değiştirebilir.</value>
+    <value>Her etiketin içinde kayıtlar tohuma göre sıralanır ve tam bu oranlarda kesilir; aynı ya da neredeyse aynı soruyu soran kayıtlar birlikte kalır. Yeni kayıtlar kesim noktasındaki birkaç kaydı yer değiştirebilir.</value>
+  </data>
+  <data name="Rule_NearDuplicate" xml:space="preserve">
+    <value>Benzer sorular</value>
+  </data>
+  <data name="Issue_NearDuplicate" xml:space="preserve">
+    <value>#{0} numaralı kayıtla neredeyse aynı soru (%85 ve üzeri benzer).</value>
+  </data>
+  <data name="QualityFilter_NearDuplicates" xml:space="preserve">
+    <value>Benzer sorular</value>
+  </data>
+  <data name="Editor_PreferenceCompare" xml:space="preserve">
+    <value>Yanıtları karşılaştır</value>
+  </data>
+  <data name="Editor_PreferenceCompareSummary" xml:space="preserve">
+    <value>{0:N0} kelime yalnızca tercih edilende · {1:N0} yalnızca reddedilende</value>
+  </data>
+  <data name="Editor_PreferenceCompareSame" xml:space="preserve">
+    <value>İki yanıt aynı şeyi söylüyor.</value>
   </data>
 </root>

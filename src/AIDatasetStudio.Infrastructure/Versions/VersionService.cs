@@ -46,11 +46,10 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
     {
         var parsed = VersionNumber.Parse(number);
 
-        // The version keeps each record's token count with the dataset's tokenizer.
-        if (await analysis.CountPendingAsync(datasetId, cancellationToken) > 0)
-        {
-            await analysis.AnalyzeAsync(datasetId, analysisProgress, cancellationToken);
-        }
+        // The version keeps each record's token count with the dataset's tokenizer, and its group of
+        // near-duplicate questions so the version is split as the records were (the pass is quick
+        // when nothing changed).
+        await analysis.AnalyzeAsync(datasetId, analysisProgress, cancellationToken);
 
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
@@ -96,9 +95,10 @@ internal sealed class VersionService(IWorkspaceDatabase database, IRecordAnalysi
         await context.SaveChangesAsync(cancellationToken);
 
         await using (var command = Command(connection, sqlTransaction, $"""
-            INSERT INTO VersionRecordMappings (VersionId, Ordinal, RevisionId, Status, Tokens, TagIds)
+            INSERT INTO VersionRecordMappings (VersionId, Ordinal, RevisionId, Status, Tokens, TagIds, NearGroup)
             SELECT $version, r.Ordinal, x.Id, r.Status, a.TotalTokens,
-                   (SELECT json_group_array(t.TagId) FROM RecordTags t WHERE t.RecordId = r.Id HAVING COUNT(*) > 0)
+                   (SELECT json_group_array(t.TagId) FROM RecordTags t WHERE t.RecordId = r.Id HAVING COUNT(*) > 0),
+                   a.NearGroup
             FROM DatasetRecords r
             JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
             JOIN RecordRevisions x ON x.RecordId = r.Id AND x.ContentHash = r.ContentHash

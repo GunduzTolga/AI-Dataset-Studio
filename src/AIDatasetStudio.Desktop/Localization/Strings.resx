@@ -954,7 +954,7 @@
     <value>Show</value>
   </data>
   <data name="Overview_ArchiveHint" xml:space="preserve">
-    <value>Archive these records (for duplicates, all but the first copy). Edit › Undo reverts it.</value>
+    <value>Archive these records (for copies and near-duplicate questions, all but the first of each group). Edit › Undo reverts it.</value>
   </data>
   <data name="Dialog_ArchiveIssuesTitle" xml:space="preserve">
     <value>Archive Records</value>
@@ -1046,7 +1046,7 @@
     <value>Seed</value>
   </data>
   <data name="Export_SplitHint" xml:space="preserve">
-    <value>Each record's file follows from the seed and its question: the same seed gives the same files, new records never move existing ones, and records asking the same question stay together.</value>
+    <value>Each record's file follows from the seed and its question: the same seed gives the same files, new records never move existing ones, and records asking the same or nearly the same question stay together.</value>
   </data>
   <data name="SplitPart_Train" xml:space="preserve">
     <value>train</value>
@@ -1596,6 +1596,24 @@
     <value>Group “{0}”</value>
   </data>
   <data name="Export_StratifyHint" xml:space="preserve">
-    <value>Within every tag the records are ordered by the seed and cut at exactly these shares; records asking the same question stay together. New records can move a few at the cut.</value>
+    <value>Within every tag the records are ordered by the seed and cut at exactly these shares; records asking the same or nearly the same question stay together. New records can move a few at the cut.</value>
+  </data>
+  <data name="Rule_NearDuplicate" xml:space="preserve">
+    <value>Near-duplicate questions</value>
+  </data>
+  <data name="Issue_NearDuplicate" xml:space="preserve">
+    <value>Nearly the same question as #{0} (85% or more alike).</value>
+  </data>
+  <data name="QualityFilter_NearDuplicates" xml:space="preserve">
+    <value>Near-duplicate questions</value>
+  </data>
+  <data name="Editor_PreferenceCompare" xml:space="preserve">
+    <value>Compare the answers</value>
+  </data>
+  <data name="Editor_PreferenceCompareSummary" xml:space="preserve">
+    <value>{0:N0} words only in the chosen answer · {1:N0} only in the rejected one</value>
+  </data>
+  <data name="Editor_PreferenceCompareSame" xml:space="preserve">
+    <value>The two answers say the same.</value>
   </data>
 </root>

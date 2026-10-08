@@ -148,8 +148,9 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
         Validate(options, source.Type);
 
-        // The length check needs every record's token count with the dataset's tokenizer; a version keeps its own.
-        if (options.SkipOverContextLimit && source.VersionId is null && await analysis.CountPendingAsync(datasetId, cancellationToken) > 0)
+        // The length check needs every record's token count with the dataset's tokenizer, and the split
+        // the groups of near-duplicate questions (quick when nothing changed); a version keeps its own.
+        if (source.VersionId is null && (options.Split is not null || (options.SkipOverContextLimit && await analysis.CountPendingAsync(datasetId, cancellationToken) > 0)))
         {
             await analysis.AnalyzeAsync(datasetId, cancellationToken: cancellationToken);
         }
@@ -348,7 +349,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 continue;
             }
 
-            var key = ExportSplit.GroupKey(payload, record.Id);
+            var key = ExportSplit.GroupKey(payload, record.Id, record.NearGroup);
             if (groups.TryGetValue(key, out var group))
             {
                 groups[key] = group with { Count = group.Count + 1 };
@@ -388,7 +389,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 command.Transaction = transaction;
                 command.CommandText = $"""
                     {SourceSql(source)}
-                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}
+                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}, s.NearGroup
                     FROM s WHERE s.Status IN ({StatusList(options)}) AND s.Ordinal > $after
                     ORDER BY s.Ordinal
                     LIMIT {BatchSize};
@@ -403,7 +404,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                         reader.GetString(2),
                         reader.GetString(3),
                         reader.GetBoolean(4),
-                        reader.IsDBNull(5) ? null : reader.GetString(5)));
+                        reader.IsDBNull(5) ? null : reader.GetString(5),
+                        reader.IsDBNull(6) ? null : SqliteValues.ReadGuid(reader.GetString(6))));
                     after = reader.GetInt64(1);
                 }
             }
@@ -422,15 +424,17 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     /// <summary>
     /// The records to export as a common table <c>s</c> (Id, Ordinal, Status, ContentHash,
-    /// DataPayload, OverLimit, NotAnalyzed, TagNames): the dataset's records with their up-to-date analysis,
-    /// or a version's records with the token counts and context length frozen with it.
+    /// DataPayload, OverLimit, NotAnalyzed, TagNames, NearGroup): the dataset's records with their
+    /// up-to-date analysis, or a version's records with the token counts, context length and groups
+    /// of near-duplicate questions frozen with it.
     /// </summary>
     private static string SourceSql(Source source) => source.VersionId is null
         ? $"""
           WITH s AS (
               SELECT r.Id AS Id, r.Ordinal AS Ordinal, r.Status AS Status, r.ContentHash AS ContentHash, r.DataPayload AS DataPayload,
                      (a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength) AS OverLimit, (a.RecordId IS NULL) AS NotAnalyzed,
-                     (SELECT json_group_array(t.Name) FROM RecordTags rt JOIN Tags t ON t.Id = rt.TagId WHERE rt.RecordId = r.Id) AS TagNames
+                     (SELECT json_group_array(t.Name) FROM RecordTags rt JOIN Tags t ON t.Id = rt.TagId WHERE rt.RecordId = r.Id) AS TagNames,
+                     a.NearGroup AS NearGroup
               FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
               WHERE r.DatasetId = $ds)
           """
@@ -438,7 +442,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
           WITH s AS (
               SELECT x.RecordId AS Id, m.Ordinal AS Ordinal, m.Status AS Status, x.ContentHash AS ContentHash, x.DataPayload AS DataPayload,
                      (m.Tokens IS NOT NULL AND m.Tokens > v.ContextLength) AS OverLimit, 0 AS NotAnalyzed,
-                     (SELECT json_group_array(t.Name) FROM json_each(m.TagIds) j JOIN Tags t ON t.Id = j.value) AS TagNames
+                     (SELECT json_group_array(t.Name) FROM json_each(m.TagIds) j JOIN Tags t ON t.Id = j.value) AS TagNames,
+                     m.NearGroup AS NearGroup
               FROM VersionRecordMappings m
               JOIN RecordRevisions x ON x.Id = m.RevisionId
               JOIN DatasetVersions v ON v.Id = m.VersionId
@@ -469,7 +474,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     }
 
     /// <param name="TagNames">The record's tag names as a JSON array, when asked for.</param>
-    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null);
+    /// <param name="NearGroup">The first record of its group of near-duplicate questions, if any.</param>
+    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null, Guid? NearGroup = null);
 
     private readonly record struct ExportLine(SplitPart? Part, string Text);
 
@@ -535,9 +541,9 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
             // The split follows the stored question, so masking never moves a record to another file.
             SplitPart? part = options.Split is { } split
-                ? parts is not null && parts.TryGetValue(ExportSplit.GroupKey(payload, record.Id), out var assigned)
+                ? parts is not null && parts.TryGetValue(ExportSplit.GroupKey(payload, record.Id, record.NearGroup), out var assigned)
                     ? assigned
-                    : ExportSplit.Assign(split, ExportSplit.GroupKey(payload, record.Id))
+                    : ExportSplit.Assign(split, ExportSplit.GroupKey(payload, record.Id, record.NearGroup))
                 : null;
             if (scanner is not null && scanner.Mask(payload) is { HasFindings: true } masked)
             {

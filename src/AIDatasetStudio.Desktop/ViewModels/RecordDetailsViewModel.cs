@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
@@ -65,10 +66,11 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info))]
     [NotifyPropertyChangedFor(nameof(IsChat), nameof(ShowChatEditor), nameof(IsArchived), nameof(IsEditable))]
+    [NotifyPropertyChangedFor(nameof(IsPreference), nameof(ShowPreferenceCompare))]
     [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
-    [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand), nameof(TogglePreferenceCompareCommand))]
     public partial RecordDetails? Record { get; private set; }
 
     /// <summary>
@@ -200,7 +202,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// Shows the record with personal data masked instead of the editor (Mod+Shift+M).
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor))]
+    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor), nameof(ShowPreferenceCompare))]
     [NotifyCanExecuteChangedFor(nameof(ApplyMaskCommand))]
     public partial bool IsPiiPreview { get; private set; }
 
@@ -223,6 +225,37 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// The chat turns and their "add message" button are shown.
     /// </summary>
     public bool ShowChatEditor => IsChat && IsEditing;
+
+    // ===== Preference pairs: chosen against rejected (SDD §6.1) =====
+
+    public bool IsPreference => Record?.Payload is PreferencePayload;
+
+    /// <summary>
+    /// Shows below the answers what differs between them. Stays on from record to record.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowPreferenceCompare))]
+    public partial bool IsPreferenceCompare { get; private set; }
+
+    public bool ShowPreferenceCompare => IsPreference && IsPreferenceCompare && IsEditing;
+
+    /// <summary>
+    /// The rejected answer with what only it says marked (red).
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<DiffSegment> RejectedSegments { get; private set; } = [];
+
+    /// <summary>
+    /// The chosen answer with what only it says marked (green).
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<DiffSegment> ChosenSegments { get; private set; } = [];
+
+    /// <summary>
+    /// "12 words only in the chosen answer · 3 only in the rejected one".
+    /// </summary>
+    [ObservableProperty]
+    public partial string PreferenceCompareSummary { get; private set; } = string.Empty;
 
     // ===== Several records =====
 
@@ -547,6 +580,9 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     partial void OnRecordChanged(RecordDetails? value) => RecordTags = value is null ? [] : _tags.Resolve(value.TagIds);
 
+    // Back from the masked preview the comparison is shown again.
+    partial void OnIsPiiPreviewChanged(bool value) => UpdatePreferenceCompare();
+
     partial void OnBatchRowsChanged(IReadOnlyList<RecordRowViewModel> value) => RefreshBatchTags();
 
     // Tags were added, renamed, recolored or deleted.
@@ -629,6 +665,34 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand(CanExecute = nameof(IsPreference))]
+    private void TogglePreferenceCompare()
+    {
+        IsPreferenceCompare = !IsPreferenceCompare;
+        UpdatePreferenceCompare();
+    }
+
+    // Word-level, as the versions window compares (TextDiff); follows every keystroke while shown.
+    private void UpdatePreferenceCompare()
+    {
+        if (!ShowPreferenceCompare || Fields.Count < 3)
+        {
+            (RejectedSegments, ChosenSegments, PreferenceCompareSummary) = ([], [], string.Empty);
+            return;
+        }
+
+        var (chosen, rejected) = (Fields[1].Text, Fields[2].Text);
+        var diff = TextDiff.Compute(rejected, chosen);
+        RejectedSegments = Versions.VersionText.OrEmpty(_localizer, diff.OldSide);
+        ChosenSegments = Versions.VersionText.OrEmpty(_localizer, diff.NewSide);
+        PreferenceCompareSummary = diff.HasChanges
+            ? _localizer.Format("Editor_PreferenceCompareSummary", Words(DiffKind.Inserted), Words(DiffKind.Deleted))
+            : _localizer["Editor_PreferenceCompareSame"];
+
+        int Words(DiffKind kind) => diff.Segments.Where(segment => segment.Kind == kind)
+            .Sum(segment => TextDiff.Tokenize(segment.Text).Count(token => token.Any(char.IsLetterOrDigit)));
+    }
+
     [RelayCommand(CanExecute = nameof(HasRecord))]
     private void TogglePiiPreview()
     {
@@ -695,6 +759,11 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Reads again the issues that compare the shown record with others (after a regrouping).
+    /// </summary>
+    public Task RefreshQualityAsync() => HasRecord ? LoadCrossIssuesAsync(_generation) : Task.CompletedTask;
+
     private async Task LoadCrossIssuesAsync(int generation)
     {
         if (Record is not { } record)
@@ -708,7 +777,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             var quality = await _analysis.GetRecordQualityAsync(record.Id);
             if (generation == _generation && Record?.Id == record.Id)
             {
-                _crossIssues = quality?.Issues.Where(i => i.Rule is QualityRule.Duplicate or QualityRule.ConflictingAnswer).ToList() ?? [];
+                _crossIssues = quality?.Issues.Where(i => i.Rule is QualityRule.Duplicate or QualityRule.ConflictingAnswer or QualityRule.NearDuplicate).ToList() ?? [];
                 Reanalyze();
             }
         }
@@ -800,6 +869,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             _cleanHash = string.Empty;
             IsDirty = false;
             Reanalyze();
+            UpdatePreferenceCompare();
         }
         else
         {
@@ -845,6 +915,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
 
         Reanalyze();
+        UpdatePreferenceCompare();
     }
 
     private RecordPayload BuildPayload(RecordPayload original) => original switch
@@ -861,6 +932,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
             IsDirty = BuildPayload(record.Payload).ComputeContentHash() != _cleanHash;
             Reanalyze();
+            UpdatePreferenceCompare();
         }
     }
 
@@ -897,6 +969,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     {
         Reanalyze();
         UpdatePiiPreview();
+        UpdatePreferenceCompare();
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(Info));

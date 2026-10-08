@@ -120,6 +120,10 @@
             </Button>
           </WrapPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Top">
+            <Button x:Name="CompareButton" Classes="icon" Classes.subtle="{Binding !IsPreferenceCompare}" Classes.accent="{Binding IsPreferenceCompare}"
+                    Command="{Binding TogglePreferenceCompareCommand}" IsVisible="{Binding IsPreference}" ToolTip.Tip="{l:Tr Editor_PreferenceCompare}">
+              <ic:SymbolIcon Symbol="ColumnDoubleCompare" />
+            </Button>
             <Button x:Name="PiiButton" Classes="icon" Classes.subtle="{Binding !IsPiiPreview}" Classes.accent="{Binding IsPiiPreview}"
                     Command="{Binding TogglePiiPreviewCommand}" ToolTip.Tip="{l:Tr Editor_PiiPreview}">
               <ic:SymbolIcon Symbol="ShieldLock" />
@@ -233,6 +237,31 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+
+          <!-- Preference pairs: what only the rejected and only the chosen answer says -->
+          <Border x:Name="PreferenceCompareCard" Classes="card" IsVisible="{Binding ShowPreferenceCompare}">
+            <StackPanel Spacing="10">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ColumnDoubleCompare" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+                <TextBlock Classes="overline card-label" Text="{l:Tr Editor_PreferenceCompare}" />
+              </StackPanel>
+              <TextBlock Classes="caption muted" Text="{Binding PreferenceCompareSummary}" TextWrapping="Wrap" />
+              <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <ic:SymbolIcon Symbol="ThumbDislike" FontSize="13" Foreground="{DynamicResource NegativeBrush}" />
+                  <TextBlock Classes="caption strong" Text="{l:Tr Field_Rejected}" />
+                </StackPanel>
+                <controls:DiffTextBlock Classes="content" Segments="{Binding RejectedSegments}" TextWrapping="Wrap" />
+              </StackPanel>
+              <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <ic:SymbolIcon Symbol="ThumbLike" FontSize="13" Foreground="{DynamicResource PositiveBrush}" />
+                  <TextBlock Classes="caption strong" Text="{l:Tr Field_Chosen}" />
+                </StackPanel>
+                <controls:DiffTextBlock Classes="content" Segments="{Binding ChosenSegments}" TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
 
           <!-- Chat turns -->
           <ItemsControl ItemsSource="{Binding Messages}" IsVisible="{Binding ShowChatEditor}">

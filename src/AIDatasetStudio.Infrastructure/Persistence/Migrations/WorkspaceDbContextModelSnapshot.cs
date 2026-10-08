@@ -343,6 +343,9 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("NearGroup")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("OutputTokens")
                         .HasColumnType("INTEGER");
 
@@ -356,6 +359,10 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("INTEGER");
 
+                    b.Property<byte[]>("Signature")
+                        .HasMaxLength(128)
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("Tokenizer")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -365,6 +372,9 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("RecordId");
+
+                    b.HasIndex("DatasetId", "NearGroup")
+                        .HasFilter("NearGroup IS NOT NULL");
 
                     b.HasIndex("DatasetId", "QuestionKey");
 

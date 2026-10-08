@@ -221,9 +221,9 @@ public sealed class ExportServiceTests
         var teknik = await ws.Tags.CreateAsync("kategori:teknik", Ct);
         var zor = await ws.Tags.CreateAsync("zor", Ct);
         await ws.Commands.AddRangeAsync(datasetId, Enumerable.Range(0, 70).Select(i => new NewRecord(
-            new InstructionPayload($"Hukuk sorusu {i % 50}", "", $"Yanıt {i}"), RecordLineage.Manual())), cancellationToken: Ct);
+            new InstructionPayload($"Hukuk sorusu {Code(i % 50)}", "", $"Yanıt {i}"), RecordLineage.Manual())), cancellationToken: Ct);
         await ws.Commands.AddRangeAsync(datasetId, Enumerable.Range(0, 20).Select(i => new NewRecord(
-            new InstructionPayload($"Teknik soru {i}", "", $"Yanıt {i}"), RecordLineage.Manual())), cancellationToken: Ct);
+            new InstructionPayload($"Teknik soru {Code(100 + i)}", "", $"Yanıt {i}"), RecordLineage.Manual())), cancellationToken: Ct);
         var ids = (await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, null, 100, Ct)).Items.Select(r => r.Id).ToList();
         await ws.Commands.SetTagAsync(ids[..70], hukuk.Id, present: true, Ct);
         await ws.Commands.SetTagAsync(ids[70..], teknik.Id, present: true, Ct);
@@ -239,7 +239,7 @@ public sealed class ExportServiceTests
         // Hukuk: 70 records but 50 questions; a question never spans two files, so the cut lands near 56 / 7 / 7.
         Assert.Equal(70, Count(SplitPart.Train, "Hukuk") + Count(SplitPart.Validation, "Hukuk") + Count(SplitPart.Test, "Hukuk"));
         Assert.InRange(Count(SplitPart.Train, "Hukuk"), 56, 57);
-        foreach (var question in Enumerable.Range(0, 50).Select(i => $"\"Hukuk sorusu {i}\""))
+        foreach (var question in Enumerable.Range(0, 50).Select(i => $"\"Hukuk sorusu {Code(i)}\""))
         {
             Assert.Single(lines, file => file.Value.Any(l => l.Contains(question, StringComparison.Ordinal)));
         }
@@ -249,6 +249,9 @@ public sealed class ExportServiceTests
         Assert.Equal(result.Files.Select(f => f.Count), again.Files.Select(f => f.Count));
         Assert.Equal(options, await ws.Export.GetLastOptionsAsync(datasetId, Ct));
     }
+
+    // Distinct letters for each question, so no two are near-duplicates ("sorusu 1" and "sorusu 10" are).
+    private static string Code(int i) => new(new Random(i).GetItems("abcçdefgğhıijklmnoöprsştuüvyz".ToCharArray(), 8));
 
     private static async Task<List<Guid>> AddAsync(TestWorkspace ws, Guid datasetId, params RecordPayload[] payloads)
     {

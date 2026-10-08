@@ -52,7 +52,7 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
                 question = IsBlank(p.Input) ? p.Instruction : p.Instruction + "\n" + p.Input;
                 answer = p.Output;
                 counts = new TokenCounts(Count(p.Instruction) + Count(p.Input), Count(p.Output));
-                questionKeySource = question;
+                questionKeySource = QuestionText(p);
                 break;
 
             case ChatPayload p:
@@ -76,8 +76,7 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
                 counts = new TokenCounts(
                     Count(p.SystemPrompt) + turns.Where(m => m.Role != ChatRole.Assistant).Sum(m => Count(m.Content)),
                     turns.Where(m => m.Role == ChatRole.Assistant).Sum(m => Count(m.Content)));
-                // The whole prompt side identifies "the same question" in a conversation.
-                questionKeySource = string.Join('\n', new[] { p.SystemPrompt ?? string.Empty }.Concat(turns.Where(m => m.Role != ChatRole.Assistant).Select(m => m.Content)));
+                questionKeySource = QuestionText(p);
                 break;
 
             case PreferencePayload p:
@@ -147,11 +146,27 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
             Issue(QualityRule.PersonalData, string.Join(',', kinds.Order()));
         }
 
-        var key = questionKeySource is null || IsBlank(questionKeySource) ? null : Fingerprint(Normalize(questionKeySource));
-        return new RecordAnalysisResult(counts, issues, key);
+        var normalizedQuestion = questionKeySource is null || IsBlank(questionKeySource) ? null : Normalize(questionKeySource);
+        return new RecordAnalysisResult(
+            counts,
+            issues,
+            normalizedQuestion is null ? null : Fingerprint(normalizedQuestion),
+            normalizedQuestion is null ? null : NearDuplicates.Signature(normalizedQuestion));
 
         int Count(string? text) => string.IsNullOrEmpty(text) ? 0 : tokens.CountTokens(text);
     }
+
+    /// <summary>
+    /// The text that identifies "the same question" (and near-duplicate questions): instruction and
+    /// input, or for a conversation its whole prompt side (system prompt and user turns). <c>null</c>
+    /// for preference pairs, where several pairs per prompt are normal.
+    /// </summary>
+    public static string? QuestionText(RecordPayload payload) => payload switch
+    {
+        InstructionPayload p => IsBlank(p.Input) ? p.Instruction : p.Instruction + "\n" + p.Input,
+        ChatPayload p => string.Join('\n', new[] { p.SystemPrompt ?? string.Empty }.Concat(p.Messages.Where(m => m.Role != ChatRole.Assistant).Select(m => m.Content))),
+        _ => null,
+    };
 
     /// <summary>
     /// Lowercase, Turkish letters folded, punctuation dropped, whitespace collapsed: "Şifremi

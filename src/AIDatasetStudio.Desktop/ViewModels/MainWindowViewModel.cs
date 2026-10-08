@@ -102,6 +102,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _operations.Changed += (_, change) => OnRecordsChanged(change);
         _operations.History.PropertyChanged += (_, _) => OnHistoryChanged();
         Overview.AnalysisCompleted += (_, datasetId) => _ = OnAnalysisCompletedAsync(datasetId);
+        Overview.NearGroupsChanged += (_, datasetId) => _ = OnNearGroupsChangedAsync(datasetId);
         Overview.ShowRecordsRequested += (_, filter) => Records.ShowQuality(filter);
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
@@ -501,6 +502,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // Rows keep their place (as after a status change); their scores and the editor's issues follow.
+    private async Task OnNearGroupsChangedAsync(Guid datasetId)
+    {
+        if (Records.Dataset?.Id == datasetId)
+        {
+            await Records.RefreshAnalysisAsync([.. Records.Items.Select(row => row.Id)]);
+            await Details.RefreshQualityAsync();
+        }
+    }
+
     private async Task OnAnalysisCompletedAsync(Guid datasetId)
     {
         if (Records.Dataset?.Id == datasetId)
@@ -509,13 +520,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // An edited record is analysed right away so its row shows the new tokens and score.
+    // An edited record is analysed right away so its row shows the new tokens and score; its
+    // question may also join or leave a group of near-duplicates, which the background run regroups.
     private async Task RefreshAnalysisAsync(Guid recordId)
     {
         try
         {
             await _analysis.AnalyzeRecordsAsync([recordId]);
             await Records.RefreshAnalysisAsync([recordId]);
+            Overview.StartAnalysis();
         }
         catch (Exception ex) when (Status.TryReport(ex))
         {

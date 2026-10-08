@@ -118,11 +118,20 @@ public static class ExportSplit
 
     /// <summary>
     /// What keeps related records together: records that ask the same question (the prompt side,
-    /// normalized as for "same question, different answer") share a key, so a question never ends up
-    /// in both training and test data. Records without a question use their id.
+    /// normalized as for "same question, different answer") share a key, and so do records in one
+    /// group of near-duplicate questions, so a question never ends up in both training and test
+    /// data. Records without a question use their id.
     /// </summary>
-    public static string GroupKey(RecordPayload payload, Guid recordId)
+    /// <param name="payload">The record's content.</param>
+    /// <param name="recordId">The record.</param>
+    /// <param name="nearGroup">The first record of its group of near-duplicate questions, if any (<see cref="NearDuplicates"/>).</param>
+    public static string GroupKey(RecordPayload payload, Guid recordId, Guid? nearGroup = null)
     {
+        if (nearGroup is { } group)
+        {
+            return "n:" + group.ToString("D");
+        }
+
         var question = payload switch
         {
             InstructionPayload p => p.Instruction + "\n" + p.Input,

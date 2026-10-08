@@ -87,6 +87,12 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     public event EventHandler<Guid>? AnalysisCompleted;
 
     /// <summary>
+    /// Raised when only the groups of near-duplicate questions changed (after an edit): scores of
+    /// the shown records may differ, but the list should not reload under the user.
+    /// </summary>
+    public event EventHandler<Guid>? NearGroupsChanged;
+
+    /// <summary>
     /// Raised when the user asks to see the records with an issue.
     /// </summary>
     public event EventHandler<QualityFilter>? ShowRecordsRequested;
@@ -247,7 +253,8 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Archives the records with an issue (for copies, all but the first of each group). Undoable.
+    /// Archives the records with an issue (for copies and near-duplicate questions, all but the
+    /// first of each group). Undoable.
     /// </summary>
     [RelayCommand]
     private async Task ArchiveAsync(IssueSummaryItem? item)
@@ -320,8 +327,15 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
             var pending = await _analysis.CountPendingAsync(dataset.Id, cancellation.Token);
             if (pending == 0)
             {
-                // Nothing to analyse, but statuses may have changed (undo, redo).
+                // Nothing to analyse, but statuses may have changed (undo, redo), and an edited
+                // record, analysed on its own, may have joined or left a group of near-duplicates.
+                var regrouped = await _analysis.GroupNearDuplicatesAsync(dataset.Id, cancellation.Token);
                 await RefreshAsync();
+                if (regrouped && _running == cancellation)
+                {
+                    NearGroupsChanged?.Invoke(this, dataset.Id);
+                }
+
                 return;
             }
 
@@ -386,7 +400,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
                 IssueText.RuleName(_localizer, rule),
                 count,
                 FilterFor(rule),
-                CanArchive: rule is QualityRule.Duplicate or QualityRule.EmptyContent or QualityRule.IdenticalAnswers));
+                CanArchive: rule is QualityRule.Duplicate or QualityRule.NearDuplicate or QualityRule.EmptyContent or QualityRule.IdenticalAnswers));
         }
 
         OnPropertyChanged(nameof(HasIssues));
@@ -396,6 +410,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     private static QualityFilter FilterFor(QualityRule rule) => rule switch
     {
         QualityRule.Duplicate => QualityFilter.Duplicates,
+        QualityRule.NearDuplicate => QualityFilter.NearDuplicates,
         QualityRule.PersonalData => QualityFilter.PersonalData,
         QualityRule.OverContextLimit => QualityFilter.OverContextLimit,
         _ when QualityRules.SeverityOf(rule) == IssueSeverity.Error => QualityFilter.Errors,
