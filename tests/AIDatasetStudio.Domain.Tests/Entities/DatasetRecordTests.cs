@@ -98,6 +98,59 @@ public sealed class DatasetRecordTests
         Assert.Empty(record.Tags);
     }
 
+    [Fact]
+    public void Restoring_a_state_bypasses_the_lifecycle_for_undo()
+    {
+        var record = CreateRecord();
+        var original = record.Payload;
+        record.ChangeStatus(RecordStatus.Approved, TestData.Now);
+
+        // Approved → Draft is not a lifecycle transition, but undoing "Draft → Approved" needs it.
+        Assert.False(record.RestoreState(RecordStatus.Draft, payload: null, Later));
+        Assert.Equal(RecordStatus.Draft, record.Status);
+        Assert.Equal(Later, record.UpdatedAt);
+
+        record.ChangeStatus(RecordStatus.Archived, Later);
+        var edited = new InstructionPayload("edited", "", "out");
+        Assert.True(record.RestoreState(RecordStatus.Approved, edited, Later.AddMinutes(1)));
+        Assert.Equal(RecordStatus.Approved, record.Status);
+        Assert.Equal(edited.ComputeContentHash(), record.ContentHash);
+        Assert.Equal("edited", record.Preview);
+
+        Assert.True(record.RestoreState(RecordStatus.Approved, original, Later.AddMinutes(2)));
+        Assert.Equal(original, record.Payload);
+    }
+
+    [Fact]
+    public void Restoring_the_same_state_changes_nothing()
+    {
+        var record = CreateRecord();
+
+        Assert.False(record.RestoreState(RecordStatus.Draft, record.Payload, Later));
+        Assert.Equal(TestData.Now, record.UpdatedAt);
+        Assert.Throws<DomainException>(() => record.RestoreState(RecordStatus.Draft, new PreferencePayload("p", "c", "r"), Later));
+    }
+
+    [Fact]
+    public void Recreated_record_keeps_its_identity_and_timestamps()
+    {
+        var dataset = TestData.Dataset(DatasetType.Preference);
+        var id = Guid.CreateVersion7();
+        var lineage = new RecordLineage(RecordSourceKind.FileImport, "dpo.jsonl#line=4");
+        var payload = new PreferencePayload("p", "c", "r");
+
+        var record = DatasetRecord.Recreate(dataset, id, 42, RecordStatus.Approved, payload, lineage, "", TestData.Now, Later);
+
+        Assert.Equal(id, record.Id);
+        Assert.Equal(42, record.Ordinal);
+        Assert.Equal(RecordStatus.Approved, record.Status);
+        Assert.Equal(DatasetType.Preference, record.Type);
+        Assert.Equal(payload.ComputeContentHash(), record.ContentHash);
+        Assert.Equal(lineage, record.Lineage);
+        Assert.Equal("{}", record.MetadataJson);
+        Assert.Equal((TestData.Now, Later), (record.CreatedAt, record.UpdatedAt));
+    }
+
     private static DatasetRecord CreateRecord() =>
         DatasetRecord.Create(TestData.Dataset(), new InstructionPayload("i", "in", "out"), RecordLineage.Manual(), 0, TestData.Now);
 }

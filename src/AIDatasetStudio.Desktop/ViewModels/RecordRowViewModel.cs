@@ -24,7 +24,8 @@ public sealed partial class RecordRowViewModel : ViewModelBase
 
     public string OrdinalText => $"#{Ordinal}";
 
-    public string Preview { get; }
+    [ObservableProperty]
+    public partial string Preview { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusLabel))]

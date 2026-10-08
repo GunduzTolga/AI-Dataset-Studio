@@ -1,3 +1,5 @@
+using AIDatasetStudio.Application.Import;
+using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Domain.Enums;
 
 namespace AIDatasetStudio.Desktop.Services;
@@ -24,4 +26,10 @@ public interface IDialogService
     /// <param name="confirmText">Label of the confirming button.</param>
     /// <param name="isDestructive">Styles the confirming button as dangerous (deletes).</param>
     Task<bool> ConfirmAsync(string title, string message, string confirmText, bool isDestructive = false);
+
+    /// <summary>
+    /// Shows the import wizard until the user closes it.
+    /// </summary>
+    /// <returns>The finished import, or <c>null</c> if nothing was imported.</returns>
+    Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard);
 }

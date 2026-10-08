@@ -1,7 +1,13 @@
+using AIDatasetStudio.Application.Import;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Domain.Payloads;
+using AIDatasetStudio.Domain.ValueObjects;
 using AIDatasetStudio.Infrastructure;
 using Avalonia.Threading;
 using Microsoft.Data.Sqlite;
@@ -53,6 +59,39 @@ internal sealed class DesktopTestHost : IAsyncDisposable
         await WaitUntilAsync(() => Main.Explorer.IsWorkspaceOpen);
         return path;
     }
+
+    /// <summary>
+    /// Creates a workspace with one project and one dataset holding <paramref name="count"/>
+    /// instruction records ("Soru i" / "üçlü" for every third, else "diğer"), and shows it.
+    /// </summary>
+    public async Task<DatasetNodeViewModel> CreateDatasetWithRecordsAsync(int count, DatasetType type = DatasetType.Instruction)
+    {
+        await CreateWorkspaceAsync();
+        var explorer = Main.Explorer;
+        Dialogs.TextAnswers.Enqueue("Project");
+        await explorer.NewProjectCommand.ExecuteAsync(null);
+        Dialogs.DatasetAnswer = new NewDatasetRequest("Dataset", type);
+        await explorer.NewDatasetCommand.ExecuteAsync(null);
+        var dataset = explorer.SelectedDataset!;
+
+        if (count > 0)
+        {
+            await Get<IRecordCommandService>().AddRangeAsync(
+                dataset.Id,
+                Enumerable.Range(1, count).Select(i => new NewRecord(
+                    new InstructionPayload($"Soru {i}", "", i % 3 == 0 ? "üçlü" : "diğer"),
+                    RecordLineage.Manual())));
+        }
+
+        await Main.Records.ReloadAsync();
+        await WaitUntilAsync(() => Main.Records.Dataset == dataset && !Main.Records.IsLoading);
+        return dataset;
+    }
+
+    /// <summary>
+    /// Waits until the inspector shows <paramref name="recordId"/>.
+    /// </summary>
+    public Task WaitForDetailsAsync(Guid recordId) => WaitUntilAsync(() => Main.Details.Record?.Id == recordId);
 
     /// <summary>
     /// Runs posted UI work until <paramref name="condition"/> holds.
@@ -120,6 +159,24 @@ internal sealed class FakeDialogs : IDialogService
         ConfirmWasDestructive.Add(isDestructive);
         return Task.FromResult(ConfirmAnswer);
     }
+
+    /// <summary>
+    /// What the user does in the import wizard; by default reads the file and imports it as detected.
+    /// </summary>
+    public Func<ImportWizardViewModel, Task> ImportWizardScript { get; set; } = async wizard =>
+    {
+        await wizard.InitializeAsync();
+        await wizard.ImportCommand.ExecuteAsync(null);
+    };
+
+    public ImportWizardViewModel? LastImportWizard { get; private set; }
+
+    public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
+    {
+        LastImportWizard = wizard;
+        await ImportWizardScript(wizard);
+        return wizard.Result;
+    }
 }
 
 internal sealed class FakeFileDialogs : IFileDialogService
@@ -131,4 +188,14 @@ internal sealed class FakeFileDialogs : IFileDialogService
     public Task<string?> PickWorkspaceToOpenAsync() => Task.FromResult(OpenPath);
 
     public Task<string?> PickWorkspaceToCreateAsync(string suggestedName) => Task.FromResult(CreatePath);
+
+    public string? ImportPath { get; set; }
+
+    public IReadOnlyList<string> ImportExtensions { get; private set; } = [];
+
+    public Task<string?> PickImportFileAsync(IReadOnlyList<string> extensions)
+    {
+        ImportExtensions = extensions;
+        return Task.FromResult(ImportPath);
+    }
 }

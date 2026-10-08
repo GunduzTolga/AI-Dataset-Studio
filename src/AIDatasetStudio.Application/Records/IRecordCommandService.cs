@@ -41,4 +41,19 @@ public interface IRecordCommandService
 
     /// <returns>The number of records deleted.</returns>
     Task<int> DeleteAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Puts records back into earlier states (undo and redo), bypassing the lifecycle rules.
+    /// Records that no longer exist are skipped.
+    /// </summary>
+    /// <returns>The number of records found.</returns>
+    Task<int> RestoreStatesAsync(IReadOnlyCollection<RecordState> states, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Brings back deleted records with their ids, positions, statuses, lineage, timestamps and
+    /// the tags that still exist (undo of a delete). Records that already exist are skipped.
+    /// </summary>
+    /// <returns>The number of records re-created.</returns>
+    /// <exception cref="Common.NotFoundException">A record's dataset was deleted meanwhile.</exception>
+    Task<int> RestoreAsync(IReadOnlyCollection<RecordSnapshot> snapshots, CancellationToken cancellationToken = default);
 }

@@ -57,7 +57,7 @@ public sealed class WorkspaceFlowTests
     public Task Record_list_loads_pages_as_it_scrolls_and_filters() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();
-        var dataset = await CreateDatasetWithRecordsAsync(host, 450);
+        var dataset = await host.CreateDatasetWithRecordsAsync(450);
         var records = host.Main.Records;
         records.SearchDelay = TimeSpan.Zero;
 
@@ -96,14 +96,14 @@ public sealed class WorkspaceFlowTests
     public Task Review_actions_update_the_list_and_counts() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();
-        var dataset = await CreateDatasetWithRecordsAsync(host, 3);
+        var dataset = await host.CreateDatasetWithRecordsAsync(3);
         var records = host.Main.Records;
         var details = host.Main.Details;
 
         records.SelectedItem = records.Items[0];
         await DesktopTestHost.WaitUntilAsync(() => details.Record?.Id == records.Items[0].Id);
         Assert.Equal("Record #1", details.Title);
-        Assert.Equal(["Instruction", "Input", "Output"], details.Blocks.Select(f => f.Label));
+        Assert.Equal(["Instruction", "Input", "Output"], details.Fields.Select(f => f.Label));
         Assert.True(details.ShowApprove);
         Assert.False(details.ShowRestore);
 
@@ -129,7 +129,7 @@ public sealed class WorkspaceFlowTests
     public Task Deleting_while_searching_updates_the_dataset_total() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();
-        var dataset = await CreateDatasetWithRecordsAsync(host, 6);
+        var dataset = await host.CreateDatasetWithRecordsAsync(6);
         var records = host.Main.Records;
         records.SearchDelay = TimeSpan.Zero;
         records.SearchText = "üçlü";
@@ -147,7 +147,7 @@ public sealed class WorkspaceFlowTests
     public Task Sample_data_fills_the_selected_dataset() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();
-        var dataset = await CreateDatasetWithRecordsAsync(host, 0, DatasetType.Preference);
+        var dataset = await host.CreateDatasetWithRecordsAsync(0, DatasetType.Preference);
         Assert.True(host.Main.Records.IsEmptyDataset);
 
         host.Dialogs.ChoiceAnswer = 100;
@@ -182,18 +182,19 @@ public sealed class WorkspaceFlowTests
         var pairId = await commands.AddAsync(pairs.Id, new PreferencePayload("p", "good", "bad"), RecordLineage.Manual());
 
         await host.Main.Details.ShowAsync(chatId);
-        var blocks = host.Main.Details.Blocks;
-        var system = Assert.IsType<FieldBlock>(blocks[0]);
+        var details = host.Main.Details;
+        Assert.True(details.IsChat);
+        var system = Assert.Single(details.Fields);
         Assert.True(system.IsSystem);
-        var user = Assert.IsType<MessageBlock>(blocks[1]);
-        Assert.True(user.IsUser);
-        var assistant = Assert.IsType<MessageBlock>(blocks[2]);
-        Assert.True(assistant.IsEmpty);
-        Assert.Equal("(empty)", assistant.Value);
+        Assert.Equal("Be brief.", system.Text);
+        Assert.True(details.Messages[0].IsUser);
+        Assert.True(details.Messages[1].IsAssistant);
+        Assert.Equal(string.Empty, details.Messages[1].Text);
 
-        await host.Main.Details.ShowAsync(pairId);
-        var tones = host.Main.Details.Blocks.Cast<FieldBlock>().Select(b => b.Tone);
-        Assert.Equal([FieldTone.Neutral, FieldTone.Positive, FieldTone.Negative], tones);
+        await details.ShowAsync(pairId);
+        Assert.False(details.IsChat);
+        Assert.Equal([FieldTone.Neutral, FieldTone.Positive, FieldTone.Negative], details.Fields.Select(f => f.Tone));
+        Assert.Equal(["p", "good", "bad"], details.Fields.Select(f => f.Text));
     });
 
     [Fact]
@@ -237,31 +238,4 @@ public sealed class WorkspaceFlowTests
         Assert.Equal("'Missing.adstudio' could not be found.", host.Main.Status.Message);
         Assert.True(host.Main.HasWorkspace); // the open workspace stays open
     });
-
-    private static async Task<DatasetNodeViewModel> CreateDatasetWithRecordsAsync(
-        DesktopTestHost host,
-        int count,
-        DatasetType type = DatasetType.Instruction)
-    {
-        await host.CreateWorkspaceAsync();
-        var explorer = host.Main.Explorer;
-        host.Dialogs.TextAnswers.Enqueue("Project");
-        await explorer.NewProjectCommand.ExecuteAsync(null);
-        host.Dialogs.DatasetAnswer = new NewDatasetRequest("Dataset", type);
-        await explorer.NewDatasetCommand.ExecuteAsync(null);
-        var dataset = explorer.SelectedDataset!;
-
-        if (count > 0)
-        {
-            await host.Get<IRecordCommandService>().AddRangeAsync(
-                dataset.Id,
-                Enumerable.Range(1, count).Select(i => new NewRecord(
-                    new InstructionPayload($"Soru {i}", "", i % 3 == 0 ? "üçlü" : "diğer"),
-                    RecordLineage.Manual())));
-        }
-
-        await host.Main.Records.ReloadAsync();
-        await DesktopTestHost.WaitUntilAsync(() => host.Main.Records.Dataset == dataset && !host.Main.Records.IsLoading);
-        return dataset;
-    }
 }

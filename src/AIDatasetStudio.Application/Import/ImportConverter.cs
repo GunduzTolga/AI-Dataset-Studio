@@ -1,0 +1,256 @@
+using System.Text;
+using System.Text.Json;
+using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Domain.Payloads;
+
+namespace AIDatasetStudio.Application.Import;
+
+/// <summary>
+/// Turns one source row into a payload of the target dataset type, or explains why it cannot.
+/// </summary>
+public static class ImportConverter
+{
+    public static ImportRowResult Convert(ISourceRow row, ImportPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ArgumentNullException.ThrowIfNull(plan);
+
+        if (!ImportLayouts.Supports(plan.Layout, plan.TargetType))
+        {
+            return Fail(row, ImportErrorCode.UnsupportedLayout);
+        }
+
+        return plan.Layout switch
+        {
+            SourceLayout.OpenAiMessages => FromConversation(row, row.Json?.GetPropertyOrNull("messages"), plan.TargetType),
+            SourceLayout.ShareGpt => FromConversation(row, row.Json?.GetPropertyOrNull("conversations"), plan.TargetType),
+            SourceLayout.OpenAiPreference => FromOpenAiPreference(row),
+            _ => FromColumns(row, plan),
+        };
+    }
+
+    private static ImportRowResult FromColumns(ISourceRow row, ImportPlan plan)
+    {
+        string Text(TargetField field) =>
+            plan.Mapping.TryGetValue(field, out var column) ? row.GetText(column) ?? string.Empty : string.Empty;
+
+        JsonElement? Element(TargetField field) =>
+            plan.Mapping.TryGetValue(field, out var column) ? row.GetElement(column) : null;
+
+        RecordPayload payload;
+        switch (plan.TargetType)
+        {
+            case DatasetType.Instruction:
+                payload = new InstructionPayload(Text(TargetField.Instruction), Text(TargetField.Input), Text(TargetField.Output));
+                break;
+
+            case DatasetType.Chat:
+                var user = Text(TargetField.User);
+                var assistant = Text(TargetField.Assistant);
+                if (user.Length == 0 && assistant.Length == 0)
+                {
+                    return Fail(row, ImportErrorCode.EmptyRecord);
+                }
+
+                payload = new ChatPayload(Text(TargetField.SystemPrompt), [new ChatMessage(ChatRole.User, user), new ChatMessage(ChatRole.Assistant, assistant)]);
+                break;
+
+            case DatasetType.Preference:
+                var prompt = Text(TargetField.Prompt);
+                // HF datasets often store chosen/rejected as full conversations whose user turn is the prompt.
+                if (prompt.Length == 0 && Element(TargetField.Chosen) is { ValueKind: JsonValueKind.Array } chosenConversation
+                    && TryReadMessages(chosenConversation, out var messages, out _))
+                {
+                    prompt = messages.LastOrDefault(m => m.Role == ChatRole.User)?.Content ?? string.Empty;
+                }
+
+                payload = new PreferencePayload(prompt, Text(TargetField.Chosen), Text(TargetField.Rejected));
+                break;
+
+            default:
+                return Fail(row, ImportErrorCode.UnsupportedLayout);
+        }
+
+        return payload.GetSearchableTexts().All(string.IsNullOrWhiteSpace)
+            ? Fail(row, ImportErrorCode.EmptyRecord)
+            : new ImportRowResult(row.Number, payload, null);
+    }
+
+    private static ImportRowResult FromConversation(ISourceRow row, JsonElement? conversation, DatasetType target)
+    {
+        if (conversation is not { ValueKind: JsonValueKind.Array } array)
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        if (!TryReadMessages(array, out var messages, out var unknownRole))
+        {
+            return unknownRole is null
+                ? Fail(row, ImportErrorCode.NoConversation)
+                : Fail(row, ImportErrorCode.UnknownRole, unknownRole);
+        }
+
+        string? systemPrompt = null;
+        if (messages.Count > 0 && messages[0].Role == ChatRole.System)
+        {
+            systemPrompt = messages[0].Content;
+            messages.RemoveAt(0);
+        }
+
+        if (!messages.Any(m => m.Role is ChatRole.User or ChatRole.Assistant))
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        if (target == DatasetType.Chat)
+        {
+            return new ImportRowResult(row.Number, new ChatPayload(systemPrompt, messages), null);
+        }
+
+        // Instruction: exactly one user turn answered by one assistant turn.
+        if (!string.IsNullOrEmpty(systemPrompt))
+        {
+            return Fail(row, ImportErrorCode.SystemPromptNotSupported);
+        }
+
+        if (messages.Count != 2 || messages[0].Role != ChatRole.User || messages[1].Role != ChatRole.Assistant)
+        {
+            return Fail(row, ImportErrorCode.MultiTurnNotSupported);
+        }
+
+        return new ImportRowResult(row.Number, new InstructionPayload(messages[0].Content, string.Empty, messages[1].Content), null);
+    }
+
+    private static ImportRowResult FromOpenAiPreference(ISourceRow row)
+    {
+        var input = row.Json?.GetPropertyOrNull("input")?.GetPropertyOrNull("messages");
+        if (input is not { ValueKind: JsonValueKind.Array } inputArray)
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        if (!TryReadMessages(inputArray, out var context, out var unknownRole))
+        {
+            return unknownRole is null
+                ? Fail(row, ImportErrorCode.NoConversation)
+                : Fail(row, ImportErrorCode.UnknownRole, unknownRole);
+        }
+
+        // A preference record stores a single prompt; earlier turns or a system prompt would be lost.
+        if (context.Any(m => m.Role == ChatRole.System))
+        {
+            return Fail(row, ImportErrorCode.SystemPromptNotSupported);
+        }
+
+        if (context.Count != 1 || context[0].Role != ChatRole.User)
+        {
+            return Fail(row, ImportErrorCode.MultiTurnNotSupported);
+        }
+
+        var chosen = ExtractText(row.Json?.GetPropertyOrNull("preferred_output")) ?? string.Empty;
+        var rejected = ExtractText(row.Json?.GetPropertyOrNull("non_preferred_output")) ?? string.Empty;
+        var payload = new PreferencePayload(context[0].Content, chosen, rejected);
+        return payload.GetSearchableTexts().All(string.IsNullOrWhiteSpace)
+            ? Fail(row, ImportErrorCode.EmptyRecord)
+            : new ImportRowResult(row.Number, payload, null);
+    }
+
+    /// <summary>
+    /// The text of a JSON value: strings as is, a message list as its last assistant turn
+    /// (or last message), an object as its "content", anything else as raw JSON.
+    /// </summary>
+    public static string? ExtractText(JsonElement? value)
+    {
+        switch (value)
+        {
+            case null:
+            case { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined }:
+                return null;
+            case { ValueKind: JsonValueKind.String } text:
+                return text.GetString();
+            case { ValueKind: JsonValueKind.Array } array when TryReadMessages(array, out var messages, out _) && messages.Count > 0:
+                return (messages.LastOrDefault(m => m.Role == ChatRole.Assistant) ?? messages[^1]).Content;
+            case { ValueKind: JsonValueKind.Object } obj when obj.GetPropertyOrNull("content") is { } content:
+                return ContentText(content);
+            case { } other:
+                return other.GetRawText();
+        }
+    }
+
+    /// <summary>
+    /// Reads a list of messages in OpenAI ({role, content}) or ShareGPT ({from, value}) form.
+    /// </summary>
+    /// <returns><c>false</c> if the list is not made of message objects.</returns>
+    private static bool TryReadMessages(JsonElement array, out List<ChatMessage> messages, out string? unknownRole)
+    {
+        messages = [];
+        unknownRole = null;
+        foreach (var item in array.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            var roleName = (item.GetPropertyOrNull("role") ?? item.GetPropertyOrNull("from"))?.GetStringOrNull();
+            var content = item.GetPropertyOrNull("content") ?? item.GetPropertyOrNull("value");
+            if (roleName is null || content is null)
+            {
+                return false;
+            }
+
+            var role = RoleFrom(roleName);
+            if (role is null)
+            {
+                unknownRole ??= roleName;
+                continue;
+            }
+
+            messages.Add(new ChatMessage(role.Value, ContentText(content.Value)));
+        }
+
+        return unknownRole is null;
+    }
+
+    // OpenAI content may be a string or a list of parts such as {"type": "text", "text": "..."}.
+    private static string ContentText(JsonElement content)
+    {
+        if (content.ValueKind == JsonValueKind.String)
+        {
+            return content.GetString() ?? string.Empty;
+        }
+
+        if (content.ValueKind == JsonValueKind.Array)
+        {
+            var builder = new StringBuilder();
+            foreach (var part in content.EnumerateArray())
+            {
+                if (part.GetPropertyOrNull("text")?.GetStringOrNull() is { } text)
+                {
+                    builder.Append(text);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        return content.ValueKind is JsonValueKind.Null ? string.Empty : content.GetRawText();
+    }
+
+    private static ChatRole? RoleFrom(string name) => ImportLayouts.Normalize(name) switch
+    {
+        "system" => ChatRole.System,
+        "user" or "human" => ChatRole.User,
+        "assistant" or "gpt" or "chatgpt" or "bard" or "bing" or "model" or "bot" => ChatRole.Assistant,
+        _ => null,
+    };
+
+    private static ImportRowResult Fail(ISourceRow row, ImportErrorCode code, string? detail = null) =>
+        new(row.Number, null, new ImportRowError(row.Number, code, detail));
+
+    private static JsonElement? GetPropertyOrNull(this JsonElement element, string name) =>
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) ? value : null;
+
+    private static string? GetStringOrNull(this JsonElement element) =>
+        element.ValueKind == JsonValueKind.String ? element.GetString() : null;
+}

@@ -1,6 +1,7 @@
 using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Common;
+using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
@@ -148,7 +149,8 @@ public sealed class RecordCommandServiceTests
 
         var result = await ws.Commands.SetStatusAsync([draft, archived, Guid.NewGuid()], RecordStatus.Approved, Ct);
 
-        Assert.Equal(new StatusChangeResult(Changed: 1, Skipped: 2), result);
+        Assert.Equal([new RecordStatusUpdate(draft, RecordStatus.Draft, RecordStatus.Approved)], result.Changes);
+        Assert.Equal((1, 2), (result.Changed, result.Skipped));
         Assert.Equal(RecordStatus.Approved, (await ws.Queries.GetAsync(draft, Ct))!.Status);
         Assert.Equal(RecordStatus.Archived, (await ws.Queries.GetAsync(archived, Ct))!.Status);
     }
@@ -168,6 +170,88 @@ public sealed class RecordCommandServiceTests
         Assert.Equal(1, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "kayıt"), Ct));
         Assert.NotNull(await ws.Queries.GetAsync(keep, Ct));
         Assert.Equal(1, await ws.ScalarAsync("SELECT COUNT(*) FROM RecordSearchKeys"));
+    }
+
+    [Fact]
+    public async Task Restoring_states_undoes_status_changes_and_edits()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var original = new InstructionPayload("eski soru", "", "eski cevap");
+        var id = await ws.Commands.AddAsync(datasetId, original, RecordLineage.Manual(), Ct);
+        await ws.Commands.SetStatusAsync([id], RecordStatus.Approved, Ct);
+        await ws.Commands.UpdatePayloadAsync(id, new InstructionPayload("yeni soru", "", "yeni cevap"), Ct);
+
+        // Undo the edit: old content, and the status the record had before it (Approved).
+        var found = await ws.Commands.RestoreStatesAsync([new RecordState(id, RecordStatus.Approved, original), new RecordState(Guid.NewGuid(), RecordStatus.Draft)], Ct);
+
+        Assert.Equal(1, found);
+        var details = await ws.Queries.GetAsync(id, Ct);
+        Assert.Equal((RecordStatus.Approved, original), (details!.Status, details.Payload));
+        Assert.Equal(1, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "eski"), Ct));
+        Assert.Equal(0, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "yeni"), Ct));
+
+        // Undo the approval: Approved → Draft, which the lifecycle alone would not allow.
+        await ws.Commands.RestoreStatesAsync([new RecordState(id, RecordStatus.Draft)], Ct);
+        Assert.Equal(RecordStatus.Draft, (await ws.Queries.GetAsync(id, Ct))!.Status);
+    }
+
+    [Fact]
+    public async Task Deleted_records_come_back_from_snapshots()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.Chat, Ct);
+        var payload = new ChatPayload("Kısa yanıt ver.", [new ChatMessage(ChatRole.User, "Şifremi unuttum"), new ChatMessage(ChatRole.Assistant, "Sıfırlayın.")]);
+        var lineage = new RecordLineage(RecordSourceKind.FileImport, "chat.jsonl#line=2", "ayse");
+        var first = await ws.Commands.AddAsync(datasetId, payload, lineage, Ct);
+        var second = await ws.Commands.AddAsync(datasetId, new ChatPayload(null, [new ChatMessage(ChatRole.User, "ikinci")]), RecordLineage.Manual(), Ct);
+        await ws.Commands.SetStatusAsync([first], RecordStatus.Approved, Ct);
+        var tag = Tag.Create("destek", TestWorkspace.Now);
+        await using (var context = ws.Workspace.CreateDbContext())
+        {
+            context.Tags.Add(tag);
+            var record = await context.Records.Include(r => r.Tags).SingleAsync(r => r.Id == first, Ct);
+            record.AddTag(tag, TestWorkspace.Now);
+            await context.SaveChangesAsync(Ct);
+        }
+
+        var before = await ws.Queries.GetAsync(first, Ct);
+        var snapshots = await ws.Queries.GetSnapshotsAsync([second, first, Guid.NewGuid()], Ct);
+        await ws.Commands.DeleteAsync([first, second], Ct);
+        Assert.Equal(0, await ws.Queries.CountAsync(datasetId, RecordFilter.None, Ct));
+
+        var restored = await ws.Commands.RestoreAsync(snapshots, Ct);
+
+        Assert.Equal([first, second], snapshots.Select(s => s.Id));
+        Assert.Equal(2, restored);
+        Assert.Equal(before, await ws.Queries.GetAsync(first, Ct), new RecordDetailsComparer());
+        Assert.Equal(1, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "şifre"), Ct));
+        var page = await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, after: null, pageSize: 10, Ct);
+        Assert.Equal([1L, 2L], page.Items.Select(r => r.Ordinal));
+
+        // Restoring again is harmless.
+        Assert.Equal(0, await ws.Commands.RestoreAsync(snapshots, Ct));
+    }
+
+    [Fact]
+    public async Task Restoring_into_a_deleted_dataset_fails()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var id = await ws.Commands.AddAsync(datasetId, new InstructionPayload("a", "", "b"), RecordLineage.Manual(), Ct);
+        var snapshots = await ws.Queries.GetSnapshotsAsync([id], Ct);
+        await ws.Catalog.DeleteDatasetAsync(datasetId, Ct);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => ws.Commands.RestoreAsync(snapshots, Ct));
+    }
+
+    // RecordDetails holds a tag list, which records compare by reference.
+    private sealed class RecordDetailsComparer : IEqualityComparer<RecordDetails?>
+    {
+        public bool Equals(RecordDetails? x, RecordDetails? y) =>
+            x is not null && y is not null && x with { Tags = [] } == y with { Tags = [] } && x.Tags.SequenceEqual(y.Tags);
+
+        public int GetHashCode(RecordDetails? obj) => obj?.Id.GetHashCode() ?? 0;
     }
 
     private sealed class SynchronousProgress(Action<int> report) : IProgress<int>

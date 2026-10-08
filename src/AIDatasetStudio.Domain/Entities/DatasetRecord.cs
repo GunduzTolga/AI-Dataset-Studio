@@ -93,6 +93,43 @@ public sealed class DatasetRecord
     }
 
     /// <summary>
+    /// Brings back a deleted record exactly as it was (undo of a delete): same id, position,
+    /// status, lineage and timestamps.
+    /// </summary>
+    public static DatasetRecord Recreate(
+        Dataset dataset,
+        Guid id,
+        long ordinal,
+        RecordStatus status,
+        RecordPayload payload,
+        RecordLineage lineage,
+        string metadataJson,
+        DateTimeOffset createdAt,
+        DateTimeOffset updatedAt)
+    {
+        ArgumentNullException.ThrowIfNull(dataset);
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(lineage);
+        EnsureMatchesType(dataset.Type, payload);
+
+        return new DatasetRecord
+        {
+            Id = id,
+            DatasetId = dataset.Id,
+            Type = dataset.Type,
+            Status = status,
+            Ordinal = ordinal,
+            Payload = payload,
+            ContentHash = payload.ComputeContentHash(),
+            Preview = payload.GetPreviewText(PreviewMaxLength),
+            MetadataJson = string.IsNullOrWhiteSpace(metadataJson) ? "{}" : metadataJson,
+            Lineage = lineage,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+        };
+    }
+
+    /// <summary>
     /// Replaces the content. A changed record goes (back) to <see cref="RecordStatus.InReview"/>,
     /// because the SDD defines InReview as "records an editor has modified" (§5.2).
     /// </summary>
@@ -135,6 +172,40 @@ public sealed class DatasetRecord
 
         Status = status;
         UpdatedAt = now;
+    }
+
+    /// <summary>
+    /// Puts the record back into an earlier state (undo and redo). The lifecycle rules of
+    /// <see cref="ChangeStatus"/> and <see cref="UpdatePayload"/> do not apply: the earlier state
+    /// was valid when it existed, and undoing "Draft → Approved" must be able to go back to Draft.
+    /// </summary>
+    /// <param name="status">The earlier status.</param>
+    /// <param name="payload">The earlier content, or <c>null</c> to keep the current content.</param>
+    /// <param name="now">The time of the change.</param>
+    /// <returns><c>true</c> if the content was replaced.</returns>
+    public bool RestoreState(RecordStatus status, RecordPayload? payload, DateTimeOffset now)
+    {
+        var contentChanged = false;
+        if (payload is not null)
+        {
+            EnsureMatchesType(Type, payload);
+            var hash = payload.ComputeContentHash();
+            if (hash != ContentHash)
+            {
+                Payload = payload;
+                ContentHash = hash;
+                Preview = payload.GetPreviewText(PreviewMaxLength);
+                contentChanged = true;
+            }
+        }
+
+        if (contentChanged || status != Status)
+        {
+            Status = status;
+            UpdatedAt = now;
+        }
+
+        return contentChanged;
     }
 
     public bool AddTag(Tag tag, DateTimeOffset now)

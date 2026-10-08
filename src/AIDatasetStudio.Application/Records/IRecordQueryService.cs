@@ -31,4 +31,10 @@ public interface IRecordQueryService
 
     /// <returns>The record, or <c>null</c> if it does not exist.</returns>
     Task<RecordDetails?> GetAsync(Guid recordId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Complete copies of records, taken before they are deleted so the deletion can be undone.
+    /// Records that do not exist are left out.
+    /// </summary>
+    Task<IReadOnlyList<RecordSnapshot>> GetSnapshotsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default);
 }

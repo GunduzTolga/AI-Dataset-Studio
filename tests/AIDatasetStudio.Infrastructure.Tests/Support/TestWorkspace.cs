@@ -1,6 +1,7 @@
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Infrastructure.Catalog;
+using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Records;
 using AIDatasetStudio.Infrastructure.Workspaces;
 using Microsoft.Data.Sqlite;
@@ -22,6 +23,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Catalog = new CatalogService(Workspace, Clock);
         Commands = new RecordCommandService(Workspace, Clock);
         Queries = new RecordQueryService(Workspace);
+        Import = new ImportService(Commands);
     }
 
     public string Directory { get; }
@@ -38,6 +40,8 @@ internal sealed class TestWorkspace : IAsyncDisposable
 
     public RecordQueryService Queries { get; }
 
+    public ImportService Import { get; }
+
     public static async Task<TestWorkspace> CreateAsync(CancellationToken cancellationToken)
     {
         var directory = Path.Combine(Path.GetTempPath(), "adstudio-tests", Guid.NewGuid().ToString("N"));
@@ -51,6 +55,16 @@ internal sealed class TestWorkspace : IAsyncDisposable
     {
         var projectId = await Catalog.CreateProjectAsync("Project", cancellationToken: cancellationToken);
         return await Catalog.CreateDatasetAsync(projectId, "Dataset", type, cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes a source file next to the workspace and returns its path.
+    /// </summary>
+    public string WriteFile(string name, string content, System.Text.Encoding? encoding = null)
+    {
+        var path = Path.Combine(Directory, name);
+        File.WriteAllText(path, content, encoding ?? new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        return path;
     }
 
     public async Task<long> ScalarAsync(string sql)

@@ -7,8 +7,15 @@
              xmlns:conv="using:AIDatasetStudio.Desktop.Converters"
              x:Class="AIDatasetStudio.Desktop.Views.RecordDetailsView"
              x:DataType="vm:RecordDetailsViewModel">
+  <UserControl.Styles>
+    <Style Selector="WrapPanel.actions > Button">
+      <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+  </UserControl.Styles>
+
   <Panel>
-    <StackPanel Classes="empty" IsVisible="{Binding !HasRecord}">
+    <!-- Nothing selected -->
+    <StackPanel Classes="empty" IsVisible="{Binding IsEmpty}">
       <Border Classes="empty-icon">
         <ic:SymbolIcon Symbol="DocumentText" />
       </Border>
@@ -16,21 +23,16 @@
       <TextBlock Classes="muted" Text="{l:Tr Details_NoRecordHint}" />
     </StackPanel>
 
+    <!-- One record: editor -->
     <DockPanel IsVisible="{Binding HasRecord}">
-      <!-- Header and actions -->
-      <StackPanel DockPanel.Dock="Top" Margin="20,18,20,14" Spacing="12">
+      <StackPanel DockPanel.Dock="Top" Margin="20,18,20,12" Spacing="12">
         <StackPanel Orientation="Horizontal" Spacing="10">
           <TextBlock Classes="title numeric" Text="{Binding Title}" />
           <controls:StatusBadge Status="{Binding Status}" Text="{Binding StatusLabel}" />
         </StackPanel>
         <Grid ColumnDefinitions="*,Auto">
-          <WrapPanel>
-            <WrapPanel.Styles>
-              <Style Selector="Button">
-                <Setter Property="Margin" Value="0,0,6,6" />
-              </Style>
-            </WrapPanel.Styles>
-            <Button Classes="accent" Command="{Binding ApproveCommand}" IsVisible="{Binding ShowApprove}">
+          <WrapPanel Classes="actions">
+            <Button x:Name="ApproveButton" Classes="accent" Command="{Binding ApproveCommand}" IsVisible="{Binding ShowApprove}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <ic:SymbolIcon Symbol="Checkmark" />
                 <TextBlock Text="{l:Tr Action_Approve}" />
@@ -42,7 +44,7 @@
                 <TextBlock Text="{l:Tr Action_SendToReview}" />
               </StackPanel>
             </Button>
-            <Button Command="{Binding ArchiveCommand}" IsVisible="{Binding ShowArchive}">
+            <Button x:Name="ArchiveButton" Command="{Binding ArchiveCommand}" IsVisible="{Binding ShowArchive}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <ic:SymbolIcon Symbol="Archive" />
                 <TextBlock Text="{l:Tr Action_Archive}" />
@@ -55,25 +57,45 @@
               </StackPanel>
             </Button>
           </WrapPanel>
-          <Button Grid.Column="1" Classes="danger-subtle icon" VerticalAlignment="Top" Command="{Binding DeleteCommand}" ToolTip.Tip="{l:Tr Action_Delete}">
+          <Button x:Name="DeleteButton" Grid.Column="1" Classes="danger-subtle icon" VerticalAlignment="Top" Command="{Binding DeleteCommand}" ToolTip.Tip="{l:Tr Action_Delete}">
             <ic:SymbolIcon Symbol="Delete" />
           </Button>
         </Grid>
       </StackPanel>
 
+      <!-- Unsaved edits -->
+      <Border DockPanel.Dock="Top" Classes="callout" Margin="20,0,20,12" Padding="12,8" IsVisible="{Binding IsDirty}">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <ic:SymbolIcon Symbol="DocumentEdit" VerticalAlignment="Center" Margin="0,0,10,0" />
+          <TextBlock Grid.Column="1" Classes="small" Text="{l:Tr Editor_Unsaved}" VerticalAlignment="Center" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="8,0,0,0">
+            <Button Classes="subtle" Content="{l:Tr Action_Discard}" Command="{Binding DiscardCommand}" />
+            <Button x:Name="SaveButton" Classes="accent" Content="{l:Tr Action_Save}" Command="{Binding SaveCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Archived: read-only -->
+      <Border DockPanel.Dock="Top" Classes="callout warning" Margin="20,0,20,12" IsVisible="{Binding IsArchived}">
+        <DockPanel>
+          <ic:SymbolIcon Symbol="LockClosed" />
+          <TextBlock Classes="small" Text="{l:Tr Editor_ArchivedReadOnly}" />
+        </DockPanel>
+      </Border>
+
       <Border DockPanel.Dock="Top" Height="1" Background="{DynamicResource BorderBrush}" />
 
       <ScrollViewer>
         <StackPanel Margin="20,16,20,24" Spacing="10">
-          <ItemsControl ItemsSource="{Binding Blocks}">
+          <!-- Fields: instruction / input / output, prompt / chosen / rejected, or the system prompt of a chat -->
+          <ItemsControl ItemsSource="{Binding Fields}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Spacing="10" />
               </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
-            <ItemsControl.DataTemplates>
-              <!-- A labelled field (instruction, input, output, prompt, chosen, rejected, system prompt) -->
-              <DataTemplate DataType="vm:FieldBlock">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:EditorField">
                 <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}">
                   <StackPanel Spacing="6">
                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -82,26 +104,52 @@
                       <ic:SymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsSystem}" />
                       <TextBlock Classes="overline card-label" Text="{Binding Label}" />
                     </StackPanel>
-                    <SelectableTextBlock Classes="content" Classes.muted="{Binding IsEmpty}" Text="{Binding Value}" />
+                    <TextBox Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}"
+                             IsReadOnly="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived}" />
                   </StackPanel>
                 </Border>
               </DataTemplate>
-              <!-- A chat turn -->
-              <DataTemplate DataType="vm:MessageBlock">
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- Chat turns -->
+          <ItemsControl ItemsSource="{Binding Messages}" IsVisible="{Binding IsChat}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="10" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:EditorMessage">
                 <StackPanel Spacing="4">
                   <StackPanel Orientation="Horizontal" Spacing="5" Margin="2,0"
                               HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}">
-                    <ic:SymbolIcon Symbol="{Binding Role, Converter={x:Static conv:IconConverters.ChatRole}}" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" />
-                    <TextBlock Classes="caption muted strong" Text="{Binding Label}" />
+                    <ic:SymbolIcon Symbol="{Binding Role, Converter={x:Static conv:IconConverters.ChatRole}}" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+                    <TextBlock Classes="caption muted strong" Text="{Binding Label}" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" IsVisible="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsEditable}">
+                      <Button Classes="mini" Command="{Binding SwitchRoleCommand}" ToolTip.Tip="{l:Tr Editor_SwitchRole}">
+                        <ic:SymbolIcon Symbol="ArrowSwap" />
+                      </Button>
+                      <Button Classes="mini" Command="{Binding RemoveCommand}" ToolTip.Tip="{l:Tr Editor_RemoveMessage}">
+                        <ic:SymbolIcon Symbol="Dismiss" />
+                      </Button>
+                    </StackPanel>
                   </StackPanel>
                   <Border Classes="bubble" Classes.user="{Binding IsUser}" Classes.assistant="{Binding IsAssistant}"
-                          HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}" MaxWidth="440">
-                    <SelectableTextBlock Classes="content" Classes.muted="{Binding IsEmpty}" Text="{Binding Value}" />
+                          HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}" MinWidth="120" MaxWidth="440">
+                    <TextBox Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}"
+                             IsReadOnly="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived}" />
                   </Border>
                 </StackPanel>
               </DataTemplate>
-            </ItemsControl.DataTemplates>
+            </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <Button Classes="subtle" HorizontalAlignment="Center" Command="{Binding AddMessageCommand}" IsVisible="{Binding IsChat}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Add" />
+              <TextBlock Text="{l:Tr Editor_AddMessage}" />
+            </StackPanel>
+          </Button>
 
           <!-- Info -->
           <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Details_Info}" />
@@ -120,5 +168,66 @@
         </StackPanel>
       </ScrollViewer>
     </DockPanel>
+
+    <!-- Several records: batch actions -->
+    <StackPanel IsVisible="{Binding IsBatch}" Margin="20,18,20,20" Spacing="14">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="Multiselect" FontSize="20" Foreground="{DynamicResource AccentTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <TextBlock Classes="title" Text="{Binding BatchTitle}" VerticalAlignment="Center" />
+      </StackPanel>
+
+      <ItemsControl ItemsSource="{Binding BatchCounts}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:StatusCount">
+            <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,10,6">
+              <controls:StatusBadge Status="{Binding Status}" Text="{Binding Label}" />
+              <TextBlock Classes="small muted numeric" Text="{Binding Count}" VerticalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <WrapPanel Classes="actions">
+        <Button Classes="accent" Command="{Binding BatchApproveCommand}" IsVisible="{Binding ShowBatchApprove}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="Checkmark" />
+            <TextBlock Text="{l:Tr Action_Approve}" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding BatchSendToReviewCommand}" IsVisible="{Binding ShowBatchSendToReview}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="Eye" />
+            <TextBlock Text="{l:Tr Action_SendToReview}" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding BatchArchiveCommand}" IsVisible="{Binding ShowBatchArchive}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="Archive" />
+            <TextBlock Text="{l:Tr Action_Archive}" />
+          </StackPanel>
+        </Button>
+        <Button Command="{Binding BatchRestoreCommand}" IsVisible="{Binding ShowBatchRestore}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="ArrowUndo" />
+            <TextBlock Text="{l:Tr Action_Restore}" />
+          </StackPanel>
+        </Button>
+        <Button Classes="danger-subtle" Command="{Binding BatchDeleteCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="Delete" />
+            <TextBlock Text="{l:Tr Action_Delete}" />
+          </StackPanel>
+        </Button>
+      </WrapPanel>
+
+      <TextBlock Classes="small muted" Text="{l:Tr Batch_Hint}" TextWrapping="Wrap" />
+    </StackPanel>
   </Panel>
 </UserControl>

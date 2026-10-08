@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.3.0 (tasarım sistemi eklendi, bkz. `docs/design-system.md`)
+- **Versiyon:** 1.5.0 (kayıt editörü, inceleme kısayolları, toplu işlemler ve geri al/yinele; bkz. §6.1–6.2 ve ADR-026)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -262,6 +262,12 @@ Görsel dil, renk/tipografi tokenları ve bileşenler `docs/design-system.md` do
   - Canlı Token Sayacı Rozeti: Eşikler seçili hedef context uzunluğuna göre (Yeşil: < %50, Sarı: %50-100, Kırmızı: sınırı aşıyor).
   - Görsel Diff Bileşeni: DPO'da Chosen ve Rejected metinleri arasındaki farkları yeşil/kırmızı arka planla anlık gösteren görselleştirici.
 
+**Uygulama ayrıntıları (M3):**
+- **Editör:** Alanlar kartların içinde doğrudan düzenlenir (Instruction: talimat/girdi/çıktı; Preference: istem/tercih edilen/reddedilen; Chat: sistem talimatı + turlar). Sohbet turları eklenebilir, silinebilir ve kullanıcı ↔ asistan arasında çevrilebilir; yeni tur bir öncekinin tersi rolle başlar.
+- **Kaydetme:** Değişiklik olduğunda "Kaydedilmemiş değişiklikler — Vazgeç / Kaydet" çubuğu görünür. `Mod+S` kaydeder; başka kayda geçmek, onaylamak veya arşivlemek önce kaydeder (otomatik kayıt). İçeriği değişen kayıt §5.2 gereği InReview'a döner. Arşivlenmiş kayıt salt okunurdur.
+- **Toplu işlem:** Listede `Shift`/`Ctrl` ile çoklu seçim yapılınca sağ panel toplu panele dönüşür: seçili kayıtların durum dağılımı ve onayla / incelemeye al / arşivle / geri yükle / sil. Aksiyon, durumu izin veren her kayda uygulanır; diğerleri atlanır ve sayısı bildirilir.
+- **Henüz yok:** AvaloniaEdit renklendirmesi, token rozeti (M4) ve DPO diff görselleştiricisi (V2) sonraki aşamalardadır.
+
 ### 6.2. Klavye Kısayolları ile Seri Veri İnceleme
 Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleyebilmesi için tasarlanan kısayol şeması. `Mod` = Windows/Linux'ta `Ctrl`, macOS'ta `Cmd`. Kısayollar metin editörünün standart tuşlarıyla (kelime silme, paragraf gezinme) çakışmayacak şekilde seçilmiştir.
 - `Mod + Enter`: Kaydı **Approved** olarak işaretle ve bir sonraki kayda geç.
@@ -270,6 +276,8 @@ Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleye
 - `Mod + 1 .. 5`: Kayda hızlı etiket (Tag) atama. (`Alt + rakam` macOS'ta özel karakter yazdığı için kullanılmaz.)
 - `Mod + Shift + M`: PII maskeleme önizlemesini çalıştır.
 - `Mod + Z / Mod + Shift + Z`: Geri al / yinele (tek kayıt düzenlemeleri ve toplu işlemler dahil).
+
+**Uygulama ayrıntıları (M3):** Ek olarak `Mod + S` kaydet, `Mod + F` aramaya git, `Mod + Y` yinele (Windows alışkanlığı) ve liste odaktayken `Delete` (onaylı silme) eklenmiştir. Kısayollar pencere düzeyinde metin kutusundan önce yakalanır; böylece `Mod + Enter` editörde satır sonu eklemez. `Mod + Enter`, `Mod + Shift + Backspace`, `Mod + S` ve `F8` yazarken de çalışır; `Mod + Z` ise odaklı metin kutusunun kendi geri almasına bırakılır, uygulama düzeyindeki geri alma metin kutusu dışındayken veya Düzen menüsünden çalışır. Kısayollar Düzen ve Kayıt menülerinde gösterilir. `Mod + 1..5` etiketleme, etiket arayüzüyle; `Mod + Shift + M` PII önizlemesi M4 ile gelecektir.
 
 ---
 
@@ -375,10 +383,24 @@ Kullanıcı şu tip karmaşık sorguları arayüzdeki filtre chipleriyle kolayca
 ## 12. İÇE AKTARMA SİSTEMİ (IMPORT SYSTEM)
 
 ### 12.1. V1 (MVP) Kapsamı
-- **CSV Import Sihirbazı:** Otomatik delimiter (virgül, noktalı virgül, tab) tespiti. Kullanıcı dostu kolon eşleme ekranı (Hangi sütun `Instruction`, hangi sütun `Input`, hangi sütun `Output` olacak?).
+- **CSV Import Sihirbazı:** Otomatik delimiter (virgül, noktalı virgül, tab, dikey çizgi) tespiti. Kullanıcı dostu kolon eşleme ekranı (Hangi sütun `Instruction`, hangi sütun `Input`, hangi sütun `Output` olacak?).
 - **JSONL Import:** OpenAI messages dizilerini, ShareGPT formatını veya Alpaca anahtarlarını otomatik tanıyan akıllı JSONL okuyucu.
 - **JSON Array Import:** Standart JSON nesne dizilerinin içe aktarımı.
 - **Doğrulama ve Önizleme:** İlk 20 satırı tablo halinde göstererek eksik veya hatalı kolon eşleştirmelerinde kullanıcıyı uyarma.
+
+**Uygulama ayrıntıları (M2):**
+
+| Konu | Davranış |
+|---|---|
+| Dosya türleri | `.jsonl`, `.ndjson`, `.json`, `.csv`, `.tsv`, `.txt`. Uzantı belirsizse ilk karaktere bakılır: `[` → JSON dizisi, `{` → JSONL, diğer → CSV. |
+| Tanınan biçimler | Alpaca (`instruction/input/output`), prompt/completion, Hugging Face DPO (`prompt/chosen/rejected`; değerler metin veya mesaj listesi), OpenAI messages, ShareGPT (`conversations` + `from/value`), OpenAI tercih (`input.messages` + `preferred_output/non_preferred_output`). Karar ilk 100 satırın çoğunluğuyla verilir. |
+| Biçim ↔ veri seti türü | Sütun tabanlı biçimler (özel, Alpaca, prompt/completion, HF DPO) her türe eşlenebilir. Konuşmalar Sohbet'e olduğu gibi, Talimat'a yalnızca tek soru-cevap ve sistem talimatı yoksa aktarılır. OpenAI tercih yalnızca Tercih veri setine aktarılır. |
+| Sütun eşleme önerisi | Sütun adları normalize edilir (küçük harf, Türkçe harfler katlanır, noktalama atılır) ve İngilizce/Türkçe eş anlamlılarla eşleştirilir (ör. `Soru` → Talimat, `Cevap` → Çıktı). Her sütun en fazla bir alana önerilir. Zorunlu alan eşlenmemişse uyarılır ama engellenmez (örn. yalnızca istemler içe aktarılıp yanıtlar sonra üretilebilir). |
+| CSV | RFC 4180: tırnaklı alanlarda ayraç, satır sonu ve `""` desteklenir; bozuk tırnaklar hoşgörüyle okunur. Kodlama: BOM → UTF-8/UTF-16; BOM yoksa geçerli UTF-8 ise UTF-8, değilse **windows-1254** (Türkçe Excel'in "CSV" çıktısı). Ayraç, kodlama ve başlık satırı sihirbazda değiştirilebilir; değişince dosya yeniden okunur. Başlıksız dosyada sütunlar `#1`, `#2`… adını alır. Tamamen boş satırlar (`;;;`) sessizce atlanır. |
+| Akış | Dosyalar akış hâlinde okunur; JSON dizisi de öğe öğe ayrıştırılır, dosya belleğe alınmaz. Analiz tüm satırları sayar; önizleme ilk 20 satırı dönüştürür, hiçbir şey yazmaz. |
+| Hatalı satırlar | Dönüştürülemeyen satır atlanır ve nedeniyle raporlanır: geçersiz JSON, nesne değil, boş kayıt, konuşma yok, desteklenmeyen rol (ör. `tool`), çok turlu konuşma, sistem talimatı, uyumsuz biçim. İlk 100 hata saklanır. Bozuk bir JSON **dizisi** öğelere ayrılamadığı için dosya düzeyinde hata verir (satır numarasıyla). |
+| Yazma | Tüm kayıtlar tek transaction'da, `Draft` durumunda ve arama indeksiyle birlikte eklenir. İptal tamamen geri alır. İlerleme okunan/eklenen satır olarak raporlanır. |
+| Köken (lineage) | `RecordSourceKind.FileImport`; kaynak referansı `dosya.jsonl#line=N`, `dosya.json#item=N` veya `dosya.csv#row=N` (CSV'de satır numarası tablo programındaki satırdır; başlık 1. satırdır). |
 
 ### 12.2. V2 Kapsamı
 - **Excel (.xlsx) Import:** Çoklu çalışma sayfalarını (sheets) destekleyen içe aktarma.
@@ -625,3 +647,5 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-022: Arama İndeksi:** Tam metin araması contentless FTS5 tablosu ve kararlı INTEGER anahtar tablosuyla yapılır; metin iki kez saklanmaz. Türkçe I harfleri uygulama tarafında katlanır; indeks yazma yollarında transaction içinde, silmelerde trigger ile güncel tutulur ve açılışta onarılır.
 - **ADR-023: Kullanıcı Ayarları:** Arayüz dili ve son açılan çalışma alanları, platformun ayar klasöründeki `app.settings.db` dosyasında tutulur. Dosya kullanılamazsa uygulama çökmez; ayarlar o oturum için bellekte kalır.
 - **ADR-024: Tasarım Sistemi:** Arayüz Avalonia Fluent teması üzerine kurulu, token tabanlı bir tasarım sistemi kullanır (`Themes/Tokens.axaml`, `Themes/Controls.axaml`). Bileşenler ham renk değil semantik tokenlar kullanır; açık ve koyu tema aynı tokenlarla tanımlanır ve WCAG AA kontrastını karşılar. İkonlar Fluent UI System Icons'tır (FluentIcons.Avalonia, MIT).
+- **ADR-025: İçe Aktarma Hattı:** İçe aktarma üç aşamalıdır: *analiz* (biçim, CSV ayarları, düzen, sütunlar, satır sayısı, eşleme önerisi), *önizleme* (ilk 20 satır, yazmadan) ve *aktarım* (tek transaction). Okuyucular dosya biçiminden bağımsız `ISourceRow` üretir; dönüştürme (`ImportConverter`) saf ve dosya sisteminden bağımsızdır, bu sayede kurallar birim testleriyle doğrulanır. Satır hataları içe aktarmayı durdurmaz, dosya hataları durdurur. Kodlaması belirsiz CSV'lerde varsayılan windows-1254'tür.
+- **ADR-026: Geri Al / Yinele:** Geri alma, oturum boyunca tutulan bir komut geçmişidir (en fazla 100 adım; çalışma alanı değişince temizlenir, dosyaya yazılmaz). Her adım değişiklikten önceki ve sonraki durumu taşır: durum değişikliklerinde kayıt başına eski/yeni durum, düzenlemede eski/yeni içerik ve durum, silmede kaydın tam kopyası (kimlik, sıra, köken, etiketler, zaman damgaları). Geri alma, yaşam döngüsü kurallarını atlayan ayrı bir servis yöntemiyle (`RestoreStatesAsync` / `RestoreAsync`) uygulanır; kullanıcı aksiyonları ise kurallara tabidir. Kayıtları artık bulunmayan adım uyarıyla geçmişten düşer. İçe aktarma ve örnek veri üretimi geri alınamaz (kayıtlar silinerek kaldırılır). Kalıcı içerik geçmişi (`RecordRevisions`, §14) sürümleme kapsamında ayrıca ele alınır.
