@@ -105,6 +105,8 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | Aç / Son açılanlar / Kapat | `FolderOpen` / `History` / `Dismiss` |
 | Tema / Dil | `DarkTheme` / `LocalLanguage` |
 | İçe aktar / Kaynak dosya | `ArrowImport` / `DocumentTable` |
+| Dışa aktar / Yazılan dosya / Son dışa aktarım | `ArrowExport` / `DocumentText` / `History` |
+| Dışarıda bırakılan kayıt | `SubtractCircle` (soluk) |
 | Geçerli / Atlanacak satır | `CheckmarkCircle` (olumlu renk) / `ErrorCircle` (hata rengi) |
 | Bilgi / Uyarı / Hata bildirimi | `Info` (konuşma biçiminde `Chat`) / `Warning` / `ErrorCircle`, `DismissCircle` |
 | Kaydet / Kaydedilmemiş değişiklik / Salt okunur | `Save` / `DocumentEdit` / `LockClosed` |
@@ -139,6 +141,9 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 ### Girişler
 - `TextBox`: yüzey zemin, odakta 1,5 px vurgu kenarı.
 - `TextBox.search`: soldaki `Search` ikonu (`InnerLeftContent`) ve Fluent'ın temizleme düğmesi (`clearButton`).
+
+### Seçenek kartları
+`ListBox.options` + `Border.option`: birkaç açıklamalı seçenekten biri (dışa aktarma biçimi). Kart: kalın ad, altında soluk tek satır biçim örneği (`mono`), gerekirse amber uyarı satırı. Üzerine gelince güçlü kenar; seçiliyken vurgu zemini, vurgu kenarı ve vurgu renkli ad. `SelectionMode="AlwaysSelected"`.
 
 ### Çipler (durum filtresi)
 `ListBox.chips` + `Border.chip`: yatay, hap biçiminde; etiket ve soluk sayaç. Seçili çip vurgu zemini, vurgu kenarı ve vurgu metniyle gösterilir. `SelectionMode="AlwaysSelected"`.
@@ -195,10 +200,11 @@ Etiket `TextBlock.label` (küçük, yarı kalın, ikincil renk) kontrolün üst�
 | Ekran | Düzen |
 |---|---|
 | Karşılama (çalışma alanı yok) | Marka simgesi, başlık, slogan; "Yeni çalışma alanı" ve "Çalışma alanı aç" kutucukları; son açılanlar; gizlilik notu |
-| Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı (analiz sürerken küçük ilerleme), arama + kalite filtresi, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: seçim yokken veri seti özeti; kayıtta başlık + durum + token ve skor hapları, aksiyonlar, içerik kartları/balonları, "KALİTE", "BİLGİLER" |
+| Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı (analiz sürerken küçük ilerleme; sağda "İçe aktar" ve "Dışa aktar"), arama + kalite filtresi, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: seçim yokken veri seti özeti; kayıtta başlık + durum + token ve skor hapları, aksiyonlar, içerik kartları/balonları, "KALİTE", "BİLGİLER" |
 | Diyaloglar | 460 px; başlık, açıklama, giriş, sağa yaslı İptal (`subtle`) + onay (`accent` veya `danger`) |
 | Kayıt editörü (sağ panel) | Başlık + durum rozeti + token ve skor hapları, duruma uygun aksiyonlar ve sağda maskelenmiş önizleme + sil · maskelenmiş önizleme bildirimi · kaydedilmemiş değişiklik çubuğu · alan kartları veya sohbet balonları (düzenlenebilir) · "Mesaj ekle" · KALİTE · BİLGİLER. Çoklu seçimde toplu panel |
-| Menüler | Dosya · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Maskelenmiş önizleme, Sil) · Araçlar (Örnek kayıt üret, Özel hassas terimler); kısayollar menüde gösterilir |
+| Menüler | Dosya (… İçe aktar, Dışa aktar `Mod+E` …) · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Maskelenmiş önizleme, Sil) · Araçlar (Örnek kayıt üret, Özel hassas terimler); kısayollar menüde gösterilir |
+| Dışa aktarma sihirbazı | 1040×720, içe aktarma sihirbazıyla aynı iskelet. Sol (360 px): BİÇİM seçenek kartları · KAYITLAR (durum onay kutuları, bağlamı aşanları/kopyaları atla, kişisel verileri maskele) · BÖLME (ön ayar açılır listesi, özel oranlar için üç sayı kutusu, seed ve açıklaması) · Sağ: ÖNİZLEME kartı (büyük sayı + "kayıt dışa aktarılacak", bölmede "eğitim ≈ … · doğrulama ≈ …", dışarıda kalanlar `SubtractCircle` satırlarıyla, onaylı kayıt yoksa bilgi bildirimi) · İLK SATIRLAR (3 satır, `mono` kartlar) · klasörde dosya varsa üstte uyarı bildirimi + "Başka klasör seç" / "Üzerine yaz" · Alt çubuk: son dışa aktarım + İptal + "N kaydı dışa aktar"; sonuç ekranında yazılan dosyalar (ad, klasör, kayıt sayısı) |
 | İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir. Üst: ikon kutusu, başlık, hedef veri seti · Sol (340 px, uygulama zemini): KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri), bildirimler, CSV AYARLARI, SÜTUN EŞLEME · Sağ: ÖNİZLEME (ilk 20 satır) · Alt çubuk: adıma göre özet + İptal + "N satırı içe aktar" (`accent`), aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
 
 **Tercihler:** Görünüm › Tema (Sistem / Açık / Koyu) ve Görünüm › Dil (English / Türkçe). İkisi de `app.settings.db` dosyasında saklanır ve yeniden başlatmadan uygulanır.
