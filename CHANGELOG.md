@@ -5,6 +5,25 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Variations
+- **Record › Generate Variations** (Mod+Shift+G, also in the editor's header and in the panel for
+  several selected records) has the model ask each record's question in other words: 1–10
+  variations per record, 3 by default. **Reword** the question only, so every variation keeps the
+  record's answer, or the question and the answer. **Casual, with typos** writes some questions
+  the way people type in a chat. An instruction's input, a chat's system prompt and earlier turns
+  and a preference pair's rejected answer stay as they are.
+- Variations appear as they are written; writing can be stopped and any record written again.
+  A variation that asks exactly the original question is dropped, and one that changes little is
+  flagged *Close to the original* and left out unless you check it. Every variation can be
+  edited, left out or removed.
+- **Add** turns the kept variations into draft records with *Synthetic* lineage: the editor says
+  "Synthetic (variation of #12)", and a document passage the record came from comes along.
+  Edit › Undo takes the whole addition back.
+- A record and its variations are a family: exports put them in the same split part (also
+  stratified, and from a version), and they are not near-duplicate questions of each other —
+  archiving near duplicates keeps the first record together with its variations. Splits of
+  datasets without variations do not change.
+
 ### Questions from documents
 - **File › Extract Q&A from Document** (also on the dataset overview's AI card, and offered by the
   import wizard for documents) reads a PDF, Word, Markdown or text document and splits it into
