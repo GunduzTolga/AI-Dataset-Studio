@@ -141,6 +141,14 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 | **M10** (V2) | Benzer sorular: karakter 5-gramlarıyla MinHash + LSH aday bulma, tam Jaccard ile kesin %85 eşiği, geçişli gruplar; kural, filtre, editörde ilk benzer kaydın numarası, özetten temizleme (her grubun ilki kalır), aynı bölmeye düşürme ve sürümde donmuş gruplar. Tercih (DPO) editöründe tercih edilen ↔ reddedilen kelime farkı (ADR-032, Plan §8.2, §6.1) | ✅ PR #5 |
 | **M11** (V2) | Excel (.xlsx/.xlsm) kendi akış okuyucusuyla: etkin sayfa, başka bir sayfa ya da tüm sayfalar (sütunlar adla birleşir), tarih biçimleri, sayfa + satır kökeni, `.xls`/parolalı kitap açıklaması. Markdown başlıklara göre bölümler (başlık, üst başlıklar, metin), düz metin paragraflar; `.txt` için tablo ↔ metin seçimi. Editör alanları AvaloniaEdit: Markdown, çitli kod blokları (JSON, Python, JS/TS, C#, SQL, kabuk, XML) ve JSON belgeleri tema tokenlarıyla renklenir, kod eş aralıklı (ADR-033, Plan §12.2, §6.1) | ✅ PR #5 |
 
+| **M12** (V3) | Yerel model bağlantıları: Ollama, LM Studio, vLLM, LocalAI ve diğer OpenAI uyumlu sunucular. Araçlar › Yapay Zekâ Bağlantıları'nda sunucudan model listesi, deneme, varsayılan bağlantı ve uzak adres için açık onay. Bağlantılar kullanıcı ayarlarındadır. Editörde yapay zekâyla yazma (`Mod+G`): Çıktı, sohbet yanıtı, tercih edilen ve "daha kötü" reddedilen yanıt; akışla yazma, durdurma, hata açıklaması. Model adı kökene yazılır, geri alınabilir. Veri setine özel talimatlar genel bakışta (ADR-034, Plan §17.4) | ✅ PR #5 |
+| **M13** (V3) | PDF ve Word (.docx) içe aktarma: akıllı parçalama, parçalardan model ile soru-cevap çıkarımı, inceleme ekranı, `DocumentChunk` kökeni (Plan §12.3, §17.2) | Planlandı |
+| **M14** (V3) | Sentetik çeşitlendirme: bir kayıttan farklı sorulmuş varyantlar ve yanıtlar üretme, onaylayarak ekleme, `Synthetic` kökeni (Plan §17.2) | Planlandı |
+| **M15** (V3) | LLM-as-a-Judge: kayıtları 1–5 puan ve gerekçeyle değerlendirme, toplu çalıştırma, puana göre filtre, anlamsal çelişki denetimi (Plan §17.3, §8) | Planlandı |
+| **M16** (V3) | Yerel embedding ile anlamca benzer sorular ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"); MinHash grubuyla birlikte (Plan §8, ADR-032) | Planlandı |
+
+> Not: V3 (Plan §21) beş aşamaya bölündü. Model bağlantısı diğer dört aşamanın ön koşulu olduğu için ilk sırada. Bulut sağlayıcıları, Notion/Confluence/HTML kaynakları ve müşteri sohbeti ayrıştırma sonraya kaldı.
+
 > Not: V2 (Plan §21) dört aşamaya bölündü; Llama 3 ve Hugging Face DPO şablonları M5'te yapıldığı için V2'de yer almıyor. Sıralama kullanıcıyla belirlendi: önce sürümleme, çünkü 1.0.0'dan sonra yapılan düzenlemelerin eski hâli ancak bir sürümde tutulabiliyor.
 
 > Not: Tasarım, kullanıcının isteğiyle sona bırakılmak yerine M1'in hemen ardından yapıldı. Kurallar `docs/design-system.md` dosyasında; M2–M6'daki yeni ekranlar bu sisteme göre yapılacak.

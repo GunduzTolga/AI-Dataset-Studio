@@ -27,6 +27,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🎲 **Train / Validation / Test Split:** Deterministic, seed-based dataset splitting with stratified sampling.
 - 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
 - 🏷️ **Tags:** Colored tags shared by all datasets, toggled with Mod+1…5, on one record or many; filter the list by tag and split exports within each tag or tag group (`kategori:hukuk`).
+- ✨ **Write with a local model:** Connect Ollama, LM Studio, vLLM or LocalAI (Tools › AI Connections) and let the model write an answer, a chat reply, or the chosen and a worse rejected answer of a DPO pair (Mod+G). You review the text before saving, and the model is recorded in the record's lineage. Nothing leaves your network unless you allow a remote server.
 - 🔄 **Universal Import & Export:**
   - **Import:** CSV (with column mapping wizard), JSONL, and standard JSON.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
@@ -119,6 +120,7 @@ Reviewing records: edit fields directly in the right-hand panel; changes are sav
 | Mod+Shift+M | Masked preview of personal data |
 | Mod+E | Export the dataset |
 | Mod+1 … Mod+5 | Add or remove the tag with that shortcut (on all selected records) |
+| Mod+G | Write the answer side of the record with the AI model (again to stop) |
 
 Tokens and quality: every record is analysed in the background with an offline tokenizer (`o200k_base` or `cl100k_base`, chosen per dataset together with its context length). With no record selected, the right-hand panel shows the **dataset overview**: quality score, token totals, a length histogram and the issues found, each with **Show** (filters the list) and, where it makes sense, **Archive** (undoable). The list shows tokens and a score per record and can be filtered by quality; the editor updates both while you type.
 
@@ -168,7 +170,11 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M9 | Tags: editor chips, Mod+1…5, batch tagging, tag filter, tag manager, stratified split | ✅ |
 | M10 | Near-duplicate questions (MinHash + exact Jaccard), clean-up and one split part per group; chosen vs rejected diff for preference pairs | ✅ |
 | M11 | Excel (multi-sheet), Markdown and plain-text import; Markdown, code and JSON highlighting in the editor | ✅ |
-| V3 | Local LLMs (Ollama / LM Studio), PDF and Word chunking, synthetic data, LLM-as-a-judge | Planned |
+| M12 | Local model connections (Ollama, LM Studio, vLLM, LocalAI) and writing records with AI | ✅ |
+| M13 | PDF and Word import: chunking and question–answer extraction with a model | Next |
+| M14 | Synthetic variations of records | Planned |
+| M15 | LLM-as-a-judge scores with reasons | Planned |
+| M16 | Questions alike in meaning (local embeddings) | Planned |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
