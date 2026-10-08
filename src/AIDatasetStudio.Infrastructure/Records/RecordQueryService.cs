@@ -35,9 +35,7 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
 
-        var sql = new StringBuilder(
-            $"SELECT r.Id, r.Ordinal, r.Status, r.Preview, r.UpdatedAt, a.TotalTokens, {AnalysisSql.Score}, " +
-            $"COALESCE({AnalysisSql.IsOverLimit}, 0) {From}");
+        var sql = new StringBuilder(SummaryColumns);
         AppendFilter(sql, command, datasetId, filter, match);
         if (after is { } cursor)
         {
@@ -51,22 +49,7 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         command.Parameters.AddWithValue("$take", pageSize + 1);
         command.CommandText = sql.ToString();
 
-        var items = new List<RecordSummary>(pageSize + 1);
-        await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
-        {
-            while (await reader.ReadAsync(cancellationToken))
-            {
-                items.Add(new RecordSummary(
-                    SqliteValues.ReadGuid(reader.GetString(0)),
-                    reader.GetInt64(1),
-                    (RecordStatus)reader.GetInt32(2),
-                    reader.GetString(3),
-                    SqliteValues.ReadTimestamp(reader.GetInt64(4)),
-                    reader.IsDBNull(5) ? null : reader.GetInt32(5),
-                    reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                    reader.GetBoolean(7)));
-            }
-        }
+        var items = await ReadSummariesAsync(command, pageSize + 1, cancellationToken);
 
         if (items.Count <= pageSize)
         {
@@ -113,6 +96,21 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         }
 
         return counts;
+    }
+
+    public async Task<IReadOnlyList<RecordSummary>> GetSummariesAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(recordIds);
+        if (recordIds.Count == 0)
+        {
+            return [];
+        }
+
+        await using var connection = await database.OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = SummaryColumns + " WHERE r.Id IN (SELECT value FROM json_each($ids)) ORDER BY r.Ordinal, r.Id;";
+        command.Parameters.AddWithValue("$ids", JsonSerializer.Serialize(recordIds.Select(SqliteValues.Guid)));
+        return await ReadSummariesAsync(command, recordIds.Count, cancellationToken);
     }
 
     public async Task<RecordDetails?> GetAsync(Guid recordId, CancellationToken cancellationToken = default)
@@ -193,4 +191,28 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
 
     // Lists read the record's up-to-date analysis (if any) for tokens, score and quality filters.
     private static readonly string From = $"FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}";
+
+    private static readonly string SummaryColumns =
+        $"SELECT r.Id, r.Ordinal, r.Status, r.Preview, r.UpdatedAt, a.TotalTokens, {AnalysisSql.Score}, " +
+        $"COALESCE({AnalysisSql.IsOverLimit}, 0) {From}";
+
+    private static async Task<List<RecordSummary>> ReadSummariesAsync(SqliteCommand command, int capacity, CancellationToken cancellationToken)
+    {
+        var items = new List<RecordSummary>(capacity);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new RecordSummary(
+                SqliteValues.ReadGuid(reader.GetString(0)),
+                reader.GetInt64(1),
+                (RecordStatus)reader.GetInt32(2),
+                reader.GetString(3),
+                SqliteValues.ReadTimestamp(reader.GetInt64(4)),
+                reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                reader.GetBoolean(7)));
+        }
+
+        return items;
+    }
 }

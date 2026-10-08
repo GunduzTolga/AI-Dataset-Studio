@@ -69,11 +69,12 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
                        {AnalysisSql.IsOverLimit} AS IsOver,
                        {AnalysisSql.Score} AS Effective
                 FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
-                WHERE r.DatasetId = $ds AND a.RecordId IS NOT NULL)
+                WHERE r.DatasetId = $ds AND a.RecordId IS NOT NULL AND r.Status <> {AnalysisSql.Archived})
             SELECT (SELECT COUNT(*) FROM DatasetRecords WHERE DatasetId = $ds),
                    (SELECT COUNT(*) FROM Datasets WHERE Id = $ds),
-                   COUNT(*),
-                   AVG(CASE WHEN Status <> {AnalysisSql.Archived} THEN Effective END),
+                   (SELECT COUNT(*) FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
+                    WHERE r.DatasetId = $ds AND a.RecordId IS NOT NULL),
+                   AVG(Effective),
                    COALESCE(SUM(TotalTokens), 0), COALESCE(MAX(TotalTokens), 0), COALESCE(SUM(IsOver), 0),
                    COALESCE(SUM(IsDup), 0), COALESCE(SUM(IsConflict), 0){ruleSums}{buckets}
             FROM scored;
@@ -179,7 +180,7 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             // Keep the first record of each group of copies.
             QualityRule.Duplicate =>
                 "EXISTS (SELECT 1 FROM DatasetRecords o WHERE o.DatasetId = r.DatasetId AND o.ContentHash = r.ContentHash " +
-                "AND (o.Ordinal < r.Ordinal OR (o.Ordinal = r.Ordinal AND o.Id < r.Id)))",
+                $"AND o.Status <> {AnalysisSql.Archived} AND (o.Ordinal < r.Ordinal OR (o.Ordinal = r.Ordinal AND o.Id < r.Id)))",
             QualityRule.ConflictingAnswer => $"a.RecordId IS NOT NULL AND {AnalysisSql.IsConflicting}",
             QualityRule.OverContextLimit => $"a.RecordId IS NOT NULL AND {AnalysisSql.IsOverLimit}",
             _ => $"a.RecordId IS NOT NULL AND (a.IssueFlags & {AnalysisSql.Bit(rule)}) <> 0",
@@ -189,7 +190,7 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
             SELECT r.Id FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
-            WHERE r.DatasetId = $ds AND {condition}
+            WHERE r.DatasetId = $ds AND r.Status <> {AnalysisSql.Archived} AND {condition}
             ORDER BY r.Ordinal, r.Id;
             """;
         command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));

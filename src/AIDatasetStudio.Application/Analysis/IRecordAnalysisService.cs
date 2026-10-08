@@ -25,11 +25,13 @@ public enum QualityFilter
 public sealed record TokenBucket(int UpperBound, long Count);
 
 /// <summary>
-/// Token and quality figures of a dataset (SDD §7.3, §8.1).
+/// Token and quality figures of a dataset (SDD §7.3, §8.1). Apart from the two counts, they cover
+/// the analysed records that are not archived: archived records are left out of exports, so they
+/// neither count nor make others duplicates or conflicting answers.
 /// </summary>
-/// <param name="RecordCount">All records.</param>
-/// <param name="AnalyzedCount">Records with up-to-date analysis results.</param>
-/// <param name="Score">Mean score of the analysed records that are not archived; <c>null</c> before any analysis.</param>
+/// <param name="RecordCount">All records, archived ones included.</param>
+/// <param name="AnalyzedCount">Records with up-to-date analysis results, archived ones included.</param>
+/// <param name="Score">Mean score; <c>null</c> before any analysis.</param>
 /// <param name="IssueCounts">Records per rule; rules without records are left out.</param>
 public sealed record DatasetQualitySummary(
     long RecordCount,
@@ -85,8 +87,9 @@ public interface IRecordAnalysisService
     Task<RecordQuality?> GetRecordQualityAsync(Guid recordId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Records with an issue, for clean-up actions (SDD §8.3). For <see cref="QualityRule.Duplicate"/>
-    /// the first record of each group is left out, so archiving the result keeps one copy.
+    /// Records with an issue that are not archived, for clean-up actions (SDD §8.3). For
+    /// <see cref="QualityRule.Duplicate"/> the first record of each group is left out, so archiving
+    /// the result keeps one copy.
     /// </summary>
     Task<IReadOnlyList<Guid>> FindAsync(Guid datasetId, QualityRule rule, CancellationToken cancellationToken = default);
 

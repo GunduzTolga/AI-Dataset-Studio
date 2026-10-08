@@ -17,19 +17,24 @@ internal static class AnalysisSql
         "LEFT JOIN RecordAnalyses a ON a.RecordId = r.Id AND a.ContentHash = r.ContentHash " +
         $"AND a.Tokenizer = d.DefaultTokenizer AND a.RulesVersion = {QualityRules.Version}";
 
-    /// <summary>
-    /// 1 when another record of the dataset has the same content.
-    /// </summary>
-    public const string IsDuplicate =
-        "EXISTS (SELECT 1 FROM DatasetRecords o WHERE o.DatasetId = r.DatasetId AND o.ContentHash = r.ContentHash AND o.Id <> r.Id)";
+    // Cross-record rules only compare with records that are not archived: archived records are out
+    // of the dataset (and of exports), so archiving one copy or one of two answers settles the issue.
 
     /// <summary>
-    /// 1 when an up-to-date analysis of another record asks the same question with different content.
+    /// 1 when another record of the dataset, not archived, has the same content.
+    /// </summary>
+    public static readonly string IsDuplicate =
+        "EXISTS (SELECT 1 FROM DatasetRecords o WHERE o.DatasetId = r.DatasetId AND o.ContentHash = r.ContentHash AND o.Id <> r.Id " +
+        $"AND o.Status <> {Archived})";
+
+    /// <summary>
+    /// 1 when an up-to-date analysis of another record, not archived, asks the same question with different content.
     /// </summary>
     public static readonly string IsConflicting =
         "(a.QuestionKey IS NOT NULL AND EXISTS (SELECT 1 FROM RecordAnalyses a2 JOIN DatasetRecords r2 ON r2.Id = a2.RecordId " +
         "AND a2.ContentHash = r2.ContentHash WHERE a2.DatasetId = r.DatasetId AND a2.QuestionKey = a.QuestionKey " +
-        $"AND a2.Tokenizer = a.Tokenizer AND a2.RulesVersion = {QualityRules.Version} AND r2.ContentHash <> r.ContentHash))";
+        $"AND a2.Tokenizer = a.Tokenizer AND a2.RulesVersion = {QualityRules.Version} AND r2.ContentHash <> r.ContentHash " +
+        $"AND r2.Status <> {Archived}))";
 
     public const string IsOverLimit = "(a.TotalTokens > d.ContextLength)";
 

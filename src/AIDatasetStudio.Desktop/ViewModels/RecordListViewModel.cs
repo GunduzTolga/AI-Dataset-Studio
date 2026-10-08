@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
@@ -27,6 +28,17 @@ public sealed partial class StatusFilterOption(RecordStatus? status) : ViewModel
 }
 
 /// <summary>
+/// An entry of the quality filter (analysis results).
+/// </summary>
+public sealed partial class QualityFilterOption(QualityFilter filter) : ViewModelBase
+{
+    public QualityFilter Filter { get; } = filter;
+
+    [ObservableProperty]
+    public partial string Label { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// The records of the selected dataset, loaded page by page as the list scrolls (data
 /// virtualization on top of the list control's UI virtualization).
 /// </summary>
@@ -49,6 +61,9 @@ public sealed partial class RecordListViewModel : ViewModelBase
         StatusFilters = [new StatusFilterOption(null), .. Enum.GetValues<RecordStatus>().Select(status => new StatusFilterOption(status))];
         RefreshFilterLabels();
         SelectedStatusFilter = StatusFilters[0];
+        QualityFilters = Enum.GetValues<QualityFilter>().Select(filter => new QualityFilterOption(filter)).ToList();
+        RefreshQualityLabels();
+        SelectedQualityFilter = QualityFilters[0];
         Selection = new SelectionModel<RecordRowViewModel>(Items) { SingleSelect = false };
         Selection.SelectionChanged += (_, _) => OnSelectionChanged();
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
@@ -103,6 +118,14 @@ public sealed partial class RecordListViewModel : ViewModelBase
 
     public IReadOnlyList<StatusFilterOption> StatusFilters { get; }
 
+    public IReadOnlyList<QualityFilterOption> QualityFilters { get; }
+
+    /// <summary>
+    /// Narrows the list by analysis results; <c>null</c> is treated as "all records".
+    /// </summary>
+    [ObservableProperty]
+    public partial QualityFilterOption? SelectedQualityFilter { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDataset), nameof(IsEmptyDataset), nameof(IsNoMatches))]
     public partial DatasetNodeViewModel? Dataset { get; private set; }
@@ -146,11 +169,14 @@ public sealed partial class RecordListViewModel : ViewModelBase
     /// </summary>
     public bool IsNoMatches => Dataset is not null && Items.Count == 0 && !IsLoading && IsFiltered;
 
-    private bool IsFiltered => !string.IsNullOrWhiteSpace(SearchText) || SelectedStatusFilter?.Status is not null;
+    private bool IsFiltered => !string.IsNullOrWhiteSpace(SearchText) || SelectedStatusFilter?.Status is not null || Quality != QualityFilter.None;
+
+    private QualityFilter Quality => SelectedQualityFilter?.Filter ?? QualityFilter.None;
 
     private RecordFilter Filter => new(
         SelectedStatusFilter?.Status is { } status ? new HashSet<RecordStatus> { status } : null,
-        SearchText);
+        SearchText,
+        Quality);
 
     public async Task ShowDatasetAsync(DatasetNodeViewModel? dataset)
     {
@@ -217,6 +243,51 @@ public sealed partial class RecordListViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Shows new analysis results (tokens, scores) for the loaded rows without reloading the list.
+    /// With a quality filter active the rows that match may change, so the list is reloaded instead.
+    /// </summary>
+    public async Task RefreshAnalysisAsync(IReadOnlyCollection<Guid>? recordIds = null)
+    {
+        if (Dataset is null)
+        {
+            return;
+        }
+
+        if (Quality != QualityFilter.None && recordIds is null)
+        {
+            await ReloadAsync();
+            return;
+        }
+
+        var rows = Items.Where(row => recordIds is null || recordIds.Contains(row.Id)).ToDictionary(row => row.Id);
+        try
+        {
+            foreach (var chunk in rows.Keys.Chunk(PageSize))
+            {
+                foreach (var summary in await _queries.GetSummariesAsync(chunk))
+                {
+                    if (rows.TryGetValue(summary.Id, out var row))
+                    {
+                        row.Apply(summary);
+                    }
+                }
+            }
+        }
+        catch (Exception ex) when (_status.TryReport(ex))
+        {
+        }
+    }
+
+    /// <summary>
+    /// Shows the records with a quality issue (from the dataset overview).
+    /// </summary>
+    public void ShowQuality(QualityFilter filter)
+    {
+        SelectedStatusFilter = StatusFilters[0];
+        SelectedQualityFilter = QualityFilters.First(option => option.Filter == filter);
+    }
+
+    /// <summary>
     /// Reflects edited content made elsewhere.
     /// </summary>
     public void UpdateRow(Guid recordId, string preview, RecordStatus status)
@@ -252,7 +323,7 @@ public sealed partial class RecordListViewModel : ViewModelBase
         IsLoading = true;
         try
         {
-            var counts = await _queries.CountByStatusAsync(dataset.Id, SearchText);
+            var counts = await _queries.CountByStatusAsync(dataset.Id, SearchText, Quality);
             var page = await _queries.GetPageAsync(dataset.Id, Filter, after: null, PageSize);
             if (generation != _generation)
             {
@@ -266,7 +337,7 @@ public sealed partial class RecordListViewModel : ViewModelBase
 
             UpdateTotal();
             Append(page);
-            if (string.IsNullOrWhiteSpace(SearchText))
+            if (string.IsNullOrWhiteSpace(SearchText) && Quality == QualityFilter.None)
             {
                 dataset.RecordCount = counts.Values.Sum();
             }
@@ -372,6 +443,8 @@ public sealed partial class RecordListViewModel : ViewModelBase
 
     partial void OnSelectedStatusFilterChanged(StatusFilterOption? value) => _ = ReloadAsync();
 
+    partial void OnSelectedQualityFilterChanged(QualityFilterOption? value) => _ = ReloadAsync();
+
     private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
     {
         try
@@ -412,9 +485,18 @@ public sealed partial class RecordListViewModel : ViewModelBase
         }
     }
 
+    private void RefreshQualityLabels()
+    {
+        foreach (var option in QualityFilters)
+        {
+            option.Label = _localizer[$"QualityFilter_{option.Filter}"];
+        }
+    }
+
     private void OnLanguageChanged()
     {
         RefreshFilterLabels();
+        RefreshQualityLabels();
         foreach (var row in Items)
         {
             row.RefreshLabels();

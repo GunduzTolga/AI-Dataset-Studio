@@ -31,6 +31,12 @@ public interface IRecordQueryService
         QualityFilter quality = QualityFilter.None,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// List rows for specific records, e.g. to refresh tokens and scores after an analysis.
+    /// Records that do not exist are left out.
+    /// </summary>
+    Task<IReadOnlyList<RecordSummary>> GetSummariesAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default);
+
     /// <returns>The record, or <c>null</c> if it does not exist.</returns>
     Task<RecordDetails?> GetAsync(Guid recordId, CancellationToken cancellationToken = default);
 

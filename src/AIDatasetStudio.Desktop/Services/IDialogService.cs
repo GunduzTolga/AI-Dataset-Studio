@@ -14,6 +14,12 @@ public interface IDialogService
     /// <returns>The trimmed text, or <c>null</c> if cancelled.</returns>
     Task<string?> PromptTextAsync(string title, string message, string initialText);
 
+    /// <summary>
+    /// Asks for several lines of text, which may be empty.
+    /// </summary>
+    /// <returns>The text, or <c>null</c> if cancelled.</returns>
+    Task<string?> PromptLinesAsync(string title, string message, string initialText);
+
     /// <returns>The name and type, or <c>null</c> if cancelled.</returns>
     Task<NewDatasetRequest?> PromptNewDatasetAsync();
 

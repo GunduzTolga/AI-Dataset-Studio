@@ -2,6 +2,7 @@ using System.Collections;
 using System.Globalization;
 using System.Resources;
 using System.Text.RegularExpressions;
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.ViewModels;
@@ -74,6 +75,16 @@ public sealed partial class ResourceTests
         {
             Assert.Contains(UiErrors.WorkspaceErrorKey(error), English.Keys);
         }
+    }
+
+    [Fact]
+    public void Every_quality_rule_filter_and_kind_of_personal_data_has_text()
+    {
+        var keys = Enum.GetValues<QualityRule>().SelectMany(rule => new[] { $"Rule_{rule}", $"Issue_{rule}" })
+            .Concat(Enum.GetValues<QualityFilter>().Select(filter => $"QualityFilter_{filter}"))
+            .Concat(Enum.GetValues<PiiKind>().Select(kind => $"Pii_{kind}"));
+
+        Assert.All(keys, key => Assert.Contains(key, English.Keys));
     }
 
     private static Dictionary<string, string> Load(CultureInfo culture)

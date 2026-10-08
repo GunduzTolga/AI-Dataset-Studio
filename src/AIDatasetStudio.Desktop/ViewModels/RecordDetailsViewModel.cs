@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
@@ -22,6 +24,11 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private readonly IDialogService _dialogs;
     private readonly StatusBarViewModel _status;
     private readonly Localizer _localizer;
+    private readonly IRecordAnalysisService _analysis;
+    private readonly ITokenizerProvider _tokenizers;
+    private PiiScanner _scanner = new();
+    private IReadOnlyList<QualityIssue> _crossIssues = [];
+    private PiiMaskResult? _mask;
     private int _generation;
     private string _cleanHash = string.Empty;
     private bool _loadingEditor;
@@ -30,11 +37,15 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public RecordDetailsViewModel(
         IRecordQueryService queries,
         RecordOperations operations,
+        IRecordAnalysisService analysis,
+        ITokenizerProvider tokenizers,
         IDialogService dialogs,
         StatusBarViewModel status,
         Localizer localizer)
     {
         _queries = queries;
+        _analysis = analysis;
+        _tokenizers = tokenizers;
         _operations = operations;
         _dialogs = dialogs;
         _status = status;
@@ -46,10 +57,10 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info))]
-    [NotifyPropertyChangedFor(nameof(IsChat), nameof(IsArchived), nameof(IsEditable))]
+    [NotifyPropertyChangedFor(nameof(IsChat), nameof(ShowChatEditor), nameof(IsArchived), nameof(IsEditable))]
     [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
-    [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand))]
+    [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
     public partial RecordDetails? Record { get; private set; }
 
     /// <summary>
@@ -99,6 +110,112 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     public bool ShowRestore => CanRestore();
 
+    // ===== Tokens and quality (SDD §7.3, §8) =====
+
+    /// <summary>
+    /// The dataset of the shown records, for its tokenizer and context length.
+    /// </summary>
+    [ObservableProperty]
+    public partial DatasetNodeViewModel? Dataset { get; set; }
+
+    /// <summary>
+    /// Live token counts of the editor content; <c>null</c> without a record.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTokens), nameof(TokenText), nameof(TokenDetail), nameof(TokenTone), nameof(IsTokenGood), nameof(IsTokenFair), nameof(IsTokenPoor))]
+    public partial TokenCounts? Tokens { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasQualityIssues), nameof(HasNoQualityIssues))]
+    public partial IReadOnlyList<IssueItem> QualityIssues { get; private set; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(QualityScoreText), nameof(QualityTone), nameof(IsQualityGood), nameof(IsQualityFair), nameof(IsQualityPoor))]
+    public partial int? QualityScore { get; private set; }
+
+    public bool HasTokens => Tokens is not null;
+
+    /// <summary>
+    /// "812 / 4,096" — content tokens against the context length.
+    /// </summary>
+    public string TokenText => Tokens is { } t && Dataset is { } d
+        ? _localizer.Format("Editor_Tokens", t.Total, d.ContextLength)
+        : string.Empty;
+
+    public string TokenDetail => Tokens is { } t && Dataset is { } d
+        ? _localizer.Format("Editor_TokenDetail", t.Input, t.Output, d.Tokenizer)
+        : string.Empty;
+
+    /// <summary>
+    /// Green below half the context length, amber up to it, red beyond (SDD §6.1).
+    /// </summary>
+    public ScoreTone TokenTone => Tokens is { } t && Dataset is { } d
+        ? t.Total > d.ContextLength ? ScoreTone.Poor : t.Total * 2 >= d.ContextLength ? ScoreTone.Fair : ScoreTone.Good
+        : ScoreTone.None;
+
+    public bool IsTokenGood => TokenTone == ScoreTone.Good;
+
+    public bool IsTokenFair => TokenTone == ScoreTone.Fair;
+
+    public bool IsTokenPoor => TokenTone == ScoreTone.Poor;
+
+    public bool HasQualityIssues => QualityIssues.Count > 0;
+
+    public bool HasNoQualityIssues => HasRecord && QualityIssues.Count == 0;
+
+    public string QualityScoreText => QualityScore?.ToString(CultureInfo.CurrentCulture) ?? "—";
+
+    public ScoreTone QualityTone => RecordRowViewModel.ToneOf(QualityScore);
+
+    public bool IsQualityGood => QualityTone == ScoreTone.Good;
+
+    public bool IsQualityFair => QualityTone == ScoreTone.Fair;
+
+    public bool IsQualityPoor => QualityTone == ScoreTone.Poor;
+
+    /// <summary>
+    /// Words the workspace treats as personal data (company names, code names…).
+    /// </summary>
+    public IReadOnlyList<string> CustomTerms
+    {
+        get => _scanner.CustomTerms;
+        set
+        {
+            _scanner = new PiiScanner(value);
+            Reanalyze();
+        }
+    }
+
+    // ===== Personal data preview (SDD §9) =====
+
+    /// <summary>
+    /// Shows the record with personal data masked instead of the editor (Mod+Shift+M).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor))]
+    [NotifyCanExecuteChangedFor(nameof(ApplyMaskCommand))]
+    public partial bool IsPiiPreview { get; private set; }
+
+    [ObservableProperty]
+    public partial IReadOnlyList<PreviewBlock> PiiPreview { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial string PiiSummary { get; private set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ApplyMaskCommand))]
+    public partial bool HasPii { get; private set; }
+
+    /// <summary>
+    /// The editable fields are shown (not the masked preview).
+    /// </summary>
+    public bool IsEditing => !IsPiiPreview;
+
+    /// <summary>
+    /// The chat turns and their "add message" button are shown.
+    /// </summary>
+    public bool ShowChatEditor => IsChat && IsEditing;
+
     // ===== Several records =====
 
     [ObservableProperty]
@@ -146,6 +263,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             if (generation == _generation)
             {
                 SetRecord(record);
+                await LoadCrossIssuesAsync(generation);
             }
         }
         catch (Exception ex) when (_status.TryReport(ex))
@@ -212,6 +330,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                 if (Record?.Id == before.Id && await _queries.GetAsync(before.Id) is { } fresh && Record?.Id == before.Id)
                 {
                     Record = fresh; // header, status and info; the fields already show this content
+                    await LoadCrossIssuesAsync(_generation);
                 }
             }
 
@@ -394,15 +513,177 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand(CanExecute = nameof(HasRecord))]
+    private void TogglePiiPreview()
+    {
+        IsPiiPreview = !IsPiiPreview;
+        UpdatePiiPreview();
+    }
+
+    /// <summary>
+    /// Puts the masked text into the editor; saving makes it permanent (and undoable).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanApplyMask))]
+    private void ApplyMask()
+    {
+        if (_mask is not { HasFindings: true } mask)
+        {
+            return;
+        }
+
+        switch (mask.Payload)
+        {
+            case InstructionPayload p:
+                (Fields[0].Text, Fields[1].Text, Fields[2].Text) = (p.Instruction, p.Input, p.Output);
+                break;
+            case ChatPayload p:
+                Fields[0].Text = p.SystemPrompt ?? string.Empty;
+                for (var i = 0; i < Messages.Count && i < p.Messages.Count; i++)
+                {
+                    Messages[i].Text = p.Messages[i].Content;
+                }
+
+                break;
+            case PreferencePayload p:
+                (Fields[0].Text, Fields[1].Text, Fields[2].Text) = (p.Prompt, p.Chosen, p.Rejected);
+                break;
+        }
+
+        IsPiiPreview = false;
+        _status.Set("Status_MaskApplied");
+    }
+
+    private bool CanApplyMask() => IsPiiPreview && HasPii && IsEditable;
+
+    partial void OnDatasetChanged(DatasetNodeViewModel? oldValue, DatasetNodeViewModel? newValue)
+    {
+        if (oldValue is not null)
+        {
+            oldValue.PropertyChanged -= OnDatasetSettingsChanged;
+        }
+
+        if (newValue is not null)
+        {
+            newValue.PropertyChanged += OnDatasetSettingsChanged;
+        }
+
+        Reanalyze();
+    }
+
+    // Another tokenizer or context length changes the counts and the limit check.
+    private void OnDatasetSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DatasetNodeViewModel.Tokenizer) or nameof(DatasetNodeViewModel.ContextLength))
+        {
+            Reanalyze();
+        }
+    }
+
+    private async Task LoadCrossIssuesAsync(int generation)
+    {
+        if (Record is not { } record)
+        {
+            return;
+        }
+
+        try
+        {
+            // Copies and conflicting answers compare records, so they come from the stored analysis.
+            var quality = await _analysis.GetRecordQualityAsync(record.Id);
+            if (generation == _generation && Record?.Id == record.Id)
+            {
+                _crossIssues = quality?.Issues.Where(i => i.Rule is QualityRule.Duplicate or QualityRule.ConflictingAnswer).ToList() ?? [];
+                Reanalyze();
+            }
+        }
+        catch (Exception ex) when (_status.TryReport(ex))
+        {
+        }
+    }
+
+    // Token counts and single-record rules are cheap, so they follow every keystroke.
+    private void Reanalyze()
+    {
+        if (Record is not { } record || Dataset is not { } dataset || !_tokenizers.Available.Contains(dataset.Tokenizer))
+        {
+            Tokens = null;
+            QualityScore = null;
+            QualityIssues = [];
+            OnPropertyChanged(nameof(HasNoQualityIssues));
+            return;
+        }
+
+        var result = new RecordAnalyzer(_tokenizers.Get(dataset.Tokenizer), _scanner).Analyze(BuildPayload(record.Payload));
+        var issues = result.Issues.Concat(_crossIssues).ToList();
+        if (result.Tokens.Total > dataset.ContextLength)
+        {
+            issues.Add(new QualityIssue(QualityRule.OverContextLimit, IssueSeverity.Error));
+        }
+
+        Tokens = result.Tokens;
+        QualityScore = QualityRules.Score(issues);
+        QualityIssues = issues.OrderByDescending(i => i.Severity).Select(i => new IssueItem(i.Rule, i.Severity, IssueText.Describe(_localizer, i))).ToList();
+        OnPropertyChanged(nameof(TokenText));
+        OnPropertyChanged(nameof(TokenDetail));
+        OnPropertyChanged(nameof(TokenTone));
+        OnPropertyChanged(nameof(IsTokenGood));
+        OnPropertyChanged(nameof(IsTokenFair));
+        OnPropertyChanged(nameof(IsTokenPoor));
+        OnPropertyChanged(nameof(HasNoQualityIssues));
+        if (IsPiiPreview)
+        {
+            UpdatePiiPreview();
+        }
+    }
+
+    private void UpdatePiiPreview()
+    {
+        if (!IsPiiPreview || Record is not { } record)
+        {
+            _mask = null;
+            PiiPreview = [];
+            HasPii = false;
+            return;
+        }
+
+        var mask = _scanner.Mask(BuildPayload(record.Payload));
+        _mask = mask;
+        HasPii = mask.HasFindings;
+        PiiSummary = mask.HasFindings ? IssueText.PiiCounts(_localizer, mask.Counts) : _localizer["Pii_NoneFound"];
+        PiiPreview = mask.Payload switch
+        {
+            InstructionPayload p => [Block("Field_Instruction", p.Instruction), Block("Field_Input", p.Input), Block("Field_Output", p.Output)],
+            ChatPayload p =>
+            [
+                .. p.SystemPrompt is null ? [] : new[] { Block("Field_SystemPrompt", p.SystemPrompt, FieldTone.System) },
+                .. p.Messages.Select(m => Block($"Field_{m.Role}", m.Content)),
+            ],
+            PreferencePayload p =>
+            [
+                Block("Field_Prompt", p.Prompt),
+                Block("Field_Chosen", p.Chosen, FieldTone.Positive),
+                Block("Field_Rejected", p.Rejected, FieldTone.Negative),
+            ],
+            _ => [],
+        };
+
+        PreviewBlock Block(string labelKey, string text, FieldTone tone = FieldTone.Neutral) =>
+            new(_localizer[labelKey], string.IsNullOrEmpty(text) ? _localizer["Field_Empty"] : text, string.IsNullOrEmpty(text), tone);
+    }
+
     private void SetRecord(RecordDetails? record)
     {
         Record = record;
+        _crossIssues = [];
+        IsPiiPreview = false;
+        UpdatePiiPreview();
         if (record is null)
         {
             Fields.Clear();
             Messages.Clear();
             _cleanHash = string.Empty;
             IsDirty = false;
+            Reanalyze();
         }
         else
         {
@@ -446,6 +727,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
             _loadingEditor = false;
         }
+
+        Reanalyze();
     }
 
     private RecordPayload BuildPayload(RecordPayload original) => original switch
@@ -461,6 +744,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         if (!_loadingEditor && Record is { } record)
         {
             IsDirty = BuildPayload(record.Payload).ComputeContentHash() != _cleanHash;
+            Reanalyze();
         }
     }
 
@@ -495,6 +779,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private void Refresh()
     {
+        Reanalyze();
+        UpdatePiiPreview();
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(Info));

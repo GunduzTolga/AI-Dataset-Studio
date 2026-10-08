@@ -103,6 +103,37 @@ public sealed class RecordAnalysisServiceTests
     }
 
     [Fact]
+    public async Task Archived_records_leave_the_figures_and_settle_cross_record_issues()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var ids = await AddAsync(ws, datasetId,
+            new InstructionPayload("Başkent neresi?", "", "Ankara."),
+            new InstructionPayload("Başkent neresi?", "", "Ankara."),   // duplicate
+            new InstructionPayload("Başkent neresi?", "", "İstanbul."), // conflicting answer
+            new InstructionPayload("Bana yazın", "", "ali@firma.com"));
+        await ws.Analysis.AnalyzeAsync(datasetId, cancellationToken: Ct);
+        Assert.Equal([ids[1]], await ws.Analysis.FindAsync(datasetId, QualityRule.Duplicate, Ct));
+
+        await ws.Commands.SetStatusAsync([ids[1], ids[2], ids[3]], RecordStatus.Archived, Ct);
+
+        var summary = await ws.Analysis.GetSummaryAsync(datasetId, Ct);
+        Assert.Equal((4L, 4L), (summary.RecordCount, summary.AnalyzedCount));
+        Assert.Equal(100, summary.Score);
+        Assert.Empty(summary.IssueCounts);
+        Assert.Equal(1, summary.Histogram.Sum(b => b.Count));
+        Assert.Empty(await ws.Analysis.FindAsync(datasetId, QualityRule.Duplicate, Ct));
+        Assert.Empty(await ws.Analysis.FindAsync(datasetId, QualityRule.PersonalData, Ct)); // already archived
+        var page = await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, after: null, pageSize: 10, Ct);
+        Assert.Equal(100, page.Items[0].Score);
+        Assert.Equal(summary.TotalTokens, (long)page.Items[0].TotalTokens!);
+        // An archived copy is still a copy of a record that stays (but no longer conflicts with the archived answer).
+        Assert.Equal(90, page.Items[1].Score);
+        var copies = await ws.Queries.GetPageAsync(datasetId, new RecordFilter(Quality: QualityFilter.Duplicates), after: null, pageSize: 10, Ct);
+        Assert.Equal([ids[1]], copies.Items.Select(r => r.Id));
+    }
+
+    [Fact]
     public async Task Results_go_stale_with_edits_and_tokenizer_changes_but_not_with_context_length()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

@@ -26,6 +26,24 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
         return await ShowAsync(dialog) ? dialog.Text.Trim() : null;
     }
 
+    public async Task<string?> PromptLinesAsync(string title, string message, string initialText)
+    {
+        var dialog = new InputDialogViewModel
+        {
+            Title = title,
+            Message = message,
+            ConfirmText = localizer["Dialog_OK"],
+            CancelText = localizer["Dialog_Cancel"],
+            ShowText = true,
+            IsMultiline = true,
+            AllowEmpty = true,
+            MaxLength = 20_000,
+            Text = initialText,
+        };
+
+        return await ShowAsync(dialog) ? dialog.Text : null;
+    }
+
     public async Task<NewDatasetRequest?> PromptNewDatasetAsync()
     {
         var options = Labels.CreatableDatasetTypes.Select(type => new DialogOption(type, Labels.For(localizer, type))).ToList();

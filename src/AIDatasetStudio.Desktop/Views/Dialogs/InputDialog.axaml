@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Dialogs"
+        xmlns:conv="using:AIDatasetStudio.Desktop.Converters"
         x:Class="AIDatasetStudio.Desktop.Views.Dialogs.InputDialog"
         x:DataType="vm:InputDialogViewModel"
         Title="{Binding Title}"
@@ -14,7 +15,8 @@
   <StackPanel Margin="24,22,24,20" Spacing="14">
     <TextBlock Classes="subtitle" Text="{Binding Title}" />
     <TextBlock Classes="secondary content" Text="{Binding Message}" />
-    <TextBox x:Name="InputBox" Text="{Binding Text}" IsVisible="{Binding ShowText}" MaxLength="{Binding MaxLength}" />
+    <TextBox x:Name="InputBox" Text="{Binding Text}" IsVisible="{Binding ShowText}" MaxLength="{Binding MaxLength}"
+             AcceptsReturn="{Binding IsMultiline}" TextWrapping="Wrap" Height="{Binding IsMultiline, Converter={x:Static conv:LayoutConverters.TallIfTrue}}" />
     <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
               IsVisible="{Binding ShowOptions}" HorizontalAlignment="Stretch">
       <ComboBox.ItemTemplate>

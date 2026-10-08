@@ -41,6 +41,18 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
 
     public DatasetType Type { get; }
 
+    /// <summary>
+    /// Tokenizer for token counts, e.g. "o200k_base".
+    /// </summary>
+    [ObservableProperty]
+    public partial string Tokenizer { get; set; } = Domain.Entities.Dataset.DefaultTokenizerName;
+
+    /// <summary>
+    /// Records with more tokens than this are flagged.
+    /// </summary>
+    [ObservableProperty]
+    public partial int ContextLength { get; set; } = Domain.Entities.Dataset.DefaultContextLength;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CountText), nameof(Subtitle))]
     public partial long RecordCount { get; set; }

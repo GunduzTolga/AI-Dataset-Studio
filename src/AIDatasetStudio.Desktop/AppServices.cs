@@ -24,6 +24,7 @@ public static class AppServices
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();
         services.AddSingleton<RecordDetailsViewModel>();
+        services.AddSingleton<DatasetOverviewViewModel>();
         services.AddSingleton<MainWindowViewModel>();
         return services;
     }

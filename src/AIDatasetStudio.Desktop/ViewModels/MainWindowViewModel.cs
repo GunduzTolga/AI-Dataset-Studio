@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
@@ -27,6 +28,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
     private readonly RecordOperations _operations;
+    private readonly IRecordAnalysisService _analysis;
     private readonly IUserSettings _settings;
     private readonly Localizer _localizer;
 
@@ -38,12 +40,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordQueryService queries,
         IImportService import,
         RecordOperations operations,
+        IRecordAnalysisService analysis,
         IUserSettings settings,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
         RecordListViewModel records,
-        RecordDetailsViewModel details)
+        RecordDetailsViewModel details,
+        DatasetOverviewViewModel overview)
     {
         _workspaces = workspaces;
         _files = files;
@@ -52,12 +56,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _queries = queries;
         _import = import;
         _operations = operations;
+        _analysis = analysis;
         _settings = settings;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
         Records = records;
         Details = details;
+        Overview = overview;
 
         _workspaces.CurrentChanged += (_, _) => Dispatcher.UIThread.Post(() => _ = OnWorkspaceChangedAsync());
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
@@ -72,6 +78,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         };
         _operations.Changed += (_, change) => OnRecordsChanged(change);
         _operations.History.PropertyChanged += (_, _) => OnHistoryChanged();
+        Overview.AnalysisCompleted += (_, datasetId) => _ = OnAnalysisCompletedAsync(datasetId);
+        Overview.ShowRecordsRequested += (_, filter) => Records.ShowQuality(filter);
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }
@@ -84,13 +92,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public RecordDetailsViewModel Details { get; }
 
+    /// <summary>
+    /// The inspector when no record is selected: quality, tokens and settings of the dataset.
+    /// </summary>
+    public DatasetOverviewViewModel Overview { get; }
+
     public ObservableCollection<RecentWorkspaceViewModel> RecentWorkspaces { get; } = [];
 
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand))]
-    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
     public partial bool IsBusy { get; set; }
 
@@ -227,6 +240,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IsBusy = true;
         try
         {
+            await Overview.StopAsync();
             await _workspaces.CloseAsync();
             Status.Set("Status_WorkspaceClosed");
         }
@@ -287,6 +301,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             if (Records.Dataset?.Id == dataset.Id)
             {
                 await Records.ReloadAsync();
+                Overview.StartAnalysis();
             }
 
             Status.Set(result.Skipped > 0 ? "Status_ImportedWithSkipped" : "Status_Imported", result.Imported, dataset.Name, result.Skipped);
@@ -332,6 +347,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
             Explorer.SetRecordCount(dataset.Id, await _queries.CountAsync(dataset.Id, RecordFilter.None));
             await Records.ReloadAsync();
+            Overview.StartAnalysis();
             Status.Set("Status_SampleDataAdded", added, dataset.Name);
         }
         catch (Exception ex) when (Status.TryReport(ex))
@@ -394,6 +410,58 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
 
         Records.Select(action.RecordIds);
+        // Restored or changed records need fresh analysis results.
+        Overview.StartAnalysis();
+    }
+
+    /// <summary>
+    /// Tools › Personal Data Terms: words to mask besides the built-in rules (SDD §9.1).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCloseWorkspace))]
+    private async Task EditCustomTermsAsync()
+    {
+        try
+        {
+            var current = await _analysis.GetCustomTermsAsync();
+            var text = await _dialogs.PromptLinesAsync(
+                _localizer["Dialog_CustomTermsTitle"],
+                _localizer["Dialog_CustomTermsMessage"],
+                string.Join(Environment.NewLine, current));
+            if (text is null)
+            {
+                return;
+            }
+
+            var terms = text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            await _analysis.SetCustomTermsAsync(terms);
+            Details.CustomTerms = await _analysis.GetCustomTermsAsync();
+            Status.Set("Status_CustomTermsSaved", Details.CustomTerms.Count);
+            Overview.StartAnalysis();
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+    }
+
+    private async Task OnAnalysisCompletedAsync(Guid datasetId)
+    {
+        if (Records.Dataset?.Id == datasetId)
+        {
+            await Records.RefreshAnalysisAsync();
+        }
+    }
+
+    // An edited record is analysed right away so its row shows the new tokens and score.
+    private async Task RefreshAnalysisAsync(Guid recordId)
+    {
+        try
+        {
+            await _analysis.AnalyzeRecordsAsync([recordId]);
+            await Records.RefreshAnalysisAsync([recordId]);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
     }
 
     private bool IsIdle() => !IsBusy;
@@ -436,11 +504,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _operations.History.Clear();
 
         Explorer.IsWorkspaceOpen = HasWorkspace;
+        EditCustomTermsCommand.NotifyCanExecuteChanged();
         if (HasWorkspace)
         {
             try
             {
                 await Explorer.ReloadAsync();
+                Details.CustomTerms = await _analysis.GetCustomTermsAsync();
             }
             catch (Exception ex) when (Status.TryReport(ex))
             {
@@ -458,8 +528,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
+            Details.Dataset = Explorer.SelectedDataset;
             _ = Details.ShowAsync(null);
             _ = Records.ShowDatasetAsync(Explorer.SelectedDataset);
+            _ = Overview.ShowAsync(Explorer.SelectedDataset);
         }
     }
 
@@ -469,6 +541,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _ = rows.Count > 1 && Records.Dataset is { } dataset
             ? Details.ShowBatchAsync(dataset.Id, rows)
             : Details.ShowAsync(rows.FirstOrDefault()?.Id);
+        if (rows.Count == 0)
+        {
+            // The overview comes back into view; statuses or content may have changed meanwhile.
+            _ = Overview.RefreshAsync();
+        }
     }
 
     // Keeps the list in step with changes made in the inspector; undo and redo reload instead.
@@ -490,6 +567,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 break;
             case ContentChanged content:
                 Records.UpdateRow(content.RecordId, content.Preview, content.Status);
+                _ = RefreshAnalysisAsync(content.RecordId);
                 break;
             case RecordsDeleted deleted:
                 foreach (var recordId in deleted.RecordIds)

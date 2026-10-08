@@ -11,12 +11,6 @@
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceBrush}">
-  <Window.Styles>
-    <Style Selector="TextBlock.error">
-      <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
-    </Style>
-  </Window.Styles>
-
   <DockPanel>
     <!-- Header -->
     <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
