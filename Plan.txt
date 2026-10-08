@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.9.0 (V2 başladı: veri seti sürümleri, karşılaştırma ve geri dönüş; bkz. §14 ve ADR-030)
+- **Versiyon:** 1.10.0 (V2: veri seti sürümleri — §14, ADR-030; etiketler, `Mod + 1..5` ve etikete göre tabakalı bölme — §6.2, §10.1, ADR-031)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -268,6 +268,13 @@ Görsel dil, renk/tipografi tokenları ve bileşenler `docs/design-system.md` do
 - **Toplu işlem:** Listede `Shift`/`Ctrl` ile çoklu seçim yapılınca sağ panel toplu panele dönüşür: seçili kayıtların durum dağılımı ve onayla / incelemeye al / arşivle / geri yükle / sil. Aksiyon, durumu izin veren her kayda uygulanır; diğerleri atlanır ve sayısı bildirilir.
 - **Henüz yok:** AvaloniaEdit renklendirmesi ve DPO diff görselleştiricisi (V2) sonraki aşamalardadır.
 
+**Uygulama ayrıntıları (M9, etiketler):**
+- **Editör:** Başlığın altında kaydın etiketleri renkli nokta + ad çipleri olarak durur; × etiketi kaldırır. *Etiket ekle* bir arama kutusu açar: yazdıkça etiketler süzülür, Enter tam eşleşeni (yoksa tek eşleşeni) ekler, hiçbiri yoksa o adla yeni etiket oluşturup ekler. Kutu açık kalır; birkaç etiket art arda eklenir. Esc kapatır.
+- **Toplu panel:** Seçili kayıtların etiketleri kaç kayıtta olduklarıyla listelenir; × hepsinden kaldırır, *Hepsine etiket ekle* hepsine ekler.
+- **Liste:** İçerik sütununda önizlemenin sağında ilk iki etiket hap (pill) olarak, fazlası "+N" olarak görünür; tüm adlar ipucundadır. Arama kutusunun yanında etiket filtresi vardır: tüm etiketler, etiketsiz kayıtlar ya da tek bir etiket. Filtre durum çiplerinin sayılarına da uygulanır.
+- **Menüler:** Kayıt › Etiketle her etiketi kısayoluyla listeler; Araçlar › Etiketler… etiket yöneticisini açar (§19).
+- **Etiket yöneticisi:** Etiketler çalışma alanında ortaktır; sayılar tüm veri setlerini kapsar. Ad değiştirme, sekiz renkli palet, kısayol (yok / `Mod + 1..5`; başka etikette olan kısayol bu etikete geçer), silme (onaylı; etiket kayıtlardan ve sürümlerdeki hâllerinden kalkar, geri alınamaz) ve "kayıtlarını göster" (listeyi o etikete süzer). Yeni etiket paletteki sıradaki rengi ve boştaki ilk kısayolu alır.
+
 **Uygulama ayrıntıları (M8):** Sürümler ağaçta ayrı düğümler olarak değil, veri setinin **Sürümler** penceresinde listelenir (Dosya › Sürümler…, liste başlığındaki *Sürümler* düğmesi; §14.3). Ağaçtaki ve liste başlığındaki alt satır en son sürümü gösterir ("Proje · 1.234 kayıt · v1.1.0").
 
 **Uygulama ayrıntıları (M4):**
@@ -284,7 +291,9 @@ Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleye
 - `Mod + Shift + M`: PII maskeleme önizlemesini çalıştır.
 - `Mod + Z / Mod + Shift + Z`: Geri al / yinele (tek kayıt düzenlemeleri ve toplu işlemler dahil).
 
-**Uygulama ayrıntıları (M3):** Ek olarak `Mod + S` kaydet, `Mod + F` aramaya git, `Mod + Y` yinele (Windows alışkanlığı) ve liste odaktayken `Delete` (onaylı silme) eklenmiştir. Kısayollar pencere düzeyinde metin kutusundan önce yakalanır; böylece `Mod + Enter` editörde satır sonu eklemez. `Mod + Enter`, `Mod + Shift + Backspace`, `Mod + S` ve `F8` yazarken de çalışır; `Mod + Z` ise odaklı metin kutusunun kendi geri almasına bırakılır, uygulama düzeyindeki geri alma metin kutusu dışındayken veya Düzen menüsünden çalışır. Kısayollar Düzen ve Kayıt menülerinde gösterilir. `Mod + 1..5` etiketleme, etiket arayüzüyle gelecektir. `Mod + Shift + M` (M4) maskelenmiş önizlemeyi açar/kapatır ve yazarken de çalışır; Kayıt menüsünde "Maskelenmiş Önizleme" olarak yer alır.
+**Uygulama ayrıntıları (M9):** `Mod + 1..5`, o kısayola atanmış etiketi gösterilen kayda ekler; kayıtta zaten varsa kaldırır. Birden fazla kayıt seçiliyken etiket hepsinde varsa hepsinden kaldırılır, yoksa eksik olanlara eklenir. Yazarken de çalışır (rakam metne yazılmaz); sayısal tuş takımındaki rakamlar da geçerlidir. Kısayolu olmayan bir rakam durum çubuğunda Araçlar › Etiketler'e yönlendirir. Her etiketleme tek adım olarak geri alınır ("“hukuk” etiketini ekleme (#12)"); etiket sonradan silinmişse adım geçmişten düşer.
+
+**Uygulama ayrıntıları (M3):** Ek olarak `Mod + S` kaydet, `Mod + F` aramaya git, `Mod + Y` yinele (Windows alışkanlığı) ve liste odaktayken `Delete` (onaylı silme) eklenmiştir. Kısayollar pencere düzeyinde metin kutusundan önce yakalanır; böylece `Mod + Enter` editörde satır sonu eklemez. `Mod + Enter`, `Mod + Shift + Backspace`, `Mod + S` ve `F8` yazarken de çalışır; `Mod + Z` ise odaklı metin kutusunun kendi geri almasına bırakılır, uygulama düzeyindeki geri alma metin kutusu dışındayken veya Düzen menüsünden çalışır. Kısayollar Düzen ve Kayıt menülerinde gösterilir. `Mod + Shift + M` (M4) maskelenmiş önizlemeyi açar/kapatır ve yazarken de çalışır; Kayıt menüsünde "Maskelenmiş Önizleme" olarak yer alır.
 
 ---
 
@@ -392,7 +401,14 @@ Veri setini model eğitimine göndermeden önce bilimsel standartlarda 3 parçay
 - **Atama:** `SHA-256("{seed}:{grup anahtarı}")` değerinin ilk 8 baytı mod 10.000 → kova; kova < eğitim×100 ise train, < (eğitim+doğrulama)×100 ise val, değilse test. Tamsayı aritmetiği olduğundan sonuç her platformda aynıdır; birim testleri seed 42 için ilk 12 atamayı sabitler.
 - **Grup anahtarı:** Kopya gruplarının temsilci kimliği yerine kaydın **normalleştirilmiş soru tarafı** hashlenir (Talimat: talimat + girdi; Sohbet: sistem talimatı + kullanıcı turları; Tercih: istem; §8 "aynı soru" tanımıyla aynı normalleştirme). Böylece birebir kopyalar, aynı soruya farklı yanıtlar ve aynı istemli tercih çiftleri hep aynı dosyaya düşer; temsilci kaydın silinmesi grubu yerinden oynatmaz. Sorusu boş kayıtlar kimlikleriyle atanır. Bedeli: bir kaydın sorusunu düzenlemek onu başka dosyaya taşıyabilir (ADR-028).
 - **Ön ayarlar:** Tek dosya, 80/10/10, 90/10 ve özel oranlar (eğitim > 0, toplam 100); payı 0 olan bölmenin dosyası yazılmaz. Seed varsayılan 42'dir ve export profiliyle saklanır.
-- **Henüz yok:** Etiket tabanlı tabakalı bölme (etiket arayüzüyle) ve yakın kopya grupları (V2).
+- **Henüz yok:** Yakın kopya grupları (M10).
+
+**Uygulama ayrıntıları (M9, tabakalı bölme):**
+- **Seçim:** Dışa aktarma sihirbazında bölme seçilince "Tabakalara göre böl" listesi görünür: *Tabaka yok*, *Her etiket (kaydın ilk etiketi)* ve veri setinde kullanılan her etiket grubu için *“kategori” grubu*. Grup, etiket adındaki ilk `:` işaretinden öncesidir (`kategori:hukuk` → `kategori`). Etiketi olmayan veri setinde liste kapalıdır. Seçim export profiliyle saklanır.
+- **Tabaka:** Kaydın, seçilen gruptaki ilk etiketi (ada göre). Grubunda etiketi olmayan kayıtlar ayrı bir tabakada bölünür.
+- **Kesme:** Her tabakada soru grupları (M5 grup anahtarı) aynı hash ile sıralanır; eğitim, sonra doğrulama payının kayıt sayısına ulaşılınca kesilir. Böylece her tabaka oranları tam tutturur (10 hukuk kaydı 80/10/10 ile 8/1/1) ve aynı soru iki dosyaya bölünmez. Bir soru grubunun kayıtları farklı tabakalardaysa grup ilk kaydının tabakasına göre atanır.
+- **Bedel:** Hash tabanlı bölmenin aksine kayıt eklemek sınırdaki birkaç grubu yer değiştirebilir; sihirbazın açıklaması bunu söyler. Sürümden dışa aktarma sürümdeki etiketleri kullanır.
+- **Okuma:** Tabakalar, dosyaların yazıldığı okuma anlık görüntüsünde önceden yapılan bir taramayla belirlenir; iki tarama aynı kayıtları görür.
 
 ---
 
@@ -413,6 +429,8 @@ Kullanıcı şu tip karmaşık sorguları arayüzdeki filtre chipleriyle kolayca
 - `Status == 'InReview' AND TokenCount > 2048`
 - `Tag IN ('v2-rag', 'finance') AND HealthScore < 80`
 - `GeneratedByAI == true AND AIModelName == 'gpt-4o'`
+
+**Uygulama ayrıntıları (M9):** Liste filtresi durum, metin, kalite ve etiketi birleştirir; etiket filtresi `RecordTags` üzerinde `EXISTS` / `NOT EXISTS` ("etiketsiz") olarak derlenir. Birden fazla etiketle (VE/VEYA) süzme henüz yoktur.
 
 ---
 
@@ -529,13 +547,15 @@ Veri setleri `v1.0.0`, `v1.1.0`, `v2.0.0` formatında semantik olarak sürümlec
     - yalnızca yenide olan kayıt **eklendi**,
     - yalnızca eskide olan kayıt **silindi**,
     - içerik özeti farklıysa **değişti**,
-    - içerik aynı, durum farklıysa **durum** değişikliğidir.
+    - içerik aynı, durum farklıysa **durum** değişikliğidir,
+    - içerik ve durum aynı, etiketler farklıysa **etiket** değişikliğidir (M9). Sonradan silinmiş etiketler fark sayılmaz.
   - Ölçüm: 10.000 kayıt ~0,08 sn.
   - Seçilen kaydın alanları yan yana gösterilir:
     - Talimat: talimat/girdi/çıktı; Tercih: istem/tercih edilen/reddedilen; Sohbet: sistem talimatı ve turlar.
     - Kelime düzeyinde fark: Myers algoritması, ortak baş ve son kırpılır; 1.000 düzenlemeden sonra ortadaki kısım bütün olarak değişmiş sayılır.
     - Silinen kısımlar kırmızı, eklenenler yeşil zeminle gösterilir. Aralarında yalnızca boşluk olan değişiklikler birleştirilir; satır sonları birleştirmeyi böler.
     - Sohbet turları dizi olarak eşleştirilir; araya tur eklemek sonraki turları "değişti" göstermez.
+    - Kaydın etiketleri son alan olarak gösterilir: kalkan etiket eski tarafta kırmızı, eklenen yeni tarafta yeşil.
 - **Sürümler penceresi:**
   - **Sol:** çalışma kopyası ve sürümler, en yeni üstte.
   - **Sağ:** seçilen öğe ve eylemleri.
@@ -544,7 +564,7 @@ Veri setleri `v1.0.0`, `v1.1.0`, `v2.0.0` formatında semantik olarak sürümlec
   - **Karşılaştırma seçimi:** varsayılan olarak bir önceki sürüm, ilk sürüm için çalışma kopyasıdır; başka bir sürüm de seçilebilir. Altında türe göre süzülebilen fark listesi ve alan alan görünüm vardır.
 - **Geri dönüş (rollback):**
   - Çalışma kopyası sürümle aynı hâle gelir:
-    - içerik ve durumlar geri döner;
+    - içerik, durum ve etiketler geri döner (etiketler M9 ile);
     - silinmiş kayıtlar kimlikleri, sıraları, kökenleri ve hâlâ var olan etiketleriyle geri gelir;
     - sürümde olmayan kayıtlar **arşivlenir, silinmez**.
   - Onay penceresi önce ne olacağını sayılarla söyler.
@@ -557,7 +577,6 @@ Veri setleri `v1.0.0`, `v1.1.0`, `v2.0.0` formatında semantik olarak sürümlec
   - Aynı seçenekler ve seed ile, veri seti sonradan değişse de birebir aynı dosyalar üretilir (testle doğrulanır).
   - Kişisel veri maskelemesi güncel özel terimleri kullanır.
 - **Henüz yok:**
-  - var olan kayıtların etiketlerinin geri dönüşte geri yüklenmesi (etiket arayüzüyle, M9);
   - tek kaydın düzenleme geçmişi (bkz. ADR-030);
   - ağaçta sürüm düğümleri.
 
@@ -626,7 +645,7 @@ Veritabanı tabloları ve temel ilişkileri (bir `.adstudio` dosyası = bir çal
 - `WorkspaceSettings`: Key, Value — çalışma alanına özgü ayarlar (ör. `pii.customTerms`)
 - `DatasetVersions`: Id, DatasetId, Number ("1.2.0"; veri setinde tekil), Description, Tokenizer, ContextLength, RecordCount, ApprovedCount, CreatedAt — her sürüm donmuştur, `IsFrozen` yoktur (ADR-030)
 - `VersionRecordMappings`: VersionId, Ordinal, RevisionId, Status, Tokens (sürümün tokenizer'ıyla), TagIds (JSON) — birincil anahtar (VersionId, Ordinal, RevisionId), `WITHOUT ROWID`; kayıt kimliği revizyondan gelir. Yalnızca SQL ile kullanılır
-- `Tags`: Id, Name, NameKey (Türkçe I/İ/ı dahil katlanmış ad; benzersiz — SQLite NOCASE yalnızca ASCII katlar), ColorHex — kategoriler `kategori:hukuk` gibi önekli etiketlerdir (ayrı `Category` tablosu yok)
+- `Tags`: Id, Name, NameKey (Türkçe I/İ/ı dahil katlanmış ad; benzersiz — SQLite NOCASE yalnızca ASCII katlar), ColorHex, Shortcut (1–5, `Mod + N`; boş değilse benzersiz) — kategoriler `kategori:hukuk` gibi önekli etiketlerdir (ayrı `Category` tablosu yok); etiket silinince `RecordTags` satırları da silinir
 - `RecordTags`: RecordId, TagId
 - `RecordRelations`: SourceRecordId, TargetRecordId, RelationType (Parent, DuplicateOf, NearDuplicateOf, Contradicts) — ilişki tipleri enum'dur (ayrı `Relation` tablosu yok)
 - `ExportProfiles`: DatasetId (PK; şimdilik veri seti başına son kullanılan profil), TargetFormat, Settings (JSON: durumlar, bağlamı aşanları/kopyaları atla, PII maskele, bölme oranları ve seed), UpdatedAt
@@ -655,6 +674,7 @@ Notlar: Kimlikler GUID v7, zaman damgaları UTC Unix milisaniye (INTEGER), enum'
 11. **Export Wizard:** Model şablon seçimi, token eşiği filtresi ve Train/Test Split ayar ekranı.
 12. **Version History & Diff View:** Sürüm dondurma, geri alma ve iki versiyon arası görsel diff.
 13. **Settings & API Key Vault:** Arayüz dili ve tema (Sistem / Açık / Koyu) seçimi; yerel işletim sistemi şifrelemesiyle korunan API anahtarı kasası (Windows DPAPI, macOS Keychain, Linux libsecret; libsecret yoksa açıkça bildirilen yedek davranış).
+14. **Tag Manager:** Etiketlerin adı, rengi, `Mod + 1..5` kısayolu ve silinmesi; etiketin kayıtlarını listede gösterme (Araçlar › Etiketler…, M9).
 
 ---
 
@@ -682,7 +702,7 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
   - Llama-3 ve HuggingFace DPO şablonları M5'te yapıldı.
   - Kalanlar dört aşamaya bölündü (`docs/plan-review.md` §5):
     - **M8** sürümleme (§14.3) ✅
-    - **M9** etiketler (V1'den kalan etiket arayüzü, `Mod + 1..5`, etikete göre tabakalı bölme)
+    - **M9** etiketler (V1'den kalan etiket arayüzü, `Mod + 1..5`, etikete göre tabakalı bölme) ✅
     - **M10** yakın kopya (MinHash) ve DPO fark görünümü
     - **M11** Excel / Markdown içe aktarma
 - **V3:** Yerel LLM entegrasyonu (Ollama / LM Studio), PDF ve Word belge chunking & soru-cevap çıkarımı, sentetik veri çoğaltma motoru, LLM-as-a-Judge kalite denetimi.
@@ -754,6 +774,7 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-028: Dışa Aktarma Hattı ve Soru Tabanlı Bölme:** Dışa aktarma, saf bir dönüştürücüden (`ExportRenderer`, biçim başına golden testli) ve kayıtları listedeki sırayla tek bir okuma anlık görüntüsünden akıtan bir servisten oluşur; dosyalar geçici adla yazılıp tamamlanınca taşınır. Bölme anahtarı, ADR-018'deki "kopya grubunun temsilci kimliği" yerine normalleştirilmiş soru tarafıdır: aynı soruyu soran her kayıt (birebir kopya, farklı yanıt, aynı istemli tercih çifti) aynı dosyaya düşer ve temsilci kaydın silinmesi grubu taşımaz; kayıt eklemek/silmek diğer kayıtları hiç etkilemez. Bedeli, sorusu düzenlenen kaydın dosyasının değişebilmesidir. Bağlam sınırı kontrolü listedeki kırmızı bayrakla aynı içerik tokenını kullanır; şablon yükü sayılmaz.
 - **ADR-029: Paketleme ve Güncelleme Velopack ile:** Dağıtım, Velopack (MIT) ile yapılır: tek araç Windows kurulumu (Setup.exe + taşınabilir zip), macOS .pkg/.app ve Linux AppImage üretir, imzalama ve notarization'ı yönetir ve fark (delta) güncellemeleri sağlar. Her platform/mimari ayrı bir kanaldır (`win-x64`, `osx-arm64`, `osx-x64`, `linux-x64`); güncellemeler sürümün GitHub Releases'ından okunur. Sıfır telemetri ilkesi gereği uygulama kendiliğinden ağa çıkmaz: güncelleme yalnızca kullanıcı denetlediğinde ya da açılışta denetimi açtığında aranır, indirme ve yeniden başlatma onay ister. Uygulama self-contained ve ReadyToRun yayınlanır, trimming yapılmaz (EF Core ve Avalonia yansıması). İmzalama sertifikaları repo sırlarıyla verilir; yoksa paketler imzasız üretilir.
 - **ADR-030: Sürümler Dondurulmuş Anlık Görüntülerdir (ADR-017'nin uygulanışı):** Veri seti (çalışma kopyası) her zaman düzenlenebilir. Sürüm oluşturulduğu anda dondurulur; plandaki ayrı "Frozen" durumu ve "dondurulmuş sürümün kayıtları düzenlenemez" kuralı yerine, eğitimde kullanılan veri sürümün kendisinde değişmeden kalır. Revizyonlar plandaki gibi her düzenlemede değil, yalnızca bir sürüm bir içeriği tuttuğunda yazılır (kayıt ve içerik özeti başına bir kez). Bunun iki nedeni var: (1) Maskelenen kişisel veri ya da silinen kayıtlar, kullanıcının görmediği bir geçmişte dosyada kalmamalıdır; içerik yalnızca kullanıcının bilerek oluşturduğu bir sürümde tutulur ve sürüm silinince dosyadan da silinir. (2) Dosya boyutu düzenleme sayısıyla değil sürüm sayısıyla büyür. Oturum içi geri alma (ADR-026) düzenleme hatalarını karşılar. Revizyonların kayda yabancı anahtarı yoktur; böylece silinen kaydın içeriği ve kökeni sürümde kalır ve geri dönüşte kayıt geri gelir. Sürüm eşlemeleri yalnızca kimlik, durum, sıra, token sayısı ve etiket tutar (`WITHOUT ROWID`). Sürüm, tokenizer'ını ve bağlam uzunluğunu saklar; dışa aktarımı veri setinin sonraki ayarlarından etkilenmez. Geri dönüş, sürümde olmayan kayıtları silmez, arşivler.
+- **ADR-031: Etiketler Çalışma Alanında Ortak, Kısayollar Etikette, Tabakalı Bölme Kesmeyle:** Etiketler veri setine değil çalışma alanına aittir; aynı sınıflandırma (`kategori:*`, `öncelikli`) tüm veri setlerinde kullanılır ve kategori ayrı bir tablo değil, `grup:değer` adlı etikettir. `Mod + 1..5` kısayolu kullanıcının ayarı değil etiketin özelliğidir (`Tags.Shortcut`); böylece paylaşılan dosyayı açan herkes aynı tuşlarla etiketler. Yeni etiket boştaki ilk kısayolu alır, dolu bir kısayol başka etikete atanınca eskisinden düşer (her kısayol tek etikette). Etiketleme bir kayıt değişikliğidir: geri al geçmişine girer ve sürümler etiketleri saklar; etiketi yönetmek (ad, renk, kısayol, silme) ise çalışma alanı ayarıdır, geri alınamaz ve silme onay ister. Tabakalı bölme hash tabanlı bölmenin (ADR-018, ADR-028) yerine değil, isteğe bağlı bir seçenek olarak gelir: her tabakada soru grupları aynı hash ile sıralanıp oranlarda kesilir. Bu, küçük kategorilerde payları tam tutturur ve soru gruplarını bölmez; karşılığında yeni kayıtlar kesim noktasındaki grupları taşıyabilir. Kullanıcı ikisinden birini bilerek seçer; sihirbaz farkı açıklar.
 
 ---
 

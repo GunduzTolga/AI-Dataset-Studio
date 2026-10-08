@@ -26,6 +26,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🧹 **Dataset Health Engine:** Detect exact and near-duplicates, empty prompts, syntax errors, and formatting anomalies.
 - 🎲 **Train / Validation / Test Split:** Deterministic, seed-based dataset splitting with stratified sampling.
 - 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
+- 🏷️ **Tags:** Colored tags shared by all datasets, toggled with Mod+1…5, on one record or many; filter the list by tag and split exports within each tag or tag group (`kategori:hukuk`).
 - 🔄 **Universal Import & Export:**
   - **Import:** CSV (with column mapping wizard), JSONL, and standard JSON.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
@@ -114,6 +115,7 @@ Reviewing records: edit fields directly in the right-hand panel; changes are sav
 | Delete | Delete the selected records (in the list) |
 | Mod+Shift+M | Masked preview of personal data |
 | Mod+E | Export the dataset |
+| Mod+1 … Mod+5 | Add or remove the tag with that shortcut (on all selected records) |
 
 Tokens and quality: every record is analysed in the background with an offline tokenizer (`o200k_base` or `cl100k_base`, chosen per dataset together with its context length). With no record selected, the right-hand panel shows the **dataset overview**: quality score, token totals, a length histogram and the issues found, each with **Show** (filters the list) and, where it makes sense, **Archive** (undoable). The list shows tokens and a score per record and can be filtered by quality; the editor updates both while you type.
 
@@ -131,6 +133,8 @@ Exporting: **File › Export to File…** (Mod+E) or the Export button above the
 | Preference | Hugging Face DPO, OpenAI JSONL (OpenAI's DPO shape) |
 
 By default only approved records are exported, without records longer than the context length or exact copies, and with personal data masked. A split writes `train.jsonl`, `val.jsonl` and `test.jsonl` (80/10/10, 90/10 or custom shares) from a hash of the seed and each record's question: the same seed always gives the same files, new records never move existing ones, and records asking the same question stay in one file. Files appear only when complete, and the settings (including the seed) are remembered per dataset.
+
+Tags: **Add tag** in the editor finds a tag as you type or creates it (a prefix such as `kategori:` puts it in a group); the × on a chip removes it. With several records selected, the panel adds a tag to all of them or removes one from all. **Tools › Tags…** renames, recolors and deletes tags and gives them Mod+1…5; **Record › Tag** lists them. The list shows each record's tags and filters by tag (or *Untagged*). In the export wizard, **Split within** gives every tag, or every tag of a group, exactly the chosen shares — unlike the plain split, new records can then move a few records at the cut.
 
 Personal data: e-mail, phone, Turkish national ID, IBAN, card numbers, internal IPs and URLs, API keys, passwords and your own terms (**Tools › Custom Sensitive Terms…**) are detected locally. **Record › Masked Preview** shows the record with consistent placeholders (`[EMAIL_1]`); **Apply Masking** puts the masked text into the editor, to be saved (and undone) like any edit.
 
@@ -156,7 +160,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M6 | Installers (Velopack), optional signing, updates, first release 1.0.0 | ✅ |
 | M7 | Design system, light/dark themes, welcome screen | ✅ |
 | M8 | Dataset versions: freeze, compare with a word-level diff, go back, export a version | ✅ |
-| M9 | Tags, quick tagging and tag-based stratified split | Next |
+| M9 | Tags: editor chips, Mod+1…5, batch tagging, tag filter, tag manager, stratified split | ✅ |
+| M10 | Near-duplicates (MinHash) and the preference (DPO) diff | Next |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

@@ -18,6 +18,20 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   history remembers which version was written.
 - The latest version is shown under the dataset name.
 
+### Tags
+- Colored tags, shared by all datasets of a workspace. **Add tag** in the editor finds a tag as
+  you type or creates one; the × on a chip removes it. A prefix makes a group
+  (`kategori:hukuk` belongs to `kategori`).
+- Mod+1 … Mod+5 add or remove the tag with that shortcut, also while typing. New tags take the
+  next free shortcut; **Tools › Tags…** renames, recolors, deletes and reassigns them, and
+  **Record › Tag** lists them.
+- Tag or untag many records at once from the batch panel; every tagging is one Edit › Undo step.
+- The list shows each record's tags and filters by tag, or by records without tags.
+- Export: **Split within** a tag or a tag group gives every one of them exactly the chosen
+  shares, keeping records that ask the same question together.
+- Versions keep tags: comparisons show tag changes and going back to a version restores the
+  tags of existing records too.
+
 ## [1.0.0] - 2026-10-08
 
 The first release: the complete MVP of the design document (SDD §20), offline on Windows, macOS
