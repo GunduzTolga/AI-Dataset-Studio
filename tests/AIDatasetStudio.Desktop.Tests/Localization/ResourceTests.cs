@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Globalization;
 using System.Resources;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
@@ -56,7 +55,7 @@ public sealed partial class ResourceTests
     [Fact]
     public void Every_key_used_in_xaml_exists()
     {
-        var usages = Directory.EnumerateFiles(DesktopSourceDirectory(), "*.axaml", SearchOption.AllDirectories)
+        var usages = Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "DesktopXaml"), "*.axaml", SearchOption.AllDirectories)
             .SelectMany(file => TrUsage().Matches(File.ReadAllText(file)).Select(match => (File: Path.GetFileName(file), Key: match.Groups["key"].Value)))
             .ToList();
         var missing = usages
@@ -87,9 +86,6 @@ public sealed partial class ResourceTests
 
     private static HashSet<string> Placeholders(string text) =>
         Placeholder().Matches(text).Select(match => match.Value).ToHashSet(StringComparer.Ordinal);
-
-    private static string DesktopSourceDirectory([CallerFilePath] string thisFile = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", "..", "..", "src", "AIDatasetStudio.Desktop"));
 
     [GeneratedRegex(@"\{\d+(,[^}]*)?(:[^}]*)?\}")]
     private static partial Regex Placeholder();

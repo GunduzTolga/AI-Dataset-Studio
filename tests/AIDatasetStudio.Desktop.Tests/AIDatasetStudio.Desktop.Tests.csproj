@@ -19,4 +19,18 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The XAML sources are scanned for localization keys; copy them next to the tests so the
+         check does not depend on source paths (CI builds map them to "/_/"). A custom item type
+         is used because Avalonia's build targets remove *.axaml from None items. -->
+    <DesktopXaml Include="..\..\src\AIDatasetStudio.Desktop\**\*.axaml"
+                 Exclude="..\..\src\AIDatasetStudio.Desktop\bin\**;..\..\src\AIDatasetStudio.Desktop\obj\**" />
+  </ItemGroup>
+
+  <Target Name="CopyDesktopXaml" AfterTargets="Build">
+    <Copy SourceFiles="@(DesktopXaml)"
+          DestinationFiles="@(DesktopXaml->'$(OutDir)DesktopXaml/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
