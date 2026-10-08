@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Versions;
@@ -29,6 +30,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private readonly IRecordAnalysisService _analysis;
     private readonly ITokenizerProvider _tokenizers;
     private readonly TagCatalog _tags;
+    private readonly AIAssistant _ai;
     private PiiScanner _scanner = new();
     private IReadOnlyList<QualityIssue> _crossIssues = [];
     private PiiMaskResult? _mask;
@@ -45,7 +47,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         IDialogService dialogs,
         StatusBarViewModel status,
         Localizer localizer,
-        TagCatalog tags)
+        TagCatalog tags,
+        AIAssistant ai)
     {
         _queries = queries;
         _analysis = analysis;
@@ -55,6 +58,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         _status = status;
         _localizer = localizer;
         _tags = tags;
+        _ai = ai;
+        _ai.ConnectionChanged += (_, _) => OnPropertyChanged(nameof(WritingText));
         TagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
         BatchTagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
         _tags.Changed += (_, _) => RefreshTags();
@@ -71,6 +76,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand), nameof(TogglePreferenceCompareCommand))]
+    [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand))]
     public partial RecordDetails? Record { get; private set; }
 
     /// <summary>
@@ -313,6 +319,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public async Task ShowAsync(Guid? recordId)
     {
         var generation = ++_generation;
+        await StopWritingAsync();
         await SaveIfDirtyAsync();
         BatchRows = [];
         if (recordId is null)
@@ -346,6 +353,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public async Task ShowBatchAsync(Guid datasetId, IReadOnlyList<RecordRowViewModel> rows)
     {
         ++_generation;
+        await StopWritingAsync();
         await SaveIfDirtyAsync();
         SetRecord(null);
         _batchDatasetId = datasetId;
@@ -363,6 +371,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
 
         var generation = ++_generation;
+        await StopWritingAsync();
         try
         {
             var fresh = await _queries.GetAsync(record.Id);
@@ -382,18 +391,22 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// <returns><c>false</c> if saving failed.</returns>
     public async Task<bool> SaveIfDirtyAsync()
     {
+        // A model still writing is stopped: what it wrote so far is saved.
+        await StopWritingAsync();
         if (!IsDirty || Record is not { } before || IsArchived)
         {
             return true;
         }
 
         var payload = BuildPayload(before.Payload);
+        var writtenBy = _writtenBy;
         // Clean from now on, so a second call while this save runs does not save again.
         _cleanHash = payload.ComputeContentHash();
         IsDirty = false;
+        _writtenBy = null;
         try
         {
-            if (await _operations.SaveAsync(before, payload))
+            if (await _operations.SaveAsync(before, payload, writtenBy))
             {
                 _status.Set("Status_RecordSaved", before.Ordinal);
                 if (Record?.Id == before.Id && await _queries.GetAsync(before.Id) is { } fresh && Record?.Id == before.Id)
@@ -408,6 +421,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         catch (Exception ex) when (_status.TryReport(ex))
         {
             _cleanHash = before.ContentHash;
+            _writtenBy = writtenBy;
             OnEdited();
             return false;
         }
@@ -581,7 +595,12 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     partial void OnRecordChanged(RecordDetails? value) => RecordTags = value is null ? [] : _tags.Resolve(value.TagIds);
 
     // Back from the masked preview the comparison is shown again.
-    partial void OnIsPiiPreviewChanged(bool value) => UpdatePreferenceCompare();
+    partial void OnIsPiiPreviewChanged(bool value)
+    {
+        UpdatePreferenceCompare();
+        WriteCommand.NotifyCanExecuteChanged();
+        WriteMainCommand.NotifyCanExecuteChanged();
+    }
 
     partial void OnBatchRowsChanged(IReadOnlyList<RecordRowViewModel> value) => RefreshBatchTags();
 
@@ -596,7 +615,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         BatchTags = [.. _tags.Resolve(BatchRows.SelectMany(r => r.TagIds).Distinct())
             .Select(tag => new TagCountItem(tag, BatchRows.Count(r => r.TagIds.Contains(tag.Id))))];
 
-    private bool CanSave() => IsDirty && IsEditable;
+    private bool CanSave() => IsDirty && IsEditable && !IsWriting;
 
     private bool CanAddMessage() => IsChat && IsEditable;
 
@@ -879,6 +898,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private void LoadEditor(RecordDetails record)
     {
+        ResetWriting();
         _loadingEditor = true;
         try
         {
@@ -889,7 +909,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                 case InstructionPayload p:
                     Fields.Add(CreateField("Field_Instruction", p.Instruction));
                     Fields.Add(CreateField("Field_Input", p.Input));
-                    Fields.Add(CreateField("Field_Output", p.Output));
+                    Fields.Add(CreateField("Field_Output", p.Output, writeTarget: AIWriteTarget.Answer));
                     break;
                 case ChatPayload p:
                     Fields.Add(CreateField("Field_SystemPrompt", p.SystemPrompt ?? string.Empty, FieldTone.System));
@@ -901,8 +921,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                     break;
                 case PreferencePayload p:
                     Fields.Add(CreateField("Field_Prompt", p.Prompt));
-                    Fields.Add(CreateField("Field_Chosen", p.Chosen, FieldTone.Positive));
-                    Fields.Add(CreateField("Field_Rejected", p.Rejected, FieldTone.Negative));
+                    Fields.Add(CreateField("Field_Chosen", p.Chosen, FieldTone.Positive, AIWriteTarget.Chosen));
+                    Fields.Add(CreateField("Field_Rejected", p.Rejected, FieldTone.Negative, AIWriteTarget.Rejected));
                     break;
             }
 
@@ -936,8 +956,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
-    private EditorField CreateField(string labelKey, string text, FieldTone tone = FieldTone.Neutral) =>
-        new(labelKey, text, tone, _localizer, OnEdited);
+    private EditorField CreateField(string labelKey, string text, FieldTone tone = FieldTone.Neutral, AIWriteTarget? writeTarget = null) =>
+        new(labelKey, text, tone, _localizer, OnEdited, writeTarget);
 
     private EditorMessage CreateMessage(ChatRole role, string text) =>
         new(role, text, _localizer, OnEdited, message =>

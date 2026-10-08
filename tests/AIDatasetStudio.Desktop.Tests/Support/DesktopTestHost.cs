@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
@@ -5,6 +6,7 @@ using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
@@ -38,6 +40,7 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             .AddSingleton<IFileDialogService>(Files)
             .AddSingleton<IUpdateService>(Updates)
             .AddSingleton<IShellService>(Shell)
+            .AddSingleton<IAIProviderFactory>(AI)
             .BuildServiceProvider();
     }
 
@@ -50,6 +53,18 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeUpdates Updates { get; } = new();
 
     public FakeShell Shell { get; } = new();
+
+    public FakeAIProviders AI { get; } = new();
+
+    /// <summary>
+    /// Sets up a local Ollama connection with the model "qwen2.5:7b" as the default.
+    /// </summary>
+    public AIConnection AddAIConnection()
+    {
+        var connection = new AIConnection(Guid.CreateVersion7(), "Ollama", AIProviderKind.Ollama, AIProviders.DefaultUrl(AIProviderKind.Ollama), "qwen2.5:7b");
+        Get<IAIConnectionStore>().Save(connection);
+        return connection;
+    }
 
     public MainWindowViewModel Main => Get<MainWindowViewModel>();
 
@@ -271,6 +286,19 @@ internal sealed class FakeDialogs : IDialogService
     {
         LastTagManager = tags;
         await TagManagerScript(tags);
+    }
+
+    /// <summary>
+    /// What the user does in Tools › AI Connections; by default nothing.
+    /// </summary>
+    public Func<AIConnectionsViewModel, Task> AIConnectionsScript { get; set; } = _ => Task.CompletedTask;
+
+    public AIConnectionsViewModel? LastAIConnections { get; private set; }
+
+    public async Task ShowAIConnectionsAsync(AIConnectionsViewModel connections)
+    {
+        LastAIConnections = connections;
+        await AIConnectionsScript(connections);
     }
 
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)

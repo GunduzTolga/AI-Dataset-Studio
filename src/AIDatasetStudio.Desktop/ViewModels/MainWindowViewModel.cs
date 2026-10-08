@@ -41,6 +41,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IUserSettings _settings;
     private readonly ITagService _tagService;
     private readonly TagCatalog _tags;
+    private readonly AIAssistant _ai;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -59,6 +60,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IUserSettings settings,
         ITagService tagService,
         TagCatalog tags,
+        AIAssistant ai,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -81,6 +83,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _settings = settings;
         _tagService = tagService;
         _tags = tags;
+        _ai = ai;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -104,6 +107,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Overview.AnalysisCompleted += (_, datasetId) => _ = OnAnalysisCompletedAsync(datasetId);
         Overview.NearGroupsChanged += (_, datasetId) => _ = OnNearGroupsChangedAsync(datasetId);
         Overview.ShowRecordsRequested += (_, filter) => Records.ShowQuality(filter);
+        Overview.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
+        Details.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }

@@ -35,6 +35,14 @@ public interface IRecordCommandService
     Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Replaces a record's content that a model helped write; the model is noted in the lineage
+    /// when the content changed.
+    /// </summary>
+    /// <param name="generatedByModel">The model that wrote part of the content, or <c>null</c>.</param>
+    /// <returns><c>true</c> if the content changed.</returns>
+    Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, string? generatedByModel, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Moves records to <paramref name="status"/> where the lifecycle allows it.
     /// </summary>
     Task<StatusChangeResult> SetStatusAsync(IReadOnlyCollection<Guid> recordIds, RecordStatus status, CancellationToken cancellationToken = default);

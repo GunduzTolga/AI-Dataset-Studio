@@ -2,6 +2,7 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
@@ -114,6 +115,8 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
     public Task ShowVersionsAsync(VersionsViewModel versions) => new VersionsWindow { DataContext = versions }.ShowDialog(Owner);
 
     public Task ShowTagManagerAsync(TagManagerViewModel tags) => new TagManagerWindow { DataContext = tags }.ShowDialog(Owner);
+
+    public Task ShowAIConnectionsAsync(AIConnectionsViewModel connections) => new AIConnectionsWindow { DataContext = connections }.ShowDialog(Owner);
 
     private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);
 

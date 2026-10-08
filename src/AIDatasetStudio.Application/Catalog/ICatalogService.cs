@@ -39,4 +39,9 @@ public interface ICatalogService
     /// Changing the tokenizer makes the dataset's analysis results stale.
     /// </summary>
     Task SetTokenSettingsAsync(Guid datasetId, string tokenizer, int contextLength, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets what a model should keep in mind when it writes into the dataset's records; blank clears it.
+    /// </summary>
+    Task SetAIGuidanceAsync(Guid datasetId, string? guidance, CancellationToken cancellationToken = default);
 }

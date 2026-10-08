@@ -24,6 +24,10 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AIGuidance")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ContextLength")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")

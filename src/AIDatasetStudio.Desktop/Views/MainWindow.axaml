@@ -108,6 +108,9 @@
         <MenuItem x:Name="PiiPreviewMenuItem" Header="{l:Tr Menu_PiiPreview}" Command="{Binding Details.TogglePiiPreviewCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldLock" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="WriteMenuItem" Header="{l:Tr Menu_WriteWithAI}" Command="{Binding Details.WriteMainCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Sparkle" /></MenuItem.Icon>
+        </MenuItem>
         <Separator />
         <!-- Each tag toggles on the shown or selected records; those with a shortcut show Mod+N -->
         <MenuItem x:Name="TagMenuItem" Header="{l:Tr Menu_TagRecord}" ItemsSource="{Binding Tags.Tags}" IsEnabled="{Binding !Tags.IsEmpty}">
@@ -140,6 +143,9 @@
         </MenuItem>
         <MenuItem x:Name="TagsMenuItem" Header="{l:Tr Menu_Tags}" Command="{Binding ManageTagsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="TagMultiple" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="AIConnectionsMenuItem" Header="{l:Tr Menu_AIConnections}" Command="{Binding ManageAIConnectionsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="BrainCircuit" /></MenuItem.Icon>
         </MenuItem>
       </MenuItem>
       <MenuItem Header="{l:Tr Menu_Help}">

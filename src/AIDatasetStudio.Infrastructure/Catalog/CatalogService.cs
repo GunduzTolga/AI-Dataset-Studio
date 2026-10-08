@@ -40,7 +40,7 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
                 p.Description,
                 datasetsByProject[p.Id]
                     .Select(d => new DatasetSummary(
-                        d.Id, d.ProjectId, d.Name, d.Type, counts.GetValueOrDefault(d.Id), d.DefaultTokenizer, d.ContextLength, latest.GetValueOrDefault(d.Id)))
+                        d.Id, d.ProjectId, d.Name, d.Type, counts.GetValueOrDefault(d.Id), d.DefaultTokenizer, d.ContextLength, latest.GetValueOrDefault(d.Id), d.AIGuidance))
                     .ToList()))
             .ToList();
     }
@@ -109,6 +109,15 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
 
         // Results computed with another tokenizer no longer match the dataset and are recomputed.
         dataset.ChangeTokenSettings(tokenizer, contextLength);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetAIGuidanceAsync(Guid datasetId, string? guidance, CancellationToken cancellationToken = default)
+    {
+        await using var context = database.CreateDbContext();
+        var dataset = await context.Datasets.FindAsync([datasetId], cancellationToken)
+            ?? throw new NotFoundException(nameof(Dataset), datasetId);
+        dataset.ChangeAIGuidance(guidance);
         await context.SaveChangesAsync(cancellationToken);
     }
 

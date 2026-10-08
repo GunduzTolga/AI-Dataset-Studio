@@ -58,6 +58,12 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
     [ObservableProperty]
     public partial int ContextLength { get; set; } = Domain.Entities.Dataset.DefaultContextLength;
 
+    /// <summary>
+    /// What a model should keep in mind when writing into the records; <c>null</c> when not set.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? AIGuidance { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CountText), nameof(Subtitle))]
     public partial long RecordCount { get; set; }

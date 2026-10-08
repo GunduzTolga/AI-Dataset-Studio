@@ -26,6 +26,7 @@ public static class AppServices
         services.AddSingleton<UndoHistory>();
         services.AddSingleton<RecordOperations>();
         services.AddSingleton<TagCatalog>();
+        services.AddSingleton<AIAssistant>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();

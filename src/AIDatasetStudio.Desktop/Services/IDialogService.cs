@@ -1,5 +1,6 @@
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
@@ -70,4 +71,9 @@ public interface IDialogService
     /// Shows Tools › Tags until the window is closed.
     /// </summary>
     Task ShowTagManagerAsync(TagManagerViewModel tags);
+
+    /// <summary>
+    /// Shows Tools › AI Connections until the window is closed.
+    /// </summary>
+    Task ShowAIConnectionsAsync(AIConnectionsViewModel connections);
 }

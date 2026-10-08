@@ -80,7 +80,10 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return count;
     }
 
-    public async Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, CancellationToken cancellationToken = default)
+    public Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, CancellationToken cancellationToken = default) =>
+        UpdatePayloadAsync(recordId, payload, generatedByModel: null, cancellationToken);
+
+    public async Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, string? generatedByModel, CancellationToken cancellationToken = default)
     {
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
@@ -90,6 +93,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         if (!record.UpdatePayload(payload, timeProvider.GetUtcNow()))
         {
             return false;
+        }
+
+        if (generatedByModel is not null)
+        {
+            record.MarkGeneratedBy(generatedByModel);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -226,10 +234,16 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             var previousPayload = record.Payload;
             var previousStatus = record.Status;
             var previousTags = record.Tags.Select(t => t.Id).ToList();
-            var contentChanged = record.RestoreState(target.Status, target.Payload, now);
+            var previousLineage = record.Lineage;
+            var contentChanged = record.RestoreState(target.Status, target.Payload, now, target.Lineage);
             var tagsChanged = target.TagIds is { } wanted
                 && record.SetTags([.. wanted.Where(tags.ContainsKey).Select(id => tags[id])], now);
-            before.Add(new RecordState(record.Id, previousStatus, contentChanged ? previousPayload : null, tagsChanged ? previousTags : null));
+            before.Add(new RecordState(
+                record.Id,
+                previousStatus,
+                contentChanged ? previousPayload : null,
+                tagsChanged ? previousTags : null,
+                target.Lineage is null ? null : previousLineage));
             if (contentChanged)
             {
                 reindex.Add(record);

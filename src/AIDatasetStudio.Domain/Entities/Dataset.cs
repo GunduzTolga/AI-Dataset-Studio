@@ -13,6 +13,7 @@ public sealed class Dataset
     public const int DefaultContextLength = 4_096;
     public const int MinContextLength = 256;
     public const int MaxContextLength = 2_097_152;
+    public const int MaxAIGuidanceLength = 4_000;
 
     private Dataset()
     {
@@ -39,6 +40,12 @@ public sealed class Dataset
     /// The context window training runs use; records with more tokens are flagged (SDD §7.3).
     /// </summary>
     public int ContextLength { get; private set; } = DefaultContextLength;
+
+    /// <summary>
+    /// What a model should keep in mind when it writes into this dataset's records (tone, length,
+    /// language…; SDD §17); <c>null</c> when not set.
+    /// </summary>
+    public string? AIGuidance { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -78,5 +85,16 @@ public sealed class Dataset
 
         DefaultTokenizer = Guard.NotBlank(tokenizer, nameof(tokenizer), 100);
         ContextLength = contextLength;
+    }
+
+    public void ChangeAIGuidance(string? guidance)
+    {
+        guidance = string.IsNullOrWhiteSpace(guidance) ? null : guidance.Trim();
+        if (guidance?.Length > MaxAIGuidanceLength)
+        {
+            throw new DomainException($"The AI instructions can be at most {MaxAIGuidanceLength} characters long.");
+        }
+
+        AIGuidance = guidance;
     }
 }

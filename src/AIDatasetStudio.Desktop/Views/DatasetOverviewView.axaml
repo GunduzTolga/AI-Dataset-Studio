@@ -98,6 +98,25 @@
         </StackPanel>
       </Border>
 
+      <!-- AI (SDD §17): the model that writes, and what it should keep in mind for this dataset -->
+      <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Overview_SectionAI}" />
+      <Border Classes="card" Padding="14,12">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <ic:SymbolIcon Symbol="Sparkle" FontSize="16" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Margin="8,0" Classes="small strong" Text="{Binding AIConnectionText}" Classes.muted="{Binding !HasAIConnection}"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Button x:Name="AIConnectionsButton" Grid.Column="2" Classes="subtle" Content="{l:Tr Overview_AIConnections}" Command="{Binding OpenAIConnectionsCommand}" />
+          </Grid>
+          <StackPanel>
+            <TextBlock Classes="label" Text="{l:Tr Overview_AIGuidance}" />
+            <TextBox x:Name="AIGuidanceBox" Text="{Binding AIGuidance}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" MaxHeight="200"
+                     MaxLength="4000" PlaceholderText="{l:Tr Overview_AIGuidanceWatermark}" />
+            <TextBlock Classes="caption muted" Text="{l:Tr Overview_AIGuidanceHint}" Margin="0,4,0,0" TextWrapping="Wrap" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <!-- Issues with clean-up actions (SDD §8.3) -->
       <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Overview_Issues}" IsVisible="{Binding HasRecords}" />
       <Border Classes="card" Padding="14,8" IsVisible="{Binding HasRecords}">

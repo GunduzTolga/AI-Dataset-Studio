@@ -1,14 +1,18 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Settings;
 using Microsoft.Data.Sqlite;
 
 namespace AIDatasetStudio.Infrastructure.Settings;
 
 /// <summary>
-/// Stores user settings in <c>app.settings.db</c>. Values are cached in memory; every change is
-/// written through immediately. If the file cannot be used (read-only folder, corrupt file), the
-/// settings keep working in memory for the session instead of failing the app.
+/// Stores user settings, AI connections included, in <c>app.settings.db</c>. Values are cached in
+/// memory; every change is written through immediately. If the file cannot be used (read-only
+/// folder, corrupt file), the settings keep working in memory for the session instead of failing
+/// the app.
 /// </summary>
-internal sealed class SqliteUserSettings : IUserSettings
+internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore
 {
     public const string FileName = "app.settings.db";
     public const int MaxRecentWorkspaces = 10;
@@ -16,6 +20,14 @@ internal sealed class SqliteUserSettings : IUserSettings
     private const string UiLanguageKey = "ui.language";
     private const string UiThemeKey = "ui.theme";
     private const string CheckForUpdatesKey = "updates.check";
+    private const string AIConnectionsKey = "ai.connections";
+    private const string AIDefaultKey = "ai.default";
+
+    // Nulls are written: a missing value would come back as the constructor's default.
+    private static readonly JsonSerializerOptions ConnectionJson = new()
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
@@ -27,6 +39,8 @@ internal sealed class SqliteUserSettings : IUserSettings
     private string? _uiTheme;
     private bool _checkForUpdates;
     private readonly List<string> _recent = [];
+    private readonly List<AIConnection> _connections = [];
+    private Guid? _defaultConnection;
 
     public SqliteUserSettings(string directory, TimeProvider timeProvider)
     {
@@ -85,6 +99,88 @@ internal sealed class SqliteUserSettings : IUserSettings
                 return [.. _recent];
             }
         }
+    }
+
+    public event EventHandler? Changed;
+
+    public IReadOnlyList<AIConnection> Connections
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return [.. _connections];
+            }
+        }
+    }
+
+    public AIConnection? DefaultConnection
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _connections.FirstOrDefault(c => c.Id == _defaultConnection) ?? _connections.FirstOrDefault();
+            }
+        }
+    }
+
+    public void Save(AIConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        lock (_lock)
+        {
+            var index = _connections.FindIndex(c => c.Id == connection.Id);
+            if (index >= 0)
+            {
+                _connections[index] = connection;
+            }
+            else
+            {
+                _connections.Add(connection);
+            }
+
+            _defaultConnection ??= connection.Id;
+            SaveConnections();
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Remove(Guid connectionId)
+    {
+        lock (_lock)
+        {
+            if (_connections.RemoveAll(c => c.Id == connectionId) == 0)
+            {
+                return;
+            }
+
+            if (_defaultConnection == connectionId)
+            {
+                _defaultConnection = _connections.FirstOrDefault()?.Id;
+            }
+
+            SaveConnections();
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetDefault(Guid connectionId)
+    {
+        lock (_lock)
+        {
+            if (_defaultConnection == connectionId || _connections.All(c => c.Id != connectionId))
+            {
+                return;
+            }
+
+            _defaultConnection = connectionId;
+            SaveConnections();
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public bool CheckForUpdates
@@ -173,6 +269,7 @@ internal sealed class SqliteUserSettings : IUserSettings
         _uiLanguage = ReadValue(connection, UiLanguageKey);
         _uiTheme = ReadValue(connection, UiThemeKey);
         _checkForUpdates = ReadValue(connection, CheckForUpdatesKey) == "true";
+        LoadConnections(ReadValue(connection, AIConnectionsKey), ReadValue(connection, AIDefaultKey));
 
         using (var read = connection.CreateCommand())
         {
@@ -187,6 +284,27 @@ internal sealed class SqliteUserSettings : IUserSettings
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private void LoadConnections(string? json, string? defaultId)
+    {
+        try
+        {
+            _connections.AddRange(JsonSerializer.Deserialize<List<AIConnection>>(json ?? "[]", ConnectionJson) ?? []);
+        }
+        catch (JsonException)
+        {
+            // A damaged list is dropped rather than keeping the app from starting.
+        }
+
+        _defaultConnection = Guid.TryParse(defaultId, out var id) ? id : null;
+    }
+
+    // The whole (short) list is one JSON value; API keys stay on this machine, never in workspaces.
+    private void SaveConnections()
+    {
+        SaveValue(AIConnectionsKey, _connections.Count == 0 ? null : JsonSerializer.Serialize(_connections, ConnectionJson));
+        SaveValue(AIDefaultKey, _defaultConnection?.ToString());
+    }
 
     private static string? ReadValue(SqliteConnection connection, string key)
     {

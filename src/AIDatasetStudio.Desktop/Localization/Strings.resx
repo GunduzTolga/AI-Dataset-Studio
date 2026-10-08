@@ -668,6 +668,36 @@
   <data name="Error_ImportSheetNotFound" xml:space="preserve">
     <value>The workbook “{0}” has no such sheet any more. Choose another sheet.</value>
   </data>
+  <data name="AIError_InvalidUrl" xml:space="preserve">
+    <value>“{0}” is not a valid address. It should look like http://localhost:11434/v1.</value>
+  </data>
+  <data name="AIError_RemoteNotAllowed" xml:space="preserve">
+    <value>This server is outside your computer. Allow sending records to it in AI Connections first.</value>
+  </data>
+  <data name="AIError_Unreachable" xml:space="preserve">
+    <value>Nothing answers at {0}. Is {1} running?</value>
+  </data>
+  <data name="AIError_Timeout" xml:space="preserve">
+    <value>{0} stopped answering.</value>
+  </data>
+  <data name="AIError_Unauthorized" xml:space="preserve">
+    <value>The server refused the API key.</value>
+  </data>
+  <data name="AIError_ModelNotFound" xml:space="preserve">
+    <value>The server has no model “{0}”. Choose another in AI Connections, or download it on the server (e.g. ollama pull {0}).</value>
+  </data>
+  <data name="AIError_NotAnApi" xml:space="preserve">
+    <value>There is no OpenAI-compatible API at {0}. Most servers serve it under /v1.</value>
+  </data>
+  <data name="AIError_Rejected" xml:space="preserve">
+    <value>The server refused the request: {0}</value>
+  </data>
+  <data name="AIError_ServerError" xml:space="preserve">
+    <value>The server failed while answering.</value>
+  </data>
+  <data name="AIError_ServerErrorDetail" xml:space="preserve">
+    <value>The server failed while answering: {0}</value>
+  </data>
   <data name="Status_Imported" xml:space="preserve">
     <value>{0:N0} records imported into “{1}”</value>
   </data>
@@ -766,6 +796,30 @@
   </data>
   <data name="Editor_Placeholder" xml:space="preserve">
     <value>Empty</value>
+  </data>
+  <data name="Editor_Writing" xml:space="preserve">
+    <value>Writing with {0}…</value>
+  </data>
+  <data name="Editor_Write" xml:space="preserve">
+    <value>Write with AI</value>
+  </data>
+  <data name="Editor_WriteReply" xml:space="preserve">
+    <value>Write the reply</value>
+  </data>
+  <data name="Editor_StopWriting" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Editor_NoAIConnection" xml:space="preserve">
+    <value>Set up an AI connection to write with a model: Ollama or LM Studio on this computer is enough.</value>
+  </data>
+  <data name="Editor_WriteNeedsQuestion" xml:space="preserve">
+    <value>Write the question first; the model answers it.</value>
+  </data>
+  <data name="Editor_WriteNeedsUserTurn" xml:space="preserve">
+    <value>Add a user message first; the model replies to it.</value>
+  </data>
+  <data name="Editor_AIConnections" xml:space="preserve">
+    <value>AI connections…</value>
   </data>
   <data name="Editor_Cut" xml:space="preserve">
     <value>Cut</value>
@@ -991,6 +1045,24 @@
   <data name="Overview_Analyzing" xml:space="preserve">
     <value>Analyzing {0:N0} / {1:N0}…</value>
   </data>
+  <data name="Overview_SectionAI" xml:space="preserve">
+    <value>AI</value>
+  </data>
+  <data name="Overview_NoAIConnection" xml:space="preserve">
+    <value>No AI connection</value>
+  </data>
+  <data name="Overview_AIConnections" xml:space="preserve">
+    <value>Connections…</value>
+  </data>
+  <data name="Overview_AIGuidance" xml:space="preserve">
+    <value>Instructions for this dataset</value>
+  </data>
+  <data name="Overview_AIGuidanceWatermark" xml:space="preserve">
+    <value>e.g. Answer in two or three sentences, in polite and formal Turkish.</value>
+  </data>
+  <data name="Overview_AIGuidanceHint" xml:space="preserve">
+    <value>Sent with every request when the AI writes into this dataset.</value>
+  </data>
   <data name="Overview_Tokens" xml:space="preserve">
     <value>TOKENS</value>
     <comment>Section header, shown in capitals.</comment>
@@ -1063,6 +1135,15 @@
   </data>
   <data name="Details_QualityScore" xml:space="preserve">
     <value>Quality score</value>
+  </data>
+  <data name="Status_AIGuidanceSaved" xml:space="preserve">
+    <value>Saved the AI instructions of “{0}”</value>
+  </data>
+  <data name="Status_Written" xml:space="preserve">
+    <value>{0} wrote the answer; review it before approving</value>
+  </data>
+  <data name="Status_WritingStopped" xml:space="preserve">
+    <value>Writing stopped; the text so far is kept</value>
   </data>
   <data name="Error_Storage" xml:space="preserve">
     <value>The workspace could not be saved; the file may be in use, read-only or out of space. {0}</value>
@@ -1603,6 +1684,123 @@
   </data>
   <data name="Menu_Tags" xml:space="preserve">
     <value>T_ags…</value>
+  </data>
+  <data name="Menu_AIConnections" xml:space="preserve">
+    <value>AI Connections…</value>
+  </data>
+  <data name="AI_Title" xml:space="preserve">
+    <value>AI connections</value>
+  </data>
+  <data name="AI_Subtitle" xml:space="preserve">
+    <value>Model servers on this computer or network that help write answers. Records are sent only to the server you write with.</value>
+  </data>
+  <data name="AI_SavedHint" xml:space="preserve">
+    <value>Changes are saved at once. Connections stay on this computer and are not part of workspace files.</value>
+  </data>
+  <data name="AI_Add" xml:space="preserve">
+    <value>Add connection</value>
+  </data>
+  <data name="AI_SectionConnections" xml:space="preserve">
+    <value>CONNECTIONS</value>
+  </data>
+  <data name="AI_Empty" xml:space="preserve">
+    <value>No connections yet.</value>
+  </data>
+  <data name="AI_EmptyTitle" xml:space="preserve">
+    <value>Connect a local model</value>
+  </data>
+  <data name="AI_EmptyHint" xml:space="preserve">
+    <value>Install Ollama or LM Studio, download a model, then add a connection here. Nothing is sent anywhere until you do.</value>
+  </data>
+  <data name="AI_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="AI_Server" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="AI_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="AI_Address" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="AI_AddressInvalid" xml:space="preserve">
+    <value>Enter an http:// or https:// address, e.g. http://localhost:11434/v1.</value>
+  </data>
+  <data name="AI_RemoteWarning" xml:space="preserve">
+    <value>This server is outside this computer and its local network. Records you write with it are sent there.</value>
+  </data>
+  <data name="AI_AllowRemote" xml:space="preserve">
+    <value>Allow sending records to this server</value>
+  </data>
+  <data name="AI_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="AI_ModelWatermark" xml:space="preserve">
+    <value>Choose or type a model name</value>
+  </data>
+  <data name="AI_RefreshModels" xml:space="preserve">
+    <value>Ask the server for its models</value>
+  </data>
+  <data name="AI_Temperature" xml:space="preserve">
+    <value>Temperature</value>
+  </data>
+  <data name="AI_MaxTokens" xml:space="preserve">
+    <value>Longest answer (tokens)</value>
+  </data>
+  <data name="AI_MaxTokensWatermark" xml:space="preserve">
+    <value>Server default</value>
+  </data>
+  <data name="AI_ApiKey" xml:space="preserve">
+    <value>API key (optional)</value>
+  </data>
+  <data name="AI_ApiKeyWatermark" xml:space="preserve">
+    <value>Most local servers need none</value>
+  </data>
+  <data name="AI_Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="AI_MakeDefault" xml:space="preserve">
+    <value>Make default</value>
+  </data>
+  <data name="AI_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="AI_Testing" xml:space="preserve">
+    <value>Talking to the server…</value>
+  </data>
+  <data name="AI_Deleted" xml:space="preserve">
+    <value>Deleted {0}.</value>
+  </data>
+  <data name="AI_NoModels" xml:space="preserve">
+    <value>The server has no models. Download one on the server first (e.g. ollama pull qwen2.5:7b).</value>
+  </data>
+  <data name="AI_ModelsFound" xml:space="preserve">
+    <value>{1} offers {0:N0} models.</value>
+  </data>
+  <data name="AI_ChooseModel" xml:space="preserve">
+    <value>Choose a model first.</value>
+  </data>
+  <data name="AI_TestPassed" xml:space="preserve">
+    <value>Works: {0} answered in {1} s — “{2}”</value>
+  </data>
+  <data name="AIProvider_Ollama" xml:space="preserve">
+    <value>Ollama</value>
+  </data>
+  <data name="AIProvider_LMStudio" xml:space="preserve">
+    <value>LM Studio</value>
+  </data>
+  <data name="AIProvider_Vllm" xml:space="preserve">
+    <value>vLLM</value>
+  </data>
+  <data name="AIProvider_LocalAI" xml:space="preserve">
+    <value>LocalAI</value>
+  </data>
+  <data name="AIProvider_OpenAICompatible" xml:space="preserve">
+    <value>Other OpenAI-compatible server</value>
+  </data>
+  <data name="Menu_WriteWithAI" xml:space="preserve">
+    <value>Write with AI</value>
   </data>
   <data name="Tags_Title" xml:space="preserve">
     <value>Tags</value>

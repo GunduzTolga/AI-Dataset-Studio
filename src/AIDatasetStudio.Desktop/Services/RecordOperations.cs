@@ -83,20 +83,23 @@ public sealed class RecordOperations(IRecordCommandService commands, IRecordQuer
     /// <summary>
     /// Saves edited content; the record goes to review (SDD §5.2).
     /// </summary>
+    /// <param name="writtenBy">The model that wrote part of the content; noted in the lineage, and
+    /// taken out again by undo.</param>
     /// <returns><c>false</c> if the content did not change.</returns>
-    public async Task<bool> SaveAsync(RecordDetails before, RecordPayload payload)
+    public async Task<bool> SaveAsync(RecordDetails before, RecordPayload payload, string? writtenBy = null)
     {
         ArgumentNullException.ThrowIfNull(before);
-        if (!await commands.UpdatePayloadAsync(before.Id, payload))
+        if (!await commands.UpdatePayloadAsync(before.Id, payload, writtenBy))
         {
             return false;
         }
 
+        var lineage = writtenBy is null ? null : before.Lineage with { GeneratedByModel = writtenBy };
         history.Push(new EditAction(
             before.DatasetId,
             before.Ordinal,
-            new RecordState(before.Id, before.Status, before.Payload),
-            new RecordState(before.Id, RecordStatus.InReview, payload)));
+            new RecordState(before.Id, before.Status, before.Payload, Lineage: lineage is null ? null : before.Lineage),
+            new RecordState(before.Id, RecordStatus.InReview, payload, Lineage: lineage)));
         Changed?.Invoke(this, new ContentChanged(before.DatasetId, before.Id, payload.GetPreviewText(DatasetRecord.PreviewMaxLength), RecordStatus.InReview));
         return true;
     }

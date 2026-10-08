@@ -197,6 +197,27 @@ public sealed class RecordCommandServiceTests
     }
 
     [Fact]
+    public async Task An_edit_written_with_a_model_notes_it_in_the_lineage_and_undo_takes_it_back()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var lineage = new RecordLineage(RecordSourceKind.FileImport, "sss.csv#row=2");
+        var original = new InstructionPayload("Kargo ücreti?", "", "");
+        var id = await ws.Commands.AddAsync(datasetId, original, lineage, Ct);
+
+        // Unchanged content changes nothing, not even the lineage.
+        Assert.False(await ws.Commands.UpdatePayloadAsync(id, original, "qwen2.5:7b", Ct));
+        Assert.Null((await ws.Queries.GetAsync(id, Ct))!.Lineage.GeneratedByModel);
+
+        Assert.True(await ws.Commands.UpdatePayloadAsync(id, new InstructionPayload("Kargo ücreti?", "", "500 TL üzeri ücretsiz."), "qwen2.5:7b", Ct));
+        Assert.Equal(lineage with { GeneratedByModel = "qwen2.5:7b" }, (await ws.Queries.GetAsync(id, Ct))!.Lineage);
+
+        await ws.Commands.RestoreStatesAsync([new RecordState(id, RecordStatus.Draft, original, Lineage: lineage)], Ct);
+        var details = await ws.Queries.GetAsync(id, Ct);
+        Assert.Equal((original, lineage), (details!.Payload, details.Lineage));
+    }
+
+    [Fact]
     public async Task Tag_names_are_unique_regardless_of_turkish_case()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

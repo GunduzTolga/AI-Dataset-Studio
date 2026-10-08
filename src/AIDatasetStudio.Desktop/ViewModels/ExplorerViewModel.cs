@@ -67,6 +67,7 @@ public sealed partial class ExplorerViewModel : ViewModelBase
                 {
                     Tokenizer = dataset.Tokenizer,
                     ContextLength = dataset.ContextLength,
+                    AIGuidance = dataset.AIGuidance,
                     LatestVersion = dataset.LatestVersion,
                 });
                 if (dataset.Id == selectedId)

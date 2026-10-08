@@ -636,6 +636,36 @@
   <data name="Error_ImportSheetNotFound" xml:space="preserve">
     <value>“{0}” çalışma kitabında bu sayfa artık yok. Başka bir sayfa seçin.</value>
   </data>
+  <data name="AIError_InvalidUrl" xml:space="preserve">
+    <value>“{0}” geçerli bir adres değil. http://localhost:11434/v1 gibi olmalı.</value>
+  </data>
+  <data name="AIError_RemoteNotAllowed" xml:space="preserve">
+    <value>Bu sunucu bilgisayarınızın dışında. Önce Yapay Zekâ Bağlantıları'nda kayıt gönderilmesine izin verin.</value>
+  </data>
+  <data name="AIError_Unreachable" xml:space="preserve">
+    <value>{0} adresinde yanıt veren yok. {1} çalışıyor mu?</value>
+  </data>
+  <data name="AIError_Timeout" xml:space="preserve">
+    <value>{0} yanıt vermeyi bıraktı.</value>
+  </data>
+  <data name="AIError_Unauthorized" xml:space="preserve">
+    <value>Sunucu API anahtarını kabul etmedi.</value>
+  </data>
+  <data name="AIError_ModelNotFound" xml:space="preserve">
+    <value>Sunucuda “{0}” modeli yok. Yapay Zekâ Bağlantıları'ndan başka bir model seçin ya da sunucuya indirin (ör. ollama pull {0}).</value>
+  </data>
+  <data name="AIError_NotAnApi" xml:space="preserve">
+    <value>{0} adresinde OpenAI uyumlu bir API yok. Çoğu sunucu bunu /v1 altında sunar.</value>
+  </data>
+  <data name="AIError_Rejected" xml:space="preserve">
+    <value>Sunucu isteği reddetti: {0}</value>
+  </data>
+  <data name="AIError_ServerError" xml:space="preserve">
+    <value>Sunucu yanıt verirken hata verdi.</value>
+  </data>
+  <data name="AIError_ServerErrorDetail" xml:space="preserve">
+    <value>Sunucu yanıt verirken hata verdi: {0}</value>
+  </data>
   <data name="Status_Imported" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı</value>
   </data>
@@ -734,6 +764,30 @@
   </data>
   <data name="Editor_Placeholder" xml:space="preserve">
     <value>Boş</value>
+  </data>
+  <data name="Editor_Writing" xml:space="preserve">
+    <value>{0} ile yazılıyor…</value>
+  </data>
+  <data name="Editor_Write" xml:space="preserve">
+    <value>Yapay zekâyla yaz</value>
+  </data>
+  <data name="Editor_WriteReply" xml:space="preserve">
+    <value>Yanıtı yaz</value>
+  </data>
+  <data name="Editor_StopWriting" xml:space="preserve">
+    <value>Durdur</value>
+  </data>
+  <data name="Editor_NoAIConnection" xml:space="preserve">
+    <value>Bir modelle yazmak için yapay zekâ bağlantısı kurun: bu bilgisayardaki Ollama ya da LM Studio yeterli.</value>
+  </data>
+  <data name="Editor_WriteNeedsQuestion" xml:space="preserve">
+    <value>Önce soruyu yazın; model onu yanıtlar.</value>
+  </data>
+  <data name="Editor_WriteNeedsUserTurn" xml:space="preserve">
+    <value>Önce bir kullanıcı mesajı ekleyin; model ona yanıt verir.</value>
+  </data>
+  <data name="Editor_AIConnections" xml:space="preserve">
+    <value>Yapay zekâ bağlantıları…</value>
   </data>
   <data name="Editor_Cut" xml:space="preserve">
     <value>Kes</value>
@@ -948,6 +1002,24 @@
   <data name="Overview_Analyzing" xml:space="preserve">
     <value>Analiz ediliyor {0:N0} / {1:N0}…</value>
   </data>
+  <data name="Overview_SectionAI" xml:space="preserve">
+    <value>YAPAY ZEKÂ</value>
+  </data>
+  <data name="Overview_NoAIConnection" xml:space="preserve">
+    <value>Yapay zekâ bağlantısı yok</value>
+  </data>
+  <data name="Overview_AIConnections" xml:space="preserve">
+    <value>Bağlantılar…</value>
+  </data>
+  <data name="Overview_AIGuidance" xml:space="preserve">
+    <value>Bu veri setine özel talimatlar</value>
+  </data>
+  <data name="Overview_AIGuidanceWatermark" xml:space="preserve">
+    <value>ör. İki üç cümleyle, kibar ve resmî bir Türkçeyle yanıtla.</value>
+  </data>
+  <data name="Overview_AIGuidanceHint" xml:space="preserve">
+    <value>Yapay zekâ bu veri setine yazarken her istekle gönderilir.</value>
+  </data>
   <data name="Overview_Tokens" xml:space="preserve">
     <value>TOKENLAR</value>
   </data>
@@ -1010,6 +1082,15 @@
   </data>
   <data name="Status_TokenSettingsChanged" xml:space="preserve">
     <value>{0} token ayarları: {1}, {2}.</value>
+  </data>
+  <data name="Status_AIGuidanceSaved" xml:space="preserve">
+    <value>“{0}” için yapay zekâ talimatları kaydedildi</value>
+  </data>
+  <data name="Status_Written" xml:space="preserve">
+    <value>Yanıtı {0} yazdı; onaylamadan önce gözden geçirin</value>
+  </data>
+  <data name="Status_WritingStopped" xml:space="preserve">
+    <value>Yazma durduruldu; o ana kadar yazılan metin duruyor</value>
   </data>
   <data name="Details_QualityScore" xml:space="preserve">
     <value>Kalite skoru</value>
@@ -1541,6 +1622,123 @@
   </data>
   <data name="Menu_Tags" xml:space="preserve">
     <value>_Etiketler…</value>
+  </data>
+  <data name="Menu_AIConnections" xml:space="preserve">
+    <value>Yapay Zekâ Bağlantıları…</value>
+  </data>
+  <data name="AI_Title" xml:space="preserve">
+    <value>Yapay zekâ bağlantıları</value>
+  </data>
+  <data name="AI_Subtitle" xml:space="preserve">
+    <value>Bu bilgisayardaki ya da ağdaki, yanıt yazmaya yardım eden model sunucuları. Kayıtlar yalnızca onunla yazdığınız sunucuya gönderilir.</value>
+  </data>
+  <data name="AI_SavedHint" xml:space="preserve">
+    <value>Değişiklikler hemen kaydedilir. Bağlantılar bu bilgisayarda kalır, çalışma alanı dosyalarına girmez.</value>
+  </data>
+  <data name="AI_Add" xml:space="preserve">
+    <value>Bağlantı ekle</value>
+  </data>
+  <data name="AI_SectionConnections" xml:space="preserve">
+    <value>BAĞLANTILAR</value>
+  </data>
+  <data name="AI_Empty" xml:space="preserve">
+    <value>Henüz bağlantı yok.</value>
+  </data>
+  <data name="AI_EmptyTitle" xml:space="preserve">
+    <value>Yerel bir model bağlayın</value>
+  </data>
+  <data name="AI_EmptyHint" xml:space="preserve">
+    <value>Ollama ya da LM Studio'yu kurup bir model indirin, ardından buradan bağlantı ekleyin. Siz eklemeden hiçbir yere bir şey gönderilmez.</value>
+  </data>
+  <data name="AI_Default" xml:space="preserve">
+    <value>Varsayılan</value>
+  </data>
+  <data name="AI_Server" xml:space="preserve">
+    <value>Sunucu</value>
+  </data>
+  <data name="AI_Name" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="AI_Address" xml:space="preserve">
+    <value>Adres</value>
+  </data>
+  <data name="AI_AddressInvalid" xml:space="preserve">
+    <value>http:// ya da https:// ile başlayan bir adres girin, ör. http://localhost:11434/v1.</value>
+  </data>
+  <data name="AI_RemoteWarning" xml:space="preserve">
+    <value>Bu sunucu bu bilgisayarın ve yerel ağın dışında. Onunla yazdığınız kayıtlar oraya gönderilir.</value>
+  </data>
+  <data name="AI_AllowRemote" xml:space="preserve">
+    <value>Kayıtların bu sunucuya gönderilmesine izin ver</value>
+  </data>
+  <data name="AI_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="AI_ModelWatermark" xml:space="preserve">
+    <value>Bir model seçin ya da adını yazın</value>
+  </data>
+  <data name="AI_RefreshModels" xml:space="preserve">
+    <value>Sunucudaki modelleri getir</value>
+  </data>
+  <data name="AI_Temperature" xml:space="preserve">
+    <value>Sıcaklık</value>
+  </data>
+  <data name="AI_MaxTokens" xml:space="preserve">
+    <value>En uzun yanıt (token)</value>
+  </data>
+  <data name="AI_MaxTokensWatermark" xml:space="preserve">
+    <value>Sunucu varsayılanı</value>
+  </data>
+  <data name="AI_ApiKey" xml:space="preserve">
+    <value>API anahtarı (isteğe bağlı)</value>
+  </data>
+  <data name="AI_ApiKeyWatermark" xml:space="preserve">
+    <value>Çoğu yerel sunucu gerektirmez</value>
+  </data>
+  <data name="AI_Test" xml:space="preserve">
+    <value>Dene</value>
+  </data>
+  <data name="AI_MakeDefault" xml:space="preserve">
+    <value>Varsayılan yap</value>
+  </data>
+  <data name="AI_Delete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="AI_Testing" xml:space="preserve">
+    <value>Sunucuyla konuşuluyor…</value>
+  </data>
+  <data name="AI_Deleted" xml:space="preserve">
+    <value>{0} silindi.</value>
+  </data>
+  <data name="AI_NoModels" xml:space="preserve">
+    <value>Sunucuda model yok. Önce sunucuya bir model indirin (ör. ollama pull qwen2.5:7b).</value>
+  </data>
+  <data name="AI_ModelsFound" xml:space="preserve">
+    <value>{1} {0:N0} model sunuyor.</value>
+  </data>
+  <data name="AI_ChooseModel" xml:space="preserve">
+    <value>Önce bir model seçin.</value>
+  </data>
+  <data name="AI_TestPassed" xml:space="preserve">
+    <value>Çalışıyor: {0}, {1} sn'de yanıt verdi — “{2}”</value>
+  </data>
+  <data name="AIProvider_Ollama" xml:space="preserve">
+    <value>Ollama</value>
+  </data>
+  <data name="AIProvider_LMStudio" xml:space="preserve">
+    <value>LM Studio</value>
+  </data>
+  <data name="AIProvider_Vllm" xml:space="preserve">
+    <value>vLLM</value>
+  </data>
+  <data name="AIProvider_LocalAI" xml:space="preserve">
+    <value>LocalAI</value>
+  </data>
+  <data name="AIProvider_OpenAICompatible" xml:space="preserve">
+    <value>Diğer OpenAI uyumlu sunucu</value>
+  </data>
+  <data name="Menu_WriteWithAI" xml:space="preserve">
+    <value>Yapay zekâyla yaz</value>
   </data>
   <data name="Tags_Title" xml:space="preserve">
     <value>Etiketler</value>

@@ -158,6 +158,12 @@ public sealed class DatasetRecord
         return true;
     }
 
+    /// <summary>
+    /// Notes in the lineage that a model wrote (part of) the content (SDD §2.4).
+    /// </summary>
+    public void MarkGeneratedBy(string model) =>
+        Lineage = Lineage with { GeneratedByModel = Guard.NotBlank(model, nameof(model), 200) };
+
     public void ChangeStatus(RecordStatus status, DateTimeOffset now)
     {
         if (status == Status)
@@ -182,9 +188,15 @@ public sealed class DatasetRecord
     /// <param name="status">The earlier status.</param>
     /// <param name="payload">The earlier content, or <c>null</c> to keep the current content.</param>
     /// <param name="now">The time of the change.</param>
+    /// <param name="lineage">The earlier lineage, or <c>null</c> to keep the current one.</param>
     /// <returns><c>true</c> if the content was replaced.</returns>
-    public bool RestoreState(RecordStatus status, RecordPayload? payload, DateTimeOffset now)
+    public bool RestoreState(RecordStatus status, RecordPayload? payload, DateTimeOffset now, RecordLineage? lineage = null)
     {
+        if (lineage is not null)
+        {
+            Lineage = lineage;
+        }
+
         var contentChanged = false;
         if (payload is not null)
         {

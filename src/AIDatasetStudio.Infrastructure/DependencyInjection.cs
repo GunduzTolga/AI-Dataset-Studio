@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Catalog;
 using AIDatasetStudio.Application.Export;
@@ -7,6 +8,7 @@ using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Tags;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Application.Workspaces;
+using AIDatasetStudio.Infrastructure.AI;
 using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Catalog;
 using AIDatasetStudio.Infrastructure.Export;
@@ -29,8 +31,11 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string? settingsDirectory = null)
     {
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton<IUserSettings>(provider =>
+        services.AddSingleton(provider =>
             new SqliteUserSettings(settingsDirectory ?? UserSettingsLocation.GetDirectory(), provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<IUserSettings>(provider => provider.GetRequiredService<SqliteUserSettings>());
+        services.AddSingleton<IAIConnectionStore>(provider => provider.GetRequiredService<SqliteUserSettings>());
+        services.TryAddSingleton<IAIProviderFactory, AIProviderFactory>();
         services.AddSingleton<WorkspaceService>();
         services.AddSingleton<IWorkspaceService>(provider => provider.GetRequiredService<WorkspaceService>());
         services.AddSingleton<IWorkspaceDatabase>(provider => provider.GetRequiredService<WorkspaceService>());

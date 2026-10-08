@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -22,16 +23,31 @@ public sealed partial class EditorField : ViewModelBase
     private readonly Localizer _localizer;
     private readonly Action _edited;
 
-    public EditorField(string labelKey, string text, FieldTone tone, Localizer localizer, Action edited)
+    /// <param name="writeTarget">What a model can write into this field, if anything.</param>
+    public EditorField(string labelKey, string text, FieldTone tone, Localizer localizer, Action edited, AIWriteTarget? writeTarget = null)
     {
         LabelKey = labelKey;
         Tone = tone;
         _localizer = localizer;
         _edited = edited;
+        WriteTarget = writeTarget;
         Text = text;
     }
 
     public string LabelKey { get; }
+
+    /// <summary>
+    /// What a model can write into this field (the answer side), or <c>null</c>.
+    /// </summary>
+    public AIWriteTarget? WriteTarget { get; }
+
+    public bool CanBeWritten => WriteTarget is not null;
+
+    /// <summary>
+    /// A model is writing into the field; it cannot be typed into meanwhile.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsWriting { get; set; }
 
     public string Label => _localizer[LabelKey];
 
@@ -75,6 +91,12 @@ public sealed partial class EditorMessage : ViewModelBase
 
     [ObservableProperty]
     public partial string Text { get; set; }
+
+    /// <summary>
+    /// A model is writing this turn; it cannot be typed into meanwhile.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsWriting { get; set; }
 
     public string Label => _localizer[$"Field_{Role}"];
 

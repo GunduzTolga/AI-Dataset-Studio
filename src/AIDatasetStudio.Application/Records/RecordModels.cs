@@ -92,7 +92,13 @@ public sealed record StatusChangeResult(IReadOnlyList<RecordStatusUpdate> Change
 /// </summary>
 /// <param name="Payload">The content, or <c>null</c> to leave the content as it is.</param>
 /// <param name="TagIds">The tags, or <c>null</c> to leave them as they are; tags that no longer exist are left out.</param>
-public sealed record RecordState(Guid RecordId, RecordStatus Status, RecordPayload? Payload = null, IReadOnlyList<Guid>? TagIds = null);
+/// <param name="Lineage">The lineage, or <c>null</c> to leave it as it is (an edit with AI notes the model in it).</param>
+public sealed record RecordState(
+    Guid RecordId,
+    RecordStatus Status,
+    RecordPayload? Payload = null,
+    IReadOnlyList<Guid>? TagIds = null,
+    RecordLineage? Lineage = null);
 
 /// <summary>
 /// Everything needed to bring back a deleted record exactly as it was.
