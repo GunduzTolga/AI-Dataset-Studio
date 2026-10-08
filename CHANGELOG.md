@@ -5,6 +5,21 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Questions from documents
+- **File › Extract Q&A from Document** (also on the dataset overview's AI card, and offered by the
+  import wizard for documents) reads a PDF, Word, Markdown or text document and splits it into
+  passages along its headings (800 tokens by default). The model writes the questions each
+  passage answers, at most three by default, in the passage's language and following the
+  dataset's instructions. Pairs appear as they are written; writing can be stopped, and any
+  passage written again.
+- Every pair can be edited, left out or removed next to its passage. **Add** turns the kept
+  pairs into draft records of an instruction, chat or preference dataset, with the model in
+  their lineage and the passage kept with them: the editor shows the section and page and opens
+  the **Source passage**, so answers can be checked against the document. Edit › Undo takes the
+  whole addition back.
+- Answers that are not clean JSON are still read: code fences, wrapped lists, Turkish keys and
+  "Q: … A: …" lines. An answer with no pairs is shown, so the passage can be tried again.
+
 ### Writing with AI
 - **Tools › AI Connections** connects a model server on this computer or network: Ollama,
   LM Studio, vLLM, LocalAI or any other OpenAI-compatible server. The server's models are listed,
@@ -20,6 +35,14 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   length, language) that are sent with every request.
 
 ### Import
+- PDF (`.pdf`) and Word (`.docx`, `.docm`) documents are read like Markdown, one record per
+  heading. PDF headings come from their size (or short bold lines, as in FAQs), Word headings
+  from their style; numbered and bulleted lists and tables keep their shape. Running headers,
+  page numbers, tables of contents, text boxes and deleted (tracked) text are left out; a word
+  broken at the end of a line is joined again, and a paragraph that goes on to the next page or
+  column stays whole. Imported records point at their page or paragraph
+  (`kılavuz.pdf#page=3`). Scanned PDFs without text, password-protected PDFs and Word 97–2003
+  files are explained, not misread.
 - Excel workbooks (`.xlsx`, `.xlsm`): the sheet that was open is read, or any other sheet, or
   all sheets at once — each with its own header row, columns with the same name mapped
   together. Dates come in as `2024-03-01` / `2024-03-01 14:30`, and imported records point at

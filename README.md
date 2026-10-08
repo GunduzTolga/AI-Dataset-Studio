@@ -28,8 +28,9 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
 - 🏷️ **Tags:** Colored tags shared by all datasets, toggled with Mod+1…5, on one record or many; filter the list by tag and split exports within each tag or tag group (`kategori:hukuk`).
 - ✨ **Write with a local model:** Connect Ollama, LM Studio, vLLM or LocalAI (Tools › AI Connections) and let the model write an answer, a chat reply, or the chosen and a worse rejected answer of a DPO pair (Mod+G). You review the text before saving, and the model is recorded in the record's lineage. Nothing leaves your network unless you allow a remote server.
+- 📄 **Questions from documents:** File › Extract Q&A from Document reads a PDF, Word, Markdown or text document, splits it into passages along its headings, and has the model write the questions each passage answers. Review and edit them next to the passage, then add them as draft records that remember their source passage (Edit › Undo takes them back).
 - 🔄 **Universal Import & Export:**
-  - **Import:** CSV (with column mapping wizard), JSONL, and standard JSON.
+  - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF and Word.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
 
 ---
@@ -43,6 +44,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 10
 - **Tokenization:** `Microsoft.ML.Tokenizers` (offline `cl100k_base` / `o200k_base` vocabularies)
 - **Editor:** AvaloniaEdit, with built-in highlighting for Markdown, fenced code blocks and JSON
+- **Documents:** [PdfPig](https://github.com/UglyToad/PdfPig) for PDF text and layout; an own streaming reader for Word and Excel files
 - **Tests:** xUnit v3 on Microsoft Testing Platform
 
 ---
@@ -104,6 +106,7 @@ Importing data: select a dataset, then **File › Import from File…** (or the 
 | CSV / TSV (`.csv`, `.tsv`, `.txt`) | Any columns, mapped by name (English and Turkish names are suggested automatically); UTF-8, UTF-16 and Turkish Windows-1254 files from Excel | Instruction, Chat, Preference |
 | Excel workbooks (`.xlsx`, `.xlsm`) | One sheet or all sheets at once, each with its own header row; columns mapped by name as for CSV; dates read as ISO text | Instruction, Chat, Preference |
 | Markdown (`.md`, `.markdown`) | One record per heading with text under it: the heading asks, the text answers; the headings above it can fill the input | Instruction, Chat, Preference |
+| PDF (`.pdf`) and Word (`.docx`, `.docm`) | Read like Markdown: headings (by font size in PDFs, by style in Word), lists and tables are recognised; running headers, page numbers and tables of contents are left out. Scanned PDFs (no text) and Word 97–2003 files are explained | Instruction, Chat, Preference |
 | Plain text (`.txt`) | One record per paragraph: the first line asks, the lines after it answer. A `.txt` file is read as a table or as text, whichever it looks like, and the wizard can switch | Instruction, Chat, Preference |
 
 Reviewing records: edit fields directly in the right-hand panel; changes are saved with **Mod+S** or automatically when you move on. Fields colour Markdown, fenced code blocks (```` ```json ````, `python`, `javascript`, `csharp`, `sql`, `bash`, `xml`) and JSON documents. Shift/Ctrl-click selects several records for batch actions. (**Mod** is Ctrl on Windows/Linux and Cmd on macOS.)
@@ -171,8 +174,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M10 | Near-duplicate questions (MinHash + exact Jaccard), clean-up and one split part per group; chosen vs rejected diff for preference pairs | ✅ |
 | M11 | Excel (multi-sheet), Markdown and plain-text import; Markdown, code and JSON highlighting in the editor | ✅ |
 | M12 | Local model connections (Ollama, LM Studio, vLLM, LocalAI) and writing records with AI | ✅ |
-| M13 | PDF and Word import: chunking and question–answer extraction with a model | Next |
-| M14 | Synthetic variations of records | Planned |
+| M13 | PDF and Word import; question–answer extraction from documents with a model, reviewed before adding | ✅ |
+| M14 | Synthetic variations of records | Next |
 | M15 | LLM-as-a-judge scores with reasons | Planned |
 | M16 | Questions alike in meaning (local embeddings) | Planned |
 
