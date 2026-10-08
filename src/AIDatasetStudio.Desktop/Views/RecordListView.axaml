@@ -58,6 +58,13 @@
                 <TextBlock Text="{l:Tr Action_Export}" />
               </StackPanel>
             </Button>
+            <Button x:Name="VersionsButton" Classes="subtle" ToolTip.Tip="{l:Tr Action_VersionsTip}"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).VersionsCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="History" />
+                <TextBlock Text="{l:Tr Action_Versions}" />
+              </StackPanel>
+            </Button>
           </StackPanel>
         </Grid>
 

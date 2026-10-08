@@ -74,6 +74,19 @@
         <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
           <ScrollViewer>
             <StackPanel Margin="20,18,20,20" Spacing="20" IsEnabled="{Binding IsSetup}">
+              <!-- Source: the current records or a frozen version -->
+              <StackPanel Spacing="8" IsVisible="{Binding HasVersions}">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionSource}" />
+                <ComboBox x:Name="SourceBox" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SourceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Classes="caption muted" Text="{Binding SourceHint}" IsVisible="{Binding HasSourceHint}" TextWrapping="Wrap" />
+              </StackPanel>
+
               <!-- Format -->
               <StackPanel Spacing="8">
                 <TextBlock Classes="overline" Text="{l:Tr Export_SectionFormat}" />

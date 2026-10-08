@@ -57,6 +57,10 @@
       <SolidColorBrush x:Key="NegativeBrush" Color="#E11D48" />
       <SolidColorBrush x:Key="UserBubbleBrush" Color="#EEF0FF" />
       <SolidColorBrush x:Key="AssistantBubbleBrush" Color="#FFFFFF" />
+
+      <!-- Version differences: text backgrounds behind primary text -->
+      <SolidColorBrush x:Key="DiffInsertedBrush" Color="#BBF7D0" />
+      <SolidColorBrush x:Key="DiffDeletedBrush" Color="#FECDD3" />
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
@@ -103,6 +107,9 @@
       <SolidColorBrush x:Key="NegativeBrush" Color="#FB7185" />
       <SolidColorBrush x:Key="UserBubbleBrush" Color="#25264A" />
       <SolidColorBrush x:Key="AssistantBubbleBrush" Color="#1D1D21" />
+
+      <SolidColorBrush x:Key="DiffInsertedBrush" Color="#1D5236" />
+      <SolidColorBrush x:Key="DiffDeletedBrush" Color="#62202E" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
 

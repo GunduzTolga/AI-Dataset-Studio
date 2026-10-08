@@ -133,6 +133,49 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.ToTable("DatasetRecords", (string)null);
                 });
 
+            modelBuilder.Entity("AIDatasetStudio.Domain.Entities.DatasetVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ApprovedCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ContextLength")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RecordCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Tokenizer")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("DatasetVersions", (string)null);
+                });
+
             modelBuilder.Entity("AIDatasetStudio.Domain.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -232,6 +275,13 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("TargetFormat")
                         .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("VersionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VersionNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -354,6 +404,15 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                 });
 
             modelBuilder.Entity("AIDatasetStudio.Domain.Entities.DatasetRecord", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Domain.Entities.DatasetVersion", b =>
                 {
                     b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
                         .WithMany()

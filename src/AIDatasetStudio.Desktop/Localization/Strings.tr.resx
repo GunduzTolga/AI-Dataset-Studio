@@ -1197,4 +1197,199 @@
   <data name="Error_UnexpectedNoLog" xml:space="preserve">
     <value>Beklenmeyen bir hata oluştu.</value>
   </data>
+  <data name="Menu_CreateVersion" xml:space="preserve">
+    <value>Sürüm _Oluştur…</value>
+  </data>
+  <data name="Menu_Versions" xml:space="preserve">
+    <value>Sü_rümler…</value>
+  </data>
+  <data name="Action_Versions" xml:space="preserve">
+    <value>Sürümler</value>
+  </data>
+  <data name="Action_VersionsTip" xml:space="preserve">
+    <value>Veri setinin sürümlerini dondur, karşılaştır ve geri dön</value>
+  </data>
+  <data name="History_Rollback" xml:space="preserve">
+    <value>v{0} sürümüne dönüş</value>
+  </data>
+  <data name="Status_VersionAnalyzing" xml:space="preserve">
+    <value>Sürüm dondurulmadan önce kayıtlar analiz ediliyor… {0:N0}</value>
+  </data>
+  <data name="Status_VersionCreated" xml:space="preserve">
+    <value>v{0} sürümü {1:N0} kayıtla oluşturuldu</value>
+  </data>
+  <data name="NewVersion_Title" xml:space="preserve">
+    <value>Yeni Sürüm</value>
+  </data>
+  <data name="NewVersion_Number" xml:space="preserve">
+    <value>Sürüm numarası</value>
+  </data>
+  <data name="NewVersion_Description" xml:space="preserve">
+    <value>Not (isteğe bağlı)</value>
+  </data>
+  <data name="NewVersion_DescriptionWatermark" xml:space="preserve">
+    <value>Ne değişti ya da sürüm ne için</value>
+  </data>
+  <data name="NewVersion_Create" xml:space="preserve">
+    <value>Sürüm Oluştur</value>
+  </data>
+  <data name="NewVersion_Summary" xml:space="preserve">
+    <value>{0:N0} kayıt şu anki hâliyle dondurulur. Sonraki düzenlemeler sürümü değiştirmez; onunla karşılaştırabilir, onu dışa aktarabilir ya da istediğiniz zaman ona geri dönebilirsiniz.</value>
+  </data>
+  <data name="NewVersion_Patch" xml:space="preserve">
+    <value>Yama · v{0}</value>
+  </data>
+  <data name="NewVersion_Minor" xml:space="preserve">
+    <value>Küçük · v{0}</value>
+  </data>
+  <data name="NewVersion_Major" xml:space="preserve">
+    <value>Büyük · v{0}</value>
+  </data>
+  <data name="NewVersion_InvalidNumber" xml:space="preserve">
+    <value>1.2.0 biçimini kullanın (büyük.küçük.yama).</value>
+  </data>
+  <data name="NewVersion_TakenNumber" xml:space="preserve">
+    <value>v{0} zaten var.</value>
+  </data>
+  <data name="Versions_Title" xml:space="preserve">
+    <value>Sürümler</value>
+  </data>
+  <data name="Versions_WorkingCopy" xml:space="preserve">
+    <value>Çalışma kopyası</value>
+  </data>
+  <data name="Versions_WorkingCopySubtitle" xml:space="preserve">
+    <value>Kayıtların şu anki hâli</value>
+  </data>
+  <data name="Versions_VersionCounts" xml:space="preserve">
+    <value>{0:N0} kayıt · {1:N0} onaylı</value>
+  </data>
+  <data name="Versions_WorkingCopyDetails" xml:space="preserve">
+    <value>Veri setinin şu anki hâli. Eğitimden önce sürüm olarak dondurun; böylece aynı veri daha sonra yeniden dışa aktarılabilir.</value>
+  </data>
+  <data name="Versions_Details" xml:space="preserve">
+    <value>Oluşturulma {0} · {1:N0} kayıt ({2:N0} onaylı) · {3}, {4:N0} bağlam</value>
+  </data>
+  <data name="Versions_Create" xml:space="preserve">
+    <value>Sürüm Oluştur</value>
+  </data>
+  <data name="Versions_Rollback" xml:space="preserve">
+    <value>Bu Sürüme Dön</value>
+  </data>
+  <data name="Versions_Delete" xml:space="preserve">
+    <value>Sürümü sil</value>
+  </data>
+  <data name="Versions_CompareWith" xml:space="preserve">
+    <value>Karşılaştır</value>
+  </data>
+  <data name="Versions_EmptyTitle" xml:space="preserve">
+    <value>Henüz sürüm yok</value>
+  </data>
+  <data name="Versions_EmptyHint" xml:space="preserve">
+    <value>Sürüm; kayıtları, durumlarını ve token sayılarını dondurur. Eğitimden önce bir sürüm oluşturun; daha sonra birebir aynı veriyi dışa aktarabilirsiniz.</value>
+  </data>
+  <data name="Versions_IdenticalTitle" xml:space="preserve">
+    <value>Fark yok</value>
+  </data>
+  <data name="Versions_IdenticalHint" xml:space="preserve">
+    <value>Her kayıt ikisinde de aynı içeriğe ve duruma sahip.</value>
+  </data>
+  <data name="Versions_SelectRecord" xml:space="preserve">
+    <value>Neyin değiştiğini görmek için bir kayıt seçin</value>
+  </data>
+  <data name="Versions_CountAdded" xml:space="preserve">
+    <value>{0:N0} eklendi</value>
+  </data>
+  <data name="Versions_CountRemoved" xml:space="preserve">
+    <value>{0:N0} silindi</value>
+  </data>
+  <data name="Versions_CountModified" xml:space="preserve">
+    <value>{0:N0} değişti</value>
+  </data>
+  <data name="Versions_CountStatusChanged" xml:space="preserve">
+    <value>{0:N0} durum değişikliği</value>
+  </data>
+  <data name="Versions_CountUnchanged" xml:space="preserve">
+    <value>{0:N0} aynı</value>
+  </data>
+  <data name="Versions_FilterAll" xml:space="preserve">
+    <value>Tümü · {0:N0}</value>
+  </data>
+  <data name="Versions_Filter" xml:space="preserve">
+    <value>{0} · {1:N0}</value>
+  </data>
+  <data name="Versions_FieldAdded" xml:space="preserve">
+    <value>Eklendi</value>
+  </data>
+  <data name="Versions_FieldRemoved" xml:space="preserve">
+    <value>Kaldırıldı</value>
+  </data>
+  <data name="Versions_FieldChanged" xml:space="preserve">
+    <value>Değişti</value>
+  </data>
+  <data name="Versions_Creating" xml:space="preserve">
+    <value>Sürüm oluşturuluyor…</value>
+  </data>
+  <data name="Versions_Analyzing" xml:space="preserve">
+    <value>Önce kayıtlar analiz ediliyor… {0:N0}</value>
+  </data>
+  <data name="Versions_Created" xml:space="preserve">
+    <value>v{0}, {1:N0} kayıtla oluşturuldu.</value>
+  </data>
+  <data name="Versions_Comparing" xml:space="preserve">
+    <value>Karşılaştırılıyor…</value>
+  </data>
+  <data name="Versions_AlreadyAt" xml:space="preserve">
+    <value>Kayıtlar zaten v{0} ile aynı.</value>
+  </data>
+  <data name="Versions_RollingBack" xml:space="preserve">
+    <value>v{0} sürümüne dönülüyor…</value>
+  </data>
+  <data name="Versions_RolledBack" xml:space="preserve">
+    <value>v{0} sürümüne dönüldü: {1:N0} kayıt değişti. Düzen › Geri Al ile geri alabilirsiniz.</value>
+  </data>
+  <data name="Versions_Deleted" xml:space="preserve">
+    <value>v{0} silindi.</value>
+  </data>
+  <data name="Difference_Added" xml:space="preserve">
+    <value>Eklendi</value>
+  </data>
+  <data name="Difference_Removed" xml:space="preserve">
+    <value>Silindi</value>
+  </data>
+  <data name="Difference_Modified" xml:space="preserve">
+    <value>Değişti</value>
+  </data>
+  <data name="Difference_StatusChanged" xml:space="preserve">
+    <value>Durum</value>
+  </data>
+  <data name="Dialog_RollbackTitle" xml:space="preserve">
+    <value>Sürüme Dön</value>
+  </data>
+  <data name="Dialog_RollbackMessage" xml:space="preserve">
+    <value>Kayıtlar v{0} ile aynı hâle getirilsin mi? {1:N0} içerik ve {2:N0} durum geri döner, {3:N0} silinmiş kayıt geri gelir ve sonradan eklenen {4:N0} kayıt arşivlenir (silinmez). Düzen › Geri Al ile geri alabilirsiniz.</value>
+  </data>
+  <data name="Dialog_RollbackConfirm" xml:space="preserve">
+    <value>Geri Dön</value>
+  </data>
+  <data name="Dialog_DeleteVersionTitle" xml:space="preserve">
+    <value>Sürümü Sil</value>
+  </data>
+  <data name="Dialog_DeleteVersionMessage" xml:space="preserve">
+    <value>v{0} silinsin mi? Başka bir sürümde olmayan içerikler dosyadan silinir. Bu işlem geri alınamaz; kayıtların kendisi değişmez.</value>
+  </data>
+  <data name="Export_SectionSource" xml:space="preserve">
+    <value>KAYNAK</value>
+  </data>
+  <data name="Export_SourceCurrent" xml:space="preserve">
+    <value>Güncel kayıtlar</value>
+  </data>
+  <data name="Export_SourceVersion" xml:space="preserve">
+    <value>v{0} sürümü · {1}</value>
+  </data>
+  <data name="Export_SourceVersionHint" xml:space="preserve">
+    <value>v{0} dondurulduğu hâliyle yazılır: durumları, içerikleri ve token sayıları, sürümün bağlam uzunluğuna göre denetlenir ({1}, {2:N0}).</value>
+  </data>
+  <data name="Export_LastExportVersion" xml:space="preserve">
+    <value>Son dışa aktarım: {0} · v{3} · {1} · {2:N0} kayıt</value>
+  </data>
 </root>

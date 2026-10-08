@@ -8,6 +8,7 @@ using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
@@ -229,6 +230,33 @@ internal sealed class FakeDialogs : IDialogService
     {
         LastAbout = about;
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// What the user enters for a new version; by default the suggested number without a note.
+    /// <c>null</c> cancels.
+    /// </summary>
+    public Func<NewVersionViewModel, bool>? NewVersionScript { get; set; } = _ => true;
+
+    public NewVersionViewModel? LastNewVersion { get; private set; }
+
+    public Task<bool> PromptNewVersionAsync(NewVersionViewModel prompt)
+    {
+        LastNewVersion = prompt;
+        return Task.FromResult(NewVersionScript?.Invoke(prompt) == true && !prompt.HasError);
+    }
+
+    /// <summary>
+    /// What the user does in the versions window; by default opens it and waits for the comparison.
+    /// </summary>
+    public Func<VersionsViewModel, Task> VersionsScript { get; set; } = versions => versions.InitializeAsync();
+
+    public VersionsViewModel? LastVersions { get; private set; }
+
+    public async Task ShowVersionsAsync(VersionsViewModel versions)
+    {
+        LastVersions = versions;
+        await VersionsScript(versions);
     }
 
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)

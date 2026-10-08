@@ -29,7 +29,7 @@ public sealed class ExportServiceTests
         var options = ExportOptions.DefaultFor(ExportFormat.Alpaca);
         var path = Path.Combine(ws.Directory, "faq.jsonl");
 
-        var preview = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 5, Ct);
+        var preview = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 5, cancellationToken: Ct);
         var result = await ws.Export.ExportAsync(datasetId, options, path, cancellationToken: Ct);
 
         string[] expected =
@@ -68,7 +68,7 @@ public sealed class ExportServiceTests
 
         Assert.Equal(3, result.Exported);
         Assert.Contains("0532 123 45 67", await File.ReadAllTextAsync(path, Ct), StringComparison.Ordinal);
-        Assert.Equal(0, (await ws.Export.PreviewAsync(datasetId, options, 0, Ct)).Duplicates);
+        Assert.Equal(0, (await ws.Export.PreviewAsync(datasetId, options, 0, cancellationToken: Ct)).Duplicates);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public sealed class ExportServiceTests
             ]));
         var options = ExportOptions.DefaultFor(ExportFormat.Alpaca) with { Statuses = [RecordStatus.Draft] };
 
-        var preview = await ws.Export.PreviewAsync(datasetId, options, 5, Ct);
+        var preview = await ws.Export.PreviewAsync(datasetId, options, 5, cancellationToken: Ct);
         var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "chat.jsonl"), cancellationToken: Ct);
 
         Assert.Equal((2L, 1L, 1L), (preview.Selected, preview.Unsupported, preview.Exported));
@@ -143,7 +143,7 @@ public sealed class ExportServiceTests
             new InstructionPayload("Kısa", "", "Cevap"));
         var options = ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Draft] };
 
-        var preview = await ws.Export.PreviewAsync(datasetId, options, 0, Ct);
+        var preview = await ws.Export.PreviewAsync(datasetId, options, 0, cancellationToken: Ct);
         var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "x.jsonl"), cancellationToken: Ct);
 
         Assert.Equal((2L, 0L), (preview.NotAnalyzed, preview.OverContextLimit));
@@ -167,7 +167,7 @@ public sealed class ExportServiceTests
         });
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ws.Export.ExportAsync(
-            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Draft] }, path, progress, cancellation.Token));
+            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Draft] }, path, progress, cancellationToken: cancellation.Token));
 
         Assert.Equal("eski\n", await File.ReadAllTextAsync(path, Ct));
         Assert.DoesNotContain(Directory.EnumerateFiles(ws.Directory), f => f.EndsWith(".partial", StringComparison.Ordinal));
@@ -183,9 +183,9 @@ public sealed class ExportServiceTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.ExportAsync(datasetId, ExportOptions.DefaultFor(ExportFormat.HuggingFaceDpo), path, cancellationToken: Ct));
         await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.PreviewAsync(
-            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Split = new SplitOptions(50, 10, 10) }, 1, Ct));
+            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Split = new SplitOptions(50, 10, 10) }, 1, cancellationToken: Ct));
         await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.PreviewAsync(
-            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Archived] }, 1, Ct));
+            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Archived] }, 1, cancellationToken: Ct));
         Assert.False(File.Exists(path));
         Assert.Null(await ws.Export.GetLastOptionsAsync(datasetId, Ct));
     }

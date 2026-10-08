@@ -147,32 +147,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             return 0;
         }
 
-        // The last state given for a record wins.
-        var byId = new Dictionary<Guid, RecordState>();
-        foreach (var state in states)
-        {
-            byId[state.RecordId] = state;
-        }
-
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        var ids = byId.Keys.ToList();
-        var records = await context.Records.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
-        var now = timeProvider.GetUtcNow();
-        var reindex = records.Where(record => record.RestoreState(byId[record.Id].Status, byId[record.Id].Payload, now)).ToList();
-
-        await context.SaveChangesAsync(cancellationToken);
-        if (reindex.Count > 0)
-        {
-            await using var index = Writer(context, transaction);
-            foreach (var record in reindex)
-            {
-                await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
-            }
-        }
-
+        var before = await ApplyStatesAsync(context, transaction, states, timeProvider.GetUtcNow(), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return records.Count;
+        return before.Count;
     }
 
     public async Task<int> RestoreAsync(IReadOnlyCollection<RecordSnapshot> snapshots, CancellationToken cancellationToken = default)
@@ -185,6 +164,75 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
 
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var restored = await RecreateAsync(context, transaction, snapshots, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return restored.Count;
+    }
+
+    /// <summary>
+    /// Puts records into earlier states inside the caller's transaction, bypassing the lifecycle
+    /// rules; records that no longer exist are skipped. The last state given for a record wins.
+    /// </summary>
+    /// <returns>The state each record found had before: its status, and its content where that changed.</returns>
+    internal static async Task<IReadOnlyList<RecordState>> ApplyStatesAsync(
+        WorkspaceDbContext context,
+        IDbContextTransaction transaction,
+        IReadOnlyCollection<RecordState> states,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var byId = new Dictionary<Guid, RecordState>();
+        foreach (var state in states)
+        {
+            byId[state.RecordId] = state;
+        }
+
+        var ids = byId.Keys.ToList();
+        var records = await context.Records.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var before = new List<RecordState>(records.Count);
+        var reindex = new List<DatasetRecord>();
+        foreach (var record in records)
+        {
+            var target = byId[record.Id];
+            var previousPayload = record.Payload;
+            var previousStatus = record.Status;
+            var contentChanged = record.RestoreState(target.Status, target.Payload, now);
+            before.Add(new RecordState(record.Id, previousStatus, contentChanged ? previousPayload : null));
+            if (contentChanged)
+            {
+                reindex.Add(record);
+            }
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        if (reindex.Count > 0)
+        {
+            await using var index = Writer(context, transaction);
+            foreach (var record in reindex)
+            {
+                await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
+            }
+        }
+
+        return before;
+    }
+
+    /// <summary>
+    /// Re-creates deleted records inside the caller's transaction; records that exist are skipped
+    /// and tags that no longer exist are left out.
+    /// </summary>
+    /// <returns>The records re-created.</returns>
+    /// <exception cref="NotFoundException">A record's dataset does not exist.</exception>
+    internal static async Task<IReadOnlyList<DatasetRecord>> RecreateAsync(
+        WorkspaceDbContext context,
+        IDbContextTransaction transaction,
+        IReadOnlyCollection<RecordSnapshot> snapshots,
+        CancellationToken cancellationToken)
+    {
+        if (snapshots.Count == 0)
+        {
+            return [];
+        }
 
         var datasetIds = snapshots.Select(s => s.DatasetId).Distinct().ToList();
         var datasets = await context.Datasets.Where(d => datasetIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
@@ -232,8 +280,7 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             }
         }
 
-        await transaction.CommitAsync(cancellationToken);
-        return restored.Count;
+        return restored;
     }
 
     private static async Task<long> NextOrdinalAsync(WorkspaceDbContext context, Guid datasetId, CancellationToken cancellationToken) =>

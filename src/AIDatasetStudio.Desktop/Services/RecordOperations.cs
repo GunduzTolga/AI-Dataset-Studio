@@ -1,4 +1,5 @@
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -29,7 +30,7 @@ public sealed record ReplayResult(IUndoableAction Action, int Count);
 /// The record changes a user makes in the UI. Each one is recorded in <see cref="UndoHistory"/>
 /// and announced through <see cref="Changed"/>.
 /// </summary>
-public sealed class RecordOperations(IRecordCommandService commands, IRecordQueryService queries, UndoHistory history)
+public sealed class RecordOperations(IRecordCommandService commands, IRecordQueryService queries, IVersionService versions, UndoHistory history)
 {
     public event EventHandler<RecordChange>? Changed;
 
@@ -86,6 +87,22 @@ public sealed class RecordOperations(IRecordCommandService commands, IRecordQuer
         }
 
         return deleted;
+    }
+
+    /// <summary>
+    /// Makes the dataset match a version again (SDD §14.2); one step in the history.
+    /// </summary>
+    public async Task<RollbackResult> RollbackAsync(Guid datasetId, Guid versionId)
+    {
+        var result = await versions.RollbackAsync(versionId);
+        if (result.Changed > 0)
+        {
+            var action = new RollbackAction(datasetId, result.Number, result.Before, result.After, result.Recreated);
+            history.Push(action);
+            Changed?.Invoke(this, new RecordsReplaced(datasetId, action.RecordIds));
+        }
+
+        return result;
     }
 
     /// <returns>What was undone, or <c>null</c> if there is nothing to undo.</returns>

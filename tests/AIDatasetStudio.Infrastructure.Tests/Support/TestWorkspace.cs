@@ -5,6 +5,7 @@ using AIDatasetStudio.Infrastructure.Catalog;
 using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Records;
+using AIDatasetStudio.Infrastructure.Versions;
 using AIDatasetStudio.Infrastructure.Workspaces;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Support;
@@ -27,6 +28,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Import = new ImportService(Commands);
         Analysis = new RecordAnalysisService(Workspace, Tokenizers, Clock);
         Export = new ExportService(Workspace, Analysis, Clock);
+        Versions = new VersionService(Workspace, Analysis, Clock);
     }
 
     /// <summary>
@@ -37,6 +39,8 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public RecordAnalysisService Analysis { get; }
 
     public ExportService Export { get; }
+
+    public VersionService Versions { get; }
 
     public string Directory { get; }
 

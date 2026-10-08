@@ -46,6 +46,13 @@
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowExport" /></MenuItem.Icon>
         </MenuItem>
         <Separator />
+        <MenuItem x:Name="CreateVersionMenuItem" Header="{l:Tr Menu_CreateVersion}" Command="{Binding CreateVersionCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="BookmarkAdd" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="VersionsMenuItem" Header="{l:Tr Menu_Versions}" Command="{Binding VersionsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="History" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
         <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
       </MenuItem>
       <MenuItem Header="{l:Tr Menu_Edit}">

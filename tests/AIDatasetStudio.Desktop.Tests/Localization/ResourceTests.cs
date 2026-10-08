@@ -4,10 +4,12 @@ using System.Resources;
 using System.Text.RegularExpressions;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Export;
+using AIDatasetStudio.Domain.Enums;
 
 namespace AIDatasetStudio.Desktop.Tests.Localization;
 
@@ -80,14 +82,17 @@ public sealed partial class ResourceTests
     }
 
     [Fact]
-    public void Every_quality_rule_filter_kind_of_personal_data_and_export_choice_has_text()
+    public void Every_quality_rule_filter_kind_of_personal_data_export_choice_and_version_difference_has_text()
     {
         var keys = Enum.GetValues<QualityRule>().SelectMany(rule => new[] { $"Rule_{rule}", $"Issue_{rule}" })
             .Concat(Enum.GetValues<QualityFilter>().Select(filter => $"QualityFilter_{filter}"))
             .Concat(Enum.GetValues<PiiKind>().Select(kind => $"Pii_{kind}"))
             .Concat(Enum.GetValues<ExportFormat>().SelectMany(format => new[] { $"ExportFormat_{format}", $"ExportFormat_{format}_Hint" }))
             .Concat(Enum.GetValues<SplitPart>().Select(part => $"SplitPart_{part}"))
-            .Concat(Enum.GetValues<SplitMode>().Select(mode => $"Export_Split{mode}"));
+            .Concat(Enum.GetValues<SplitMode>().Select(mode => $"Export_Split{mode}"))
+            .Concat(Enum.GetValues<DifferenceKind>().SelectMany(kind => new[] { $"Difference_{kind}", $"Versions_Count{kind}" }))
+            .Concat(Enum.GetValues<RecordFieldKind>().Where(kind => kind != RecordFieldKind.Message).Select(kind => $"Field_{kind}"))
+            .Concat(Enum.GetValues<ChatRole>().Select(role => $"Field_{role}"));
 
         Assert.All(keys, key => Assert.Contains(key, English.Keys));
     }

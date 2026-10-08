@@ -29,6 +29,17 @@ internal sealed class ExportHistoryRow
 
     public Guid DatasetId { get; set; }
 
+    /// <summary>
+    /// The version exported, or <c>null</c> for the working copy. Not a foreign key: the history
+    /// keeps the entry (and <see cref="VersionNumber"/>) when the version is deleted.
+    /// </summary>
+    public Guid? VersionId { get; set; }
+
+    /// <summary>
+    /// "1.2.0" when a version was exported.
+    /// </summary>
+    public string? VersionNumber { get; set; }
+
     public ExportFormat TargetFormat { get; set; }
 
     /// <summary>

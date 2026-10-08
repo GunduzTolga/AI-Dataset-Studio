@@ -1,5 +1,6 @@
 using System.Globalization;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
 
@@ -8,7 +9,17 @@ namespace AIDatasetStudio.Desktop.ViewModels.Export;
 /// <summary>
 /// The dataset being exported.
 /// </summary>
-public sealed record ExportTarget(Guid DatasetId, string Name, DatasetType Type);
+/// <param name="Versions">Its frozen versions, which can be exported instead of the current records.</param>
+/// <param name="VersionId">The version to start with; <c>null</c> for the current records.</param>
+public sealed record ExportTarget(Guid DatasetId, string Name, DatasetType Type, IReadOnlyList<VersionInfo>? Versions = null, Guid? VersionId = null);
+
+/// <summary>
+/// What to export: the current records or a frozen version (SDD §14).
+/// </summary>
+public sealed record SourceOption(VersionInfo? Version, string Label)
+{
+    public Guid? VersionId => Version?.Id;
+}
 
 /// <summary>
 /// A target format with what it looks like and, when it cannot take every record of the

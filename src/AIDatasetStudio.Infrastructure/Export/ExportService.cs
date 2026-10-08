@@ -18,17 +18,16 @@ using Microsoft.EntityFrameworkCore;
 namespace AIDatasetStudio.Infrastructure.Export;
 
 /// <summary>
-/// Streams a dataset into JSON Lines files (SDD §10, §13). Records are read in their list order
-/// from one consistent snapshot, filtered, optionally masked, converted and assigned to a split
-/// part; files are written next to their destination and moved into place only when complete.
+/// Streams a dataset, or a frozen version of it, into JSON Lines files (SDD §10, §13, §14).
+/// Records are read in their list order from one consistent snapshot, filtered, optionally
+/// masked, converted and assigned to a split part; files are written next to their destination
+/// and moved into place only when complete.
 /// </summary>
 internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysisService analysis, TimeProvider timeProvider) : IExportService
 {
     private const int BatchSize = 500;
     private const string PartialSuffix = ".partial";
 
-    // Analysed and longer than the dataset's context length (never NULL).
-    private const string OverLimitExpression = "(a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength)";
 
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
@@ -37,29 +36,41 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         Converters = { new JsonStringEnumConverter() },
     };
 
-    public async Task<ExportPreview> PreviewAsync(Guid datasetId, ExportOptions options, int sampleLines, CancellationToken cancellationToken = default)
+    public async Task<ExportPreview> PreviewAsync(
+        Guid datasetId,
+        ExportOptions options,
+        int sampleLines,
+        Guid? versionId = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfNegative(sampleLines);
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
-        var dataset = await ReadDatasetAsync(connection, datasetId, cancellationToken);
-        Validate(options, dataset.Type);
+        var source = await ReadSourceAsync(connection, datasetId, versionId, cancellationToken);
+        Validate(options, source.Type);
         if (options.Statuses.Count == 0)
         {
             return new ExportPreview(0, 0, 0, 0, 0, []);
         }
 
+        // The checks in the pipeline's order; ROW_NUMBER finds the copies of an earlier record.
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
+            {SourceSql(source)},
+            chosen AS (
+                SELECT {UnsupportedSql(options, source.Type)} AS Unsupported,
+                       {(options.SkipOverContextLimit ? "s.OverLimit" : "0")} AS OverLimit,
+                       {(options.SkipDuplicates ? "ROW_NUMBER() OVER (PARTITION BY s.ContentHash ORDER BY s.Ordinal) > 1" : "0")} AS Copy,
+                       {(options.SkipOverContextLimit ? "s.NotAnalyzed" : "0")} AS NotAnalyzed
+                FROM s WHERE s.Status IN ({StatusList(options)}))
             SELECT COUNT(*),
-                   COALESCE(SUM({UnsupportedSql(options, dataset.Type)}), 0),
-                   COALESCE(SUM(NOT {UnsupportedSql(options, dataset.Type)} AND {OverLimitSql(options)}), 0),
-                   COALESCE(SUM(NOT {UnsupportedSql(options, dataset.Type)} AND NOT {OverLimitSql(options)} AND {DuplicateSql(options)}), 0),
-                   COALESCE(SUM({(options.SkipOverContextLimit ? "a.RecordId IS NULL" : "0")}), 0)
-            FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
-            WHERE r.DatasetId = $ds AND r.Status IN ({StatusList(options)});
+                   COALESCE(SUM(Unsupported), 0),
+                   COALESCE(SUM(NOT Unsupported AND OverLimit), 0),
+                   COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND Copy), 0),
+                   COALESCE(SUM(NotAnalyzed), 0)
+            FROM chosen;
             """;
-        command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));
+        source.Bind(command);
         long selected, unsupported, overLimit, duplicates, notAnalyzed;
         await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
         {
@@ -73,7 +84,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         {
             var scanner = options.MaskPersonalData ? new PiiScanner(await analysis.GetCustomTermsAsync(cancellationToken)) : null;
             var pipeline = new Pipeline(options, scanner);
-            await foreach (var record in ReadAsync(connection, null, datasetId, options, cancellationToken))
+            await foreach (var record in ReadAsync(connection, null, source, options, cancellationToken))
             {
                 if (pipeline.Convert(record) is { } line)
                 {
@@ -94,12 +105,13 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         ExportOptions options,
         string destination,
         IProgress<ExportProgress>? progress = null,
+        Guid? versionId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(destination);
         // Converting and masking is CPU work; keep it off the caller's (usually the UI) thread.
-        return Task.Run(() => ExportCoreAsync(datasetId, options, Path.GetFullPath(destination), progress, cancellationToken), cancellationToken);
+        return Task.Run(() => ExportCoreAsync(datasetId, versionId, options, Path.GetFullPath(destination), progress, cancellationToken), cancellationToken);
     }
 
     public async Task<ExportOptions?> GetLastOptionsAsync(Guid datasetId, CancellationToken cancellationToken = default)
@@ -122,22 +134,22 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         }
 
         var files = JsonSerializer.Deserialize<List<ExportedFile>>(row.Files, SettingsJson) ?? [];
-        return new ExportHistoryEntry(row.TargetFormat, row.RecordCount, [.. files.Select(f => f.Path)], row.ExportedAt);
+        return new ExportHistoryEntry(row.TargetFormat, row.RecordCount, [.. files.Select(f => f.Path)], row.ExportedAt, row.VersionNumber);
     }
 
     private async Task<ExportResult> ExportCoreAsync(
-        Guid datasetId, ExportOptions options, string destination, IProgress<ExportProgress>? progress, CancellationToken cancellationToken)
+        Guid datasetId, Guid? versionId, ExportOptions options, string destination, IProgress<ExportProgress>? progress, CancellationToken cancellationToken)
     {
-        DatasetInfo dataset;
+        Source source;
         await using (var connection = await database.OpenConnectionAsync(cancellationToken))
         {
-            dataset = await ReadDatasetAsync(connection, datasetId, cancellationToken);
+            source = await ReadSourceAsync(connection, datasetId, versionId, cancellationToken);
         }
 
-        Validate(options, dataset.Type);
+        Validate(options, source.Type);
 
-        // The length check needs every record's token count with the dataset's tokenizer.
-        if (options.SkipOverContextLimit && await analysis.CountPendingAsync(datasetId, cancellationToken) > 0)
+        // The length check needs every record's token count with the dataset's tokenizer; a version keeps its own.
+        if (options.SkipOverContextLimit && source.VersionId is null && await analysis.CountPendingAsync(datasetId, cancellationToken) > 0)
         {
             await analysis.AnalyzeAsync(datasetId, cancellationToken: cancellationToken);
         }
@@ -162,10 +174,10 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             {
                 // One deferred read transaction: a consistent snapshot that does not block edits (WAL).
                 await using var snapshot = connection.BeginTransaction(deferred: true);
-                var total = await CountSelectedAsync(connection, snapshot, datasetId, options, cancellationToken);
+                var total = await CountSelectedAsync(connection, snapshot, source, options, cancellationToken);
                 long processed = 0;
                 progress?.Report(new ExportProgress(0, total));
-                await foreach (var record in ReadAsync(connection, snapshot, datasetId, options, cancellationToken))
+                await foreach (var record in ReadAsync(connection, snapshot, source, options, cancellationToken))
                 {
                     if (pipeline.Convert(record) is { } line)
                     {
@@ -200,7 +212,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 pipeline.Duplicates,
                 pipeline.Masked);
             // The files are in place: record them even if cancellation comes now.
-            await RememberAsync(datasetId, options, result, CancellationToken.None);
+            await RememberAsync(source, options, result, CancellationToken.None);
             return result;
         }
         finally
@@ -217,8 +229,9 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         }
     }
 
-    private async Task RememberAsync(Guid datasetId, ExportOptions options, ExportResult result, CancellationToken cancellationToken)
+    private async Task RememberAsync(Source source, ExportOptions options, ExportResult result, CancellationToken cancellationToken)
     {
+        var datasetId = source.DatasetId;
         var settings = JsonSerializer.Serialize(options, SettingsJson);
         var now = timeProvider.GetUtcNow();
         await using var context = database.CreateDbContext();
@@ -237,6 +250,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         {
             Id = Guid.CreateVersion7(now),
             DatasetId = datasetId,
+            VersionId = source.VersionId,
+            VersionNumber = source.VersionNumber,
             TargetFormat = options.Format,
             Settings = settings,
             Files = JsonSerializer.Serialize(result.Files, SettingsJson),
@@ -276,18 +291,29 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         }
     }
 
-    private static async Task<DatasetInfo> ReadDatasetAsync(SqliteConnection connection, Guid datasetId, CancellationToken cancellationToken)
+    private static async Task<Source> ReadSourceAsync(SqliteConnection connection, Guid datasetId, Guid? versionId, CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT Type FROM Datasets WHERE Id = $ds;";
+        command.CommandText = versionId is null
+            ? "SELECT Type, NULL FROM Datasets WHERE Id = $ds;"
+            : "SELECT d.Type, v.Number FROM DatasetVersions v JOIN Datasets d ON d.Id = v.DatasetId WHERE v.Id = $version AND v.DatasetId = $ds;";
         command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));
-        return await command.ExecuteScalarAsync(cancellationToken) is long type
-            ? new DatasetInfo((DatasetType)type)
-            : throw new NotFoundException(nameof(Dataset), datasetId);
+        if (versionId is { } version)
+        {
+            command.Parameters.AddWithValue("$version", SqliteValues.Guid(version));
+        }
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            throw versionId is { } id ? new NotFoundException(nameof(DatasetVersion), id) : new NotFoundException(nameof(Dataset), datasetId);
+        }
+
+        return new Source((DatasetType)reader.GetInt64(0), datasetId, versionId, reader.IsDBNull(1) ? null : reader.GetString(1));
     }
 
     private static async Task<long> CountSelectedAsync(
-        SqliteConnection connection, SqliteTransaction transaction, Guid datasetId, ExportOptions options, CancellationToken cancellationToken)
+        SqliteConnection connection, SqliteTransaction transaction, Source source, ExportOptions options, CancellationToken cancellationToken)
     {
         if (options.Statuses.Count == 0)
         {
@@ -296,8 +322,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT COUNT(*) FROM DatasetRecords WHERE DatasetId = $ds AND Status IN ({StatusList(options)});";
-        command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));
+        command.CommandText = $"{SourceSql(source)} SELECT COUNT(*) FROM s WHERE s.Status IN ({StatusList(options)});";
+        source.Bind(command);
         return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
     }
 
@@ -305,7 +331,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     private static async IAsyncEnumerable<ExportRecord> ReadAsync(
         SqliteConnection connection,
         SqliteTransaction? transaction,
-        Guid datasetId,
+        Source source,
         ExportOptions options,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
@@ -322,13 +348,13 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             {
                 command.Transaction = transaction;
                 command.CommandText = $"""
-                    SELECT r.Id, r.Ordinal, r.ContentHash, r.DataPayload, {OverLimitExpression}
-                    FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
-                    WHERE r.DatasetId = $ds AND r.Status IN ({StatusList(options)}) AND r.Ordinal > $after
-                    ORDER BY r.Ordinal
+                    {SourceSql(source)}
+                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit
+                    FROM s WHERE s.Status IN ({StatusList(options)}) AND s.Ordinal > $after
+                    ORDER BY s.Ordinal
                     LIMIT {BatchSize};
                     """;
-                command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));
+                source.Bind(command);
                 command.Parameters.AddWithValue("$after", after);
                 await using var reader = await command.ExecuteReaderAsync(cancellationToken);
                 while (await reader.ReadAsync(cancellationToken))
@@ -354,25 +380,51 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         }
     }
 
+    /// <summary>
+    /// The records to export as a common table <c>s</c> (Id, Ordinal, Status, ContentHash,
+    /// DataPayload, OverLimit, NotAnalyzed): the dataset's records with their up-to-date analysis,
+    /// or a version's records with the token counts and context length frozen with it.
+    /// </summary>
+    private static string SourceSql(Source source) => source.VersionId is null
+        ? $"""
+          WITH s AS (
+              SELECT r.Id AS Id, r.Ordinal AS Ordinal, r.Status AS Status, r.ContentHash AS ContentHash, r.DataPayload AS DataPayload,
+                     (a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength) AS OverLimit, (a.RecordId IS NULL) AS NotAnalyzed
+              FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
+              WHERE r.DatasetId = $ds)
+          """
+        : """
+          WITH s AS (
+              SELECT x.RecordId AS Id, m.Ordinal AS Ordinal, m.Status AS Status, x.ContentHash AS ContentHash, x.DataPayload AS DataPayload,
+                     (m.Tokens IS NOT NULL AND m.Tokens > v.ContextLength) AS OverLimit, 0 AS NotAnalyzed
+              FROM VersionRecordMappings m
+              JOIN RecordRevisions x ON x.Id = m.RevisionId
+              JOIN DatasetVersions v ON v.Id = m.VersionId
+              WHERE m.VersionId = $version)
+          """;
+
     private static string StatusList(ExportOptions options) =>
         string.Join(", ", options.Statuses.Distinct().Select(s => ((int)s).ToString(CultureInfo.InvariantCulture)));
 
-    // The SQL twins of the pipeline's checks, for the preview counts; tests keep them in step.
+    // The SQL twin of the pipeline's format check, for the preview counts; tests keep them in step.
     private static string UnsupportedSql(ExportOptions options, DatasetType type) =>
         ExportFormats.IsLossy(options.Format, type)
-            ? "(NOT (json_array_length(r.DataPayload, '$.messages') = 2 AND json_extract(r.DataPayload, '$.messages[0].role') = 'user' " +
-              "AND json_extract(r.DataPayload, '$.messages[1].role') = 'assistant'))"
+            ? "(NOT (json_array_length(s.DataPayload, '$.messages') = 2 AND json_extract(s.DataPayload, '$.messages[0].role') = 'user' " +
+              "AND json_extract(s.DataPayload, '$.messages[1].role') = 'assistant'))"
             : "0";
 
-    private static string OverLimitSql(ExportOptions options) => options.SkipOverContextLimit ? OverLimitExpression : "0";
-
-    private static string DuplicateSql(ExportOptions options) =>
-        options.SkipDuplicates
-            ? "EXISTS (SELECT 1 FROM DatasetRecords o WHERE o.DatasetId = r.DatasetId AND o.ContentHash = r.ContentHash " +
-              $"AND o.Status IN ({StatusList(options)}) AND o.Ordinal < r.Ordinal)"
-            : "0";
-
-    private sealed record DatasetInfo(DatasetType Type);
+    /// <param name="VersionNumber">"1.2.0" for a version.</param>
+    private sealed record Source(DatasetType Type, Guid DatasetId, Guid? VersionId, string? VersionNumber)
+    {
+        public void Bind(SqliteCommand command)
+        {
+            command.Parameters.AddWithValue("$ds", SqliteValues.Guid(DatasetId));
+            if (VersionId is { } version)
+            {
+                command.Parameters.AddWithValue("$version", SqliteValues.Guid(version));
+            }
+        }
+    }
 
     private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit);
 

@@ -62,6 +62,13 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
     [NotifyPropertyChangedFor(nameof(CountText), nameof(Subtitle))]
     public partial long RecordCount { get; set; }
 
+    /// <summary>
+    /// The newest version, e.g. "1.2.0"; <c>null</c> while the dataset has none.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Subtitle))]
+    public partial string? LatestVersion { get; set; }
+
     public string TypeLabel => Labels.For(_localizer, Type);
 
     /// <summary>
@@ -70,9 +77,11 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
     public string CountText => RecordCount.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
 
     /// <summary>
-    /// "Project · 1,234 records" under the dataset title.
+    /// "Project · 1,234 records · v1.2.0" under the dataset title.
     /// </summary>
-    public string Subtitle => $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)}";
+    public string Subtitle => LatestVersion is null
+        ? $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)}"
+        : $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)} · v{LatestVersion}";
 
     public void RefreshLabels()
     {

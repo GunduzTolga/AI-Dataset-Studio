@@ -175,6 +175,31 @@ public sealed record DeleteAction(Guid DatasetId, IReadOnlyList<RecordSnapshot> 
     public Task<int> RedoAsync(IRecordCommandService commands) => commands.DeleteAsync(RecordIds);
 }
 
+/// <summary>
+/// The working copy went back to a version; undo restores what was there before, redo goes back again.
+/// </summary>
+/// <param name="Number">The version, e.g. "1.2.0".</param>
+/// <param name="Before">Earlier states of the records that changed.</param>
+/// <param name="After">Their states as in the version.</param>
+/// <param name="Recreated">Deleted records the version brought back.</param>
+public sealed record RollbackAction(
+    Guid DatasetId,
+    string Number,
+    IReadOnlyList<RecordState> Before,
+    IReadOnlyList<RecordState> After,
+    IReadOnlyList<RecordSnapshot> Recreated) : IUndoableAction
+{
+    public IReadOnlyList<Guid> RecordIds => [.. Before.Select(s => s.RecordId), .. Recreated.Select(s => s.Id)];
+
+    public string Describe(Localizer localizer) => localizer.Format("History_Rollback", Number);
+
+    public async Task<int> UndoAsync(IRecordCommandService commands) =>
+        await commands.RestoreStatesAsync(Before) + await commands.DeleteAsync([.. Recreated.Select(s => s.Id)]);
+
+    public async Task<int> RedoAsync(IRecordCommandService commands) =>
+        await commands.RestoreAsync(Recreated) + await commands.RestoreStatesAsync(After);
+}
+
 internal static class HistoryText
 {
     public static string StatusKey(RecordStatus target) => target switch

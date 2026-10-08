@@ -38,10 +38,16 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 ExportFormats.IsLossy(format, target.Type) ? localizer["Export_AlpacaChatWarning"] : null))
             .ToList();
         SplitModes = Enum.GetValues<SplitMode>().Select(mode => new SplitModeOption(mode, localizer[$"Export_Split{mode}"])).ToList();
+        Sources =
+        [
+            new SourceOption(null, localizer["Export_SourceCurrent"]),
+            .. (target.Versions ?? []).Select(v => new SourceOption(v, localizer.Format("Export_SourceVersion", v.Number, v.CreatedAt.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)))),
+        ];
         SkipItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasSkips));
         _applying = true;
         SelectedFormat = Formats.FirstOrDefault();
         SelectedSplitMode = SplitModes[0];
+        SelectedSource = Sources.FirstOrDefault(s => s.VersionId == target.VersionId) ?? Sources[0];
         _applying = false;
     }
 
@@ -58,6 +64,13 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     public IReadOnlyList<SplitModeOption> SplitModes { get; }
 
+    /// <summary>
+    /// The current records, then the versions newest first.
+    /// </summary>
+    public IReadOnlyList<SourceOption> Sources { get; }
+
+    public bool HasVersions => Sources.Count > 1;
+
     public ObservableCollection<SkipItem> SkipItems { get; } = [];
 
     public bool HasSkips => SkipItems.Count > 0;
@@ -72,6 +85,19 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     public Task PendingWork { get; private set; } = Task.CompletedTask;
 
     // ===== Options =====
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SourceHint), nameof(HasSourceHint))]
+    public partial SourceOption? SelectedSource { get; set; }
+
+    /// <summary>
+    /// For a version: it is written as frozen, checked against its own context length.
+    /// </summary>
+    public string? SourceHint => SelectedSource?.Version is { } version
+        ? _localizer.Format("Export_SourceVersionHint", version.Number, version.Tokenizer, version.ContextLength)
+        : null;
+
+    public bool HasSourceHint => SourceHint is not null;
 
     [ObservableProperty]
     public partial FormatOption? SelectedFormat { get; set; }
@@ -255,7 +281,9 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     public bool IsDone => Result is not null;
 
-    public string ResultText => Result is { } r ? _localizer.Format("Export_DoneSummary", r.Exported, Target.Name) : string.Empty;
+    public string ResultText => Result is { } r
+        ? _localizer.Format("Export_DoneSummary", r.Exported, SelectedSource?.Version is { } version ? $"{Target.Name} v{version.Number}" : Target.Name)
+        : string.Empty;
 
     /// <summary>
     /// Restores the dataset's last export settings and shows the preview.
@@ -272,10 +300,11 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             if (await _export.GetLastExportAsync(Target.DatasetId) is { } previous)
             {
                 LastExportText = _localizer.Format(
-                    "Export_LastExport",
+                    previous.VersionNumber is null ? "Export_LastExport" : "Export_LastExportVersion",
                     previous.ExportedAt.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture),
                     ExportText.Format(_localizer, previous.Format),
-                    previous.RecordCount);
+                    previous.RecordCount,
+                    previous.VersionNumber);
             }
         }
         catch (Exception ex) when (Describe(ex) is { } message)
@@ -299,7 +328,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         PendingFolder = null;
         if (options.Split is null)
         {
-            if (await _files.PickExportFileAsync(SuggestedFileName(Target.Name)) is { } file)
+            var name = SelectedSource?.Version is { } version ? $"{Target.Name} v{version.Number}" : Target.Name;
+            if (await _files.PickExportFileAsync(SuggestedFileName(name)) is { } file)
             {
                 await RunExportAsync(options, file);
             }
@@ -371,7 +401,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
         try
         {
-            var result = await _export.ExportAsync(Target.DatasetId, options, destination, progress, cancellation.Token);
+            var result = await _export.ExportAsync(Target.DatasetId, options, destination, progress, SelectedSource?.VersionId, cancellation.Token);
             WrittenFiles.Clear();
             foreach (var file in result.Files)
             {
@@ -404,6 +434,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             IsExporting = false;
         }
     }
+
+    partial void OnSelectedSourceChanged(SourceOption? value) => OnOptionChanged();
 
     partial void OnSelectedFormatChanged(FormatOption? value) => OnOptionChanged();
 
@@ -467,7 +499,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             IsPreviewing = true;
             try
             {
-                var preview = await _export.PreviewAsync(Target.DatasetId, options, SampleLines, token);
+                var preview = await _export.PreviewAsync(Target.DatasetId, options, SampleLines, SelectedSource?.VersionId, token);
                 token.ThrowIfCancellationRequested();
                 Preview = preview;
                 Samples.Clear();

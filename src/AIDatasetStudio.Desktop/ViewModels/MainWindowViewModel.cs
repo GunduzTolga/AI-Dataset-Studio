@@ -6,6 +6,7 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
@@ -30,6 +31,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
     private readonly IExportService _export;
+    private readonly IVersionService _versions;
     private readonly IUpdateService _updates;
     private readonly IShellService _shell;
     private readonly RecordOperations _operations;
@@ -45,6 +47,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordQueryService queries,
         IImportService import,
         IExportService export,
+        IVersionService versions,
         IUpdateService updates,
         IShellService shell,
         RecordOperations operations,
@@ -64,6 +67,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _queries = queries;
         _import = import;
         _export = export;
+        _versions = versions;
         _updates = updates;
         _shell = shell;
         _operations = operations;
@@ -114,6 +118,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
@@ -330,7 +335,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private bool CanExport() => !IsBusy && Explorer.SelectedDataset is not null;
 
     /// <summary>
-    /// Writes the selected dataset to training files (SDD §10, §13).
+    /// Writes the selected dataset, or one of its versions, to training files (SDD §10, §13, §14).
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanExport))]
     private async Task ExportAsync()
@@ -340,7 +345,18 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type));
+        try
+        {
+            await ExportDatasetAsync(dataset, await _versions.ListAsync(dataset.Id), versionId: null);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+    }
+
+    private async Task ExportDatasetAsync(DatasetNodeViewModel dataset, IReadOnlyList<VersionInfo> versions, Guid? versionId)
+    {
+        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type, versions, versionId));
         if (await _dialogs.ShowExportWizardAsync(wizard) is { } result)
         {
             Status.Set("Status_Exported", result.Exported, dataset.Name, string.Join(", ", result.Files.Select(f => Path.GetFileName(f.Path))));
@@ -561,6 +577,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
+            VersionsCommand.NotifyCanExecuteChanged();
+            CreateVersionCommand.NotifyCanExecuteChanged();
             Details.Dataset = Explorer.SelectedDataset;
             _ = Details.ShowAsync(null);
             _ = Records.ShowDatasetAsync(Explorer.SelectedDataset);

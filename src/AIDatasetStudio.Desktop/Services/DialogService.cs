@@ -5,6 +5,7 @@ using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Desktop.Views.Dialogs;
 using AIDatasetStudio.Domain.Enums;
 using Avalonia.Controls;
@@ -106,6 +107,10 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
     }
 
     public Task ShowAboutAsync(AboutViewModel about) => new AboutDialog { DataContext = about }.ShowDialog(Owner);
+
+    public Task<bool> PromptNewVersionAsync(NewVersionViewModel prompt) => new NewVersionDialog { DataContext = prompt }.ShowDialog<bool>(Owner);
+
+    public Task ShowVersionsAsync(VersionsViewModel versions) => new VersionsWindow { DataContext = versions }.ShowDialog(Owner);
 
     private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);
 

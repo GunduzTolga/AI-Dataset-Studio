@@ -159,4 +159,5 @@ public readonly record struct ExportProgress(long Processed, long Total);
 /// <summary>
 /// An earlier export of a dataset (SDD §18 ExportHistories).
 /// </summary>
-public sealed record ExportHistoryEntry(ExportFormat Format, long RecordCount, IReadOnlyList<string> Files, DateTimeOffset ExportedAt);
+/// <param name="VersionNumber">"1.2.0" when a version was exported; <c>null</c> for the dataset as it was.</param>
+public sealed record ExportHistoryEntry(ExportFormat Format, long RecordCount, IReadOnlyList<string> Files, DateTimeOffset ExportedAt, string? VersionNumber = null);

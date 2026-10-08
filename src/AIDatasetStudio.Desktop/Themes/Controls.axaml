@@ -454,6 +454,38 @@
     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
   </Style>
 
+  <!-- How a record differs between two versions: .added, .removed, .modified or .status -->
+  <Style Selector="Border.kind">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="Padding" Value="7,1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Background" Value="{DynamicResource StatusDraftBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind > TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource StatusDraftForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.added">
+    <Setter Property="Background" Value="{DynamicResource StatusApprovedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.added > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusApprovedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.removed">
+    <Setter Property="Background" Value="{DynamicResource StatusArchivedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.removed > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusArchivedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.modified">
+    <Setter Property="Background" Value="{DynamicResource StatusReviewBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.modified > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusReviewForegroundBrush}" />
+  </Style>
+
   <!-- Callout: an inline message with an icon. Info by default; .warning and .danger for problems. -->
   <Style Selector="Border.callout">
     <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />

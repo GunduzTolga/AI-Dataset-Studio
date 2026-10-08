@@ -3,6 +3,7 @@ using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 
 namespace AIDatasetStudio.Desktop.Services;
@@ -52,4 +53,15 @@ public interface IDialogService
     /// Shows Help › About until it is closed.
     /// </summary>
     Task ShowAboutAsync(AboutViewModel about);
+
+    /// <summary>
+    /// Asks for the number and note of a new version.
+    /// </summary>
+    /// <returns><c>true</c> to create the version as entered in <paramref name="prompt"/>.</returns>
+    Task<bool> PromptNewVersionAsync(NewVersionViewModel prompt);
+
+    /// <summary>
+    /// Shows the versions of a dataset until the window is closed.
+    /// </summary>
+    Task ShowVersionsAsync(VersionsViewModel versions);
 }
