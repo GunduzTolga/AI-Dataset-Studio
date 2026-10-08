@@ -29,6 +29,13 @@ public interface IRecordCommandService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Appends draft records in a single transaction (all or nothing), for a few hundred records
+    /// whose ids are needed (to undo the addition).
+    /// </summary>
+    /// <returns>The ids of the new records, in order.</returns>
+    Task<IReadOnlyList<Guid>> AddManyAsync(Guid datasetId, IReadOnlyCollection<NewRecord> records, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Replaces a record's content; a changed record goes back to review.
     /// </summary>
     /// <returns><c>true</c> if the content changed.</returns>

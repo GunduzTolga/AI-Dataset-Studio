@@ -133,6 +133,16 @@
                   <TextBlock Text="{Binding TextLayoutHint}" />
                 </DockPanel>
               </Border>
+              <Border Classes="callout" IsVisible="{Binding CanExtractQuestions}">
+                <StackPanel Spacing="6">
+                  <DockPanel>
+                    <ic:SymbolIcon Symbol="ChatBubblesQuestion" />
+                    <TextBlock Text="{l:Tr Import_ExtractQuestionsHint}" />
+                  </DockPanel>
+                  <Button x:Name="ExtractQuestionsButton" Classes="accent small" HorizontalAlignment="Right"
+                          Content="{l:Tr Import_ExtractQuestions}" Command="{Binding ExtractQuestionsCommand}" />
+                </StackPanel>
+              </Border>
 
               <!-- Workbook: a sheet or all of them; changing either reads the file again -->
               <StackPanel Spacing="12" IsVisible="{Binding IsExcel}">

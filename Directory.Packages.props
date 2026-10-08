@@ -28,6 +28,8 @@
     <PackageVersion Include="Microsoft.Bcl.Memory" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
+    <!-- Text of PDF documents for import and Q&A extraction (Apache-2.0, no dependencies). -->
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
   </ItemGroup>
 
   <ItemGroup Label="Hosting">

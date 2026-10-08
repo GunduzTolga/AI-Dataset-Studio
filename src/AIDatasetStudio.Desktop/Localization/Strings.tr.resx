@@ -189,6 +189,30 @@
   <data name="Meta_GeneratedBy" xml:space="preserve">
     <value>Üreten model</value>
   </data>
+  <data name="Meta_Section" xml:space="preserve">
+    <value>Bölüm</value>
+  </data>
+  <data name="Location_Page" xml:space="preserve">
+    <value>sayfa {0}</value>
+  </data>
+  <data name="Location_Pages" xml:space="preserve">
+    <value>sayfa {0}–{1}</value>
+  </data>
+  <data name="Location_Paragraph" xml:space="preserve">
+    <value>paragraf {0}</value>
+  </data>
+  <data name="Location_Paragraphs" xml:space="preserve">
+    <value>paragraf {0}–{1}</value>
+  </data>
+  <data name="Location_Line" xml:space="preserve">
+    <value>satır {0}</value>
+  </data>
+  <data name="Location_Lines" xml:space="preserve">
+    <value>satır {0}–{1}</value>
+  </data>
+  <data name="Editor_SourcePassage" xml:space="preserve">
+    <value>Kaynak metin</value>
+  </data>
   <data name="Meta_Created" xml:space="preserve">
     <value>Oluşturulma</value>
   </data>
@@ -208,7 +232,7 @@
     <value>Sentetik</value>
   </data>
   <data name="Source_DocumentChunk" xml:space="preserve">
-    <value>Belge parçası</value>
+    <value>Belgeden çıkarıldı</value>
   </data>
   <data name="Dialog_OK" xml:space="preserve">
     <value>Tamam</value>
@@ -375,6 +399,9 @@
   <data name="Menu_Import" xml:space="preserve">
     <value>Dosyadan _İçe Aktar…</value>
   </data>
+  <data name="Menu_ExtractQuestions" xml:space="preserve">
+    <value>Belgeden Soru-Cevap Çıkar…</value>
+  </data>
   <data name="Action_Import" xml:space="preserve">
     <value>İçe aktar</value>
   </data>
@@ -385,7 +412,13 @@
     <value>İçe aktarılacak dosyayı seçin</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Veri setleri (JSONL, JSON, CSV, Excel, Markdown, metin)</value>
+    <value>Veri setleri ve belgeler (JSONL, JSON, CSV, Excel, Markdown, metin, PDF, Word)</value>
+  </data>
+  <data name="Dialog_DocumentTitle" xml:space="preserve">
+    <value>Soru-cevap çıkarılacak belge</value>
+  </data>
+  <data name="Dialog_DocumentType" xml:space="preserve">
+    <value>Belgeler (PDF, Word, Markdown, metin)</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Dosyadan içe aktar</value>
@@ -440,6 +473,15 @@
   </data>
   <data name="Import_ParagraphsHint" xml:space="preserve">
     <value>Her paragraf (boş satırlar arasındaki satırlar) bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
+  </data>
+  <data name="Import_DocumentParagraphsHint" xml:space="preserve">
+    <value>Belgede başlık yok; her paragraf bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
+  </data>
+  <data name="Import_ExtractQuestionsHint" xml:space="preserve">
+    <value>Bu belgeden yapay zekâyla soru-cevap da çıkarabilirsiniz: model her bölümün yanıtladığı soruları yazar.</value>
+  </data>
+  <data name="Import_ExtractQuestions" xml:space="preserve">
+    <value>Soru-cevap çıkar…</value>
   </data>
   <data name="Import_NotMapped" xml:space="preserve">
     <value>— Eşlenmedi —</value>
@@ -515,6 +557,12 @@
   </data>
   <data name="ImportFormat_PlainText" xml:space="preserve">
     <value>Düz metin</value>
+  </data>
+  <data name="ImportFormat_Pdf" xml:space="preserve">
+    <value>PDF belgesi</value>
+  </data>
+  <data name="ImportFormat_Word" xml:space="preserve">
+    <value>Word belgesi</value>
   </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Özel sütunlar</value>
@@ -636,6 +684,18 @@
   <data name="Error_ImportSheetNotFound" xml:space="preserve">
     <value>“{0}” çalışma kitabında bu sayfa artık yok. Başka bir sayfa seçin.</value>
   </data>
+  <data name="Error_ImportLegacyDocument" xml:space="preserve">
+    <value>“{0}” bir Word 97–2003 ya da parolalı belge. Word'de açıp parolasız .docx olarak kaydedin.</value>
+  </data>
+  <data name="Error_ImportInvalidDocument" xml:space="preserve">
+    <value>“{0}” belge olarak okunamıyor; bozuk olabilir.</value>
+  </data>
+  <data name="Error_ImportProtectedPdf" xml:space="preserve">
+    <value>“{0}” parolayla korunuyor. Parolasız bir kopyasını kaydedip onu seçin.</value>
+  </data>
+  <data name="Error_ImportNoText" xml:space="preserve">
+    <value>“{0}” içinde okunacak metin yok; sayfaları taranmış görüntü olabilir. Önce metni tanıtın (OCR), örneğin aranabilir PDF olarak kaydedin.</value>
+  </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” geçerli bir adres değil. http://localhost:11434/v1 gibi olmalı.</value>
   </data>
@@ -668,6 +728,9 @@
   </data>
   <data name="Status_Imported" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı</value>
+  </data>
+  <data name="Status_QAAdded" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} soru-cevap taslak olarak eklendi; gözden geçirin</value>
   </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı; {2:N0} satır atlandı</value>
@@ -731,6 +794,9 @@
   </data>
   <data name="History_Delete" xml:space="preserve">
     <value>{0} silme</value>
+  </data>
+  <data name="History_Add" xml:space="preserve">
+    <value>{0} ekleme ({1})</value>
   </data>
   <data name="History_One" xml:space="preserve">
     <value>#{0}</value>
@@ -1019,6 +1085,9 @@
   </data>
   <data name="Overview_AIGuidanceHint" xml:space="preserve">
     <value>Yapay zekâ bu veri setine yazarken her istekle gönderilir.</value>
+  </data>
+  <data name="Overview_ExtractQuestionsHint" xml:space="preserve">
+    <value>Bir PDF, Word, Markdown ya da metin belgesinden modele bu veri seti için soru-cevap yazdırın.</value>
   </data>
   <data name="Overview_Tokens" xml:space="preserve">
     <value>TOKENLAR</value>
@@ -1721,6 +1790,129 @@
   </data>
   <data name="AI_TestPassed" xml:space="preserve">
     <value>Çalışıyor: {0}, {1} sn'de yanıt verdi — “{2}”</value>
+  </data>
+  <data name="QA_Title" xml:space="preserve">
+    <value>Belgeden Soru-Cevap Çıkar</value>
+  </data>
+  <data name="QA_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="QA_ChunkSize" xml:space="preserve">
+    <value>Parça uzunluğu</value>
+  </data>
+  <data name="QA_ChunkSizeHint" xml:space="preserve">
+    <value>Belge en çok bu uzunlukta parçalara bölünür; başlıklar mümkünse yeni bir parça başlatır. Model parçaları okuduktan sonra değiştirilemez. Modelin bağlam penceresi küçükse (Ollama'da çoğu zaman öyledir) kısa tutun.</value>
+  </data>
+  <data name="QA_Tokens" xml:space="preserve">
+    <value>token</value>
+  </data>
+  <data name="QA_QuestionsPerChunk" xml:space="preserve">
+    <value>Parça başına en çok</value>
+  </data>
+  <data name="QA_Questions" xml:space="preserve">
+    <value>soru</value>
+  </data>
+  <data name="QA_Start" xml:space="preserve">
+    <value>Soruları çıkar</value>
+  </data>
+  <data name="QA_Unsupported" xml:space="preserve">
+    <value>Soru-cevaplar yalnızca Talimat, Sohbet ve Tercih veri setlerine eklenebilir.</value>
+  </data>
+  <data name="QA_PreferenceHint" xml:space="preserve">
+    <value>Her yanıt bir tercih çiftinin tercih edilen yanıtı olur; reddedilen yanıtları sonra editörde yazdırın (Reddedilen alanında ✨).</value>
+  </data>
+  <data name="QA_Reading" xml:space="preserve">
+    <value>Belge okunuyor…</value>
+  </data>
+  <data name="QA_EmptyDocument" xml:space="preserve">
+    <value>Bu belgede soru çıkarılacak metin yok.</value>
+  </data>
+  <data name="QA_Passages" xml:space="preserve">
+    <value>PARÇALAR</value>
+  </data>
+  <data name="QA_All" xml:space="preserve">
+    <value>Tümü</value>
+  </data>
+  <data name="QA_Include" xml:space="preserve">
+    <value>Bu parçadan soru çıkarılsın</value>
+  </data>
+  <data name="QA_Rewrite" xml:space="preserve">
+    <value>Yeniden yaz</value>
+  </data>
+  <data name="QA_RewriteHint" xml:space="preserve">
+    <value>Bu parçanın sorularını modele yeniden yazdırır; mevcutların yerini alır.</value>
+  </data>
+  <data name="QA_Passage" xml:space="preserve">
+    <value>KAYNAK METİN</value>
+  </data>
+  <data name="QA_UnreadableHint" xml:space="preserve">
+    <value>Modelin yanıtında soru-cevap bulunamadı. Yeniden yazdırın ya da başka bir model deneyin. Modelin yazdığı:</value>
+  </data>
+  <data name="QA_Pairs" xml:space="preserve">
+    <value>SORU-CEVAPLAR</value>
+  </data>
+  <data name="QA_NoPairs" xml:space="preserve">
+    <value>Bu parçadan henüz soru çıkarılmadı.</value>
+  </data>
+  <data name="QA_Keep" xml:space="preserve">
+    <value>Veri setine ekle</value>
+  </data>
+  <data name="QA_Question" xml:space="preserve">
+    <value>Soru</value>
+  </data>
+  <data name="QA_Answer" xml:space="preserve">
+    <value>Yanıt</value>
+  </data>
+  <data name="QA_RemovePair" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="QA_DocumentPages" xml:space="preserve">
+    <value>· {0:N0} sayfa · {1:N0} parça</value>
+  </data>
+  <data name="QA_DocumentPassages" xml:space="preserve">
+    <value>· {0:N0} parça</value>
+  </data>
+  <data name="QA_ChunkDetail" xml:space="preserve">
+    <value>#{0} · {1} · {2:N0} token</value>
+  </data>
+  <data name="QA_StateWriting" xml:space="preserve">
+    <value>Yazılıyor…</value>
+  </data>
+  <data name="QA_StatePairs" xml:space="preserve">
+    <value>{0} soru</value>
+  </data>
+  <data name="QA_StateEmpty" xml:space="preserve">
+    <value>Soru yok</value>
+  </data>
+  <data name="QA_StateUnreadable" xml:space="preserve">
+    <value>Okunamadı</value>
+  </data>
+  <data name="QA_Add" xml:space="preserve">
+    <value>{0:N0} kaydı ekle</value>
+  </data>
+  <data name="QA_NoPairsYet" xml:space="preserve">
+    <value>Parçaları seçip Soruları çıkar'a basın: model her parçanın yanıtladığı soruları yazar.</value>
+  </data>
+  <data name="QA_Summary" xml:space="preserve">
+    <value>{1:N0} sorudan {0:N0} tanesi taslak kayıt olarak eklenecek</value>
+  </data>
+  <data name="QA_DiscardTitle" xml:space="preserve">
+    <value>Sorular eklenmedi</value>
+  </data>
+  <data name="QA_DiscardMessage" xml:space="preserve">
+    <value>{0:N0} soru-cevap henüz veri setine eklenmedi. Atılsın mı?</value>
+  </data>
+  <data name="QA_Discard" xml:space="preserve">
+    <value>At</value>
+  </data>
+  <data name="QA_Progress" xml:space="preserve">
+    <value>{2} ile {0}/{1}. parça yazılıyor…</value>
+  </data>
+  <data name="QA_Finished" xml:space="preserve">
+    <value>{0:N0} soru yazıldı; gözden geçirip ekleyin.</value>
+  </data>
+  <data name="QA_Stopped" xml:space="preserve">
+    <value>Durduruldu; yazılanlar duruyor.</value>
   </data>
   <data name="AIProvider_Ollama" xml:space="preserve">
     <value>Ollama</value>

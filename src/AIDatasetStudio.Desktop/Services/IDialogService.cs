@@ -2,6 +2,7 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Documents;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
@@ -76,4 +77,9 @@ public interface IDialogService
     /// Shows Tools › AI Connections until the window is closed.
     /// </summary>
     Task ShowAIConnectionsAsync(AIConnectionsViewModel connections);
+
+    /// <summary>
+    /// Shows Q&amp;A extraction from a document until the window is closed.
+    /// </summary>
+    Task ShowQAExtractionAsync(QAExtractionViewModel extraction);
 }

@@ -114,6 +114,11 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     public event EventHandler? AIConnectionsRequested;
 
     /// <summary>
+    /// Raised when the user wants the model to write questions from a document into this dataset.
+    /// </summary>
+    public event EventHandler? ExtractQuestionsRequested;
+
+    /// <summary>
     /// How long typing pauses before the AI instructions are saved.
     /// </summary>
     public static TimeSpan GuidanceSaveDelay { get; set; } = TimeSpan.FromMilliseconds(700);
@@ -330,6 +335,9 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
 
     [RelayCommand]
     private void OpenAIConnections() => AIConnectionsRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void ExtractQuestions() => ExtractQuestionsRequested?.Invoke(this, EventArgs.Empty);
 
     /// <summary>
     /// Saves the AI instructions now instead of after the typing pause (switching datasets, closing).

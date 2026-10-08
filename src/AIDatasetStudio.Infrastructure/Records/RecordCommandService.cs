@@ -34,11 +34,27 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return record.Id;
     }
 
-    public async Task<int> AddRangeAsync(
+    public Task<int> AddRangeAsync(
         Guid datasetId,
         IEnumerable<NewRecord> records,
         IProgress<int>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        InsertAsync(datasetId, records, progress, ids: null, cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> AddManyAsync(Guid datasetId, IReadOnlyCollection<NewRecord> records, CancellationToken cancellationToken = default)
+    {
+        var ids = new List<Guid>(records.Count);
+        await InsertAsync(datasetId, records, progress: null, ids, cancellationToken);
+        return ids;
+    }
+
+    /// <param name="ids">Receives the ids of the new records, in order; <c>null</c> when not needed.</param>
+    private async Task<int> InsertAsync(
+        Guid datasetId,
+        IEnumerable<NewRecord> records,
+        IProgress<int>? progress,
+        List<Guid>? ids,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(records);
 
@@ -63,10 +79,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             foreach (var item in records)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var record = DatasetRecord.Create(dataset, item.Payload, item.Lineage, ++ordinal, now);
+                var record = DatasetRecord.Create(dataset, item.Payload, item.Lineage, ++ordinal, now, item.MetadataJson);
                 BindInsert(insert, record);
                 await insert.ExecuteNonQueryAsync(cancellationToken);
                 await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
+                ids?.Add(record.Id);
 
                 if (++count % ProgressInterval == 0)
                 {

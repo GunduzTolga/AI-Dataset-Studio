@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
+using AIDatasetStudio.Application.Documents;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
@@ -100,6 +101,21 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public string StatusLabel => Record is { } record ? Labels.For(_localizer, record.Status) : string.Empty;
 
     public IReadOnlyList<InfoItem> Info => Record is { } record ? BuildInfo(record) : [];
+
+    /// <summary>
+    /// The passage of a document the record was written from, so its answer can be checked against it.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSource))]
+    public partial PassageSource? Source { get; private set; }
+
+    public bool HasSource => Source is not null;
+
+    /// <summary>
+    /// The passage is shown under the record's information; it stays open from record to record.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsSourceShown { get; set; }
 
     /// <summary>
     /// Text fields of the record; for chats only the system prompt (turns are in <see cref="Messages"/>).
@@ -592,7 +608,11 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         return common;
     }
 
-    partial void OnRecordChanged(RecordDetails? value) => RecordTags = value is null ? [] : _tags.Resolve(value.TagIds);
+    partial void OnRecordChanged(RecordDetails? value)
+    {
+        RecordTags = value is null ? [] : _tags.Resolve(value.TagIds);
+        Source = value is null ? null : PassageSource.FromMetadata(value.MetadataJson);
+    }
 
     // Back from the masked preview the comparison is shown again.
     partial void OnIsPiiPreviewChanged(bool value)
@@ -972,6 +992,12 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
             new(_localizer["Meta_Source"], Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(record.Lineage.SourceReference)),
         };
+        if (Source is { } source)
+        {
+            var place = SourceText.Location(_localizer, source.Unit, source.First, source.Last);
+            items.Add(new InfoItem(_localizer["Meta_Section"], source.Section.Length > 0 ? $"{source.Section} · {place}" : place));
+        }
+
         if (record.Lineage.GeneratedByModel is { } model)
         {
             items.Add(new InfoItem(_localizer["Meta_GeneratedBy"], model));

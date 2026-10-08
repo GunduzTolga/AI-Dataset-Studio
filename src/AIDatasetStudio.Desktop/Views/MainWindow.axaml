@@ -43,6 +43,9 @@
         <MenuItem x:Name="ImportMenuItem" Header="{l:Tr Menu_Import}" Command="{Binding ImportCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowImport" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="ExtractQuestionsMenuItem" Header="{l:Tr Menu_ExtractQuestions}" Command="{Binding ExtractQuestionsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ChatBubblesQuestion" /></MenuItem.Icon>
+        </MenuItem>
         <MenuItem x:Name="ExportMenuItem" Header="{l:Tr Menu_Export}" Command="{Binding ExportCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowExport" /></MenuItem.Icon>
         </MenuItem>

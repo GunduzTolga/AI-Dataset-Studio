@@ -8,7 +8,8 @@ namespace AIDatasetStudio.Application.Records;
 /// <summary>
 /// A record to add in bulk.
 /// </summary>
-public sealed record NewRecord(RecordPayload Payload, RecordLineage Lineage);
+/// <param name="MetadataJson">The record's metadata, e.g. the passage of a document it was written from; <c>null</c> for none.</param>
+public sealed record NewRecord(RecordPayload Payload, RecordLineage Lineage, string? MetadataJson = null);
 
 /// <summary>
 /// Narrows a record list. Empty criteria match everything.
@@ -60,6 +61,7 @@ public sealed record RecordSummary(
 /// <param name="Next">Cursor for the following page, or <c>null</c> when this is the last page.</param>
 public sealed record RecordPage(IReadOnlyList<RecordSummary> Items, RecordCursor? Next);
 
+/// <param name="MetadataJson">Free metadata, e.g. the passage of a document the record was written from (<c>PassageSource</c>).</param>
 public sealed record RecordDetails(
     Guid Id,
     Guid DatasetId,
@@ -70,7 +72,8 @@ public sealed record RecordDetails(
     RecordLineage Lineage,
     IReadOnlyList<Guid> TagIds,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string MetadataJson = "{}");
 
 /// <summary>
 /// One record moved from <see cref="From"/> to <see cref="To"/>.

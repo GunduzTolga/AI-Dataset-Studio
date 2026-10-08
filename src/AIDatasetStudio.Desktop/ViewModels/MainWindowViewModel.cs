@@ -42,6 +42,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly ITagService _tagService;
     private readonly TagCatalog _tags;
     private readonly AIAssistant _ai;
+    private readonly DocumentQuestions _questions;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -61,6 +62,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         ITagService tagService,
         TagCatalog tags,
         AIAssistant ai,
+        DocumentQuestions questions,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -84,6 +86,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _tagService = tagService;
         _tags = tags;
         _ai = ai;
+        _questions = questions;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -108,6 +111,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Overview.NearGroupsChanged += (_, datasetId) => _ = OnNearGroupsChangedAsync(datasetId);
         Overview.ShowRecordsRequested += (_, filter) => Records.ShowQuality(filter);
         Overview.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
+        Overview.ExtractQuestionsRequested += (_, _) => ExtractQuestionsCommand.Execute(null);
         Details.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
@@ -131,7 +135,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand))]
     [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
@@ -323,6 +327,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         var wizard = new ImportWizardViewModel(_import, _localizer, path, new ImportTarget(dataset.Id, dataset.Name, dataset.Type));
         if (await _dialogs.ShowImportWizardAsync(wizard) is not { } result)
         {
+            // The wizard hands a document over to Q&A extraction.
+            if (wizard.ExtractQuestionsChosen)
+            {
+                await ExtractQuestionsAsync(dataset, path);
+            }
+
             return;
         }
 
@@ -442,7 +452,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            await ShowAffectedAsync(result.Action);
+            await ShowAffectedAsync(result.Action.DatasetId, result.Action.RecordIds);
             Status.Set(undo ? "Status_Undone" : "Status_Redone", result.Action.Describe(_localizer));
         }
         catch (Exception ex) when (Status.TryReport(ex))
@@ -454,13 +464,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // Shows the records an undo or redo changed: their dataset, reloaded, with them selected.
-    private async Task ShowAffectedAsync(IUndoableAction action)
+    // Shows the records a change touched: their dataset, reloaded, with them selected.
+    private async Task ShowAffectedAsync(Guid datasetId, IReadOnlyList<Guid> recordIds)
     {
-        Explorer.SetRecordCount(action.DatasetId, await _queries.CountAsync(action.DatasetId, RecordFilter.None));
-        if (Records.Dataset?.Id != action.DatasetId)
+        Explorer.SetRecordCount(datasetId, await _queries.CountAsync(datasetId, RecordFilter.None));
+        if (Records.Dataset?.Id != datasetId)
         {
-            if (Explorer.FindDataset(action.DatasetId) is not { } node)
+            if (Explorer.FindDataset(datasetId) is not { } node)
             {
                 return;
             }
@@ -473,7 +483,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             await Records.ReloadAsync();
         }
 
-        Records.Select(action.RecordIds);
+        Records.Select(recordIds);
         // Restored or changed records need fresh analysis results.
         Overview.StartAnalysis();
     }
@@ -608,6 +618,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
+            ExtractQuestionsCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
             VersionsCommand.NotifyCanExecuteChanged();
             CreateVersionCommand.NotifyCanExecuteChanged();

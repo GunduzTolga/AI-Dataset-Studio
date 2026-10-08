@@ -254,7 +254,7 @@
                         </Button>
                         <Button Classes="mini" ToolTip.Tip="{l:Tr Editor_StopWriting}" IsVisible="{Binding IsWriting}"
                                 Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).StopWritingCommand}">
-                          <ic:SymbolIcon Symbol="Stop" />
+                          <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
                         </Button>
                       </StackPanel>
                     </Grid>
@@ -352,7 +352,7 @@
             </Button>
             <Button Classes="subtle" Command="{Binding StopWritingCommand}" IsVisible="{Binding IsWriting}">
               <StackPanel Orientation="Horizontal" Spacing="6">
-                <ic:SymbolIcon Symbol="Stop" />
+                <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
                 <TextBlock Text="{l:Tr Editor_StopWriting}" />
               </StackPanel>
             </Button>
@@ -390,16 +390,33 @@
           <!-- Info -->
           <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Details_Info}" />
           <Border Classes="card" Padding="14,10">
-            <ItemsControl ItemsSource="{Binding Info}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:InfoItem">
-                  <Grid ColumnDefinitions="120,*" Margin="0,3">
-                    <TextBlock Classes="small muted" Text="{Binding Label}" />
-                    <SelectableTextBlock Grid.Column="1" Classes="small" Classes.mono="{Binding IsMonospace}" Text="{Binding Value}" TextWrapping="Wrap" />
-                  </Grid>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel>
+              <ItemsControl ItemsSource="{Binding Info}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:InfoItem">
+                    <Grid ColumnDefinitions="120,*" Margin="0,3">
+                      <TextBlock Classes="small muted" Text="{Binding Label}" />
+                      <SelectableTextBlock Grid.Column="1" Classes="small" Classes.mono="{Binding IsMonospace}" Text="{Binding Value}" TextWrapping="Wrap" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- The passage of the document the record was written from -->
+              <StackPanel IsVisible="{Binding HasSource}" Margin="0,6,0,0" Spacing="6">
+                <ToggleButton x:Name="SourceToggle" Classes="subtle small" IsChecked="{Binding IsSourceShown}" HorizontalAlignment="Left">
+                  <StackPanel Orientation="Horizontal" Spacing="5">
+                    <ic:SymbolIcon Symbol="DocumentText" FontSize="14" />
+                    <TextBlock Classes="small" Text="{l:Tr Editor_SourcePassage}" />
+                  </StackPanel>
+                </ToggleButton>
+                <Border x:Name="SourcePassage" IsVisible="{Binding IsSourceShown}" Background="{DynamicResource SubtleFillBrush}" CornerRadius="6" Padding="10,8">
+                  <ScrollViewer MaxHeight="280" HorizontalScrollBarVisibility="Disabled">
+                    <SelectableTextBlock Classes="small" Text="{Binding Source.Passage}" TextWrapping="Wrap" />
+                  </ScrollViewer>
+                </Border>
+              </StackPanel>
+            </StackPanel>
           </Border>
         </StackPanel>
       </ScrollViewer>

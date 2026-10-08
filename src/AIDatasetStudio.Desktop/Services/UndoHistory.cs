@@ -177,6 +177,22 @@ public sealed record DeleteAction(Guid DatasetId, IReadOnlyList<RecordSnapshot> 
 }
 
 /// <summary>
+/// Records were added (written from a document); undo deletes them, redo brings them back.
+/// </summary>
+/// <param name="Source">Where they came from, e.g. the document's file name, for the description.</param>
+public sealed record AddAction(Guid DatasetId, IReadOnlyList<RecordSnapshot> Snapshots, string Source) : IUndoableAction
+{
+    public IReadOnlyList<Guid> RecordIds => Snapshots.Select(s => s.Id).ToList();
+
+    public string Describe(Localizer localizer) =>
+        localizer.Format("History_Add", HistoryText.Subject(localizer, Snapshots.Count == 1 ? Snapshots[0].Ordinal : null, Snapshots.Count), Source);
+
+    public Task<int> UndoAsync(IRecordCommandService commands) => commands.DeleteAsync(RecordIds);
+
+    public Task<int> RedoAsync(IRecordCommandService commands) => commands.RestoreAsync(Snapshots);
+}
+
+/// <summary>
 /// A tag was added to or removed from records; undo does the opposite on the same records.
 /// </summary>
 /// <param name="TagName">The tag's name when the change was made, for the description.</param>

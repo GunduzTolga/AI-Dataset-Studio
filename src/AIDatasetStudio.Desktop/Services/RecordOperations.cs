@@ -105,6 +105,22 @@ public sealed class RecordOperations(IRecordCommandService commands, IRecordQuer
     }
 
     /// <summary>
+    /// Adds records (written from a document) as one step that can be undone.
+    /// </summary>
+    /// <param name="source">Where they come from, e.g. the document's file name, for the history.</param>
+    /// <returns>The new records, in order.</returns>
+    public async Task<IReadOnlyList<Guid>> AddAsync(Guid datasetId, IReadOnlyCollection<NewRecord> records, string source)
+    {
+        var ids = await commands.AddManyAsync(datasetId, records);
+        if (ids.Count > 0)
+        {
+            history.Push(new AddAction(datasetId, await queries.GetSnapshotsAsync(ids), source));
+        }
+
+        return ids;
+    }
+
+    /// <summary>
     /// Deletes records, keeping copies so the deletion can be undone.
     /// </summary>
     public async Task<int> DeleteAsync(Guid datasetId, IReadOnlyCollection<Guid> recordIds)

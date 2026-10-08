@@ -6,15 +6,17 @@ using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.ValueObjects;
+using AIDatasetStudio.Infrastructure.Documents;
 
 namespace AIDatasetStudio.Infrastructure.Import;
 
-internal sealed class ImportService(IRecordCommandService commands) : IImportService
+internal sealed class ImportService(IRecordCommandService commands, DocumentReader documents) : IImportService
 {
     private const int SampleSize = 100;
     private const int ProgressInterval = 500;
 
-    public IReadOnlyList<string> SupportedExtensions { get; } = [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown"];
+    public IReadOnlyList<string> SupportedExtensions { get; } =
+        [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown", ".pdf", ".docx", ".docm"];
 
     // File reading is synchronous, so every operation runs off the caller's (usually the UI) thread.
     public Task<ImportAnalysis> AnalyzeAsync(
@@ -35,7 +37,7 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         return ReadFileAsync(plan.FilePath, () =>
         {
             var rows = new List<ImportRowResult>(maxRows);
-            foreach (var item in SourceFile.Read(plan.FilePath, plan.Format, plan.Csv, plan.Sheet))
+            foreach (var item in Read(plan, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 rows.Add(item.Convert(plan));
@@ -62,6 +64,8 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         {
             ImportFormat.JsonLines or ImportFormat.Markdown or ImportFormat.PlainText => "line",
             ImportFormat.JsonArray => "item",
+            ImportFormat.Pdf => "page",
+            ImportFormat.Word => "paragraph",
             _ => "row",
         };
         var errors = new List<ImportRowError>();
@@ -72,7 +76,7 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         // Converted lazily while the records are inserted, so the file is never held in memory.
         IEnumerable<NewRecord> Records()
         {
-            foreach (var item in SourceFile.Read(plan.FilePath, plan.Format, plan.Csv, plan.Sheet))
+            foreach (var item in Read(plan, cancellationToken))
             {
                 read++;
                 var result = item.Convert(plan);
@@ -109,7 +113,21 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         return new ImportResult(imported, skipped, errors);
     }
 
-    private static ImportAnalysis Analyze(string filePath, DatasetType targetType, ImportOverrides? overrides, CancellationToken cancellationToken)
+    /// <summary>
+    /// The rows of the file as the plan reads them.
+    /// </summary>
+    private IEnumerable<SourceItem> Read(ImportPlan plan, CancellationToken cancellationToken)
+    {
+        if (plan.Format is not (ImportFormat.Pdf or ImportFormat.Word))
+        {
+            return SourceFile.Read(plan.FilePath, plan.Format, plan.Csv, plan.Sheet);
+        }
+
+        var blocks = documents.Read(plan.FilePath, cancellationToken).Blocks;
+        return SourceFile.TextItems(plan.Layout == SourceLayout.Sections ? TextDocuments.Sections(blocks) : TextDocuments.Paragraphs(blocks));
+    }
+
+    private ImportAnalysis Analyze(string filePath, DatasetType targetType, ImportOverrides? overrides, CancellationToken cancellationToken)
     {
         var (detected, readableAs) = SourceFile.DetectFormat(filePath);
         var format = overrides?.Format is { } chosen && readableAs.Contains(chosen) ? chosen : detected;
@@ -117,6 +135,7 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
         {
             ImportFormat.Excel => AnalyzeWorkbook(filePath, targetType, overrides?.Sheet, cancellationToken),
             ImportFormat.Markdown or ImportFormat.PlainText => AnalyzeText(filePath, format, targetType, cancellationToken),
+            ImportFormat.Pdf or ImportFormat.Word => AnalyzeDocument(filePath, format, targetType, cancellationToken),
             _ => AnalyzeRows(filePath, format, targetType, overrides?.Csv, cancellationToken),
         };
 
@@ -181,6 +200,27 @@ internal sealed class ImportService(IRecordCommandService commands) : IImportSer
             ? (SourceLayout.Sections, TextColumns.Markdown)
             : (SourceLayout.Paragraphs, TextColumns.PlainText);
         var rowCount = Count(SourceFile.Read(filePath, format, csv: null), cancellationToken);
+        return new ImportAnalysis(
+            filePath,
+            format,
+            null,
+            layout,
+            columns,
+            rowCount,
+            ImportLayouts.SuggestTextMapping(layout, targetType),
+            ImportLayouts.Supports(layout, targetType));
+    }
+
+    /// <summary>
+    /// A PDF or Word document is read as sections at its headings, or as paragraphs when it has none.
+    /// </summary>
+    private ImportAnalysis AnalyzeDocument(string filePath, ImportFormat format, DatasetType targetType, CancellationToken cancellationToken)
+    {
+        var blocks = documents.Read(filePath, cancellationToken).Blocks;
+        var sections = TextDocuments.Sections(blocks).LongCount();
+        var (layout, columns, rowCount) = sections > 0
+            ? (SourceLayout.Sections, TextColumns.Markdown, sections)
+            : (SourceLayout.Paragraphs, TextColumns.PlainText, TextDocuments.Paragraphs(blocks).LongCount());
         return new ImportAnalysis(
             filePath,
             format,

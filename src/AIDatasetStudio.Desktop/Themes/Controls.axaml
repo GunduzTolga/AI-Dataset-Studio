@@ -128,6 +128,25 @@
     <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
   </Style>
 
+  <!-- Quiet switch, e.g. showing a record's source passage: like a subtle button, tinted while on -->
+  <Style Selector="ToggleButton.subtle">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.subtle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.subtle:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.subtle:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+
   <!-- Destructive -->
   <Style Selector="Button.danger">
     <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
@@ -502,6 +521,10 @@
   </Style>
   <!-- A compact quiet button next to chips -->
   <Style Selector="Button.small">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="MinHeight" Value="26" />
+  </Style>
+  <Style Selector="ToggleButton.small">
     <Setter Property="Padding" Value="8,3" />
     <Setter Property="MinHeight" Value="26" />
   </Style>

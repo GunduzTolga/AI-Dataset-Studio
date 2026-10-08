@@ -132,7 +132,8 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
                 record.Lineage,
                 [.. record.Tags.OrderBy(t => t.NameKey, StringComparer.Ordinal).Select(t => t.Id)],
                 record.CreatedAt,
-                record.UpdatedAt);
+                record.UpdatedAt,
+                record.MetadataJson);
     }
 
     public async Task<IReadOnlyList<RecordSnapshot>> GetSnapshotsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)

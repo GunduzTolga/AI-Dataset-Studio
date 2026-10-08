@@ -1,0 +1,255 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Documents"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.QAExtractionWindow"
+        x:DataType="vm:QAExtractionViewModel"
+        Title="{l:Tr QA_Title}"
+        Width="1080" Height="740"
+        MinWidth="860" MinHeight="560"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <Window.Styles>
+    <Style Selector="NumericUpDown">
+      <Setter Property="MinWidth" Value="110" />
+    </Style>
+    <!-- A pair that will not be added -->
+    <Style Selector="Border.left-out">
+      <Setter Property="Opacity" Value="0.55" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <!-- Header: the document, the dataset and the model -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,14" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="ChatBubblesQuestion" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr QA_Title}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="Document" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+            <TextBlock x:Name="FileNameText" Classes="small strong" Text="{Binding FileName}" />
+            <TextBlock Classes="small muted" Text="{Binding DocumentText}" IsVisible="{Binding HasDocument}" />
+            <TextBlock Classes="small muted" Text="→" />
+            <TextBlock Classes="small muted" Text="{Binding TargetText}" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2" HorizontalAlignment="Right">
+          <TextBlock Classes="small muted" Text="{l:Tr QA_Model}" HorizontalAlignment="Right" />
+          <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+            <ic:SymbolIcon Symbol="BrainCircuit" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+            <TextBlock x:Name="ConnectionText" Classes="small" Text="{Binding ConnectionText}" />
+            <Button Classes="subtle small" Content="{l:Tr Overview_AIConnections}" Command="{Binding OpenAIConnectionsCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Settings and the run -->
+    <Border DockPanel.Dock="Top" Padding="24,10" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" IsVisible="{Binding HasDocument}">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,24,Auto,Auto,Auto,*,Auto">
+        <TextBlock Classes="small" Text="{l:Tr QA_ChunkSize}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <NumericUpDown x:Name="ChunkSizeBox" Grid.Column="1" Value="{Binding ChunkTokens}" Minimum="200" Maximum="4000" Increment="100" FormatString="0"
+                       IsEnabled="{Binding CanChangeChunks}" ToolTip.Tip="{l:Tr QA_ChunkSizeHint}" />
+        <TextBlock Grid.Column="2" Classes="small muted" Text="{l:Tr QA_Tokens}" VerticalAlignment="Center" Margin="6,0,0,0" />
+        <TextBlock Grid.Column="4" Classes="small" Text="{l:Tr QA_QuestionsPerChunk}" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <NumericUpDown Grid.Column="5" Value="{Binding QuestionsPerChunk}" Minimum="1" Maximum="10" Increment="1" FormatString="0" />
+        <TextBlock Grid.Column="6" Classes="small muted" Text="{l:Tr QA_Questions}" VerticalAlignment="Center" Margin="6,0,0,0" />
+        <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="8">
+          <Button x:Name="StartButton" Classes="accent" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Sparkle" />
+              <TextBlock Text="{l:Tr QA_Start}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="StopButton" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
+              <TextBlock Text="{l:Tr Editor_StopWriting}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,16,0">
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding ProgressValue}" IsVisible="{Binding IsRunning}" MaxWidth="360" HorizontalAlignment="Left" />
+          <TextBlock x:Name="ProgressText" Classes="small muted" Text="{Binding ProgressText}" TextTrimming="CharacterEllipsis"
+                     IsVisible="{Binding ProgressText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <TextBlock x:Name="SummaryText" Classes="small" Text="{Binding SummaryText}" IsVisible="{Binding HasDocument}" />
+        </StackPanel>
+        <Button Grid.Column="1" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsCancel="True" Margin="0,0,8,0"
+                MinWidth="88" HorizontalContentAlignment="Center" />
+        <Button x:Name="AddButton" Grid.Column="2" Classes="accent" Content="{Binding AddText}" Command="{Binding AddCommand}"
+                MinWidth="120" HorizontalContentAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <!-- The model could not write -->
+    <Border DockPanel.Dock="Top" Classes="callout danger" Margin="24,12,24,0" Padding="12,8" IsVisible="{Binding HasAIError}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ic:SymbolIcon Symbol="Sparkle" VerticalAlignment="Center" />
+        <TextBlock x:Name="AIErrorText" Grid.Column="1" Classes="small" Text="{Binding AIError}" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="12,0,0,0">
+          <Button Classes="subtle" Content="{l:Tr Import_Close}" Command="{Binding DismissAIErrorCommand}" />
+          <Button Classes="accent" Content="{l:Tr Editor_AIConnections}" Command="{Binding OpenAIConnectionsCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- The pairs could not be added -->
+    <Border DockPanel.Dock="Top" Classes="callout danger" Margin="24,12,24,0" IsVisible="{Binding HasAddError}">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="ErrorCircle" />
+        <TextBlock Classes="small" Text="{Binding AddError}" />
+      </DockPanel>
+    </Border>
+
+    <!-- Preference pairs: the rejected answer is written later -->
+    <Border DockPanel.Dock="Top" Classes="callout" Margin="24,12,24,0" IsVisible="{Binding IsPreference}">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="Info" />
+        <TextBlock Classes="small" Text="{l:Tr QA_PreferenceHint}" />
+      </DockPanel>
+    </Border>
+
+    <!-- Pairs cannot become records of this dataset -->
+    <Border DockPanel.Dock="Top" Classes="callout warning" Margin="24,12,24,0" IsVisible="{Binding !IsSupported}">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="Warning" />
+        <TextBlock Classes="small" Text="{l:Tr QA_Unsupported}" />
+      </DockPanel>
+    </Border>
+
+    <Panel>
+      <!-- Reading the document -->
+      <StackPanel Classes="empty" IsVisible="{Binding IsReading}">
+        <ProgressBar IsIndeterminate="True" Width="160" />
+        <TextBlock Classes="muted" Text="{l:Tr QA_Reading}" HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <!-- The document cannot be read -->
+      <StackPanel Classes="empty" IsVisible="{Binding HasError}">
+        <Border Classes="empty-icon">
+          <ic:SymbolIcon Symbol="DocumentError" />
+        </Border>
+        <TextBlock x:Name="ErrorText" Classes="muted" Text="{Binding ErrorMessage}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="460" />
+      </StackPanel>
+
+      <!-- No text in the document -->
+      <StackPanel Classes="empty" IsVisible="{Binding IsEmptyDocument}">
+        <Border Classes="empty-icon">
+          <ic:SymbolIcon Symbol="DocumentDismiss" />
+        </Border>
+        <TextBlock Classes="muted" Text="{l:Tr QA_EmptyDocument}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420" />
+      </StackPanel>
+
+      <Grid ColumnDefinitions="330,*" IsVisible="{Binding HasChunks}">
+        <!-- Passages -->
+        <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+          <DockPanel Margin="12,12,12,12">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="4,0,0,8">
+              <TextBlock Classes="overline" Text="{l:Tr QA_Passages}" VerticalAlignment="Center" />
+              <CheckBox x:Name="AllBox" Grid.Column="1" IsThreeState="True" IsChecked="{Binding AllIncluded}" Content="{l:Tr QA_All}"
+                        IsEnabled="{Binding !IsRunning}" />
+            </Grid>
+            <ListBox x:Name="ChunkList" Classes="records" ItemsSource="{Binding Chunks}" SelectedItem="{Binding SelectedChunk}" Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:QAChunkViewModel">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,3">
+                    <CheckBox IsChecked="{Binding IsIncluded}" VerticalAlignment="Top" Margin="0,-2,6,0" MinWidth="0"
+                              IsEnabled="{Binding !IsWriting}" ToolTip.Tip="{l:Tr QA_Include}" />
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <TextBlock Classes="strong" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="small muted" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Classes="tag" Classes.warning="{Binding HasProblem}" Margin="8,0,0,0" VerticalAlignment="Top"
+                            IsVisible="{Binding StateText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="{Binding StateText}" />
+                    </Border>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <!-- The passage and its pairs -->
+        <ScrollViewer Grid.Column="1" IsVisible="{Binding HasSelection}">
+          <StackPanel Margin="24,16,24,20" Spacing="12" DataContext="{Binding SelectedChunk}" x:DataType="vm:QAChunkViewModel">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Spacing="2">
+                <TextBlock x:Name="ChunkTitle" Classes="subtitle" Text="{Binding FullTitle}" TextWrapping="Wrap" />
+                <TextBlock Classes="small muted" Text="{Binding Detail}" />
+              </StackPanel>
+              <Button x:Name="RewriteButton" Grid.Column="1" Classes="subtle" VerticalAlignment="Top"
+                      Command="{Binding $parent[Window].((vm:QAExtractionViewModel)DataContext).RewriteCommand}" CommandParameter="{Binding}"
+                      ToolTip.Tip="{l:Tr QA_RewriteHint}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="ArrowClockwise" />
+                  <TextBlock Text="{l:Tr QA_Rewrite}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+
+            <TextBlock Classes="overline" Text="{l:Tr QA_Passage}" Margin="2,4,0,0" />
+            <Border Classes="card" Padding="14,10">
+              <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
+                <SelectableTextBlock x:Name="PassageText" Classes="small" Text="{Binding Chunk.Text}" TextWrapping="Wrap" />
+              </ScrollViewer>
+            </Border>
+
+            <Border Classes="callout warning" IsVisible="{Binding HasProblem}">
+              <StackPanel Spacing="6">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Warning" />
+                  <TextBlock Classes="small" Text="{l:Tr QA_UnreadableHint}" TextWrapping="Wrap" />
+                </DockPanel>
+                <SelectableTextBlock Classes="small mono" Text="{Binding RawAnswer}" TextWrapping="Wrap" MaxHeight="120" />
+              </StackPanel>
+            </Border>
+
+            <TextBlock Classes="overline" Text="{l:Tr QA_Pairs}" Margin="2,4,0,0" />
+            <TextBlock Classes="small muted" Text="{l:Tr QA_NoPairs}" TextWrapping="Wrap" Margin="2,0"
+                       IsVisible="{Binding !HasPairs}" />
+            <ItemsControl x:Name="PairList" ItemsSource="{Binding Pairs}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="10" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:QAPairViewModel">
+                  <Border Classes="card" Classes.left-out="{Binding !IsKept}" Padding="12,10">
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                      <CheckBox Grid.RowSpan="4" IsChecked="{Binding IsKept}" VerticalAlignment="Top" MinWidth="0" Margin="0,-2,8,0"
+                                ToolTip.Tip="{l:Tr QA_Keep}" />
+                      <TextBlock Grid.Column="1" Classes="label" Text="{l:Tr QA_Question}" />
+                      <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding Question}" TextWrapping="Wrap" AcceptsReturn="False" />
+                      <TextBlock Grid.Column="1" Grid.Row="2" Classes="label" Text="{l:Tr QA_Answer}" Margin="0,8,0,0" />
+                      <TextBox Grid.Column="1" Grid.Row="3" Text="{Binding Answer}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="56" />
+                      <Button Grid.Column="2" Grid.RowSpan="4" Classes="mini" VerticalAlignment="Top" Margin="8,0,0,0"
+                              Command="{Binding RemoveCommand}" ToolTip.Tip="{l:Tr QA_RemovePair}">
+                        <ic:SymbolIcon Symbol="Delete" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Panel>
+  </DockPanel>
+</Window>

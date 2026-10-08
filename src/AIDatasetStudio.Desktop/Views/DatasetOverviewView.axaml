@@ -114,6 +114,13 @@
                      MaxLength="4000" PlaceholderText="{l:Tr Overview_AIGuidanceWatermark}" />
             <TextBlock Classes="caption muted" Text="{l:Tr Overview_AIGuidanceHint}" Margin="0,4,0,0" TextWrapping="Wrap" />
           </StackPanel>
+          <Button x:Name="ExtractQuestionsButton" Classes="subtle" HorizontalAlignment="Left" Command="{Binding ExtractQuestionsCommand}"
+                  ToolTip.Tip="{l:Tr Overview_ExtractQuestionsHint}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="ChatBubblesQuestion" />
+              <TextBlock Text="{l:Tr Menu_ExtractQuestions}" />
+            </StackPanel>
+          </Button>
         </StackPanel>
       </Border>
 

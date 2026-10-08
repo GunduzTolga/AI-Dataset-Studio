@@ -305,7 +305,7 @@ public sealed class ImportServiceTests
     [Fact]
     public void Supported_extensions_are_lowercase_with_a_dot()
     {
-        Assert.All(new ImportService(null!).SupportedExtensions, e => Assert.Matches("^\\.[a-z]+$", e));
+        Assert.All(new ImportService(null!, null!).SupportedExtensions, e => Assert.Matches("^\\.[a-z]+$", e));
     }
 
     private static ImportPlan PlanFrom(ImportAnalysis analysis, DatasetType type) =>

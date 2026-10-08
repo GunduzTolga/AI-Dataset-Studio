@@ -17,6 +17,12 @@ public enum ImportFormat
 
     /// <summary>Plain text split into paragraphs at blank lines.</summary>
     PlainText,
+
+    /// <summary>A PDF document, read as sections at its headings or as paragraphs.</summary>
+    Pdf,
+
+    /// <summary>A Word document (.docx), read as sections at its headings or as paragraphs.</summary>
+    Word,
 }
 
 /// <summary>
@@ -46,10 +52,10 @@ public enum SourceLayout
     /// <summary><c>input.messages</c> / <c>preferred_output</c> / <c>non_preferred_output</c> (OpenAI DPO).</summary>
     OpenAiPreference,
 
-    /// <summary>Markdown sections: heading, heading path, parent headings and content.</summary>
+    /// <summary>Document sections (Markdown, PDF, Word): heading, heading path, parent headings and content.</summary>
     Sections,
 
-    /// <summary>Plain-text paragraphs: first line, the rest and the whole paragraph.</summary>
+    /// <summary>Paragraphs of plain text or a document: first line, the rest and the whole paragraph.</summary>
     Paragraphs,
 }
 

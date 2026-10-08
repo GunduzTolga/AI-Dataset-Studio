@@ -18,6 +18,18 @@ public enum ImportFileError
 
     /// <summary>The chosen sheet is not in the workbook (any more).</summary>
     SheetNotFound,
+
+    /// <summary>A Word 97–2003 (.doc) or password-protected Word document, which cannot be read.</summary>
+    LegacyDocument,
+
+    /// <summary>The file is not a readable .docx or PDF document (damaged, or something else).</summary>
+    InvalidDocument,
+
+    /// <summary>A PDF that needs a password to be opened.</summary>
+    ProtectedPdf,
+
+    /// <summary>A PDF without text, such as scanned pages; its text would have to be recognised (OCR) first.</summary>
+    NoText,
 }
 
 /// <summary>

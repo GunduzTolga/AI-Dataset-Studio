@@ -367,7 +367,7 @@ internal sealed class XlsxWorkbook : IDisposable
     /// <summary>
     /// A relationship target as a package path: absolute ("/xl/…") or relative to the source's folder.
     /// </summary>
-    private static string Resolve(string folder, string target)
+    internal static string Resolve(string folder, string target)
     {
         var path = target.StartsWith('/') ? target.TrimStart('/') : folder + target;
         var segments = new List<string>();

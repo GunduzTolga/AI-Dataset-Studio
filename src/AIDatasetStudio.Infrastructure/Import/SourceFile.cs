@@ -1,6 +1,8 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using AIDatasetStudio.Application.Import;
+using AIDatasetStudio.Infrastructure.Documents;
 
 namespace AIDatasetStudio.Infrastructure.Import;
 
@@ -20,26 +22,39 @@ internal static class SourceFile
 
     /// <summary>
     /// The format to read the file as, and the formats the user may choose instead. By content
-    /// for workbooks, by extension where it is unambiguous, otherwise by the first character:
+    /// for PDFs, Word documents and workbooks, by extension where it is unambiguous, otherwise by the first character:
     /// "[" is a JSON array, "{" is JSON Lines (one object per line), and anything else is a table
     /// (CSV) or plain text, whichever the file looks like.
     /// </summary>
-    /// <exception cref="ImportFileException">The file is an Excel 97–2003 or password-protected workbook.</exception>
+    /// <exception cref="ImportFileException">The file is an Excel or Word 97–2003 or password-protected document.</exception>
     public static (ImportFormat Format, IReadOnlyList<ImportFormat> ReadableAs) DetectFormat(string path)
     {
-        Span<byte> start = stackalloc byte[8];
+        Span<byte> start = stackalloc byte[1024];
         int length;
         using (var stream = OpenRead(path))
         {
             length = stream.ReadAtLeast(start, start.Length, throwOnEndOfStream: false);
         }
 
-        if (XlsxWorkbook.IsCompoundFile(start[..length]))
+        start = start[..length];
+        if (XlsxWorkbook.IsCompoundFile(start))
         {
-            throw new ImportFileException(ImportFileError.LegacyWorkbook, path, $"'{path}' is an Excel 97-2003 or password-protected workbook.");
+            throw IsWordExtension(path)
+                ? DocxDocument.Legacy(path)
+                : new ImportFileException(ImportFileError.LegacyWorkbook, path, $"'{path}' is an Excel 97-2003 or password-protected workbook.");
         }
 
-        if (XlsxWorkbook.IsZip(start[..length]) || HasExtension(path, ".xlsx") || HasExtension(path, ".xlsm"))
+        if (DocumentReader.IsPdf(start))
+        {
+            return (ImportFormat.Pdf, [ImportFormat.Pdf]);
+        }
+
+        if (IsWordExtension(path) || (XlsxWorkbook.IsZip(start) && IsWordPackage(path)))
+        {
+            return (ImportFormat.Word, [ImportFormat.Word]);
+        }
+
+        if (XlsxWorkbook.IsZip(start) || HasExtension(path, ".xlsx") || HasExtension(path, ".xlsm"))
         {
             return (ImportFormat.Excel, [ImportFormat.Excel]);
         }
@@ -172,7 +187,26 @@ internal static class SourceFile
     private static bool HasExtension(string path, string extension) =>
         Path.GetExtension(path).Equals(extension, StringComparison.OrdinalIgnoreCase);
 
-    private static IEnumerable<SourceItem> TextItems(IEnumerable<TextRow> rows) =>
+    private static bool IsWordExtension(string path) =>
+        HasExtension(path, ".docx") || HasExtension(path, ".docm") || HasExtension(path, ".doc") || HasExtension(path, ".dotx");
+
+    /// <summary>
+    /// Whether a ZIP file is a Word document rather than a workbook.
+    /// </summary>
+    private static bool IsWordPackage(string path)
+    {
+        try
+        {
+            using var zip = new ZipArchive(OpenRead(path), ZipArchiveMode.Read);
+            return zip.GetEntry("word/document.xml") is not null;
+        }
+        catch (InvalidDataException)
+        {
+            return false;
+        }
+    }
+
+    public static IEnumerable<SourceItem> TextItems(IEnumerable<TextRow> rows) =>
         rows.Select(row => new SourceItem(row.Line, new TextSourceRow(row), null));
 
     /// <summary>

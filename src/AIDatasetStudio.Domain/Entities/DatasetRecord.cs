@@ -64,12 +64,14 @@ public sealed class DatasetRecord
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <param name="metadataJson">Free metadata as a JSON object; <c>null</c> for none.</param>
     public static DatasetRecord Create(
         Dataset dataset,
         RecordPayload payload,
         RecordLineage lineage,
         long ordinal,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? metadataJson = null)
     {
         ArgumentNullException.ThrowIfNull(dataset);
         ArgumentNullException.ThrowIfNull(payload);
@@ -86,6 +88,7 @@ public sealed class DatasetRecord
             Payload = payload,
             ContentHash = payload.ComputeContentHash(),
             Preview = payload.GetPreviewText(PreviewMaxLength),
+            MetadataJson = string.IsNullOrWhiteSpace(metadataJson) ? "{}" : metadataJson,
             Lineage = lineage,
             CreatedAt = now,
             UpdatedAt = now,

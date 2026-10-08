@@ -2,6 +2,7 @@ using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Catalog;
+using AIDatasetStudio.Infrastructure.Documents;
 using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Records;
@@ -26,7 +27,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Catalog = new CatalogService(Workspace, Clock, Tokenizers);
         Commands = new RecordCommandService(Workspace, Clock);
         Queries = new RecordQueryService(Workspace);
-        Import = new ImportService(Commands);
+        Import = new ImportService(Commands, Documents);
         Analysis = new RecordAnalysisService(Workspace, Tokenizers, Clock);
         Export = new ExportService(Workspace, Analysis, Clock);
         Versions = new VersionService(Workspace, Analysis, Clock);
@@ -37,6 +38,8 @@ internal sealed class TestWorkspace : IAsyncDisposable
     /// Shared: loading a vocabulary takes a moment.
     /// </summary>
     public static TiktokenProvider Tokenizers { get; } = new();
+
+    public DocumentReader Documents { get; } = new();
 
     public RecordAnalysisService Analysis { get; }
 

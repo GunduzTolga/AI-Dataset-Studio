@@ -8,6 +8,7 @@ using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Documents;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
@@ -301,6 +302,19 @@ internal sealed class FakeDialogs : IDialogService
         await AIConnectionsScript(connections);
     }
 
+    /// <summary>
+    /// What the user does in Q&amp;A extraction; by default opens it and waits for the document.
+    /// </summary>
+    public Func<QAExtractionViewModel, Task> QAExtractionScript { get; set; } = extraction => extraction.InitializeAsync();
+
+    public QAExtractionViewModel? LastQAExtraction { get; private set; }
+
+    public async Task ShowQAExtractionAsync(QAExtractionViewModel extraction)
+    {
+        LastQAExtraction = extraction;
+        await QAExtractionScript(extraction);
+    }
+
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         LastImportWizard = wizard;
@@ -327,6 +341,16 @@ internal sealed class FakeFileDialogs : IFileDialogService
     {
         ImportExtensions = extensions;
         return Task.FromResult(ImportPath);
+    }
+
+    public string? DocumentPath { get; set; }
+
+    public IReadOnlyList<string>? DocumentExtensions { get; private set; }
+
+    public Task<string?> PickDocumentAsync(IReadOnlyList<string> extensions)
+    {
+        DocumentExtensions = extensions;
+        return Task.FromResult(DocumentPath);
     }
 
     public string? ExportPath { get; set; }

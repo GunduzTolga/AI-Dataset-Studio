@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -67,7 +68,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     [NotifyPropertyChangedFor(
         nameof(HasAnalysis), nameof(IsCsv), nameof(IsExcel), nameof(IsAllSheets), nameof(IsColumnBased), nameof(IsConversation),
         nameof(IsUnsupported), nameof(FormatText), nameof(LayoutText), nameof(RowCountText), nameof(ConversationText),
-        nameof(UnsupportedText), nameof(StartText), nameof(IsEmptyFile), nameof(TextLayoutHint), nameof(HasTextLayoutHint))]
+        nameof(UnsupportedText), nameof(StartText), nameof(IsEmptyFile), nameof(TextLayoutHint), nameof(HasTextLayoutHint), nameof(CanExtractQuestions))]
     [NotifyCanExecuteChangedFor(nameof(ImportCommand))]
     public partial ImportAnalysis? Analysis { get; private set; }
 
@@ -168,14 +169,27 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     /// <summary>
     /// How a Markdown or plain-text file is split into records.
     /// </summary>
-    public string? TextLayoutHint => Analysis?.Layout switch
+    public string? TextLayoutHint => Analysis switch
     {
-        SourceLayout.Sections => _localizer["Import_SectionsHint"],
-        SourceLayout.Paragraphs => _localizer["Import_ParagraphsHint"],
+        { Layout: SourceLayout.Sections } => _localizer["Import_SectionsHint"],
+        { Layout: SourceLayout.Paragraphs, Format: ImportFormat.Pdf or ImportFormat.Word } => _localizer["Import_DocumentParagraphsHint"],
+        { Layout: SourceLayout.Paragraphs } => _localizer["Import_ParagraphsHint"],
         _ => null,
     };
 
     public bool HasTextLayoutHint => TextLayoutHint is not null;
+
+    /// <summary>
+    /// A document whose questions a model can write instead (SDD §17.5).
+    /// </summary>
+    public bool CanExtractQuestions =>
+        Analysis?.Format is ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Markdown or ImportFormat.PlainText
+        && QAExtraction.Supports(Target.Type);
+
+    /// <summary>
+    /// The user chose Q&amp;A extraction for this file instead of importing it.
+    /// </summary>
+    public bool ExtractQuestionsChosen { get; private set; }
 
     public bool IsColumnBased => Analysis is { } a && ImportLayouts.IsColumnBased(a.Layout) && a.SupportsTargetType;
 
@@ -312,6 +326,17 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     [RelayCommand]
     private void Close() => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
+    /// Closes the wizard and has a model write the document's questions instead.
+    /// </summary>
+    [RelayCommand]
+    private void ExtractQuestions()
+    {
+        _work?.Cancel();
+        ExtractQuestionsChosen = true;
+        CloseRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     partial void OnSelectedDelimiterChanged(DelimiterOption? value) => OnSourceOptionChanged();
 
