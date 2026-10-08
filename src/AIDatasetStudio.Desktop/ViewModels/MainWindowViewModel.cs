@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Desktop.ViewModels.Import;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -23,6 +25,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IDialogService _dialogs;
     private readonly IRecordCommandService _commands;
     private readonly IRecordQueryService _queries;
+    private readonly IImportService _import;
     private readonly IUserSettings _settings;
     private readonly Localizer _localizer;
 
@@ -32,6 +35,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IDialogService dialogs,
         IRecordCommandService commands,
         IRecordQueryService queries,
+        IImportService import,
         IUserSettings settings,
         Localizer localizer,
         StatusBarViewModel status,
@@ -44,6 +48,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _dialogs = dialogs;
         _commands = commands;
         _queries = queries;
+        _import = import;
         _settings = settings;
         _localizer = localizer;
         Status = status;
@@ -74,7 +79,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand))]
     public partial bool IsBusy { get; set; }
 
     public WorkspaceInfo? Workspace => _workspaces.Current;
@@ -155,6 +160,51 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         ThemeService.Apply(theme);
         _settings.SetUiTheme(ThemeService.ToSetting(theme));
         Theme = theme;
+    }
+
+    private bool CanImport() => !IsBusy && Explorer.SelectedDataset is not null;
+
+    /// <summary>
+    /// Picks a file and runs the import wizard for the selected dataset.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanImport))]
+    private async Task ImportAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset)
+        {
+            return;
+        }
+
+        var path = await _files.PickImportFileAsync(_import.SupportedExtensions);
+        if (path is null)
+        {
+            return;
+        }
+
+        var wizard = new ImportWizardViewModel(_import, _localizer, path, new ImportTarget(dataset.Id, dataset.Name, dataset.Type));
+        if (await _dialogs.ShowImportWizardAsync(wizard) is not { } result)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            Explorer.SetRecordCount(dataset.Id, await _queries.CountAsync(dataset.Id, RecordFilter.None));
+            if (Records.Dataset?.Id == dataset.Id)
+            {
+                await Records.ReloadAsync();
+            }
+
+            Status.Set(result.Skipped > 0 ? "Status_ImportedWithSkipped" : "Status_Imported", result.Imported, dataset.Name, result.Skipped);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private bool CanGenerateSampleData() => !IsBusy && Explorer.SelectedDataset is not null;
@@ -260,6 +310,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         if (e.PropertyName == nameof(ExplorerViewModel.SelectedDataset) && Explorer.SelectedDataset != Records.Dataset)
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
+            ImportCommand.NotifyCanExecuteChanged();
             _ = Details.ShowAsync(null);
             _ = Records.ShowDatasetAsync(Explorer.SelectedDataset);
         }

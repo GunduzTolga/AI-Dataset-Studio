@@ -1,6 +1,8 @@
+using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.Views.Dialogs;
 using AIDatasetStudio.Domain.Enums;
 using Avalonia.Controls;
@@ -71,9 +73,13 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
             IsDestructive = isDestructive,
         });
 
-    private async Task<bool> ShowAsync(InputDialogViewModel viewModel)
+    public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
-        var window = owner() ?? throw new InvalidOperationException("No window is available to host a dialog.");
-        return await new InputDialog { DataContext = viewModel }.ShowDialog<bool>(window);
+        await new ImportWizard { DataContext = wizard }.ShowDialog(Owner);
+        return wizard.Result;
     }
+
+    private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);
+
+    private Window Owner => owner() ?? throw new InvalidOperationException("No window is available to host a dialog.");
 }

@@ -1,0 +1,274 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Import"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.ImportWizard"
+        x:DataType="vm:ImportWizardViewModel"
+        Title="{l:Tr Import_Title}"
+        Width="1040" Height="700"
+        MinWidth="860" MinHeight="560"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <Window.Styles>
+    <Style Selector="TextBlock.error">
+      <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="ArrowImport" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Import_Title}" />
+          <TextBlock Classes="small muted" Text="{Binding TargetText}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer: actions for the current step -->
+    <Border DockPanel.Dock="Bottom" Padding="24,14" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Panel>
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsSetup}">
+          <TextBlock Classes="small muted" Text="{Binding PreviewSummary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0">
+            <Button Classes="subtle" Content="{l:Tr Dialog_Cancel}" Command="{Binding CancelCommand}" IsCancel="True"
+                    MinWidth="88" HorizontalContentAlignment="Center" />
+            <Button x:Name="ImportButton" Classes="accent" Command="{Binding ImportCommand}" IsDefault="True">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ArrowImport" />
+                <TextBlock Text="{Binding StartText}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+
+        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsImporting}">
+          <StackPanel Spacing="6" VerticalAlignment="Center" Margin="0,0,24,0">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="small strong" Text="{Binding ProgressText}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="1" Classes="small muted" Text="{l:Tr Import_ImportingHint}" Margin="16,0,0,0" />
+            </Grid>
+            <ProgressBar Minimum="0" Maximum="1" Value="{Binding ProgressValue}" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="subtle" Content="{l:Tr Dialog_Cancel}" Command="{Binding CancelCommand}"
+                  MinWidth="88" HorizontalContentAlignment="Center" />
+        </Grid>
+
+        <Button Classes="accent" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsDefault="True"
+                HorizontalAlignment="Right" MinWidth="88" HorizontalContentAlignment="Center" IsVisible="{Binding IsDone}" />
+      </Panel>
+    </Border>
+
+    <Panel>
+      <!-- Settings | preview -->
+      <Grid ColumnDefinitions="340,*" IsVisible="{Binding !IsDone}">
+        <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+          <ScrollViewer>
+            <StackPanel Margin="20,18,20,20" Spacing="18" IsEnabled="{Binding IsSetup}">
+              <!-- Source file -->
+              <StackPanel Spacing="8">
+                <TextBlock Classes="overline" Text="{l:Tr Import_SectionSource}" />
+                <Border Classes="card">
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="Auto,*">
+                      <ic:SymbolIcon Symbol="DocumentTable" FontSize="20" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Top" />
+                      <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="1">
+                        <TextBlock Classes="strong" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding FilePath}" />
+                        <TextBlock Classes="small muted" Text="{Binding RowCountText}" IsVisible="{Binding HasAnalysis}" />
+                      </StackPanel>
+                    </Grid>
+                    <WrapPanel IsVisible="{Binding HasAnalysis}">
+                      <Border Classes="tag" Margin="0,0,6,0">
+                        <TextBlock Text="{Binding FormatText}" />
+                      </Border>
+                      <Border Classes="tag">
+                        <TextBlock Text="{Binding LayoutText}" />
+                      </Border>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <Border Classes="callout danger" IsVisible="{Binding HasError}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="ErrorCircle" />
+                  <TextBlock Text="{Binding ErrorMessage}" />
+                </DockPanel>
+              </Border>
+              <Border Classes="callout" IsVisible="{Binding HasNotice}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Info" />
+                  <TextBlock Text="{Binding Notice}" />
+                </DockPanel>
+              </Border>
+              <Border Classes="callout danger" IsVisible="{Binding IsUnsupported}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="DismissCircle" />
+                  <TextBlock Text="{Binding UnsupportedText}" />
+                </DockPanel>
+              </Border>
+              <Border Classes="callout warning" IsVisible="{Binding IsEmptyFile}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Warning" />
+                  <TextBlock Text="{l:Tr Import_EmptyFile}" />
+                </DockPanel>
+              </Border>
+
+              <!-- CSV settings: changing one reads the file again -->
+              <StackPanel Spacing="12" IsVisible="{Binding IsCsv}">
+                <TextBlock Classes="overline" Text="{l:Tr Import_SectionCsv}" />
+                <StackPanel>
+                  <TextBlock Classes="label" Text="{l:Tr Import_Delimiter}" />
+                  <ComboBox x:Name="DelimiterBox" ItemsSource="{Binding Delimiters}" SelectedItem="{Binding SelectedDelimiter}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:DelimiterOption">
+                        <TextBlock Text="{Binding Label}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Classes="label" Text="{l:Tr Import_Encoding}" />
+                  <ComboBox ItemsSource="{Binding Encodings}" SelectedItem="{Binding SelectedEncoding}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:EncodingOption">
+                        <TextBlock Text="{Binding Label}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+                <CheckBox IsChecked="{Binding HasHeader}" Content="{l:Tr Import_HasHeader}" />
+              </StackPanel>
+
+              <!-- Column mapping -->
+              <StackPanel Spacing="12" IsVisible="{Binding IsColumnBased}">
+                <TextBlock Classes="overline" Text="{l:Tr Import_SectionMapping}" />
+                <ItemsControl ItemsSource="{Binding Mappings}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="12" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ColumnMappingViewModel">
+                      <StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Classes="label" Text="{Binding Label}" />
+                          <TextBlock Classes="label error" Text="*" IsVisible="{Binding IsRequired}" ToolTip.Tip="{l:Tr Import_Required}" />
+                        </StackPanel>
+                        <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedColumn}" HorizontalAlignment="Stretch">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ColumnOption">
+                              <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Classes="callout warning" IsVisible="{Binding HasMissingFields}">
+                  <DockPanel>
+                    <ic:SymbolIcon Symbol="Warning" />
+                    <TextBlock Text="{Binding MissingFieldsText}" />
+                  </DockPanel>
+                </Border>
+              </StackPanel>
+
+              <Border Classes="callout" IsVisible="{Binding IsConversation}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Chat" />
+                  <TextBlock Text="{Binding ConversationText}" />
+                </DockPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+
+        <!-- Preview of the first rows as they will be imported -->
+        <DockPanel Grid.Column="1">
+          <Grid DockPanel.Dock="Top" Margin="24,18,24,8" ColumnDefinitions="*,Auto">
+            <TextBlock Classes="overline" Text="{l:Tr Import_SectionPreview}" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsAnalyzing}">
+              <ProgressBar IsIndeterminate="True" Width="72" VerticalAlignment="Center" />
+              <TextBlock Classes="small muted" Text="{l:Tr Import_Analyzing}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Grid>
+          <Panel>
+            <StackPanel Classes="empty" IsVisible="{Binding IsPreviewEmpty}">
+              <Border Classes="empty-icon">
+                <ic:SymbolIcon Symbol="DocumentSearch" />
+              </Border>
+              <TextBlock Classes="muted" Text="{l:Tr Import_NoPreview}" />
+            </StackPanel>
+            <ScrollViewer IsVisible="{Binding HasPreview}">
+              <ItemsControl Classes="lines" ItemsSource="{Binding Preview}" Margin="24,0,24,16">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ImportRowViewModel">
+                    <Grid ColumnDefinitions="52,26,*" Margin="0,9">
+                      <TextBlock Classes="small muted numeric" Text="{Binding NumberText}" Margin="0,1,0,0" />
+                      <Panel Grid.Column="1" VerticalAlignment="Top" Margin="0,1,0,0">
+                        <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="16" Foreground="{DynamicResource PositiveBrush}" IsVisible="{Binding IsValid}" />
+                        <ic:SymbolIcon Symbol="ErrorCircle" FontSize="16" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsInvalid}" />
+                      </Panel>
+                      <StackPanel Grid.Column="2" Spacing="2">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{Binding Primary}" TextTrimming="CharacterEllipsis" Classes.error="{Binding IsInvalid}" />
+                          <Border Grid.Column="1" Classes="tag" Margin="8,0,0,0" IsVisible="{Binding HasBadge}">
+                            <TextBlock Text="{Binding Badge}" />
+                          </Border>
+                        </Grid>
+                        <TextBlock Classes="small muted" Text="{Binding Secondary}" TextTrimming="CharacterEllipsis" IsVisible="{Binding HasSecondary}" />
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Panel>
+        </DockPanel>
+      </Grid>
+
+      <!-- Result -->
+      <ScrollViewer IsVisible="{Binding IsDone}">
+        <StackPanel Margin="48,36,48,24" Spacing="10" MaxWidth="720" VerticalAlignment="Center">
+          <Border Width="56" Height="56" CornerRadius="28" HorizontalAlignment="Center" Background="{DynamicResource StatusApprovedBackgroundBrush}">
+            <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="30" Foreground="{DynamicResource StatusApprovedForegroundBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <TextBlock Classes="title" Text="{l:Tr Import_DoneTitle}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+          <TextBlock Classes="secondary" Text="{Binding ResultText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+          <TextBlock Classes="small muted" Text="{l:Tr Import_NothingSkipped}" HorizontalAlignment="Center" IsVisible="{Binding !HasSkipped}" />
+
+          <Border Classes="card" Margin="0,14,0,0" IsVisible="{Binding HasSkipped}">
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <ic:SymbolIcon Symbol="Warning" FontSize="16" Foreground="{DynamicResource WarningTextBrush}" />
+                <TextBlock Classes="strong" Text="{Binding SkippedText}" />
+              </StackPanel>
+              <ItemsControl Classes="lines" ItemsSource="{Binding SkippedRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ImportRowViewModel">
+                    <Grid ColumnDefinitions="64,*" Margin="0,7">
+                      <TextBlock Classes="small muted numeric" Text="{Binding NumberText}" />
+                      <TextBlock Grid.Column="1" Classes="small" Text="{Binding Primary}" TextWrapping="Wrap" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Classes="small muted" Text="{Binding MoreSkippedText}" IsVisible="{Binding HasMoreSkipped}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</Window>

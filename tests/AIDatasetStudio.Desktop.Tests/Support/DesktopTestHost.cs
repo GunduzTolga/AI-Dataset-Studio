@@ -1,7 +1,9 @@
+using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Infrastructure;
 using Avalonia.Threading;
 using Microsoft.Data.Sqlite;
@@ -120,6 +122,24 @@ internal sealed class FakeDialogs : IDialogService
         ConfirmWasDestructive.Add(isDestructive);
         return Task.FromResult(ConfirmAnswer);
     }
+
+    /// <summary>
+    /// What the user does in the import wizard; by default reads the file and imports it as detected.
+    /// </summary>
+    public Func<ImportWizardViewModel, Task> ImportWizardScript { get; set; } = async wizard =>
+    {
+        await wizard.InitializeAsync();
+        await wizard.ImportCommand.ExecuteAsync(null);
+    };
+
+    public ImportWizardViewModel? LastImportWizard { get; private set; }
+
+    public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
+    {
+        LastImportWizard = wizard;
+        await ImportWizardScript(wizard);
+        return wizard.Result;
+    }
 }
 
 internal sealed class FakeFileDialogs : IFileDialogService
@@ -131,4 +151,14 @@ internal sealed class FakeFileDialogs : IFileDialogService
     public Task<string?> PickWorkspaceToOpenAsync() => Task.FromResult(OpenPath);
 
     public Task<string?> PickWorkspaceToCreateAsync(string suggestedName) => Task.FromResult(CreatePath);
+
+    public string? ImportPath { get; set; }
+
+    public IReadOnlyList<string> ImportExtensions { get; private set; } = [];
+
+    public Task<string?> PickImportFileAsync(IReadOnlyList<string> extensions)
+    {
+        ImportExtensions = extensions;
+        return Task.FromResult(ImportPath);
+    }
 }

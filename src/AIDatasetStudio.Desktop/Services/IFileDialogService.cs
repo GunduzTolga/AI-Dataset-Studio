@@ -10,4 +10,8 @@ public interface IFileDialogService
 
     /// <returns>The chosen local path, or <c>null</c> if the user cancelled. Overwriting was already confirmed.</returns>
     Task<string?> PickWorkspaceToCreateAsync(string suggestedName);
+
+    /// <param name="extensions">Extensions to offer, with the leading dot.</param>
+    /// <returns>The chosen local path, or <c>null</c> if the user cancelled.</returns>
+    Task<string?> PickImportFileAsync(IReadOnlyList<string> extensions);
 }

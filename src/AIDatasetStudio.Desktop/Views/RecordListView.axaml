@@ -34,6 +34,14 @@
             </StackPanel>
             <TextBlock Classes="small muted" Text="{Binding Dataset.Subtitle, FallbackValue=''}" />
           </StackPanel>
+          <Button Grid.Column="2" Classes="subtle" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding !IsEmptyDataset}"
+                  ToolTip.Tip="{l:Tr Action_ImportFromFile}"
+                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ImportCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="ArrowImport" />
+              <TextBlock Text="{l:Tr Action_Import}" />
+            </StackPanel>
+          </Button>
         </Grid>
 
         <TextBox Classes="search clearButton" Text="{Binding SearchText}" PlaceholderText="{l:Tr Records_SearchWatermark}"
@@ -98,13 +106,22 @@
           </Border>
           <TextBlock Classes="subtitle" Text="{l:Tr Records_EmptyTitle}" />
           <TextBlock Classes="muted" Text="{l:Tr Records_EmptyHint}" />
-          <Button Classes="accent" HorizontalAlignment="Center" Margin="0,8,0,0"
-                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).GenerateSampleDataCommand}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <ic:SymbolIcon Symbol="Sparkle" />
-              <TextBlock Text="{l:Tr Action_GenerateSamples}" />
-            </StackPanel>
-          </Button>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,8,0,0">
+            <Button Classes="accent"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ImportCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="ArrowImport" />
+                <TextBlock Text="{l:Tr Action_ImportFromFile}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="subtle"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).GenerateSampleDataCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Sparkle" />
+                <TextBlock Text="{l:Tr Action_GenerateSamples}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
         </StackPanel>
         <StackPanel Classes="empty" IsVisible="{Binding IsNoMatches}">
           <Border Classes="empty-icon">

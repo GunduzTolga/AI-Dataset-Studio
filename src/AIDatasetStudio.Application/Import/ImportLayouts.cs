@@ -14,7 +14,7 @@ public static class ImportLayouts
     {
         // Normalized names (lowercase, Turkish letters folded, punctuation removed), best first.
         [TargetField.Instruction] = ["instruction", "talimat", "prompt", "question", "soru", "query", "istem", "komut", "user", "kullanici"],
-        [TargetField.Input] = ["input", "girdi", "context", "baglam"],
+        [TargetField.Input] = ["input", "girdi", "context", "baglam", "ekbilgi"],
         [TargetField.Output] = ["output", "cikti", "response", "answer", "cevap", "yanit", "completion", "assistant", "asistan", "target"],
         [TargetField.SystemPrompt] = ["systemprompt", "system", "sistem", "sistemtalimati", "systemmessage"],
         [TargetField.User] = ["user", "kullanici", "human", "question", "soru", "prompt", "istem", "instruction", "talimat", "input"],

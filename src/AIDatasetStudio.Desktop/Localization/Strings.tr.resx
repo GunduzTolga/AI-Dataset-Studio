@@ -349,7 +349,7 @@
     <value>Henüz kayıt yok</value>
   </data>
   <data name="Records_EmptyHint" xml:space="preserve">
-    <value>İçe aktarma bir sonraki sürümde geliyor. O zamana kadar örnek kayıtlarla deneyebilirsiniz.</value>
+    <value>JSONL, JSON veya CSV dosyası içe aktarın ya da uygulamayı örnek kayıtlarla deneyin.</value>
   </data>
   <data name="Records_NoMatchesTitle" xml:space="preserve">
     <value>Eşleşme yok</value>
@@ -371,5 +371,212 @@
   </data>
   <data name="Action_GenerateSamples" xml:space="preserve">
     <value>Örnek kayıt üret</value>
+  </data>
+  <data name="Menu_Import" xml:space="preserve">
+    <value>Dosyadan _İçe Aktar…</value>
+  </data>
+  <data name="Action_Import" xml:space="preserve">
+    <value>İçe aktar</value>
+  </data>
+  <data name="Action_ImportFromFile" xml:space="preserve">
+    <value>Dosyadan içe aktar</value>
+  </data>
+  <data name="Dialog_ImportFileTitle" xml:space="preserve">
+    <value>İçe aktarılacak dosyayı seçin</value>
+  </data>
+  <data name="Dialog_ImportFileType" xml:space="preserve">
+    <value>Veri setleri (JSONL, JSON, CSV)</value>
+  </data>
+  <data name="Import_Title" xml:space="preserve">
+    <value>Dosyadan içe aktar</value>
+  </data>
+  <data name="Import_Target" xml:space="preserve">
+    <value>Hedef: “{0}” · {1}</value>
+  </data>
+  <data name="Import_Analyzing" xml:space="preserve">
+    <value>Dosya okunuyor…</value>
+  </data>
+  <data name="Import_RowCount" xml:space="preserve">
+    <value>{0:N0} satır</value>
+  </data>
+  <data name="Import_SectionSource" xml:space="preserve">
+    <value>KAYNAK</value>
+  </data>
+  <data name="Import_SectionCsv" xml:space="preserve">
+    <value>CSV AYARLARI</value>
+  </data>
+  <data name="Import_SectionMapping" xml:space="preserve">
+    <value>SÜTUN EŞLEME</value>
+  </data>
+  <data name="Import_SectionPreview" xml:space="preserve">
+    <value>ÖNİZLEME</value>
+  </data>
+  <data name="Import_Delimiter" xml:space="preserve">
+    <value>Ayraç</value>
+  </data>
+  <data name="Import_Encoding" xml:space="preserve">
+    <value>Karakter kodlaması</value>
+  </data>
+  <data name="Import_HasHeader" xml:space="preserve">
+    <value>İlk satır sütun adlarını içeriyor</value>
+  </data>
+  <data name="Import_NotMapped" xml:space="preserve">
+    <value>— Eşlenmedi —</value>
+  </data>
+  <data name="Import_Required" xml:space="preserve">
+    <value>Zorunlu</value>
+  </data>
+  <data name="Import_ConversationLayout" xml:space="preserve">
+    <value>Satırlar {0} biçiminde konuşmalar; bütün olarak dönüştürülür, sütun eşlemesi gerekmez.</value>
+  </data>
+  <data name="Import_UnsupportedLayout" xml:space="preserve">
+    <value>{0} dosyaları {1} veri setlerine aktarılamaz. Uygun türde bir veri seti seçin.</value>
+  </data>
+  <data name="Import_MissingFields" xml:space="preserve">
+    <value>Eşlenmedi: {0}. Bu alanlar boş kalacak.</value>
+  </data>
+  <data name="Import_PreviewSummary" xml:space="preserve">
+    <value>İlk {0:N0} satır: {1:N0} hazır, {2:N0} atlanacak</value>
+  </data>
+  <data name="Import_EmptyFile" xml:space="preserve">
+    <value>Bu dosyada satır bulunamadı.</value>
+  </data>
+  <data name="Import_Start" xml:space="preserve">
+    <value>{0:N0} satırı içe aktar</value>
+  </data>
+  <data name="Import_Progress" xml:space="preserve">
+    <value>{1:N0} satırın {0:N0} tanesi okundu · {2:N0} kayıt eklendi</value>
+  </data>
+  <data name="Import_Importing" xml:space="preserve">
+    <value>İçe aktarılıyor…</value>
+  </data>
+  <data name="Import_ImportingHint" xml:space="preserve">
+    <value>İptal ederseniz şimdiye kadar aktarılan her şey geri alınır.</value>
+  </data>
+  <data name="Import_Cancelled" xml:space="preserve">
+    <value>İçe aktarma iptal edildi; hiçbir kayıt eklenmedi.</value>
+  </data>
+  <data name="Import_DoneTitle" xml:space="preserve">
+    <value>İçe aktarma tamamlandı</value>
+  </data>
+  <data name="Import_DoneSummary" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} kayıt taslak olarak eklendi.</value>
+  </data>
+  <data name="Import_DoneSkipped" xml:space="preserve">
+    <value>Atlanan satırlar ({0:N0})</value>
+  </data>
+  <data name="Import_MoreSkipped" xml:space="preserve">
+    <value>…ve {0:N0} satır daha</value>
+  </data>
+  <data name="Import_NothingSkipped" xml:space="preserve">
+    <value>Tüm satırlar içe aktarıldı.</value>
+  </data>
+  <data name="Import_MessageCount" xml:space="preserve">
+    <value>{0} mesaj</value>
+  </data>
+  <data name="Import_Close" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
+  <data name="ImportFormat_JsonLines" xml:space="preserve">
+    <value>JSON Lines</value>
+  </data>
+  <data name="ImportFormat_JsonArray" xml:space="preserve">
+    <value>JSON dizisi</value>
+  </data>
+  <data name="ImportFormat_Csv" xml:space="preserve">
+    <value>CSV</value>
+  </data>
+  <data name="Layout_Custom" xml:space="preserve">
+    <value>Özel sütunlar</value>
+  </data>
+  <data name="Layout_Alpaca" xml:space="preserve">
+    <value>Alpaca</value>
+  </data>
+  <data name="Layout_PromptCompletion" xml:space="preserve">
+    <value>Prompt / completion</value>
+  </data>
+  <data name="Layout_HuggingFaceDpo" xml:space="preserve">
+    <value>Hugging Face DPO</value>
+  </data>
+  <data name="Layout_OpenAiMessages" xml:space="preserve">
+    <value>OpenAI messages</value>
+  </data>
+  <data name="Layout_ShareGpt" xml:space="preserve">
+    <value>ShareGPT</value>
+  </data>
+  <data name="Layout_OpenAiPreference" xml:space="preserve">
+    <value>OpenAI tercih</value>
+  </data>
+  <data name="Delimiter_Comma" xml:space="preserve">
+    <value>Virgül ( , )</value>
+  </data>
+  <data name="Delimiter_Semicolon" xml:space="preserve">
+    <value>Noktalı virgül ( ; )</value>
+  </data>
+  <data name="Delimiter_Tab" xml:space="preserve">
+    <value>Sekme</value>
+  </data>
+  <data name="Delimiter_Pipe" xml:space="preserve">
+    <value>Dikey çizgi ( | )</value>
+  </data>
+  <data name="Encoding_Utf8" xml:space="preserve">
+    <value>UTF-8</value>
+  </data>
+  <data name="Encoding_Windows1254" xml:space="preserve">
+    <value>Türkçe (Windows-1254)</value>
+  </data>
+  <data name="Encoding_Iso88599" xml:space="preserve">
+    <value>Türkçe (ISO-8859-9)</value>
+  </data>
+  <data name="Encoding_Windows1252" xml:space="preserve">
+    <value>Batı Avrupa (Windows-1252)</value>
+  </data>
+  <data name="Encoding_Utf16" xml:space="preserve">
+    <value>UTF-16 LE</value>
+  </data>
+  <data name="Encoding_Utf16BigEndian" xml:space="preserve">
+    <value>UTF-16 BE</value>
+  </data>
+  <data name="ImportError_InvalidJson" xml:space="preserve">
+    <value>Geçerli bir JSON değil</value>
+  </data>
+  <data name="ImportError_NotAnObject" xml:space="preserve">
+    <value>JSON nesnesi değil</value>
+  </data>
+  <data name="ImportError_EmptyRecord" xml:space="preserve">
+    <value>Boş: eşlenen tüm alanlar boş</value>
+  </data>
+  <data name="ImportError_NoConversation" xml:space="preserve">
+    <value>Kullanıcı ya da asistan mesajı yok</value>
+  </data>
+  <data name="ImportError_UnknownRole" xml:space="preserve">
+    <value>Desteklenmeyen mesaj rolü “{0}”</value>
+  </data>
+  <data name="ImportError_MultiTurnNotSupported" xml:space="preserve">
+    <value>Çok turlu konuşma; bu veri seti türü tek bir soru-cevap tutar</value>
+  </data>
+  <data name="ImportError_SystemPromptNotSupported" xml:space="preserve">
+    <value>Sistem talimatı içeriyor; bu veri seti türü bunu saklayamaz</value>
+  </data>
+  <data name="ImportError_UnsupportedLayout" xml:space="preserve">
+    <value>Dosya biçimi veri seti türüne uymuyor</value>
+  </data>
+  <data name="Error_ImportFileNotFound" xml:space="preserve">
+    <value>“{0}” bulunamadı.</value>
+  </data>
+  <data name="Error_ImportFileUnreadable" xml:space="preserve">
+    <value>“{0}” okunamıyor: {1}</value>
+  </data>
+  <data name="Error_ImportInvalidJson" xml:space="preserve">
+    <value>“{0}” geçerli bir JSON dizisi değil ({1}. satır).</value>
+  </data>
+  <data name="Status_Imported" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} kayıt aktarıldı</value>
+  </data>
+  <data name="Status_ImportedWithSkipped" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} kayıt aktarıldı; {2:N0} satır atlandı</value>
+  </data>
+  <data name="Import_NoPreview" xml:space="preserve">
+    <value>Önizlenecek satır yok</value>
   </data>
 </root>

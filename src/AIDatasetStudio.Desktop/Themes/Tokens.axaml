@@ -39,6 +39,8 @@
       <SolidColorBrush x:Key="DangerHoverBrush" Color="#B91C1C" />
       <SolidColorBrush x:Key="DangerSubtleBrush" Color="#FEE2E2" />
       <SolidColorBrush x:Key="DangerTextBrush" Color="#B91C1C" />
+      <SolidColorBrush x:Key="WarningSubtleBrush" Color="#FEF3C7" />
+      <SolidColorBrush x:Key="WarningTextBrush" Color="#92400E" />
 
       <!-- Record status -->
       <SolidColorBrush x:Key="StatusDraftBackgroundBrush" Color="#F1F1F3" />
@@ -85,6 +87,8 @@
       <SolidColorBrush x:Key="DangerHoverBrush" Color="#EF4444" />
       <SolidColorBrush x:Key="DangerSubtleBrush" Color="#3F1720" />
       <SolidColorBrush x:Key="DangerTextBrush" Color="#FCA5A5" />
+      <SolidColorBrush x:Key="WarningSubtleBrush" Color="#3A2C0F" />
+      <SolidColorBrush x:Key="WarningTextBrush" Color="#FCD34D" />
 
       <SolidColorBrush x:Key="StatusDraftBackgroundBrush" Color="#27272A" />
       <SolidColorBrush x:Key="StatusDraftForegroundBrush" Color="#D4D4D8" />

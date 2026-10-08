@@ -38,6 +38,10 @@
           <MenuItem.Icon><ic:SymbolIcon Symbol="Dismiss" /></MenuItem.Icon>
         </MenuItem>
         <Separator />
+        <MenuItem x:Name="ImportMenuItem" Header="{l:Tr Menu_Import}" Command="{Binding ImportCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowImport" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
         <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
       </MenuItem>
       <MenuItem Header="{l:Tr Menu_View}">
