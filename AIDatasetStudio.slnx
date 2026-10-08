@@ -16,6 +16,7 @@
     <Project Path="src/AIDatasetStudio.Infrastructure/AIDatasetStudio.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/AIDatasetStudio.Desktop.Tests/AIDatasetStudio.Desktop.Tests.csproj" />
     <Project Path="tests/AIDatasetStudio.Domain.Tests/AIDatasetStudio.Domain.Tests.csproj" />
     <Project Path="tests/AIDatasetStudio.Infrastructure.Tests/AIDatasetStudio.Infrastructure.Tests.csproj" />
   </Folder>

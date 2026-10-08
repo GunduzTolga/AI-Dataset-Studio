@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
 {
-    [DbContext(typeof(AidsDbContext))]
-    [Migration("20261008091203_InitialCreate")]
+    [DbContext(typeof(WorkspaceDbContext))]
+    [Migration("20261008101111_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

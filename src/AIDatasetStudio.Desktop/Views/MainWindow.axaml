@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
@@ -13,12 +14,21 @@
 
   <DockPanel>
     <Menu DockPanel.Dock="Top">
-      <MenuItem Header="_File">
-        <MenuItem x:Name="NewWorkspaceMenuItem" Header="_New Workspace…" Command="{Binding NewWorkspaceCommand}" />
-        <MenuItem x:Name="OpenWorkspaceMenuItem" Header="_Open Workspace…" Command="{Binding OpenWorkspaceCommand}" />
-        <MenuItem Header="_Close Workspace" Command="{Binding CloseWorkspaceCommand}" />
+      <MenuItem Header="{l:Tr Menu_File}">
+        <MenuItem x:Name="NewWorkspaceMenuItem" Header="{l:Tr Menu_NewWorkspace}" Command="{Binding NewWorkspaceCommand}" />
+        <MenuItem x:Name="OpenWorkspaceMenuItem" Header="{l:Tr Menu_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}" />
+        <MenuItem Header="{l:Tr Menu_CloseWorkspace}" Command="{Binding CloseWorkspaceCommand}" />
         <Separator />
-        <MenuItem Header="E_xit" Click="OnExitClick" />
+        <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
+      </MenuItem>
+      <MenuItem Header="{l:Tr Menu_View}">
+        <MenuItem Header="{l:Tr Menu_Language}">
+          <!-- Language names are always shown in their own language. -->
+          <MenuItem Header="English" ToggleType="Radio" IsChecked="{Binding IsEnglish, Mode=OneWay}"
+                    Command="{Binding SetLanguageCommand}" CommandParameter="en" />
+          <MenuItem Header="Türkçe" ToggleType="Radio" IsChecked="{Binding IsTurkish, Mode=OneWay}"
+                    Command="{Binding SetLanguageCommand}" CommandParameter="tr" />
+        </MenuItem>
       </MenuItem>
     </Menu>
 
@@ -41,16 +51,16 @@
       <!-- Left: workspace / project / dataset tree -->
       <Border Grid.Column="0" Background="{DynamicResource PaneBackgroundBrush}">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="EXPLORER" />
+          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Explorer}" />
           <Panel Margin="12,0,12,12">
             <StackPanel Spacing="8" IsVisible="{Binding !HasWorkspace}">
-              <TextBlock Classes="muted" Text="No workspace is open." />
-              <Button Content="New Workspace…" Command="{Binding NewWorkspaceCommand}" HorizontalAlignment="Stretch" />
-              <Button Content="Open Workspace…" Command="{Binding OpenWorkspaceCommand}" HorizontalAlignment="Stretch" />
+              <TextBlock Classes="muted" Text="{l:Tr Explorer_NoWorkspace}" />
+              <Button Content="{l:Tr Button_NewWorkspace}" Command="{Binding NewWorkspaceCommand}" HorizontalAlignment="Stretch" />
+              <Button Content="{l:Tr Button_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}" HorizontalAlignment="Stretch" />
             </StackPanel>
             <StackPanel Spacing="4" IsVisible="{Binding HasWorkspace}">
               <TextBlock FontWeight="SemiBold" Text="{Binding Workspace.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="muted" FontSize="12" Text="Projects and datasets will appear here." />
+              <TextBlock Classes="muted" FontSize="12" Text="{l:Tr Explorer_Placeholder}" />
             </StackPanel>
           </Panel>
         </DockPanel>
@@ -61,9 +71,9 @@
       <!-- Center: virtualized record grid -->
       <Border Grid.Column="2" Background="{DynamicResource ContentBackgroundBrush}">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="RECORDS" />
+          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Records}" />
           <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                     Text="Select a dataset to see its records." />
+                     Text="{l:Tr Records_Placeholder}" />
         </DockPanel>
       </Border>
 
@@ -72,9 +82,9 @@
       <!-- Right: record editor -->
       <Border Grid.Column="4" Background="{DynamicResource PaneBackgroundBrush}">
         <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="RECORD EDITOR" />
+          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_RecordEditor}" />
           <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                     Margin="16" Text="Select a record to edit it." />
+                     Margin="16" Text="{l:Tr Editor_Placeholder}" />
         </DockPanel>
       </Border>
     </Grid>

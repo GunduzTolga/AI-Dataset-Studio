@@ -1,4 +1,5 @@
 using AIDatasetStudio.Application.Workspaces;
+using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.Views;
@@ -13,7 +14,12 @@ public sealed partial class App : Avalonia.Application
 {
     private ServiceProvider? _services;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        // Until language preferences are stored (settings database), follow the OS UI language.
+        Localizer.Instance.Apply();
+        AvaloniaXamlLoader.Load(this);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
@@ -34,7 +40,9 @@ public sealed partial class App : Avalonia.Application
     {
         var services = new ServiceCollection();
         services.AddInfrastructure();
-        services.AddSingleton<IFileDialogService>(_ => new FileDialogService(() => desktop.MainWindow));
+        services.AddSingleton(Localizer.Instance);
+        services.AddSingleton<IFileDialogService>(provider =>
+            new FileDialogService(() => desktop.MainWindow, provider.GetRequiredService<Localizer>()));
         services.AddTransient<MainWindowViewModel>();
         return services.BuildServiceProvider();
     }

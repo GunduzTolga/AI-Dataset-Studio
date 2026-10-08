@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
 {
-    [DbContext(typeof(AidsDbContext))]
-    partial class AidsDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(WorkspaceDbContext))]
+    partial class WorkspaceDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {

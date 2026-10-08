@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Menu_File" xml:space="preserve">
+    <value>_File</value>
+  </data>
+  <data name="Menu_NewWorkspace" xml:space="preserve">
+    <value>_New Workspace…</value>
+  </data>
+  <data name="Menu_OpenWorkspace" xml:space="preserve">
+    <value>_Open Workspace…</value>
+  </data>
+  <data name="Menu_CloseWorkspace" xml:space="preserve">
+    <value>_Close Workspace</value>
+  </data>
+  <data name="Menu_Exit" xml:space="preserve">
+    <value>E_xit</value>
+  </data>
+  <data name="Menu_View" xml:space="preserve">
+    <value>_View</value>
+  </data>
+  <data name="Menu_Language" xml:space="preserve">
+    <value>_Language</value>
+  </data>
+  <data name="Pane_Explorer" xml:space="preserve">
+    <value>EXPLORER</value>
+    <comment>Pane header, shown in capitals.</comment>
+  </data>
+  <data name="Pane_Records" xml:space="preserve">
+    <value>RECORDS</value>
+    <comment>Pane header, shown in capitals.</comment>
+  </data>
+  <data name="Pane_RecordEditor" xml:space="preserve">
+    <value>RECORD EDITOR</value>
+    <comment>Pane header, shown in capitals.</comment>
+  </data>
+  <data name="Explorer_NoWorkspace" xml:space="preserve">
+    <value>No workspace is open.</value>
+  </data>
+  <data name="Explorer_Placeholder" xml:space="preserve">
+    <value>Projects and datasets will appear here.</value>
+  </data>
+  <data name="Button_NewWorkspace" xml:space="preserve">
+    <value>New Workspace…</value>
+  </data>
+  <data name="Button_OpenWorkspace" xml:space="preserve">
+    <value>Open Workspace…</value>
+  </data>
+  <data name="Records_Placeholder" xml:space="preserve">
+    <value>Select a dataset to see its records.</value>
+  </data>
+  <data name="Editor_Placeholder" xml:space="preserve">
+    <value>Select a record to edit it.</value>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Status_WorkspaceCreated" xml:space="preserve">
+    <value>Created workspace '{0}'.</value>
+    <comment>{0} = workspace name</comment>
+  </data>
+  <data name="Status_WorkspaceOpened" xml:space="preserve">
+    <value>Opened '{0}'.</value>
+    <comment>{0} = file name</comment>
+  </data>
+  <data name="Status_WorkspaceClosed" xml:space="preserve">
+    <value>Workspace closed.</value>
+  </data>
+  <data name="Error_WorkspaceNotFound" xml:space="preserve">
+    <value>'{0}' could not be found.</value>
+    <comment>{0} = file name</comment>
+  </data>
+  <data name="Error_WorkspaceAlreadyExists" xml:space="preserve">
+    <value>'{0}' already exists.</value>
+    <comment>{0} = file name</comment>
+  </data>
+  <data name="Error_NotAWorkspace" xml:space="preserve">
+    <value>'{0}' is not an AI Dataset Studio workspace.</value>
+    <comment>{0} = file name</comment>
+  </data>
+  <data name="Error_CreatedByNewerVersion" xml:space="preserve">
+    <value>'{0}' was saved by a newer version of AI Dataset Studio. Please update the application.</value>
+    <comment>{0} = file name</comment>
+  </data>
+  <data name="Error_WorkspaceCorrupted" xml:space="preserve">
+    <value>'{0}' is damaged and cannot be opened.</value>
+    <comment>{0} = file name</comment>
+  </data>
+  <data name="Error_WorkspaceUnavailable" xml:space="preserve">
+    <value>'{0}' could not be used: {1}</value>
+    <comment>{0} = file name, {1} = technical detail</comment>
+  </data>
+  <data name="Error_FileAccess" xml:space="preserve">
+    <value>File access failed: {0}</value>
+    <comment>{0} = technical detail</comment>
+  </data>
+  <data name="Dialog_OpenWorkspaceTitle" xml:space="preserve">
+    <value>Open Workspace</value>
+  </data>
+  <data name="Dialog_NewWorkspaceTitle" xml:space="preserve">
+    <value>New Workspace</value>
+  </data>
+  <data name="Dialog_WorkspaceFileType" xml:space="preserve">
+    <value>AI Dataset Studio Workspace</value>
+  </data>
+  <data name="Workspace_DefaultName" xml:space="preserve">
+    <value>Untitled</value>
+    <comment>Suggested file name for a new workspace.</comment>
+  </data>
+</root>

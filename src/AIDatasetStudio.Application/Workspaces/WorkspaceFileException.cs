@@ -13,7 +13,8 @@ public enum WorkspaceFileError
 }
 
 /// <summary>
-/// A workspace file could not be created or opened. <see cref="Exception.Message"/> is user-presentable.
+/// A workspace file could not be created or opened. <see cref="Exception.Message"/> is English text
+/// for logs; user interfaces show localized text based on <see cref="Error"/>.
 /// </summary>
 public sealed class WorkspaceFileException(WorkspaceFileError error, string filePath, string message, Exception? innerException = null)
     : Exception(message, innerException)

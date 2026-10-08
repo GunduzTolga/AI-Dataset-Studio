@@ -14,7 +14,7 @@ public sealed class WorkspaceServiceTests : IAsyncDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 3, 1, 9, 0, 0, TimeSpan.Zero);
 
-    private readonly string _directory = Path.Combine(Path.GetTempPath(), "aids-tests", Guid.NewGuid().ToString("N"));
+    private readonly string _directory = Path.Combine(Path.GetTempPath(), "adstudio-tests", Guid.NewGuid().ToString("N"));
     private readonly FixedTimeProvider _clock = new(Now);
     private readonly WorkspaceService _service;
 

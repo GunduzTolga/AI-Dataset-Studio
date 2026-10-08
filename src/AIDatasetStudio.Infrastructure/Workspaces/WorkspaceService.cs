@@ -47,7 +47,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                     await WorkspaceDatabase.ExecuteAsync(connection, "PRAGMA journal_mode = WAL;", cancellationToken);
                 }
 
-                await using (var context = new AidsDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
+                await using (var context = new WorkspaceDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
                 {
                     await context.Database.MigrateAsync(cancellationToken);
                     context.Workspace.Add(workspace);
@@ -91,7 +91,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
             {
                 // Validate before closing the current workspace, so a failed open leaves it open.
                 await EnsureIsWorkspaceFileAsync(fullPath, connectionString, cancellationToken);
-                await using (var probe = new AidsDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
+                await using (var probe = new WorkspaceDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
                 {
                     await EnsureNotNewerThanAppAsync(fullPath, probe, cancellationToken);
                 }
@@ -99,7 +99,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                 await CloseCoreAsync(cancellationToken);
 
                 Workspace workspace;
-                await using (var context = new AidsDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
+                await using (var context = new WorkspaceDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
                 {
                     await context.Database.MigrateAsync(cancellationToken);
 
@@ -153,9 +153,9 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
     /// <summary>
     /// Creates a context over the current workspace. Callers own and dispose it.
     /// </summary>
-    internal AidsDbContext CreateDbContext() =>
+    internal WorkspaceDbContext CreateDbContext() =>
         _connectionString is { } connectionString
-            ? new AidsDbContext(WorkspaceDatabase.BuildOptions(connectionString))
+            ? new WorkspaceDbContext(WorkspaceDatabase.BuildOptions(connectionString))
             : throw new InvalidOperationException("No workspace is open.");
 
     private static async Task EnsureIsWorkspaceFileAsync(string fullPath, string connectionString, CancellationToken cancellationToken)
@@ -170,7 +170,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
     }
 
     // Opening a file written by a newer version would let old code write into a schema it does not know.
-    private static async Task EnsureNotNewerThanAppAsync(string fullPath, AidsDbContext context, CancellationToken cancellationToken)
+    private static async Task EnsureNotNewerThanAppAsync(string fullPath, WorkspaceDbContext context, CancellationToken cancellationToken)
     {
         var known = context.Database.GetMigrations().ToHashSet(StringComparer.Ordinal);
         var applied = await context.Database.GetAppliedMigrationsAsync(cancellationToken);

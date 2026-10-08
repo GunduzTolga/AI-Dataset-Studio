@@ -1,9 +1,9 @@
 namespace AIDatasetStudio.Domain.Enums;
 
 /// <summary>
-/// Allowed status changes. The SDD diagram (§5.2) is the forward path; the review
-/// shortcuts (§6.2) additionally need jumps such as Draft → Approved, and editing
-/// or restoring records needs a few backward moves.
+/// Allowed status changes (SDD §5.2). Besides the forward path, speed review (§6.2) jumps
+/// from Draft straight to Approved, edited records go back to review, and archived records
+/// can be restored.
 /// </summary>
 public static class RecordStatusTransitions
 {
@@ -11,8 +11,7 @@ public static class RecordStatusTransitions
     {
         [RecordStatus.Draft] = [RecordStatus.InReview, RecordStatus.Approved, RecordStatus.Archived],
         [RecordStatus.InReview] = [RecordStatus.Draft, RecordStatus.Approved, RecordStatus.Archived],
-        [RecordStatus.Approved] = [RecordStatus.InReview, RecordStatus.ExportReady, RecordStatus.Archived],
-        [RecordStatus.ExportReady] = [RecordStatus.InReview, RecordStatus.Approved, RecordStatus.Archived],
+        [RecordStatus.Approved] = [RecordStatus.InReview, RecordStatus.Archived],
         [RecordStatus.Archived] = [RecordStatus.Draft],
     };
 

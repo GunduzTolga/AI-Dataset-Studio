@@ -78,8 +78,10 @@ public sealed class DatasetRecordTests
     {
         var record = CreateRecord();
 
-        Assert.Throws<DomainException>(() => record.ChangeStatus(RecordStatus.ExportReady, Later));
-        Assert.Equal(RecordStatus.Draft, record.Status);
+        record.ChangeStatus(RecordStatus.Archived, TestData.Now);
+
+        Assert.Throws<DomainException>(() => record.ChangeStatus(RecordStatus.Approved, Later));
+        Assert.Equal(RecordStatus.Archived, record.Status);
     }
 
     [Fact]

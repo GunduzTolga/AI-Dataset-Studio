@@ -8,7 +8,7 @@ public static class WorkspaceFile
     /// <summary>
     /// File extension, including the leading dot. Kept in one place so it can be renamed easily.
     /// </summary>
-    public const string Extension = ".aids";
+    public const string Extension = ".adstudio";
 
     public const string DisplayName = "AI Dataset Studio Workspace";
 }

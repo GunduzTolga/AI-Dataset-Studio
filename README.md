@@ -16,7 +16,8 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 ## ✨ Key Features (v0.3 Roadmap & MVP)
 
 - 🔒 **100% Offline & Private:** Built with an offline-first architecture. Your proprietary data never touches third-party clouds.
-- 📦 **Portable `.aids` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files.
+- 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files.
+- 🌐 **Bilingual UI:** English and Turkish, switchable at runtime (View › Language).
 - 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat, Preference (DPO/ORPO/RLHF), and Tool Calling formats.
 - ⚡ **High-Performance Virtualization:** Seamlessly navigate and search 100,000+ records with zero UI lag.
 - 📐 **Token & Context Engine:** Real-time token counting (Tiktoken / BPE) to prevent Out-Of-Memory (OOM) training failures.
@@ -33,7 +34,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 
 - **Platform:** .NET 10 (LTS) / C# 14
 - **UI Framework:** [Avalonia UI](https://avaloniaui.net/) 12 (Cross-platform XAML) + CommunityToolkit.Mvvm
-- **Architecture:** Clean Architecture + MVVM (plain application services, no MediatR)
+- **Architecture:** Clean Architecture + lightweight CQRS (separate command/query services, no MediatR) + MVVM
 - **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 10
 - **Tokenization:** `Microsoft.ML.Tokenizers` (offline `cl100k_base` / `o200k_base` vocabularies)
 - **Editor:** AvaloniaEdit (TextMate syntax highlighting)
@@ -48,11 +49,12 @@ AIDatasetStudio/
 ├── src/
 │   ├── AIDatasetStudio.Domain/          # Entities, typed record payloads, lifecycle rules (zero dependencies)
 │   ├── AIDatasetStudio.Application/     # Use-case interfaces and DTOs (e.g. IWorkspaceService)
-│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .aids workspace files, migrations
-│   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Services)
+│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .adstudio workspace files, migrations
+│   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Services, Localization)
 ├── tests/
 │   ├── AIDatasetStudio.Domain.Tests/
-│   └── AIDatasetStudio.Infrastructure.Tests/
+│   ├── AIDatasetStudio.Infrastructure.Tests/
+│   └── AIDatasetStudio.Desktop.Tests/   # Localization + headless UI tests
 ├── docs/                                # Plan review & decision notes
 ├── Plan.txt                             # Software Design Document (SDD)
 └── AIDatasetStudio.slnx
@@ -69,6 +71,8 @@ dotnet build AIDatasetStudio.slnx                      # build everything
 dotnet run --project src/AIDatasetStudio.Desktop       # start the desktop app
 dotnet test --solution AIDatasetStudio.slnx            # run all tests
 ```
+
+Adding or changing UI text: put every user-visible string in `src/AIDatasetStudio.Desktop/Localization/Strings.resx` (English) **and** `Strings.tr.resx` (Turkish), then use `{l:Tr Key}` in XAML or `Localizer` in code. Tests fail if a translation or key is missing.
 
 Adding a database migration (after changing the EF Core model):
 

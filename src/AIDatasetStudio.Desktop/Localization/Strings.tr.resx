@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Menu_File" xml:space="preserve">
+    <value>_Dosya</value>
+  </data>
+  <data name="Menu_NewWorkspace" xml:space="preserve">
+    <value>_Yeni Çalışma Alanı…</value>
+  </data>
+  <data name="Menu_OpenWorkspace" xml:space="preserve">
+    <value>Çalışma Alanı _Aç…</value>
+  </data>
+  <data name="Menu_CloseWorkspace" xml:space="preserve">
+    <value>Çalışma Alanını _Kapat</value>
+  </data>
+  <data name="Menu_Exit" xml:space="preserve">
+    <value>Çı_kış</value>
+  </data>
+  <data name="Menu_View" xml:space="preserve">
+    <value>_Görünüm</value>
+  </data>
+  <data name="Menu_Language" xml:space="preserve">
+    <value>_Dil</value>
+  </data>
+  <data name="Pane_Explorer" xml:space="preserve">
+    <value>GEZGİN</value>
+  </data>
+  <data name="Pane_Records" xml:space="preserve">
+    <value>KAYITLAR</value>
+  </data>
+  <data name="Pane_RecordEditor" xml:space="preserve">
+    <value>KAYIT EDİTÖRÜ</value>
+  </data>
+  <data name="Explorer_NoWorkspace" xml:space="preserve">
+    <value>Açık bir çalışma alanı yok.</value>
+  </data>
+  <data name="Explorer_Placeholder" xml:space="preserve">
+    <value>Projeler ve veri setleri burada görünecek.</value>
+  </data>
+  <data name="Button_NewWorkspace" xml:space="preserve">
+    <value>Yeni Çalışma Alanı…</value>
+  </data>
+  <data name="Button_OpenWorkspace" xml:space="preserve">
+    <value>Çalışma Alanı Aç…</value>
+  </data>
+  <data name="Records_Placeholder" xml:space="preserve">
+    <value>Kayıtlarını görmek için bir veri seti seçin.</value>
+  </data>
+  <data name="Editor_Placeholder" xml:space="preserve">
+    <value>Düzenlemek için bir kayıt seçin.</value>
+  </data>
+  <data name="Status_Ready" xml:space="preserve">
+    <value>Hazır</value>
+  </data>
+  <data name="Status_WorkspaceCreated" xml:space="preserve">
+    <value>'{0}' çalışma alanı oluşturuldu.</value>
+  </data>
+  <data name="Status_WorkspaceOpened" xml:space="preserve">
+    <value>'{0}' açıldı.</value>
+  </data>
+  <data name="Status_WorkspaceClosed" xml:space="preserve">
+    <value>Çalışma alanı kapatıldı.</value>
+  </data>
+  <data name="Error_WorkspaceNotFound" xml:space="preserve">
+    <value>'{0}' bulunamadı.</value>
+  </data>
+  <data name="Error_WorkspaceAlreadyExists" xml:space="preserve">
+    <value>'{0}' zaten var.</value>
+  </data>
+  <data name="Error_NotAWorkspace" xml:space="preserve">
+    <value>'{0}' bir AI Dataset Studio çalışma alanı değil.</value>
+  </data>
+  <data name="Error_CreatedByNewerVersion" xml:space="preserve">
+    <value>'{0}' AI Dataset Studio'nun daha yeni bir sürümüyle kaydedilmiş. Lütfen uygulamayı güncelleyin.</value>
+  </data>
+  <data name="Error_WorkspaceCorrupted" xml:space="preserve">
+    <value>'{0}' bozuk olduğu için açılamıyor.</value>
+  </data>
+  <data name="Error_WorkspaceUnavailable" xml:space="preserve">
+    <value>'{0}' kullanılamadı: {1}</value>
+  </data>
+  <data name="Error_FileAccess" xml:space="preserve">
+    <value>Dosyaya erişilemedi: {0}</value>
+  </data>
+  <data name="Dialog_OpenWorkspaceTitle" xml:space="preserve">
+    <value>Çalışma Alanı Aç</value>
+  </data>
+  <data name="Dialog_NewWorkspaceTitle" xml:space="preserve">
+    <value>Yeni Çalışma Alanı</value>
+  </data>
+  <data name="Dialog_WorkspaceFileType" xml:space="preserve">
+    <value>AI Dataset Studio Çalışma Alanı</value>
+  </data>
+  <data name="Workspace_DefaultName" xml:space="preserve">
+    <value>Adsız</value>
+  </data>
+</root>

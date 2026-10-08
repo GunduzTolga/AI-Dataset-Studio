@@ -10,9 +10,9 @@ internal static class WorkspaceDatabase
 {
     /// <summary>
     /// Stored in the SQLite header (<c>PRAGMA application_id</c>) so workspace files can be told
-    /// apart from arbitrary SQLite databases. ASCII "AIDS".
+    /// apart from arbitrary SQLite databases. ASCII "ADST".
     /// </summary>
-    public const int ApplicationId = 0x41494453;
+    public const int ApplicationId = 0x41445354;
 
     public static string BuildConnectionString(string filePath, bool allowCreate) => new SqliteConnectionStringBuilder
     {
@@ -23,8 +23,8 @@ internal static class WorkspaceDatabase
         DefaultTimeout = 30,
     }.ToString();
 
-    public static DbContextOptions<AidsDbContext> BuildOptions(string connectionString) =>
-        new DbContextOptionsBuilder<AidsDbContext>()
+    public static DbContextOptions<WorkspaceDbContext> BuildOptions(string connectionString) =>
+        new DbContextOptionsBuilder<WorkspaceDbContext>()
             .UseSqlite(connectionString)
             .Options;
 

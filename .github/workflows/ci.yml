@@ -42,3 +42,11 @@ jobs:
 
       - name: Test
         run: dotnet test --solution AIDatasetStudio.slnx --configuration Release --no-build
+
+      # The app ships a Turkish UI; run the suite under tr-TR to catch dotted/dotless-I bugs.
+      - name: Test (Turkish culture)
+        if: runner.os == 'Linux'
+        env:
+          LANG: tr_TR.UTF-8
+          LC_ALL: tr_TR.UTF-8
+        run: dotnet test --solution AIDatasetStudio.slnx --configuration Release --no-build
