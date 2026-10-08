@@ -5,7 +5,7 @@ out/
 dist/
 publish/
 app.settings.db
-*.aids
+*.adstudio
 *.db
 *.sqlite
 *.sqlite3

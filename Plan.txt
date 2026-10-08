@@ -1,13 +1,15 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.0.0
+- **Versiyon:** 1.3.0 (tasarım sistemi eklendi, bkz. `docs/design-system.md`)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
-- **Hedef Framework:** .NET 9 / C# 13
-- **Arayüz Teknolojisi:** Avalonia UI 11+ (CommunityToolkit.Mvvm)
+- **Hedef Framework:** .NET 10 (LTS) / C# 14
+- **Arayüz Teknolojisi:** Avalonia UI 12 (CommunityToolkit.Mvvm)
 - **Veri Depolama:** SQLite (WAL Mode, FTS5 Tam Metin Arama, JSON1 Eklentisi)
-- **Mimari Desen:** Clean Architecture + CQRS + Specification Pattern + MVVM
+- **Mimari Desen:** Clean Architecture + hafif CQRS (komut ve sorgu servisleri ayrı; MediatR yok) + MVVM
+- **Arayüz Dilleri:** Türkçe ve İngilizce (çalışırken değiştirilebilir)
+- **Tasarım Sistemi:** Fluent tabanlı, açık/koyu tema, Fluent UI ikonları (`docs/design-system.md`)
 
 ---
 
@@ -46,8 +48,9 @@ Uygulamanın temel amacı; eğitim verilerini oluşturmak, zenginleştirmek, sen
 4. **Full Data Lineage & Auditability:** Her bir satırın hangi kaynaktan geldiği (PDF chunk, sentetik üretim, CSV import, manuel giriş), kimin incelediği, hangi modelin ürettiği kayıt altında tutulur.
 5. **Dataset Quality > Training Method:** 1.000 adet kusursuz, filtrelenmiş ve token dengesi sağlanmış veri; 50.000 adet gürültülü ve tekrarlı veriden çok daha başarılı model eğitir.
 6. **Zero-Telemetry & Offline-First:** Hiçbir kullanıcı verisi, metin veya API anahtarı kullanıcının izni olmadan internete çıkmaz. Tamamen hava boşluklu (air-gapped) ortamlarda çalışabilir.
-7. **Portable Project Files (.aids / SQLite Mimarisi):** Figma (.fig) veya Photoshop (.psd) mantığında, bir projenin tüm veri setleri, etiketleri, versiyonları ve geçmişi tek bir taşınabilir `.aids` (SQLite) dosyasında yaşar.
-8. **Extreme Virtualization:** 100.000+ kayıttan oluşan dev veri setlerinde dahi arayüz asla kilitlenmez, bellek şişmez; ekran sadece görünen 30 satırı render eder (UI Virtualization).
+7. **Portable Project Files (.adstudio / SQLite Mimarisi):** Figma (.fig) veya Photoshop (.psd) mantığında, bir projenin tüm veri setleri, etiketleri, versiyonları ve geçmişi tek bir taşınabilir `.adstudio` (SQLite) dosyasında yaşar.
+8. **Extreme Virtualization:** 100.000+ kayıttan oluşan dev veri setlerinde dahi arayüz asla kilitlenmez, bellek şişmez; ekran sadece görünen 30 satırı render eder (UI Virtualization), veri de sayfa sayfa yüklenir (Data Virtualization).
+9. **Çift Dilli Arayüz (TR / EN):** Arayüz baştan Türkçe ve İngilizce tasarlanır; kullanıcıya görünen hiçbir metin koda gömülmez (bkz. §23).
 
 ---
 
@@ -57,16 +60,19 @@ Uygulamanın temel amacı; eğitim verilerini oluşturmak, zenginleştirmek, sen
 Uygulama iki seviyeli bir depolama stratejisi izler:
 
 1. **Global Uygulama Ayarları Veritabanı:**
-   - Konum: `~/AppData/Roaming/AIDatasetStudio/app.settings.db` (Windows) veya `~/.config/AIDatasetStudio/` (Linux/macOS)
-   - İçerik: Tema tercihleri, son açılan projeler listesi, şifrelenmiş yerel API Key Kasası (OpenAI, Anthropic, OpenRouter anahtarları), kullanıcı tanımlı özel şablonlar.
+   - Konum: `%APPDATA%\AIDatasetStudio\app.settings.db` (Windows), `~/Library/Application Support/AIDatasetStudio/` (macOS), `~/.config/AIDatasetStudio/` (Linux)
+   - İçerik: Arayüz dili ve tema tercihleri, son açılan projeler listesi, şifrelenmiş yerel API Key Kasası (OpenAI, Anthropic, OpenRouter anahtarları), kullanıcı tanımlı özel şablonlar.
 
-2. **Taşınabilir Çalışma Alanı Dosyası (`*.aids`):**
-   - Yapı: SQLite WAL (Write-Ahead Logging) modunda çalışan bağımsız veritabanı dosyası.
-   - Avantajı: Projeyi bir USB belleğe atıp başka bir bilgisayarda doğrudan açabilme, versiyon kontrol sistemlerine (Git LFS) tek dosya olarak commit edebilme.
+2. **Taşınabilir Çalışma Alanı Dosyası (`*.adstudio`):**
+   - Yapı: SQLite WAL (Write-Ahead Logging) modunda çalışan bağımsız veritabanı dosyası. Dosya başına tek bir çalışma alanı bulunur.
+   - Kimlik: SQLite başlığında `application_id = 0x41445354` ("ADST"); başka SQLite dosyaları açılmaya çalışıldığında reddedilir.
+   - Uyumluluk: Eski sürümün dosyası açılırken şema otomatik yükseltilir; daha yeni bir sürümün yazdığı dosya açılmaz.
+   - Taşınabilirlik: Dosya kapatılırken WAL checkpoint yapılır, `-wal`/`-shm` yan dosyaları kalmaz. Açıkken kopyalama yerine "Farklı Kaydet" (`VACUUM INTO`) kullanılır. Ağ paylaşımlarında (SMB/NFS) WAL desteklenmediği için kullanıcı uyarılır.
+   - Avantajı: Projeyi bir USB belleğe atıp başka bir bilgisayarda doğrudan açabilme. Git ile çalışmak için JSONL tabanlı "metin olarak dışa aktar" seçeneği sunulur (ikili dosya her değişiklikte Git LFS'te yeni bir kopya oluşturur).
 
 ### 3.2. Varlık Hiyerarşisi
 ```text
-Workspace (Çalışma Alanı / *.aids Dosyası)
+Workspace (Çalışma Alanı / *.adstudio Dosyası)
 │
 ├── Project (Proje / Alt Çalışma Alanı - Örn: "Müşteri Hizmetleri Asistanı")
 │   │
@@ -194,69 +200,76 @@ Her kayıt tipi `DatasetRecord` tablosunda `DataPayload` sütununda yapılandır
 ## 5. VERİ MODELİ VE YAŞAM DÖNGÜSÜ (DATA MODEL & LIFECYCLE)
 
 ### 5.1. DatasetRecord Varlık Alanları
+Domain katmanı kayıt içeriğini tipli ve değişmez payload nesneleriyle tutar; JSON serileştirme yalnızca altyapı katmanındadır (ADR-014).
 ```csharp
-public class DatasetRecord
+public sealed class DatasetRecord
 {
-    public Guid Id { get; set; }
-    public Guid DatasetId { get; set; }
-    public DatasetType Type { get; set; }
-    public RecordStatus Status { get; set; }
-    
-    // SQLite JSON1 destekli, EF Core Complex/JSON mapping
-    public string DataPayload { get; set; } = string.Empty;
-    
-    // Token Analiz Motoru Değerleri
-    public int TokenCount { get; set; }
-    public int InputTokenCount { get; set; }
-    public int OutputTokenCount { get; set; }
-    
-    // Serbest Meta Veriler & Etiketler
-    public string MetadataJson { get; set; } = "{}";
-    public List<RecordTag> Tags { get; set; } = new();
-    
-    // İlişkiler & Benzerlik Bağlantıları
-    public List<RecordRelation> Relations { get; set; } = new();
-    
-    // Denetim & Köken Bilgisi (Lineage)
-    public RecordLineage Lineage { get; set; } = new();
-    
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset UpdatedAt { get; set; }
+    public Guid Id { get; }                   // GUID v7 (zaman sıralı)
+    public Guid DatasetId { get; }
+    public DatasetType Type { get; }          // Veri setinin tipiyle aynı olmak zorunda
+    public RecordStatus Status { get; }       // Draft, InReview, Approved, Archived (§5.2)
+    public long Ordinal { get; }              // Grid ve export sırası
+
+    // Tipli içerik: InstructionPayload, ChatPayload, PreferencePayload, ...
+    // Diskte DataPayload kolonunda §4 alan adları + "$type" ayırıcısıyla JSON olarak saklanır.
+    public RecordPayload Payload { get; }
+    public string ContentHash { get; }        // İçeriğin SHA-256 özeti (kopya tespiti, revizyonlar)
+
+    public string MetadataJson { get; }       // Serbest meta veriler
+    public RecordLineage Lineage { get; }     // SourceKind, SourceReference, CreatedBy, GeneratedByModel
+    public IReadOnlyCollection<Tag> Tags { get; }
+
+    public DateTimeOffset CreatedAt { get; }  // Diskte UTC Unix milisaniye
+    public DateTimeOffset UpdatedAt { get; }
 }
 ```
+- Token sayıları kayıtta değil, hangi tokenizer ve hangi içerik özetiyle hesaplandığını bilen `RecordTokenStats` tablosunda tutulur (§7, §18).
+- Kayıt ilişkileri (`Parent`, `DuplicateOf` vb.) `RecordRelations` tablosundadır.
 
 ### 5.2. Kayıt Yaşam Döngüsü (Record Lifecycle)
 ```text
-[Draft] (Taslak) ──> [InReview] (İncelemede) ──> [Approved] (Onaylandı) ──> [ExportReady] (Hazır)
-   │                       │                             │                          │
-   └───────────────────────┴─────────────────────────────┴──────────────────────────┴──> [Archived] (Arşivlendi)
+            ┌──────────── Mod+Enter (doğrudan onay) ────────────┐
+            │                                                    ▼
+[Draft] (Taslak) ──> [InReview] (İncelemede) ──> [Approved] (Onaylandı)
+   ▲        │                 │                          │
+   │        └─────────────────┴──────────────────────────┴──> [Archived] (Arşivlendi)
+   └──────────────────────── geri yükle ──────────────────────────┘
 ```
+| Kaynak | İzin verilen hedefler |
+|---|---|
+| Draft | InReview, Approved, Archived |
+| InReview | Draft, Approved, Archived |
+| Approved | InReview, Archived |
+| Archived | Draft (geri yükleme) |
+
 - **Draft:** İçe aktarılmış veya AI tarafından yeni üretilmiş, henüz insan gözüyle incelenmemiş kayıtlar.
-- **InReview:** Bir editörün inceleme listesine aldığı veya üzerinde değişiklik yaptığı kayıtlar.
+- **InReview:** Bir editörün inceleme listesine aldığı veya üzerinde değişiklik yaptığı kayıtlar. İçeriği değişen kayıt (Approved dahil) otomatik olarak InReview'a döner.
 - **Approved:** İçerik ve kalite açısından onaylanmış kayıtlar.
-- **ExportReady:** Token sınır kontrollerinden geçmiş, PII temizliği tamamlanmış ve eğitime girmeye hazır kayıtlar.
-- **Archived:** Kalitesiz, yinelenen veya eğitimden çıkarılmış ancak silinmeyip geçmiş amacıyla saklanan kayıtlar.
+- **Archived:** Kalitesiz, yinelenen veya eğitimden çıkarılmış ancak silinmeyip geçmiş amacıyla saklanan kayıtlar. Arşivlenmiş kayıt düzenlenemez; önce geri yüklenmelidir.
+- **Export'a hazırlık bir durum değildir:** "Approved + token sınırı içinde + PII kontrolünden geçmiş" koşulu seçilen export profiline göre hesaplanır (§13.2) ve grid'de rozet/filtre olarak gösterilir. Böylece tokenizer veya context sınırı değiştiğinde bayat kalmaz (ADR-019).
 
 ---
 
 ## 6. ARAYÜZ (UX) VE SERİ DÜZENLEME MİMARİSİ (SPEED-REVIEW UX)
 
 ### 6.1. UI Yerleşim Mimarisi (Split-View Layout)
+Görsel dil, renk/tipografi tokenları ve bileşenler `docs/design-system.md` dosyasında tanımlıdır. Çalışma alanı açık değilken bir karşılama ekranı (yeni / aç / son açılanlar) gösterilir.
 - **Sol Panel (Proje & Veri Seti Ağacı):** Çalışma alanı, projeler, veri setleri ve versiyonlar hiyerarşisi.
-- **Orta Panel (Sanallaştırılmış Veri Tablosu):** 100.000+ satırlı veri kümesinde 60 FPS kaydırma sağlayan, arama çubuğu ve filtre chipleri içeren DataGrid.
+- **Orta Panel (Sanallaştırılmış Veri Tablosu):** 100.000+ satırlı veri kümesinde akıcı kaydırma sağlayan, arama çubuğu ve kayıt sayılı durum filtre çipleri içeren liste; satırlarda renkli durum rozetleri.
 - **Sağ Panel (Dinamik Kayıt Editörü):**
-  - Seçilen kayıt tipine göre dinamik olarak şekillenen form (Chat ise konuşma baloncukları, DPO ise yan yana iki yanıt paneli, Instruction ise girdi-çıktı alanları).
+  - Seçilen kayıt tipine göre dinamik olarak şekillenen görünüm (Chat ise konuşma baloncukları, DPO ise yeşil/kırmızı kenarlı tercih edilen/reddedilen kartları, Instruction ise girdi-çıktı kartları). Yalnızca kaydın durumuna uygun aksiyonlar gösterilir.
   - AvaloniaEdit entegrasyonu ile JSON, Markdown ve Python kod renklendirmesi.
-  - Canlı Token Sayacı Rozeti (Yeşil: < 2048, Sarı: 2048-4096, Kırmızı: > 4096).
+  - Canlı Token Sayacı Rozeti: Eşikler seçili hedef context uzunluğuna göre (Yeşil: < %50, Sarı: %50-100, Kırmızı: sınırı aşıyor).
   - Görsel Diff Bileşeni: DPO'da Chosen ve Rejected metinleri arasındaki farkları yeşil/kırmızı arka planla anlık gösteren görselleştirici.
 
 ### 6.2. Klavye Kısayolları ile Seri Veri İnceleme
-Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleyebilmesi için tasarlanan kısayol şeması:
-- `Ctrl + Enter`: Kaydı **Approved** olarak işaretle ve doğrudan bir sonraki kayda odaklan.
-- `Ctrl + Backspace`: Kaydı **Archived / Rejected** yap ve sonrakine geç.
-- `Ctrl + Down / Up`: Kayıtlar arasında hızlı gezinme.
-- `Alt + 1 .. 5`: Kayda hızlı etiket (Tag) veya kategori atama.
-- `Ctrl + Shift + F`: PII Maskeleme önizlemesini çalıştır.
+Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleyebilmesi için tasarlanan kısayol şeması. `Mod` = Windows/Linux'ta `Ctrl`, macOS'ta `Cmd`. Kısayollar metin editörünün standart tuşlarıyla (kelime silme, paragraf gezinme) çakışmayacak şekilde seçilmiştir.
+- `Mod + Enter`: Kaydı **Approved** olarak işaretle ve bir sonraki kayda geç.
+- `Mod + Shift + Backspace`: Kaydı **Archived** yap ve bir sonraki kayda geç. (`Ctrl + Backspace` editörde kelime silmek için bırakılır.)
+- `↑ / ↓` (grid odaktayken) ve `F8 / Shift + F8` (her yerden): Sonraki / önceki kayıt. (`Ctrl + ↑/↓` editörde paragraf hareketi için bırakılır.)
+- `Mod + 1 .. 5`: Kayda hızlı etiket (Tag) atama. (`Alt + rakam` macOS'ta özel karakter yazdığı için kullanılmaz.)
+- `Mod + Shift + M`: PII maskeleme önizlemesini çalıştır.
+- `Mod + Z / Mod + Shift + Z`: Geri al / yinele (tek kayıt düzenlemeleri ve toplu işlemler dahil).
 
 ---
 
@@ -266,7 +279,7 @@ Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleye
 Fine-tuning sürecinde eğitim scriptlerinin en sık patlama sebebi olan **CUDA Out-of-Memory (OOM)** hatalarını ve context kırpılmalarını masaüstü ortamında, eğitim başlamadan önce tamamen engellemek.
 
 ### 7.2. Teknik Detaylar
-- **Kütüphane:** `Microsoft.ML.Tokenizers` ve `Tiktoken-CSharp` (tamamen çevrimdışı çalışır).
+- **Kütüphane:** `Microsoft.ML.Tokenizers` + `Microsoft.ML.Tokenizers.Data.*` sözlük paketleri (tamamen çevrimdışı çalışır).
 - **Desteklenen BPE / Kodlama Modelleri:**
   1. `cl100k_base` (OpenAI GPT-4, GPT-3.5-Turbo)
   2. `o200k_base` (OpenAI GPT-4o, GPT-4o-mini)
@@ -275,6 +288,8 @@ Fine-tuning sürecinde eğitim scriptlerinin en sık patlama sebebi olan **CUDA 
 
 ### 7.3. Fonksiyonlar ve Raporlama
 - **Anlık Satır Analizi:** Kullanıcı metni yazarken milisaniyeler içinde Input Token, Output Token ve Toplam Token hesabı.
+- **Tokenizer'a Bağlı Saklama:** Sayılar `RecordTokenStats` tablosunda tokenizer kimliği ve içerik özetiyle birlikte tutulur; tokenizer veya içerik değişince yeniden hesaplanır. Saklanan değer "içerik tokenı"dır; sohbet şablonlarının (ChatML, Llama-3) özel token yükü export formatına göre export anında eklenir.
+- **Tokenizer Lisansları:** Llama-3 / Gemma sözlükleri kendi lisanslarıyla gelir; uygulamaya gömülmez, kullanıcı `tokenizer.json` / `tokenizer.model` dosyasını gösterir.
 - **Context Window Eşik Uyarıları:** 2048, 4096, 8192, 16k, 32k ve 128k sınırlarını aşan satırların DataGrid üzerinde kırmızı bayrakla işaretlenmesi ve tek tıkla filtrelenebilmesi.
 - **Token Histogramı:** Veri setinin genel token dağılımını gösteren görsel yoğunluk grafiği (kaç satır 500 token altında, kaç satır 4000 üzerinde).
 - **Eğitim Maliyet Hesaplayıcısı:** Güncel OpenAI fine-tuning ($/1M token) veya bulut GPU saatlik maliyet katsayılarıyla veri setinin tahmini eğitim bütçesini çıkarma.
@@ -285,6 +300,8 @@ Fine-tuning sürecinde eğitim scriptlerinin en sık patlama sebebi olan **CUDA 
 
 ### 8.1. Kalite Skoru (Health Score: 0 - 100)
 Veri setindeki her satır bir dizi kural motorundan (IHealthRule) geçer ve veri setine 0 ile 100 arasında genel bir kalite skoru atanır.
+- **Formül:** Kayıt skoru = 100 − Σ(ihlal cezası); ceza ciddiyete göre (Hata: 40, Uyarı: 10, Bilgi: 0), alt sınır 0. Veri seti skoru, arşivlenmemiş kayıtların ortalamasıdır. Ağırlıklar ayarlardan değiştirilebilir.
+- Sonuçlar içerik özetiyle saklanır; kayıt düzenlenince eski uyarılar otomatik geçersizleşir.
 
 ### 8.2. Denetim Kuralları
 1. **Exact Duplicate Check:** Girdi ve çıktı metinlerinin SHA-256 hash değerleri karşılaştırılarak birebir kopyaların tespiti.
@@ -293,7 +310,7 @@ Veri setindeki her satır bir dizi kural motorundan (IHealthRule) geçer ve veri
 4. **Token Anomalileri:** Aşırı kısa yanıtlar ("tamam", "evet", "bilmiyorum") veya sorudan 50 kat daha uzun dengesiz yanıtlar.
 5. **Veri Sızıntısı (Leakage / Repetition):** Model çıktısının girdideki metni olduğu gibi anlamsızca tekrar etmesi durumu.
 6. **Sözdizimi ve Format Doğrulama:** Kapanmamış kod blokları (```), geçersiz JSON veya XML etiketleri, bozuk markdown yapıları.
-7. **Çelişki Tespiti (Contradiction):** Birebir aynı soruya verilmiş taban tabana zıt iki farklı yanıtın bulunması.
+7. **Çelişki Tespiti (Contradiction):** V1'de "aynı soru, farklı yanıt" uyarısı; anlamsal zıtlık tespiti V3'te LLM-as-a-Judge ile.
 
 ### 8.3. Tek Tıkla Temizleme (Auto-Cleaner Wizard)
 Tespit edilen sorunları kullanıcıya listeler: "142 adet yinelenen satırı arşivle", "12 adet boş kaydı sil", "Bozuk markdown etiketlerini otomatik onar".
@@ -304,13 +321,18 @@ Tespit edilen sorunları kullanıcıya listeler: "142 adet yinelenen satırı ar
 
 ### 9.1. Yerel Maskeleme Prensipleri
 Şirket içi veri setleri modele beslenmeden önce müşteri veya çalışan verilerinden arındırılmalıdır. Hiçbir harici bulut servisine bağlanmadan, yerel kural motorlarıyla çalışır:
-- **E-posta Adresleri:** `([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})` ➔ `[EMAIL]`
-- **Telefon Numaraları:** Uluslararası ve yerel telefon formatları ➔ `[PHONE]`
-- **T.C. Kimlik / Kimlik Numaraları:** 11 haneli algoritma doğrulamalı kimlik numaraları ➔ `[ID_NUMBER]`
-- **Kredi Kartı Numaraları:** Luhn Algoritması doğrulamalı 16 haneli kart numaraları ➔ `[CREDIT_CARD]`
-- **Dahili IP ve URL'ler:** `192.168.x.x`, `10.x.x.x` ve dahili şirket alan adları ➔ `[INTERNAL_IP]` / `[INTERNAL_URL]`
-- **API Anahtarları & Gizli Şifreler:** OpenAI (`sk-...`), AWS Access Key (`AKIA...`), GitHub Token (`ghp_...`), Bearer tokenlar ➔ `[API_KEY]`
+- **E-posta Adresleri:** RFC 5322'nin pratik alt kümesi; uzun TLD'ler dahil (`.istanbul`, `.technology`) ➔ `[EMAIL]`
+- **Telefon Numaraları:** Uluslararası (E.164) ve Türkiye yerel formatları ➔ `[PHONE]`
+- **T.C. Kimlik Numaraları:** 11 haneli, algoritma doğrulamalı ➔ `[ID_NUMBER]`
+- **IBAN:** Ülke koduyla (TR dahil), mod-97 doğrulamalı ➔ `[IBAN]`
+- **Kredi Kartı Numaraları:** 13–19 hane, Luhn algoritması doğrulamalı ➔ `[CREDIT_CARD]`
+- **Dahili IP ve URL'ler:** `192.168.x.x`, `10.x.x.x`, `172.16–31.x.x` ve dahili şirket alan adları ➔ `[INTERNAL_IP]` / `[INTERNAL_URL]`
+- **API Anahtarları & Gizli Bilgiler:** OpenAI (`sk-...`), Anthropic (`sk-ant-...`), AWS Access Key (`AKIA...`), GitHub (`ghp_...`, `github_pat_...`), Slack (`xox...`), Google (`AIza...`), JWT, `-----BEGIN ... PRIVATE KEY-----` blokları, bağlantı dizelerindeki parolalar, Bearer tokenlar ➔ `[API_KEY]` / `[SECRET]`
 - **Özel Yasaklı Sözlük (Blacklist):** Kullanıcının tanımladığı şirket unvanları, CEO isimleri veya gizli proje kod adları için maskeleme.
+
+### 9.2. Maskeleme Davranışı
+- **Tutarlı yer tutucular:** Aynı kayıttaki aynı değer aynı yer tutucuyu alır (`[EMAIL_1]`, `[EMAIL_2]`); konuşma içi atıflar korunur.
+- **Kaynak veri bozulmaz:** Varsayılan davranış önizleme + export anında maskelemedir (ADR-004). Kaynak kayıtlara kalıcı uygulama yalnızca açık onayla ve geri alınabilir bir toplu işlem olarak yapılır.
 
 ---
 
@@ -322,8 +344,10 @@ Veri setini model eğitimine göndermeden önce bilimsel standartlarda 3 parçay
   - `%80 Train / %10 Validation / %10 Test` (Standart)
   - `%90 Train / %10 Validation` (Büyük veri setleri)
   - Kullanıcı tanımlı özel oranlar.
-- **Stratified Sampling (Tabakalı Dağıtım):** Veri setindeki belirli etiketlerin (örneğin "kategori:hukuk", "kategori:teknik") her bir bölüntüye (train/val/test) eşit oranlarla dağılmasını garanti eder.
-- **Tekrarlanabilirlik (Random Seed):** `Seed = 42` girildiğinde, aylar sonra bile veri seti bölündüğünde birebir aynı satırların train ve test kümelerine düşmesi sağlanır.
+- **Hash Tabanlı Atama (varsayılan):** Her kayıt, `SHA-256(seed + RecordId)` değerinin [0, 1) aralığındaki karşılığına göre bağımsız olarak bir bölmeye atanır. Veri setine kayıt eklemek veya çıkarmak mevcut kayıtların bölmesini **değiştirmez**; böylece sürümler arasında test verisi eğitime sızmaz. Sonuç .NET sürümünden ve platformdan bağımsızdır (`System.Random` dizisine güvenilmez).
+- **Kopya Grupları Aynı Bölmede:** Birebir (aynı `ContentHash`) ve yakın kopya kümeleri tek birim olarak atanır (grubun temsilci kaydının kimliği hashlenir). Aynı soru hem train hem test kümesinde yer alamaz.
+- **Stratified Sampling (Tabakalı Dağıtım):** Seçilen etiket grubuna (örneğin `kategori:hukuk`, `kategori:teknik`) göre her tabakada kayıtlar hash değerine göre sıralanıp oranlara göre kesilir. Bu mod oranları tam tutturur; karşılığında yeni kayıt eklendiğinde sınırdaki birkaç kayıt yer değiştirebilir (arayüzde belirtilir).
+- **Tekrarlanabilirlik (Random Seed):** `Seed = 42` girildiğinde, aylar sonra bile veri seti bölündüğünde birebir aynı satırların train ve test kümelerine düşmesi sağlanır. Seed, export profiliyle ve sürümle birlikte saklanır.
 - **Export Çıktısı:** Tek tıkla `train.jsonl`, `val.jsonl`, `test.jsonl` olarak ayrıştırılmış dosyalar oluşturulur.
 
 ---
@@ -333,9 +357,15 @@ Veri setini model eğitimine göndermeden önce bilimsel standartlarda 3 parçay
 ### 11.1. SQLite FTS5 (Full-Text Search) Mimarisi
 Girdi, çıktı, sistem talimatı ve meta veriler arka planda SQLite'ın sanal FTS5 tablosu ile indekslenir.
 - 100.000 satırlık bir veri setinde arama yaparken tüm metinleri bellekte aramak yerine, FTS5 B-Tree indeksi üzerinden milisaniyeler (10-20 ms) içinde sonuç döner.
+- **İndeks Yapısı:** `RecordSearch`, metnin ikinci bir kopyasını tutmayan *contentless* bir FTS5 tablosudur (yalnızca indeks; disk maliyeti düşük). Satır kimlikleri `RecordSearchKeys.RowId` (INTEGER PRIMARY KEY) alanından gelir; `DatasetRecords`'un örtük rowid'i VACUUM sırasında değişebileceği için kullanılmaz.
+- **Senkronizasyon:** Kayıt ekleme, toplu ekleme ve içerik güncelleme aynı transaction içinde indeksi günceller; silmeler (veri seti/proje silmeden gelen cascade'ler dahil) bir trigger ile indeksten düşer. Çalışma alanı açılırken indeksi veya önizlemesi eksik kayıtlar (eski sürüm dosyaları, yarıda kalmış yazmalar) otomatik onarılır.
+- **Sorgu:** Kullanıcının yazdığı her kelime tırnak içine alınıp önek olarak aranır ("izi" → "izin"); FTS sözdizimi kullanıcı girdisiyle enjekte edilemez. Tüm kelimeler aynı kayıtta geçmelidir.
+- **Türkçe:** `unicode61` tokenizer'ı "I" harfini İngilizce kuralıyla küçültür ("ILIK" → "ilik"); bu yüzden hem indekslenen metinde hem sorguda `I`, `İ` ve `ı` uygulama tarafında "i"ye katlanır. `remove_diacritics 2` ile "şifre" ⇄ "sifre", "çift" ⇄ "cift" eşleşir. Alt dize araması (`trigram`) ihtiyaç doğarsa değerlendirilecek.
+- **Ölçüm (M1):** 10.000 kayıtlık veri setinde toplu ekleme ~1,5 sn; "şifre" araması (sayım + ilk sayfa) ~100 ms.
+- **Sayfalama:** Grid, `(Ordinal, Id)` üzerinden keyset sayfalama ile yalnızca hafif projeksiyonları (Id, durum, önizleme, token) yükler; tam payload sadece seçili kayıt için okunur.
 
 ### 11.2. Yapısal Filtreleme (Query Builder)
-Kullanıcı şu tip karmaşık sorguları arayüzdeki filtre chipleriyle kolayca yapabilir:
+Kullanıcı şu tip karmaşık sorguları arayüzdeki filtre chipleriyle kolayca yapabilir. Filtre chipleri parametreli SQL'e derlenir (FTS5 `MATCH` ve `json_extract` ile birleşebilmesi için Specification Pattern yerine küçük bir sorgu derleyicisi kullanılır):
 - `Status == 'InReview' AND TokenCount > 2048`
 - `Tag IN ('v2-rag', 'finance') AND HealthScore < 80`
 - `GeneratedByAI == true AND AIModelName == 'gpt-4o'`
@@ -382,11 +412,23 @@ Veri iç sistemde evrensel JSON olarak saklanır; dışa aktarılırken hedef mo
 8. **Eğitim Aracı Konfigürasyonları:**
    Axolotl, Unsloth ve Llama-Factory için hazır `dataset_info.json` ve eğitim YAML şablonları.
 
-### 13.2. Dışa Aktarma Filtreleme Seçenekleri
-- **Durum Filtresi:** Sadece "Approved" ve "ExportReady" kayıtları alma.
-- **Token Tavanı:** Belirlenen sınırın (örn: 4096 token) üzerindeki kayıtları otomatik dışarıda bırakma.
+### 13.2. Dışa Aktarma Filtreleme Seçenekleri (Export Profili)
+- **Durum Filtresi:** Varsayılan olarak yalnızca "Approved" kayıtlar.
+- **Token Tavanı:** Seçili tokenizer ile belirlenen sınırın (örn: 4096 token, şablon yükü dahil) üzerindeki kayıtları otomatik dışarıda bırakma.
 - **PII Sansürleme:** Export anında maskeleme kurallarını uygulama seçeneği.
-- **Split Ayrımı:** Tek dosya veya `train / val / test` olarak 3 ayrı dosya çıkarma.
+- **Split Ayrımı:** Tek dosya veya `train / val / test` olarak 3 ayrı dosya çıkarma (§10).
+- **Export'a Hazırlık:** Yukarıdaki koşulların tamamı profil bazında hesaplanır; grid'de "export'a hazır" rozeti ve filtresi bu hesaba dayanır (§5.2).
+- Profiller `ExportProfiles` tablosunda saklanır ve tekrar kullanılabilir.
+
+### 13.3. Uyumluluk Matrisi
+| Veri tipi | OpenAI JSONL | ShareGPT | Alpaca | HF DPO | Metin şablonları (ChatML, Llama-3 → `{"text": ...}`) |
+|---|---|---|---|---|---|
+| Instruction | ✓ | ✓ | ✓ | – | ✓ |
+| Chat | ✓ | ✓ | ⚠ yalnızca tek turlu kayıtlar | – | ✓ |
+| Preference | ✓ (OpenAI DPO formatı: `input` / `preferred_output` / `non_preferred_output`) | – | – | ✓ | – |
+
+- Kayıplı dönüşümler export sihirbazında açıkça uyarılır ve etkilenen kayıt sayısı gösterilir.
+- Exporter'lar ortak bir ara model (konuşma + isteğe bağlı tercih çifti) üzerinden çalışır.
 
 ---
 
@@ -397,9 +439,10 @@ Veri setleri `v1.0.0`, `v1.1.0`, `v2.0.0` formatında semantik olarak sürümlec
 
 ### 14.2. Değişiklik Takibi ve Dondurma (Freeze)
 - **Snapshot (Dondurma):** Bir versiyon eğitime gönderildiğinde "Frozen" (salt okunur) olarak kilitlenir. Bu versiyondaki kayıtlar artık değiştirilemez.
-- **Depolama Tasarrufu (Mapping Yaklaşımı):** Her versiyonda 100.000 satırı tekrar kopyalamak yerine, `VersionRecordMappings` tablosunda kaydın o versiyondaki durumu (Unchanged, Added, Modified, Deleted) tutulur.
-- **Diff & Compare:** İki versiyon karşılaştırıldığında hangi satırların eklendiği (+), silindiği (-) veya metninin güncellendiği (~) renkli görsel arayüzle sunulur.
-- **Rollback:** İstenildiğinde önceki bir versiyonun durumuna tek tıkla geri dönülebilir.
+- **Değişmez Revizyonlar:** Kaydın içeriği her değiştiğinde `RecordRevisions` tablosuna yeni bir satır eklenir (aynı içerik özeti tekrar yazılmaz). `DatasetRecords` her zaman güncel hâli tutar; eski içerikler revizyonlarda kalır.
+- **Depolama Tasarrufu (Mapping Yaklaşımı):** Her versiyonda 100.000 satırın metni kopyalanmaz; `VersionRecordMappings` tablosu her kaydın o versiyondaki **revizyonunu**, durumunu ve etiketlerini tutar (yalnızca kimlikler).
+- **Diff & Compare:** İki versiyon kayıt bazında karşılaştırılır: yalnızca yenide olan (+) eklendi, yalnızca eskide olan (-) silindi, revizyonu farklı olan (~) güncellendi. Metin farkları renkli görsel arayüzle sunulur.
+- **Rollback:** Önceki bir versiyonun revizyonları güncel kayıtlara yeni bir değişiklik olarak uygulanır; geçmiş silinmez, geri alma da geri alınabilir.
 
 ---
 
@@ -454,24 +497,29 @@ Uygulama genişletilebilir C# arayüzleri (interfaces) üzerine inşa edilir:
 
 ---
 
-## 18. VERİTABANI ŞEMASI (SQLITE & EF CORE 9)
+## 18. VERİTABANI ŞEMASI (SQLITE & EF CORE 10)
 
-Veritabanı tabloları ve temel ilişkileri:
-- `Workspaces`: Id, Name, Description, CreatedAt
-- `Projects`: Id, WorkspaceId, Name, Description, CreatedAt
-- `Datasets`: Id, ProjectId, Name, Type, CreatedAt, DefaultTokenizer
+Veritabanı tabloları ve temel ilişkileri (bir `.adstudio` dosyası = bir çalışma alanı):
+- `Workspace`: Id, Name, Description, CreatedAt — dosya başına tek satır
+- `Projects`: Id, Name, Description, CreatedAt
+- `Datasets`: Id, ProjectId, Name, Description, Type, DefaultTokenizer, CreatedAt
+- `DatasetRecords`: Id, DatasetId, Type, Status, Ordinal, DataPayload, ContentHash, Preview (liste önizlemesi, ≤200 karakter), HealthScore (önbellek), MetadataJson, SourceKind, SourceReference, CreatedBy, GeneratedByModel, CreatedAt, UpdatedAt
+- `RecordRevisions`: Id, RecordId, ContentHash, DataPayload, CreatedAt — değişmez içerik geçmişi
+- `RecordTokenStats`: RecordId, TokenizerId, ContentHash, InputTokens, OutputTokens, TotalTokens
 - `DatasetVersions`: Id, DatasetId, VersionTag, Description, IsFrozen, CreatedAt
-- `DatasetRecords`: Id, DatasetId, Type, Status, DataPayload, TokenCount, InputTokenCount, OutputTokenCount, MetadataJson, CreatedAt, UpdatedAt
-- `VersionRecordMappings`: VersionId, RecordId, ChangeType
-- `Tags`: Id, Name, ColorHex
+- `VersionRecordMappings`: VersionId, RecordId, RevisionId, Status, TagIds (JSON)
+- `Tags`: Id, Name (büyük/küçük harf duyarsız, benzersiz), ColorHex — kategoriler `kategori:hukuk` gibi önekli etiketlerdir (ayrı `Category` tablosu yok)
 - `RecordTags`: RecordId, TagId
-- `Category`: Id, Name, Description
-- `Relation`: Id, Name
-- `RecordRelations`: SourceRecordId, TargetRecordId, RelationType
-- `QualityRuleResults`: Id, RecordId, RuleName, Severity, Message
-- `ExportHistories`: Id, DatasetId, VersionId, TargetFormat, FilePath, ExportedAt, SplitType
+- `RecordRelations`: SourceRecordId, TargetRecordId, RelationType (Parent, DuplicateOf, NearDuplicateOf, Contradicts) — ilişki tipleri enum'dur (ayrı `Relation` tablosu yok)
+- `QualityRuleResults`: Id, RecordId, RuleId, Severity, Message, ContentHash, RunId, CheckedAt
+- `ExportProfiles`: Id, DatasetId, Name, TargetFormat, TokenizerId, MaxTokens, StatusFilter, MaskPii, SplitConfig (JSON: oranlar, seed, mod)
+- `ExportHistories`: Id, DatasetId, VersionId, ProfileId, TargetFormat, FilePath, SplitType, RecordCount, ExportedAt
+- `EvaluationSets`: Id, ProjectId, DatasetId, Name, CreatedAt
 - `BenchmarkRuns`: Id, EvaluationSetId, ModelName, Score, ExecutedAt
-- `Records_FTS`: SQLite FTS5 Sanal Tablosu (Tam metin arama motoru)
+- `RecordSearchKeys`: RowId (INTEGER PRIMARY KEY), RecordId (benzersiz) — FTS satırlarını kayıtlara bağlar
+- `RecordSearch`: SQLite FTS5 sanal tablosu (contentless, `contentless_delete=1`, `unicode61 remove_diacritics 2`); rowid = `RecordSearchKeys.RowId`
+
+Notlar: Kimlikler GUID v7, zaman damgaları UTC Unix milisaniye (INTEGER), enum'lar INTEGER olarak saklanır (ADR-016). Şema değişiklikleri EF Core migration'larıyla yapılır; ilk sürümden önce migration'lar sadeleştirilebilir.
 
 ---
 
@@ -489,30 +537,31 @@ Veritabanı tabloları ve temel ilişkileri:
 10. **Import Wizard:** Kolon eşleştirme, ayırıcı seçimi ve 20 satırlık canlı önizleme sihirbazı.
 11. **Export Wizard:** Model şablon seçimi, token eşiği filtresi ve Train/Test Split ayar ekranı.
 12. **Version History & Diff View:** Sürüm dondurma, geri alma ve iki versiyon arası görsel diff.
-13. **Settings & API Key Vault:** Yerel işletim sistemi şifrelemesiyle korunan API anahtarı kasası.
+13. **Settings & API Key Vault:** Arayüz dili ve tema (Sistem / Açık / Koyu) seçimi; yerel işletim sistemi şifrelemesiyle korunan API anahtarı kasası (Windows DPAPI, macOS Keychain, Linux libsecret; libsecret yoksa açıkça bildirilen yedek davranış).
 
 ---
 
 ## 20. MVP KAPSAMI (SÜRÜM V1)
 
 MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
-1. **Çalışma Alanı & Proje Yönetimi:** Taşınabilir `.aids` SQLite proje dosyası altyapısı.
+1. **Çalışma Alanı & Proje Yönetimi:** Taşınabilir `.adstudio` SQLite proje dosyası altyapısı.
 2. **Temel Veri Tipleri:** Instruction Dataset ve Multi-turn Chat Dataset (DPO veri modeli desteği dahil).
-3. **Sanallaştırılmış Liste ve Editör:** Kasmayan DataGrid, iki bölmeli split-view editör ve temel klavye kısayolları.
+3. **Sanallaştırılmış Liste ve Editör:** Kasmayan DataGrid, iki bölmeli split-view editör, temel klavye kısayolları ve geri al / yinele.
 4. **FTS5 Tam Metin Arama & Filtreleme:** Anlık metin ve durum filtreleme.
 5. **CSV & JSONL Import Sihirbazı:** Kolon eşleştirme ve önizleme desteği.
 6. **Çoklu Model Export:** OpenAI JSONL, ShareGPT ve Alpaca formatlarında dışa aktarım.
-7. **Train / Validation / Test Split:** Rastgele tohum (seed) ve oran seçimi ile ayrı dosyalara kaydetme.
+7. **Train / Validation / Test Split:** Hash tabanlı, seed'li ve kopya gruplarını ayırmayan bölme; ayrı dosyalara kaydetme.
 8. **Yerel Token Sayacı:** Tiktoken (`cl100k_base` / `o200k_base`) ile context sınır uyarıları.
 9. **Temel Health Engine:** Yinelenen (duplicate), boş veya biçim anomalisi olan kayıtları yakalama.
-10. **Temel PII Maskeleme:** E-posta, telefon ve API anahtarı maskeleme filtresi.
+10. **Temel PII Maskeleme:** E-posta, telefon, IBAN ve API anahtarı maskeleme filtresi (export anında).
+11. **Türkçe / İngilizce Arayüz:** Tüm ekranlar iki dilde, çalışırken dil değiştirme.
 
 ---
 
 ## 21. DETAYLI YOL HARİTASI (ROADMAP)
 
-- **V1 (MVP):** Çekirdek stüdyo, `.aids` dosya sistemi, CSV/JSONL import, OpenAI/ShareGPT/Alpaca export, Train/Val split, yerel token motoru, temel health kontrolleri ve PII filtresi.
-- **V2:** DPO / Preference özel görsel editörü, Semantik benzerlik motoru (MinHash / Embedding), Sürüm dondurma ve görsel diff, Excel (.xlsx) ve Markdown importu, Llama-3 ve HuggingFace DPO export şablonları.
+- **V1 (MVP):** Çekirdek stüdyo, `.adstudio` dosya sistemi, TR/EN arayüz, CSV/JSONL import, OpenAI/ShareGPT/Alpaca export, Train/Val split, yerel token motoru, temel health kontrolleri ve PII filtresi.
+- **V2:** DPO / Preference özel görsel editörü, Semantik benzerlik motoru (MinHash / Embedding), Revizyon tabanlı sürüm dondurma ve görsel diff, Excel (.xlsx) ve Markdown importu, Llama-3 ve HuggingFace DPO export şablonları.
 - **V3:** Yerel LLM entegrasyonu (Ollama / LM Studio), PDF ve Word belge chunking & soru-cevap çıkarımı, sentetik veri çoğaltma motoru, LLM-as-a-Judge kalite denetimi.
 - **V4:** Model Benchmark & Evaluation modülü, Axolotl / Unsloth / Llama-Factory doğrudan eğitim konfigürasyon exportu, çoklu proje birleştirme sihirbazı.
 
@@ -530,10 +579,30 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 
 ---
 
-## 23. MİMARİ KARAR KAYITLARI (ARCHITECTURE DECISION RECORDS - ADR)
+## 23. YERELLEŞTİRME VE ÇİFT DİLLİ ARAYÜZ (TR / EN)
 
-- **ADR-001: SQLite WAL Mode & .aids Proje Formatı:** Veriler tek ve taşınabilir bir dosya formatında tutulacak; WAL modu ile yüksek okuma/yazma performansı sağlanacak.
-- **ADR-002: Avalonia UI 11+:** .NET 9 tabanlı, tüm masaüstü işletim sistemlerinde (Win/Mac/Linux) yerel hızda çalışan modern XAML arayüzü kullanılacak.
+### 23.1. Kapsam
+- Arayüz Türkçe ve İngilizce'dir. İlk açılışta işletim sistemi diline göre seçilir (Türkçe → TR, diğer tüm diller → EN).
+- Görünüm › Dil menüsünden **yeniden başlatmadan** değiştirilebilir; tercih global ayarlar veritabanında saklanır (§3.1).
+- Dil adları her zaman kendi dillerinde gösterilir ("English", "Türkçe").
+- Yalnızca arayüz çevrilir; kullanıcının veri setleri, kayıtları ve export çıktıları olduğu gibi kalır.
+- Sayı ve tarih biçimleri arayüz dilinden bağımsız olarak kullanıcının bölgesel ayarlarını izler.
+
+### 23.2. Teknik Tasarım
+- Kullanıcıya görünen tüm metinler `Localization/Strings.resx` (İngilizce, nötr dil) ve `Strings.tr.resx` (Türkçe) dosyalarındadır. XAML'de `{l:Tr Anahtar}`, kodda `Localizer` kullanılır; koda gömülü arayüz metni yoktur.
+- Hata mesajları hata kodlarından (ör. `WorkspaceFileError`) yerelleştirilir; exception metinleri yalnızca log içindir. Durum çubuğu mesajları dil değişince yeniden oluşturulur.
+- **Türkçe I problemi:** tr-TR kültüründe `"FILE".ToLower()` → `"fıle"` olur. Kod içi karşılaştırma ve büyük/küçük harf dönüşümleri `Ordinal` / `InvariantCulture` ile yapılır; CA1304, CA1305, CA1309, CA1310 ve CA1311 analizörleri derlemede hata verir.
+- **Testler:** İki dilde anahtar eşitliği, boş metin olmaması, `{0}` yer tutucularının eşleşmesi, XAML'de kullanılan her anahtarın varlığı, her hata kodunun bir mesajı olması ve dil değişince ekrandaki metinlerin güncellenmesi (headless UI testi).
+
+### 23.3. Yeni Dil Eklemek
+`Strings.<kültür>.resx` eklenir, kültür `Localizer.SupportedCultures` listesine ve projedeki `SatelliteResourceLanguages` değerine eklenir. Eksik veya hatalı çeviriler testlerde yakalanır.
+
+---
+
+## 24. MİMARİ KARAR KAYITLARI (ARCHITECTURE DECISION RECORDS - ADR)
+
+- **ADR-001: SQLite WAL Mode & .adstudio Proje Formatı:** Veriler tek ve taşınabilir bir dosya formatında tutulacak; WAL modu ile yüksek okuma/yazma performansı sağlanacak.
+- **ADR-002: Avalonia UI 12:** .NET 10 tabanlı, tüm masaüstü işletim sistemlerinde (Win/Mac/Linux) yerel hızda çalışan modern XAML arayüzü kullanılacak.
 - **ADR-003: Model Bağımsız Dahili Depolama:** Veri tabanında kayıtlar modele özel değil, evrensel JSON şemasında saklanacak.
 - **ADR-004: Export Zamanı Model Dönüşümü:** Format dönüşümleri sadece export motorunda gerçekleşecek, kaynak veri asla bozulmayacak.
 - **ADR-005: Eklenti ve Arayüz Tabanlı Tasarım:** İçe/dışa aktarma ve kurallar `IExportProvider`, `IImportProvider` gibi soyutlamalarla gevşek bağlı (loosely coupled) tutulacak.
@@ -543,3 +612,16 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-009: Data Virtualization:** Büyük veri kümelerinde UI donmalarını engellemek için sadece ekranda görünen öğeler belleğe alınacak.
 - **ADR-010: Yerel Tokenizasyon Motoru:** API maliyetine katlanmadan doğrudan işlemci üzerinde Tiktoken kütüphanesiyle token ve context hesabı yapılacak.
 - **ADR-011: Deterministik Train/Val/Test Split:** Rastgelelik tohumu (seed) kullanılarak tekrarlanabilir ve bilimsel veri bölme sağlanacak.
+- **ADR-012: .NET 10 LTS Hedefi:** .NET 9 (STS) desteği Kasım 2026'da sona erdiği için uygulama .NET 10 LTS (destek: Kasım 2028) ve C# 14 hedefler.
+- **ADR-013: Ticari Lisanslı Bağımlılık Kullanılmaz:** MediatR, AutoMapper ve FluentAssertions gibi ticari lisansa geçmiş kütüphaneler yerine yalın uygulama servisleri ve xUnit `Assert` kullanılır; bağımlılıklar MIT/Apache benzeri lisanslarla sınırlıdır.
+- **ADR-014: Tipli Payload ve Kilitli JSON Biçimi:** Domain katmanı tipli payload kayıtlarıyla (`InstructionPayload`, `ChatPayload`, `PreferencePayload`) çalışır. `DataPayload` kolonundaki JSON, §4 alan adlarını ve bir `$type` ayırıcısını kullanır; biçim testlerle kilitlenmiştir ve değişikliği migration gerektirir.
+- **ADR-015: Dosya Kimliği ve Sürüm Uyumluluğu:** `.adstudio` dosyaları SQLite başlığında `application_id = 0x41445354` ("ADST") taşır. Şema EF Core migration'larıyla yükseltilir; daha yeni bir sürümün yazdığı dosya açılmaz. Kapatırken WAL checkpoint yapılır ve dosya tek parça hâline döner.
+- **ADR-016: Kimlik ve Zaman Damgası Biçimi:** Kimlikler zaman sıralı GUID v7'dir; zaman damgaları sıralanabilir olmaları için UTC Unix milisaniye (INTEGER) olarak saklanır.
+- **ADR-017: Revizyon Tabanlı Sürümleme:** Kayıt içerikleri değişmez revizyonlar olarak saklanır; sürümler her kaydın revizyonunu, durumunu ve etiketlerini eşler. Dondurulmuş sürümler birebir yeniden üretilebilir, diff ve rollback mümkündür.
+- **ADR-018: Hash Tabanlı Bölme:** Train/Val/Test ataması `SHA-256(seed + RecordId)` ile kayıt başına bağımsız yapılır; kopya grupları aynı bölmeye düşer. ADR-011'deki tekrarlanabilirliği veri seti büyüdüğünde de korur.
+- **ADR-019: Export'a Hazırlık Hesaplanan Bir Koşuldur:** Kayıt durumları Draft / InReview / Approved / Archived'dir. "Export'a hazır" export profiline göre (token sınırı, PII) hesaplanır ve ayar değişince bayatlamaz.
+- **ADR-020: Çift Dilli Arayüz:** Arayüz Türkçe ve İngilizce'dir, çalışırken değiştirilebilir; metinler kaynak dosyalarındadır ve kültüre duyarlı kod analizörlerle engellenir.
+- **ADR-021: Dosya Uzantısı `.adstudio`:** Çalışma alanı dosyaları `.adstudio` uzantısını kullanır (`.aids` İngilizcede hastalık adını çağrıştırdığı için değiştirildi). Uzantı kodda tek bir sabittedir.
+- **ADR-022: Arama İndeksi:** Tam metin araması contentless FTS5 tablosu ve kararlı INTEGER anahtar tablosuyla yapılır; metin iki kez saklanmaz. Türkçe I harfleri uygulama tarafında katlanır; indeks yazma yollarında transaction içinde, silmelerde trigger ile güncel tutulur ve açılışta onarılır.
+- **ADR-023: Kullanıcı Ayarları:** Arayüz dili ve son açılan çalışma alanları, platformun ayar klasöründeki `app.settings.db` dosyasında tutulur. Dosya kullanılamazsa uygulama çökmez; ayarlar o oturum için bellekte kalır.
+- **ADR-024: Tasarım Sistemi:** Arayüz Avalonia Fluent teması üzerine kurulu, token tabanlı bir tasarım sistemi kullanır (`Themes/Tokens.axaml`, `Themes/Controls.axaml`). Bileşenler ham renk değil semantik tokenlar kullanır; açık ve koyu tema aynı tokenlarla tanımlanır ve WCAG AA kontrastını karşılar. İkonlar Fluent UI System Icons'tır (FluentIcons.Avalonia, MIT).

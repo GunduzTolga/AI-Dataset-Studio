@@ -1,0 +1,77 @@
+using AIDatasetStudio.Application.Workspaces;
+using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Infrastructure.Catalog;
+using AIDatasetStudio.Infrastructure.Records;
+using AIDatasetStudio.Infrastructure.Workspaces;
+using Microsoft.Data.Sqlite;
+
+namespace AIDatasetStudio.Infrastructure.Tests.Support;
+
+/// <summary>
+/// A real workspace file in a temporary folder with all services wired to it.
+/// </summary>
+internal sealed class TestWorkspace : IAsyncDisposable
+{
+    public static readonly DateTimeOffset Now = new(2026, 3, 1, 9, 0, 0, TimeSpan.Zero);
+
+    private TestWorkspace(string directory)
+    {
+        Directory = directory;
+        Clock = new FixedTimeProvider(Now);
+        Workspace = new WorkspaceService(Clock);
+        Catalog = new CatalogService(Workspace, Clock);
+        Commands = new RecordCommandService(Workspace, Clock);
+        Queries = new RecordQueryService(Workspace);
+    }
+
+    public string Directory { get; }
+
+    public string FilePath => Path.Combine(Directory, "test" + WorkspaceFile.Extension);
+
+    public FixedTimeProvider Clock { get; }
+
+    public WorkspaceService Workspace { get; }
+
+    public CatalogService Catalog { get; }
+
+    public RecordCommandService Commands { get; }
+
+    public RecordQueryService Queries { get; }
+
+    public static async Task<TestWorkspace> CreateAsync(CancellationToken cancellationToken)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "adstudio-tests", Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(directory);
+        var workspace = new TestWorkspace(directory);
+        await workspace.Workspace.CreateAsync(workspace.FilePath, "Test", cancellationToken: cancellationToken);
+        return workspace;
+    }
+
+    public async Task<Guid> CreateDatasetAsync(DatasetType type = DatasetType.Instruction, CancellationToken cancellationToken = default)
+    {
+        var projectId = await Catalog.CreateProjectAsync("Project", cancellationToken: cancellationToken);
+        return await Catalog.CreateDatasetAsync(projectId, "Dataset", type, cancellationToken);
+    }
+
+    public async Task<long> ScalarAsync(string sql)
+    {
+        await using var connection = await Workspace.OpenConnectionAsync(CancellationToken.None);
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return Convert.ToInt64(await command.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Workspace.DisposeAsync();
+        SqliteConnection.ClearAllPools();
+        try
+        {
+            System.IO.Directory.Delete(Directory, recursive: true);
+        }
+        catch (IOException)
+        {
+            // Best effort; the OS temp folder is cleaned eventually.
+        }
+    }
+}

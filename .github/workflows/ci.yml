@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test:
+    name: Build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pull requests run on Linux only; macOS minutes are expensive on private repositories.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-latest","macos-latest"]') }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore AIDatasetStudio.slnx
+
+      - name: Build
+        run: dotnet build AIDatasetStudio.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --solution AIDatasetStudio.slnx --configuration Release --no-build
+
+      # The app ships a Turkish UI; run the suite under tr-TR to catch dotted/dotless-I bugs.
+      - name: Test (Turkish culture)
+        if: runner.os == 'Linux'
+        env:
+          LANG: tr_TR.UTF-8
+          LC_ALL: tr_TR.UTF-8
+        run: dotnet test --solution AIDatasetStudio.slnx --configuration Release --no-build

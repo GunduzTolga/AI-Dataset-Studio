@@ -1,0 +1,177 @@
+using AIDatasetStudio.Application.Common;
+using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Domain.Common;
+using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Domain.Payloads;
+using AIDatasetStudio.Domain.ValueObjects;
+using AIDatasetStudio.Infrastructure.Tests.Support;
+using Microsoft.EntityFrameworkCore;
+
+namespace AIDatasetStudio.Infrastructure.Tests.Records;
+
+public sealed class RecordCommandServiceTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Added_records_are_drafts_appended_in_order()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+
+        var first = await ws.Commands.AddAsync(datasetId, new InstructionPayload("first", "", ""), RecordLineage.Manual("ayse"), Ct);
+        var second = await ws.Commands.AddAsync(datasetId, new InstructionPayload("second", "", ""), RecordLineage.Manual(), Ct);
+
+        var page = await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, after: null, pageSize: 10, Ct);
+        Assert.Equal([first, second], page.Items.Select(r => r.Id));
+        Assert.Equal([1L, 2L], page.Items.Select(r => r.Ordinal));
+        Assert.All(page.Items, r => Assert.Equal(RecordStatus.Draft, r.Status));
+        Assert.Equal("first", page.Items[0].Preview);
+    }
+
+    [Fact]
+    public async Task Adding_checks_the_dataset()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var chatDataset = await ws.CreateDatasetAsync(DatasetType.Chat, Ct);
+
+        await Assert.ThrowsAsync<DomainException>(() =>
+            ws.Commands.AddAsync(chatDataset, new InstructionPayload("i", "", ""), RecordLineage.Manual(), Ct));
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            ws.Commands.AddAsync(Guid.NewGuid(), new InstructionPayload("i", "", ""), RecordLineage.Manual(), Ct));
+        Assert.Equal(0, await ws.ScalarAsync("SELECT COUNT(*) FROM DatasetRecords"));
+    }
+
+    [Fact]
+    public async Task Bulk_add_writes_rows_that_ef_core_reads_back_identically()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.Chat, Ct);
+        await ws.Commands.AddAsync(datasetId, new ChatPayload(null, [new ChatMessage(ChatRole.User, "existing")]), RecordLineage.Manual(), Ct);
+        var payload = new ChatPayload("Sen bir İK asistanısın.", [
+            new ChatMessage(ChatRole.User, "İzin?"),
+            new ChatMessage(ChatRole.Assistant, "14 gün."),
+        ]);
+        var lineage = new RecordLineage(RecordSourceKind.FileImport, "hr.jsonl#line=7", "ayse", "gpt-4o");
+
+        var added = await ws.Commands.AddRangeAsync(datasetId, [new NewRecord(payload, lineage)], cancellationToken: Ct);
+
+        Assert.Equal(1, added);
+        await using var context = ws.Workspace.CreateDbContext();
+        var record = await context.Records.SingleAsync(r => r.Ordinal == 2, Ct);
+        Assert.Equal(payload, record.Payload);
+        Assert.Equal(payload.ComputeContentHash(), record.ContentHash);
+        Assert.Equal("İzin?", record.Preview);
+        Assert.Equal(lineage, record.Lineage);
+        Assert.Equal(DatasetType.Chat, record.Type);
+        Assert.Equal(RecordStatus.Draft, record.Status);
+        Assert.Equal(TestWorkspace.Now, record.CreatedAt);
+        Assert.Equal("{}", record.MetadataJson);
+    }
+
+    [Fact]
+    public async Task Bulk_add_handles_ten_thousand_records_and_reports_progress()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var reports = new List<int>();
+        var progress = new SynchronousProgress(reports.Add);
+
+        var added = await ws.Commands.AddRangeAsync(
+            datasetId,
+            Enumerable.Range(1, 10_000).Select(i => new NewRecord(new InstructionPayload($"Soru {i}", "", $"Cevap {i}"), RecordLineage.Manual())),
+            progress,
+            Ct);
+
+        Assert.Equal(10_000, added);
+        Assert.Equal(10_000, await ws.Queries.CountAsync(datasetId, RecordFilter.None, Ct));
+        Assert.Equal(1, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "cevap 9999"), Ct));
+        Assert.Equal(10_000, reports[^1]);
+        Assert.True(reports.Count >= 10);
+    }
+
+    [Fact]
+    public async Task Cancelled_bulk_add_writes_nothing()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+
+        IEnumerable<NewRecord> Records()
+        {
+            for (var i = 0; ; i++)
+            {
+                if (i == 500)
+                {
+                    cancellation.Cancel();
+                }
+
+                yield return new NewRecord(new InstructionPayload($"r{i}", "", ""), RecordLineage.Manual());
+            }
+        }
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            ws.Commands.AddRangeAsync(datasetId, Records(), cancellationToken: cancellation.Token));
+
+        Assert.Equal(0, await ws.ScalarAsync("SELECT COUNT(*) FROM DatasetRecords"));
+        Assert.Equal(0, await ws.ScalarAsync("SELECT COUNT(*) FROM RecordSearchKeys"));
+    }
+
+    [Fact]
+    public async Task Updating_content_reindexes_and_sends_the_record_to_review()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var id = await ws.Commands.AddAsync(datasetId, new InstructionPayload("eski metin", "", ""), RecordLineage.Manual(), Ct);
+        await ws.Commands.SetStatusAsync([id], RecordStatus.Approved, Ct);
+
+        var changed = await ws.Commands.UpdatePayloadAsync(id, new InstructionPayload("yeni metin", "", ""), Ct);
+        var unchanged = await ws.Commands.UpdatePayloadAsync(id, new InstructionPayload("yeni metin", "", ""), Ct);
+
+        Assert.True(changed);
+        Assert.False(unchanged);
+        Assert.Equal(0, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "eski"), Ct));
+        Assert.Equal(1, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "yeni"), Ct));
+        var details = await ws.Queries.GetAsync(id, Ct);
+        Assert.Equal(RecordStatus.InReview, details!.Status);
+        Assert.Equal(1, await ws.ScalarAsync("SELECT COUNT(*) FROM RecordSearchKeys"));
+    }
+
+    [Fact]
+    public async Task Status_changes_skip_transitions_the_lifecycle_forbids()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var draft = await ws.Commands.AddAsync(datasetId, new InstructionPayload("a", "", ""), RecordLineage.Manual(), Ct);
+        var archived = await ws.Commands.AddAsync(datasetId, new InstructionPayload("b", "", ""), RecordLineage.Manual(), Ct);
+        await ws.Commands.SetStatusAsync([archived], RecordStatus.Archived, Ct);
+
+        var result = await ws.Commands.SetStatusAsync([draft, archived, Guid.NewGuid()], RecordStatus.Approved, Ct);
+
+        Assert.Equal(new StatusChangeResult(Changed: 1, Skipped: 2), result);
+        Assert.Equal(RecordStatus.Approved, (await ws.Queries.GetAsync(draft, Ct))!.Status);
+        Assert.Equal(RecordStatus.Archived, (await ws.Queries.GetAsync(archived, Ct))!.Status);
+    }
+
+    [Fact]
+    public async Task Deleted_records_leave_the_search_index()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var keep = await ws.Commands.AddAsync(datasetId, new InstructionPayload("kalacak kayıt", "", ""), RecordLineage.Manual(), Ct);
+        var remove = await ws.Commands.AddAsync(datasetId, new InstructionPayload("silinecek kayıt", "", ""), RecordLineage.Manual(), Ct);
+
+        var deleted = await ws.Commands.DeleteAsync([remove, Guid.NewGuid()], Ct);
+
+        Assert.Equal(1, deleted);
+        Assert.Equal(0, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "silinecek"), Ct));
+        Assert.Equal(1, await ws.Queries.CountAsync(datasetId, new RecordFilter(SearchText: "kayıt"), Ct));
+        Assert.NotNull(await ws.Queries.GetAsync(keep, Ct));
+        Assert.Equal(1, await ws.ScalarAsync("SELECT COUNT(*) FROM RecordSearchKeys"));
+    }
+
+    private sealed class SynchronousProgress(Action<int> report) : IProgress<int>
+    {
+        public void Report(int value) => report(value);
+    }
+}

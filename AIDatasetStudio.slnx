@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".github/workflows/ci.yml" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="Plan.txt" />
+    <File Path="README.md" />
+    <File Path="docs/design-system.md" />
+    <File Path="docs/plan-review.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AIDatasetStudio.Application/AIDatasetStudio.Application.csproj" />
+    <Project Path="src/AIDatasetStudio.Desktop/AIDatasetStudio.Desktop.csproj" />
+    <Project Path="src/AIDatasetStudio.Domain/AIDatasetStudio.Domain.csproj" />
+    <Project Path="src/AIDatasetStudio.Infrastructure/AIDatasetStudio.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AIDatasetStudio.Desktop.Tests/AIDatasetStudio.Desktop.Tests.csproj" />
+    <Project Path="tests/AIDatasetStudio.Domain.Tests/AIDatasetStudio.Domain.Tests.csproj" />
+    <Project Path="tests/AIDatasetStudio.Infrastructure.Tests/AIDatasetStudio.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

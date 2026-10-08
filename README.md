@@ -16,7 +16,9 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 ## ✨ Key Features (v0.3 Roadmap & MVP)
 
 - 🔒 **100% Offline & Private:** Built with an offline-first architecture. Your proprietary data never touches third-party clouds.
-- 📦 **Portable `.aids` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files.
+- 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files.
+- 🌐 **Bilingual UI:** English and Turkish, switchable at runtime (View › Language).
+- 🎨 **Light & Dark Themes:** Token-based design system with Fluent UI icons (View › Theme).
 - 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat, Preference (DPO/ORPO/RLHF), and Tool Calling formats.
 - ⚡ **High-Performance Virtualization:** Seamlessly navigate and search 100,000+ records with zero UI lag.
 - 📐 **Token & Context Engine:** Real-time token counting (Tiktoken / BPE) to prevent Out-Of-Memory (OOM) training failures.
@@ -31,12 +33,14 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 
 ## 🛠️ Tech Stack
 
-- **Platform:** .NET 9 / C# 13
-- **UI Framework:** [Avalonia UI](https://avaloniaui.net/) 11+ (Cross-platform XAML)
-- **Architecture:** Clean Architecture + CQRS + MVVM
-- **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 9
-- **Tokenization:** `Microsoft.ML.Tokenizers` & `Tiktoken-CSharp`
-- **Editor:** AvaloniaEdit (Monaco/TextMate syntax highlighting)
+- **Platform:** .NET 10 (LTS) / C# 14
+- **UI Framework:** [Avalonia UI](https://avaloniaui.net/) 12 (Cross-platform XAML) + CommunityToolkit.Mvvm
+- **Design:** Fluent theme + own design tokens ([docs/design-system.md](docs/design-system.md)), [Fluent UI System Icons](https://github.com/davidxuang/FluentIcons)
+- **Architecture:** Clean Architecture + lightweight CQRS (separate command/query services, no MediatR) + MVVM
+- **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 10
+- **Tokenization:** `Microsoft.ML.Tokenizers` (offline `cl100k_base` / `o200k_base` vocabularies)
+- **Editor:** AvaloniaEdit (TextMate syntax highlighting)
+- **Tests:** xUnit v3 on Microsoft Testing Platform
 
 ---
 
@@ -45,23 +49,63 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 ```text
 AIDatasetStudio/
 ├── src/
-│   ├── AIDatasetStudio.Domain/          # Core entities, Enums, Value Objects (Zero dependencies)
-│   ├── AIDatasetStudio.Application/     # CQRS Handlers, Services, Interfaces, DTOs
-│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, File I/O, Tiktoken Tokenizer, Import/Export
-│   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Themes, Controls)
+│   ├── AIDatasetStudio.Domain/          # Entities, typed record payloads, lifecycle rules (zero dependencies)
+│   ├── AIDatasetStudio.Application/     # Use-case interfaces and DTOs (e.g. IWorkspaceService)
+│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .adstudio workspace files, migrations
+│   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Themes, Localization)
 ├── tests/
 │   ├── AIDatasetStudio.Domain.Tests/
-│   ├── AIDatasetStudio.Application.Tests/
-│   └── AIDatasetStudio.Infrastructure.Tests/
-├── docs/                                # Software Design Document (SDD) & ADRs
-└── .gitignore
+│   ├── AIDatasetStudio.Infrastructure.Tests/
+│   └── AIDatasetStudio.Desktop.Tests/   # Localization + headless UI tests
+├── docs/                                # Plan review, design system
+├── Plan.txt                             # Software Design Document (SDD)
+└── AIDatasetStudio.slnx
 ```
+
+---
+
+## 🚀 Getting Started
+
+Prerequisite: [.NET 10 SDK](https://dotnet.microsoft.com/download) (pinned in `global.json`).
+
+```bash
+dotnet build AIDatasetStudio.slnx                      # build everything
+dotnet run --project src/AIDatasetStudio.Desktop       # start the desktop app
+dotnet test --solution AIDatasetStudio.slnx            # run all tests
+```
+
+Adding or changing UI text: put every user-visible string in `src/AIDatasetStudio.Desktop/Localization/Strings.resx` (English) **and** `Strings.tr.resx` (Turkish), then use `{l:Tr Key}` in XAML or `Localizer` in code. Tests fail if a translation or key is missing.
+
+Adding a database migration (after changing the EF Core model):
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --output-dir Persistence/Migrations
+```
+
+---
+
+## 🧭 Status
+
+| Milestone | Scope | State |
+|---|---|---|
+| M0 | Solution skeleton, `.adstudio` files, bilingual shell | ✅ |
+| M1 | Project/dataset tree, record services, full-text search, paging, settings | ✅ |
+| M2 | Import (JSONL, JSON, CSV wizard) | ⏳ |
+| M3 | Record editor, review shortcuts, undo/redo | ⏳ |
+| M4 | Tokens, health rules, PII masking | ⏳ |
+| M5 | Export + train/val/test split | ⏳ |
+| M6 | Packaging, signing, first release | ⏳ |
+| M7 | Design system, light/dark themes, welcome screen | ✅ |
+
+Until import lands, **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
 ---
 
 ## 📋 Documentation
 
 For detailed architectural specifications, data schemas, and the product roadmap, refer to [Plan.txt](Plan.txt).
+Review notes, open design decisions and the milestone plan are in [docs/plan-review.md](docs/plan-review.md).
 
 ---
 

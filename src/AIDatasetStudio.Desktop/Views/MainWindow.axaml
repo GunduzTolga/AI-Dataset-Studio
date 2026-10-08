@@ -1,0 +1,109 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+        xmlns:views="using:AIDatasetStudio.Desktop.Views"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1440" d:DesignHeight="860"
+        x:Class="AIDatasetStudio.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding Title}"
+        Width="1440" Height="860"
+        MinWidth="980" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="{l:Tr Menu_File}">
+        <MenuItem x:Name="NewWorkspaceMenuItem" Header="{l:Tr Menu_NewWorkspace}" Command="{Binding NewWorkspaceCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="DocumentAdd" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem x:Name="OpenWorkspaceMenuItem" Header="{l:Tr Menu_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="FolderOpen" /></MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="{l:Tr Menu_OpenRecent}" ItemsSource="{Binding RecentWorkspaces}" IsEnabled="{Binding HasRecentWorkspaces}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="History" /></MenuItem.Icon>
+          <MenuItem.Styles>
+            <Style Selector="MenuItem" x:DataType="vm:RecentWorkspaceViewModel">
+              <Setter Property="Header" Value="{Binding DisplayName}" />
+              <Setter Property="ToolTip.Tip" Value="{Binding FilePath}" />
+              <Setter Property="Command" Value="{Binding OpenCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding FilePath}" />
+            </Style>
+          </MenuItem.Styles>
+        </MenuItem>
+        <MenuItem Header="{l:Tr Menu_CloseWorkspace}" Command="{Binding CloseWorkspaceCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Dismiss" /></MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
+      </MenuItem>
+      <MenuItem Header="{l:Tr Menu_View}">
+        <MenuItem Header="{l:Tr Menu_Theme}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="DarkTheme" /></MenuItem.Icon>
+          <MenuItem Header="{l:Tr Theme_System}" ToggleType="Radio" GroupName="theme" IsChecked="{Binding IsSystemTheme, Mode=OneWay}"
+                    Command="{Binding SetThemeCommand}" CommandParameter="System" />
+          <MenuItem Header="{l:Tr Theme_Light}" ToggleType="Radio" GroupName="theme" IsChecked="{Binding IsLightTheme, Mode=OneWay}"
+                    Command="{Binding SetThemeCommand}" CommandParameter="Light" />
+          <MenuItem Header="{l:Tr Theme_Dark}" ToggleType="Radio" GroupName="theme" IsChecked="{Binding IsDarkTheme, Mode=OneWay}"
+                    Command="{Binding SetThemeCommand}" CommandParameter="Dark" />
+        </MenuItem>
+        <MenuItem Header="{l:Tr Menu_Language}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="LocalLanguage" /></MenuItem.Icon>
+          <!-- Language names are always shown in their own language. -->
+          <MenuItem Header="English" ToggleType="Radio" GroupName="language" IsChecked="{Binding IsEnglish, Mode=OneWay}"
+                    Command="{Binding SetLanguageCommand}" CommandParameter="en" />
+          <MenuItem Header="Türkçe" ToggleType="Radio" GroupName="language" IsChecked="{Binding IsTurkish, Mode=OneWay}"
+                    Command="{Binding SetLanguageCommand}" CommandParameter="tr" />
+        </MenuItem>
+      </MenuItem>
+      <MenuItem Header="{l:Tr Menu_Tools}">
+        <MenuItem Header="{l:Tr Menu_GenerateSampleData}" Command="{Binding GenerateSampleDataCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Sparkle" /></MenuItem.Icon>
+        </MenuItem>
+      </MenuItem>
+    </Menu>
+
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="14,5">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ic:SymbolIcon Symbol="Info" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,6,0" />
+        <TextBlock Grid.Column="1" Classes="small secondary" Text="{Binding Status.Message}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="16,0,0,0" IsVisible="{Binding HasWorkspace}">
+          <ic:SymbolIcon Symbol="DocumentText" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+          <TextBlock Classes="small muted" Text="{Binding Workspace.FilePath, FallbackValue='', TargetNullValue=''}"
+                     MaxWidth="520" TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Panel>
+      <!-- No workspace: welcome screen -->
+      <views:WelcomeView IsVisible="{Binding !HasWorkspace}" />
+
+      <!-- Workspace: sidebar | records | inspector (SDD §6.1) -->
+      <Grid ColumnDefinitions="272,Auto,*,Auto,420" IsVisible="{Binding HasWorkspace}">
+        <Border Grid.Column="0" Background="{DynamicResource AppBackgroundBrush}">
+          <views:ExplorerView />
+        </Border>
+
+        <GridSplitter Grid.Column="1" Width="5" ResizeDirection="Columns" />
+
+        <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,0">
+          <views:RecordListView DataContext="{Binding Records}" />
+        </Border>
+
+        <GridSplitter Grid.Column="3" Width="5" ResizeDirection="Columns" />
+
+        <Border Grid.Column="4" Background="{DynamicResource InspectorBackgroundBrush}">
+          <Panel IsVisible="{Binding Records.HasDataset}">
+            <views:RecordDetailsView DataContext="{Binding Details}" />
+          </Panel>
+        </Border>
+      </Grid>
+    </Panel>
+  </DockPanel>
+</Window>
