@@ -58,14 +58,15 @@ public sealed partial class RecordListViewModel : ViewModelBase
         _queries = queries;
         _status = status;
         _localizer = localizer;
+        // First: choosing the default filters below reloads the (empty) list, which clears the selection.
+        Selection = new SelectionModel<RecordRowViewModel>(Items) { SingleSelect = false };
+        Selection.SelectionChanged += (_, _) => OnSelectionChanged();
         StatusFilters = [new StatusFilterOption(null), .. Enum.GetValues<RecordStatus>().Select(status => new StatusFilterOption(status))];
         RefreshFilterLabels();
         SelectedStatusFilter = StatusFilters[0];
         QualityFilters = Enum.GetValues<QualityFilter>().Select(filter => new QualityFilterOption(filter)).ToList();
         RefreshQualityLabels();
         SelectedQualityFilter = QualityFilters[0];
-        Selection = new SelectionModel<RecordRowViewModel>(Items) { SingleSelect = false };
-        Selection.SelectionChanged += (_, _) => OnSelectionChanged();
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
     }
 

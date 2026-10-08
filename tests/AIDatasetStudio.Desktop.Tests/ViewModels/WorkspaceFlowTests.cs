@@ -18,6 +18,16 @@ public sealed class WorkspaceFlowTests
     public WorkspaceFlowTests() => Localizer.Instance.SetCulture(Localizer.English);
 
     [Fact]
+    public Task A_new_record_list_starts_without_a_failed_load() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+
+        // Found by the error log of the first packaged build: the first load ran before the
+        // selection existed and failed unseen.
+        Assert.True(host.Main.Records.Loading.IsCompletedSuccessfully);
+    });
+
+    [Fact]
     public Task Projects_and_datasets_are_created_renamed_and_deleted_from_the_tree() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();
