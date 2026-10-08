@@ -83,6 +83,22 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 
 ---
 
+## 🧭 Status
+
+| Milestone | Scope | State |
+|---|---|---|
+| M0 | Solution skeleton, `.adstudio` files, bilingual shell | ✅ |
+| M1 | Project/dataset tree, record services, full-text search, paging, settings | ✅ |
+| M2 | Import (JSONL, JSON, CSV wizard) | ⏳ |
+| M3 | Record editor, review shortcuts, undo/redo | ⏳ |
+| M4 | Tokens, health rules, PII masking | ⏳ |
+| M5 | Export + train/val/test split | ⏳ |
+| M6–M7 | Packaging, visual design pass | ⏳ |
+
+Until import lands, **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
+
+---
+
 ## 📋 Documentation
 
 For detailed architectural specifications, data schemas, and the product roadmap, refer to [Plan.txt](Plan.txt).

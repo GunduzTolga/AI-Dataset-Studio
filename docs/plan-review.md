@@ -129,9 +129,12 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 | Taşı | İçerik | Durum |
 |---|---|---|
 | **M0** | Çözüm iskeleti, CI, domain modeli, `.adstudio` oluştur/aç/kapat, üç panelli kabuk, TR/EN arayüz altyapısı | ✅ PR #1 |
-| **M1** | Kayıt CRUD servisleri, proje/veri seti ağacı, FTS5 + arama metni, keyset sayfalama, toplu ekleme, global ayarlar veritabanı (dil tercihi kalıcı) | |
+| **M1** | Kayıt CRUD servisleri, proje/veri seti ağacı, FTS5 arama (Türkçe I katlaması), keyset sayfalama, toplu ekleme, global ayarlar (kalıcı dil tercihi, son açılanlar), salt okunur kayıt detayı + inceleme aksiyonları, örnek veri üretici | ✅ PR #1 |
 | **M2** | Import: JSONL (OpenAI/ShareGPT/Alpaca otomatik tanıma), JSON dizisi, CSV sihirbazı + 20 satır önizleme | |
 | **M3** | Sanallaştırılmış grid, tipine göre dinamik editör, inceleme kısayolları, geri al/yinele | |
 | **M4** | Token motoru (`cl100k_base`/`o200k_base`), temel sağlık kuralları, PII maskeleme önizlemesi | |
 | **M5** | Export (OpenAI JSONL, ShareGPT, Alpaca) + hash tabanlı Train/Val/Test bölmesi | |
 | **M6** | Paketleme, imzalama, ilk sürüm | |
+| **M7** | Görsel tasarım: renk paleti, tipografi, ikonlar, boşluklar, boş durumlar. Mevcut arayüz beğenilmedi; işlevler tamamlandıktan sonra tek seferde ele alınacak. M6'dan önce yapılabilir. | |
+
+> Not: M1–M5 arasında arayüz bilerek yalın tutuluyor; görünüm kararları M7'ye bırakıldı.

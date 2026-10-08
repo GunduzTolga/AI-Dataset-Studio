@@ -18,6 +18,7 @@ internal sealed class DatasetRecordConfiguration : IEntityTypeConfiguration<Data
             .IsRequired();
 
         builder.Property(r => r.ContentHash).HasMaxLength(64).IsRequired();
+        builder.Property(r => r.Preview).HasMaxLength(DatasetRecord.PreviewMaxLength).IsRequired();
         builder.Property(r => r.MetadataJson).IsRequired();
 
         builder.ComplexProperty(r => r.Lineage, lineage =>

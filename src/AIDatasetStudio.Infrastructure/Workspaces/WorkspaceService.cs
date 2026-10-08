@@ -1,12 +1,13 @@
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Infrastructure.Persistence;
+using AIDatasetStudio.Infrastructure.Search;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace AIDatasetStudio.Infrastructure.Workspaces;
 
-internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceService, IAsyncDisposable
+internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceService, IWorkspaceDatabase, IAsyncDisposable
 {
     // SQLite result codes: https://www.sqlite.org/rescode.html
     private const int SqliteNotADatabase = 26;
@@ -14,6 +15,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string? _connectionString;
+    private int _disposed;
 
     public WorkspaceInfo? Current { get; private set; }
 
@@ -107,6 +109,12 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                         ?? throw new WorkspaceFileException(WorkspaceFileError.Corrupted, fullPath, $"'{fullPath}' has no workspace metadata.");
                 }
 
+                await using (var connection = new SqliteConnection(connectionString))
+                {
+                    await connection.OpenAsync(cancellationToken);
+                    await SearchIndex.RepairAsync(connection, cancellationToken);
+                }
+
                 return SetCurrent(fullPath, connectionString, workspace);
             }
             catch (SqliteException ex) when (ex.SqliteErrorCode is SqliteNotADatabase or SqliteCorrupt)
@@ -144,8 +152,15 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
         }
     }
 
+    // The DI container disposes this instance once per interface it is registered under, so
+    // disposal must be idempotent.
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
         await CloseAsync();
         _gate.Dispose();
     }
@@ -153,10 +168,26 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
     /// <summary>
     /// Creates a context over the current workspace. Callers own and dispose it.
     /// </summary>
-    internal WorkspaceDbContext CreateDbContext() =>
-        _connectionString is { } connectionString
-            ? new WorkspaceDbContext(WorkspaceDatabase.BuildOptions(connectionString))
-            : throw new InvalidOperationException("No workspace is open.");
+    public WorkspaceDbContext CreateDbContext() =>
+        new(WorkspaceDatabase.BuildOptions(RequireConnectionString()));
+
+    public async Task<SqliteConnection> OpenConnectionAsync(CancellationToken cancellationToken)
+    {
+        var connection = new SqliteConnection(RequireConnectionString());
+        try
+        {
+            await connection.OpenAsync(cancellationToken);
+            return connection;
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+    }
+
+    private string RequireConnectionString() =>
+        _connectionString ?? throw new InvalidOperationException("No workspace is open.");
 
     private static async Task EnsureIsWorkspaceFileAsync(string fullPath, string connectionString, CancellationToken cancellationToken)
     {

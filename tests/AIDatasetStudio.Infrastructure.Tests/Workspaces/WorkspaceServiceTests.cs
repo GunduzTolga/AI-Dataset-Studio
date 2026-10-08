@@ -186,6 +186,16 @@ public sealed class WorkspaceServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Disposing_twice_is_harmless()
+    {
+        var service = new WorkspaceService(_clock);
+        await service.CreateAsync(PathFor("twice"), "Twice", cancellationToken: Ct);
+
+        await service.DisposeAsync();
+        await service.DisposeAsync();
+    }
+
+    [Fact]
     public void CreateDbContext_requires_an_open_workspace()
     {
         Assert.Throws<InvalidOperationException>(() => _service.CreateDbContext());

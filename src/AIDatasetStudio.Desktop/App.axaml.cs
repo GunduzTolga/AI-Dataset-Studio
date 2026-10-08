@@ -1,9 +1,11 @@
+using System.Globalization;
+using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
-using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
 using AIDatasetStudio.Desktop.Views;
 using AIDatasetStudio.Infrastructure;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,16 +18,19 @@ public sealed partial class App : Avalonia.Application
 
     public override void Initialize()
     {
-        // Until language preferences are stored (settings database), follow the OS UI language.
-        Localizer.Instance.Apply();
+        _services = new ServiceCollection()
+            .AddInfrastructure()
+            .AddDesktop(() => (ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow)
+            .BuildServiceProvider();
+
+        ApplySavedLanguage(_services.GetRequiredService<IUserSettings>());
         AvaloniaXamlLoader.Load(this);
     }
 
     public override void OnFrameworkInitializationCompleted()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && _services is not null)
         {
-            _services = ConfigureServices(desktop);
             desktop.MainWindow = new MainWindow
             {
                 DataContext = _services.GetRequiredService<MainWindowViewModel>(),
@@ -36,15 +41,22 @@ public sealed partial class App : Avalonia.Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static ServiceProvider ConfigureServices(IClassicDesktopStyleApplicationLifetime desktop)
+    // The saved choice wins; otherwise the OS UI language decides (Localizer's default).
+    private static void ApplySavedLanguage(IUserSettings settings)
     {
-        var services = new ServiceCollection();
-        services.AddInfrastructure();
-        services.AddSingleton(Localizer.Instance);
-        services.AddSingleton<IFileDialogService>(provider =>
-            new FileDialogService(() => desktop.MainWindow, provider.GetRequiredService<Localizer>()));
-        services.AddTransient<MainWindowViewModel>();
-        return services.BuildServiceProvider();
+        if (settings.UiLanguage is { } language)
+        {
+            try
+            {
+                Localizer.Instance.SetCulture(CultureInfo.GetCultureInfo(language));
+            }
+            catch (CultureNotFoundException)
+            {
+                // Ignore an unknown stored value and fall back to the OS language.
+            }
+        }
+
+        Localizer.Instance.Apply();
     }
 
     private void Shutdown()

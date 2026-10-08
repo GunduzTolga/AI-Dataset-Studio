@@ -19,6 +19,33 @@ public abstract record RecordPayload
     protected abstract IEnumerable<string?> GetCanonicalParts();
 
     /// <summary>
+    /// All human-readable text of the record, used to build the full-text search index.
+    /// </summary>
+    public abstract IEnumerable<string> GetSearchableTexts();
+
+    /// <summary>
+    /// The text that best identifies the record in a list (e.g. the instruction or first user turn).
+    /// </summary>
+    protected abstract string? GetPreviewSource();
+
+    /// <summary>
+    /// A single-line summary for record lists: whitespace collapsed, cut to <paramref name="maxLength"/>.
+    /// </summary>
+    public string GetPreviewText(int maxLength = 200)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxLength, 2);
+
+        var source = GetPreviewSource();
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return string.Empty;
+        }
+
+        var collapsed = string.Join(' ', source.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return collapsed.Length <= maxLength ? collapsed : string.Concat(collapsed.AsSpan(0, maxLength - 1).TrimEnd(), "…");
+    }
+
+    /// <summary>
     /// Lowercase hex SHA-256 over the exact content (no normalization). Used for exact
     /// duplicate detection and, later, for content-addressed version snapshots.
     /// </summary>

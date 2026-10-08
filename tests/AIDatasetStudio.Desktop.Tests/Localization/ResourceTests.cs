@@ -72,7 +72,7 @@ public sealed partial class ResourceTests
     {
         foreach (var error in Enum.GetValues<WorkspaceFileError>())
         {
-            Assert.Contains(MainWindowViewModel.ErrorKey(error), English.Keys);
+            Assert.Contains(UiErrors.WorkspaceErrorKey(error), English.Keys);
         }
     }
 

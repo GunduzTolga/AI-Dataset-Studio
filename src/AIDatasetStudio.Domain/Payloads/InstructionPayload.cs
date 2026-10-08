@@ -23,4 +23,12 @@ public sealed record InstructionPayload : RecordPayload
     public string Output { get; }
 
     protected override IEnumerable<string?> GetCanonicalParts() => [Instruction, Input, Output];
+
+    public override IEnumerable<string> GetSearchableTexts() => [Instruction, Input, Output];
+
+    protected override string? GetPreviewSource() =>
+        FirstNonBlank(Instruction, Input, Output);
+
+    private static string? FirstNonBlank(params string[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 }

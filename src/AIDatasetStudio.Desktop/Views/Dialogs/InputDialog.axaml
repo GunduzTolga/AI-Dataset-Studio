@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Dialogs"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.InputDialog"
+        x:DataType="vm:InputDialogViewModel"
+        Title="{Binding Title}"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        MinWidth="380">
+  <StackPanel Margin="20" Spacing="12" MaxWidth="480">
+    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+    <TextBox x:Name="InputBox" Text="{Binding Text}" IsVisible="{Binding ShowText}" MaxLength="{Binding MaxLength}" />
+    <ComboBox ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption}"
+              IsVisible="{Binding ShowOptions}" HorizontalAlignment="Stretch">
+      <ComboBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:DialogOption">
+          <TextBlock Text="{Binding Label}" />
+        </DataTemplate>
+      </ComboBox.ItemTemplate>
+    </ComboBox>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,8,0,0">
+      <Button Content="{Binding CancelText}" IsCancel="True" Click="OnCancel" MinWidth="88" />
+      <Button Content="{Binding ConfirmText}" IsDefault="True" Classes="accent" MinWidth="88"
+              IsEnabled="{Binding CanConfirm}" Click="OnConfirm" />
+    </StackPanel>
+  </StackPanel>
+</Window>

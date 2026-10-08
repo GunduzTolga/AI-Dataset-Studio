@@ -105,4 +105,229 @@
   <data name="Workspace_DefaultName" xml:space="preserve">
     <value>Adsız</value>
   </data>
+  <data name="Menu_OpenRecent" xml:space="preserve">
+    <value>_Son Açılanlar</value>
+  </data>
+  <data name="Menu_Tools" xml:space="preserve">
+    <value>_Araçlar</value>
+  </data>
+  <data name="Menu_GenerateSampleData" xml:space="preserve">
+    <value>Örnek Kayıt _Üret…</value>
+  </data>
+  <data name="Explorer_NewProject" xml:space="preserve">
+    <value>+ Proje</value>
+  </data>
+  <data name="Explorer_NewDataset" xml:space="preserve">
+    <value>+ Veri Seti</value>
+  </data>
+  <data name="Explorer_Rename" xml:space="preserve">
+    <value>Yeniden Adlandır…</value>
+  </data>
+  <data name="Explorer_Delete" xml:space="preserve">
+    <value>Sil…</value>
+  </data>
+  <data name="Explorer_Empty" xml:space="preserve">
+    <value>Bu çalışma alanında henüz proje yok. “+ Proje” ile oluşturun.</value>
+  </data>
+  <data name="Common_RecordCount" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="DatasetType_Instruction" xml:space="preserve">
+    <value>Talimat</value>
+  </data>
+  <data name="DatasetType_Chat" xml:space="preserve">
+    <value>Sohbet</value>
+  </data>
+  <data name="DatasetType_Preference" xml:space="preserve">
+    <value>Tercih (DPO)</value>
+  </data>
+  <data name="RecordStatus_Draft" xml:space="preserve">
+    <value>Taslak</value>
+  </data>
+  <data name="RecordStatus_InReview" xml:space="preserve">
+    <value>İncelemede</value>
+  </data>
+  <data name="RecordStatus_Approved" xml:space="preserve">
+    <value>Onaylandı</value>
+  </data>
+  <data name="RecordStatus_Archived" xml:space="preserve">
+    <value>Arşivlendi</value>
+  </data>
+  <data name="Filter_AllStatuses" xml:space="preserve">
+    <value>Tüm durumlar</value>
+  </data>
+  <data name="Records_SearchWatermark" xml:space="preserve">
+    <value>Kayıtlarda ara…</value>
+  </data>
+  <data name="Records_NoMatches" xml:space="preserve">
+    <value>Arama veya filtreyle eşleşen kayıt yok.</value>
+  </data>
+  <data name="Records_EmptyDataset" xml:space="preserve">
+    <value>Bu veri setinde henüz kayıt yok. Araçlar › Örnek Kayıt Üret ile deneyebilirsiniz.</value>
+  </data>
+  <data name="Records_Loading" xml:space="preserve">
+    <value>Yükleniyor…</value>
+  </data>
+  <data name="Details_Title" xml:space="preserve">
+    <value>Kayıt #{0}</value>
+  </data>
+  <data name="Action_Approve" xml:space="preserve">
+    <value>Onayla</value>
+  </data>
+  <data name="Action_SendToReview" xml:space="preserve">
+    <value>İncelemeye al</value>
+  </data>
+  <data name="Action_Archive" xml:space="preserve">
+    <value>Arşivle</value>
+  </data>
+  <data name="Action_Restore" xml:space="preserve">
+    <value>Geri yükle</value>
+  </data>
+  <data name="Action_Delete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="Field_Instruction" xml:space="preserve">
+    <value>Talimat</value>
+  </data>
+  <data name="Field_Input" xml:space="preserve">
+    <value>Girdi</value>
+  </data>
+  <data name="Field_Output" xml:space="preserve">
+    <value>Çıktı</value>
+  </data>
+  <data name="Field_SystemPrompt" xml:space="preserve">
+    <value>Sistem talimatı</value>
+  </data>
+  <data name="Field_User" xml:space="preserve">
+    <value>Kullanıcı</value>
+  </data>
+  <data name="Field_Assistant" xml:space="preserve">
+    <value>Asistan</value>
+  </data>
+  <data name="Field_System" xml:space="preserve">
+    <value>Sistem</value>
+  </data>
+  <data name="Field_Prompt" xml:space="preserve">
+    <value>İstem</value>
+  </data>
+  <data name="Field_Chosen" xml:space="preserve">
+    <value>Tercih edilen</value>
+  </data>
+  <data name="Field_Rejected" xml:space="preserve">
+    <value>Reddedilen</value>
+  </data>
+  <data name="Field_Empty" xml:space="preserve">
+    <value>(boş)</value>
+  </data>
+  <data name="Meta_Source" xml:space="preserve">
+    <value>Kaynak</value>
+  </data>
+  <data name="Meta_GeneratedBy" xml:space="preserve">
+    <value>Üreten model</value>
+  </data>
+  <data name="Meta_Created" xml:space="preserve">
+    <value>Oluşturulma</value>
+  </data>
+  <data name="Meta_Updated" xml:space="preserve">
+    <value>Güncellenme</value>
+  </data>
+  <data name="Meta_ContentHash" xml:space="preserve">
+    <value>İçerik özeti</value>
+  </data>
+  <data name="Source_Manual" xml:space="preserve">
+    <value>Elle girildi</value>
+  </data>
+  <data name="Source_FileImport" xml:space="preserve">
+    <value>Dosyadan içe aktarıldı</value>
+  </data>
+  <data name="Source_Synthetic" xml:space="preserve">
+    <value>Sentetik</value>
+  </data>
+  <data name="Source_DocumentChunk" xml:space="preserve">
+    <value>Belge parçası</value>
+  </data>
+  <data name="Dialog_OK" xml:space="preserve">
+    <value>Tamam</value>
+  </data>
+  <data name="Dialog_Cancel" xml:space="preserve">
+    <value>İptal</value>
+  </data>
+  <data name="Dialog_NewProjectTitle" xml:space="preserve">
+    <value>Yeni Proje</value>
+  </data>
+  <data name="Dialog_NewProjectMessage" xml:space="preserve">
+    <value>Proje adı:</value>
+  </data>
+  <data name="Dialog_NewDatasetTitle" xml:space="preserve">
+    <value>Yeni Veri Seti</value>
+  </data>
+  <data name="Dialog_NewDatasetMessage" xml:space="preserve">
+    <value>Veri seti adı ve kayıt türü:</value>
+  </data>
+  <data name="Dialog_RenameTitle" xml:space="preserve">
+    <value>Yeniden Adlandır</value>
+  </data>
+  <data name="Dialog_RenameMessage" xml:space="preserve">
+    <value>Yeni ad:</value>
+  </data>
+  <data name="Dialog_DeleteProjectTitle" xml:space="preserve">
+    <value>Projeyi Sil</value>
+  </data>
+  <data name="Dialog_DeleteProjectMessage" xml:space="preserve">
+    <value>'{0}' tüm veri setleri ve kayıtlarıyla silinsin mi? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Dialog_DeleteDatasetTitle" xml:space="preserve">
+    <value>Veri Setini Sil</value>
+  </data>
+  <data name="Dialog_DeleteDatasetMessage" xml:space="preserve">
+    <value>'{0}' ve içindeki {1:N0} kayıt silinsin mi? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Dialog_DeleteRecordTitle" xml:space="preserve">
+    <value>Kaydı Sil</value>
+  </data>
+  <data name="Dialog_DeleteRecordMessage" xml:space="preserve">
+    <value>#{0} numaralı kayıt silinsin mi? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Dialog_SampleDataTitle" xml:space="preserve">
+    <value>Örnek Kayıt Üret</value>
+  </data>
+  <data name="Dialog_SampleDataMessage" xml:space="preserve">
+    <value>'{0}' veri setine kaç örnek kayıt eklensin?</value>
+  </data>
+  <data name="Default_ProjectName" xml:space="preserve">
+    <value>Yeni proje</value>
+  </data>
+  <data name="Default_DatasetName" xml:space="preserve">
+    <value>Yeni veri seti</value>
+  </data>
+  <data name="Status_ProjectCreated" xml:space="preserve">
+    <value>'{0}' projesi oluşturuldu.</value>
+  </data>
+  <data name="Status_DatasetCreated" xml:space="preserve">
+    <value>'{0}' veri seti oluşturuldu.</value>
+  </data>
+  <data name="Status_Renamed" xml:space="preserve">
+    <value>Ad '{0}' olarak değiştirildi.</value>
+  </data>
+  <data name="Status_Deleted" xml:space="preserve">
+    <value>'{0}' silindi.</value>
+  </data>
+  <data name="Status_RecordDeleted" xml:space="preserve">
+    <value>#{0} numaralı kayıt silindi.</value>
+  </data>
+  <data name="Status_RecordStatusChanged" xml:space="preserve">
+    <value>#{0} numaralı kayıt: {1}.</value>
+  </data>
+  <data name="Status_SampleDataProgress" xml:space="preserve">
+    <value>Örnek kayıtlar ekleniyor… {0:N0} / {1:N0}</value>
+  </data>
+  <data name="Status_SampleDataAdded" xml:space="preserve">
+    <value>'{1}' veri setine {0:N0} örnek kayıt eklendi.</value>
+  </data>
+  <data name="Error_ItemNotFound" xml:space="preserve">
+    <value>Öğe artık mevcut değil.</value>
+  </data>
+  <data name="Error_InvalidInput" xml:space="preserve">
+    <value>İşlem tamamlanamadı: {0}</value>
+  </data>
 </root>

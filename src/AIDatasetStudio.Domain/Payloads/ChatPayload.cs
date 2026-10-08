@@ -37,6 +37,24 @@ public sealed record ChatPayload : RecordPayload
         return hash.ToHashCode();
     }
 
+    public override IEnumerable<string> GetSearchableTexts()
+    {
+        if (SystemPrompt is not null)
+        {
+            yield return SystemPrompt;
+        }
+
+        foreach (var message in Messages)
+        {
+            yield return message.Content;
+        }
+    }
+
+    protected override string? GetPreviewSource() =>
+        Messages.FirstOrDefault(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content))?.Content
+        ?? Messages.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m.Content))?.Content
+        ?? SystemPrompt;
+
     protected override IEnumerable<string?> GetCanonicalParts()
     {
         yield return SystemPrompt;

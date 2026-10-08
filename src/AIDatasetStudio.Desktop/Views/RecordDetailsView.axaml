@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+             xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             x:Class="AIDatasetStudio.Desktop.Views.RecordDetailsView"
+             x:DataType="vm:RecordDetailsViewModel">
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_RecordEditor}" />
+
+    <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+               Margin="16" Text="{l:Tr Editor_Placeholder}" IsVisible="{Binding !HasRecord}" />
+
+    <ScrollViewer IsVisible="{Binding HasRecord}">
+      <StackPanel Margin="12,0,12,16" Spacing="12">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
+          <TextBlock Classes="muted" Text="{Binding StatusLabel}" VerticalAlignment="Bottom" />
+        </StackPanel>
+
+        <WrapPanel>
+          <WrapPanel.Styles>
+            <Style Selector="Button">
+              <Setter Property="Margin" Value="0,0,6,6" />
+            </Style>
+          </WrapPanel.Styles>
+          <Button Classes="accent" Content="{l:Tr Action_Approve}" Command="{Binding ApproveCommand}" />
+          <Button Content="{l:Tr Action_SendToReview}" Command="{Binding SendToReviewCommand}" />
+          <Button Content="{l:Tr Action_Archive}" Command="{Binding ArchiveCommand}" />
+          <Button Content="{l:Tr Action_Restore}" Command="{Binding RestoreCommand}" />
+          <Button Content="{l:Tr Action_Delete}" Command="{Binding DeleteCommand}" />
+        </WrapPanel>
+
+        <ItemsControl ItemsSource="{Binding Fields}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DetailField">
+              <StackPanel Spacing="2" Margin="0,0,0,10">
+                <TextBlock Classes="muted" FontSize="11" FontWeight="SemiBold" Text="{Binding Label}" />
+                <SelectableTextBlock Text="{Binding Value}" TextWrapping="Wrap" Classes.muted="{Binding IsEmpty}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Height="1" Background="{DynamicResource PaneBorderBrush}" />
+
+        <ItemsControl ItemsSource="{Binding Metadata}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DetailField">
+              <Grid ColumnDefinitions="110,*" Margin="0,0,0,4">
+                <TextBlock Classes="muted" FontSize="12" Text="{Binding Label}" />
+                <SelectableTextBlock Grid.Column="1" FontSize="12" Text="{Binding Value}" TextWrapping="Wrap" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

@@ -23,4 +23,8 @@ public sealed record PreferencePayload : RecordPayload
     public string Rejected { get; }
 
     protected override IEnumerable<string?> GetCanonicalParts() => [Prompt, Chosen, Rejected];
+
+    public override IEnumerable<string> GetSearchableTexts() => [Prompt, Chosen, Rejected];
+
+    protected override string? GetPreviewSource() => string.IsNullOrWhiteSpace(Prompt) ? Chosen : Prompt;
 }

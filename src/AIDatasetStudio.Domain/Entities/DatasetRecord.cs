@@ -13,10 +13,13 @@ public sealed class DatasetRecord
 {
     private readonly List<Tag> _tags = [];
 
+    public const int PreviewMaxLength = 200;
+
     private DatasetRecord()
     {
         Payload = null!;
         ContentHash = string.Empty;
+        Preview = string.Empty;
         Lineage = null!;
     }
 
@@ -42,6 +45,11 @@ public sealed class DatasetRecord
     /// SHA-256 of <see cref="Payload"/>; see <see cref="RecordPayload.ComputeContentHash"/>.
     /// </summary>
     public string ContentHash { get; private set; }
+
+    /// <summary>
+    /// Single-line summary of <see cref="Payload"/>, stored so record lists never load full payloads.
+    /// </summary>
+    public string Preview { get; private set; }
 
     /// <summary>
     /// Free-form metadata as a JSON object.
@@ -77,6 +85,7 @@ public sealed class DatasetRecord
             Ordinal = ordinal,
             Payload = payload,
             ContentHash = payload.ComputeContentHash(),
+            Preview = payload.GetPreviewText(PreviewMaxLength),
             Lineage = lineage,
             CreatedAt = now,
             UpdatedAt = now,
@@ -106,6 +115,7 @@ public sealed class DatasetRecord
 
         Payload = payload;
         ContentHash = hash;
+        Preview = payload.GetPreviewText(PreviewMaxLength);
         Status = RecordStatus.InReview;
         UpdatedAt = now;
         return true;

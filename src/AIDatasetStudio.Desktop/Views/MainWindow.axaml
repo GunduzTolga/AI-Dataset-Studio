@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+        xmlns:views="using:AIDatasetStudio.Desktop.Views"
         xmlns:l="using:AIDatasetStudio.Desktop.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -17,6 +18,16 @@
       <MenuItem Header="{l:Tr Menu_File}">
         <MenuItem x:Name="NewWorkspaceMenuItem" Header="{l:Tr Menu_NewWorkspace}" Command="{Binding NewWorkspaceCommand}" />
         <MenuItem x:Name="OpenWorkspaceMenuItem" Header="{l:Tr Menu_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}" />
+        <MenuItem Header="{l:Tr Menu_OpenRecent}" ItemsSource="{Binding RecentWorkspaces}" IsEnabled="{Binding HasRecentWorkspaces}">
+          <MenuItem.Styles>
+            <Style Selector="MenuItem" x:DataType="vm:RecentWorkspaceViewModel">
+              <Setter Property="Header" Value="{Binding DisplayName}" />
+              <Setter Property="ToolTip.Tip" Value="{Binding FilePath}" />
+              <Setter Property="Command" Value="{Binding OpenCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding FilePath}" />
+            </Style>
+          </MenuItem.Styles>
+        </MenuItem>
         <MenuItem Header="{l:Tr Menu_CloseWorkspace}" Command="{Binding CloseWorkspaceCommand}" />
         <Separator />
         <MenuItem Header="{l:Tr Menu_Exit}" Click="OnExitClick" />
@@ -30,6 +41,9 @@
                     Command="{Binding SetLanguageCommand}" CommandParameter="tr" />
         </MenuItem>
       </MenuItem>
+      <MenuItem Header="{l:Tr Menu_Tools}">
+        <MenuItem Header="{l:Tr Menu_GenerateSampleData}" Command="{Binding GenerateSampleDataCommand}" />
+      </MenuItem>
     </Menu>
 
     <!-- Status bar -->
@@ -39,53 +53,28 @@
             BorderThickness="0,1,0,0"
             Padding="12,4">
       <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding Status.Message}" FontSize="12" TextTrimming="CharacterEllipsis" />
         <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Margin="16,0,0,0"
                    Text="{Binding Workspace.FilePath, FallbackValue='', TargetNullValue=''}" />
       </Grid>
     </Border>
 
-    <!-- Split view: explorer | records | editor (SDD §6.1) -->
-    <Grid ColumnDefinitions="260,Auto,*,Auto,380">
-
-      <!-- Left: workspace / project / dataset tree -->
+    <!-- Split view: explorer | records | details (SDD §6.1) -->
+    <Grid ColumnDefinitions="280,Auto,*,Auto,400">
       <Border Grid.Column="0" Background="{DynamicResource PaneBackgroundBrush}">
-        <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Explorer}" />
-          <Panel Margin="12,0,12,12">
-            <StackPanel Spacing="8" IsVisible="{Binding !HasWorkspace}">
-              <TextBlock Classes="muted" Text="{l:Tr Explorer_NoWorkspace}" />
-              <Button Content="{l:Tr Button_NewWorkspace}" Command="{Binding NewWorkspaceCommand}" HorizontalAlignment="Stretch" />
-              <Button Content="{l:Tr Button_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}" HorizontalAlignment="Stretch" />
-            </StackPanel>
-            <StackPanel Spacing="4" IsVisible="{Binding HasWorkspace}">
-              <TextBlock FontWeight="SemiBold" Text="{Binding Workspace.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
-              <TextBlock Classes="muted" FontSize="12" Text="{l:Tr Explorer_Placeholder}" />
-            </StackPanel>
-          </Panel>
-        </DockPanel>
+        <views:ExplorerView />
       </Border>
 
       <GridSplitter Grid.Column="1" Width="1" Background="{DynamicResource PaneBorderBrush}" ResizeDirection="Columns" />
 
-      <!-- Center: virtualized record grid -->
       <Border Grid.Column="2" Background="{DynamicResource ContentBackgroundBrush}">
-        <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Records}" />
-          <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                     Text="{l:Tr Records_Placeholder}" />
-        </DockPanel>
+        <views:RecordListView DataContext="{Binding Records}" />
       </Border>
 
       <GridSplitter Grid.Column="3" Width="1" Background="{DynamicResource PaneBorderBrush}" ResizeDirection="Columns" />
 
-      <!-- Right: record editor -->
       <Border Grid.Column="4" Background="{DynamicResource PaneBackgroundBrush}">
-        <DockPanel>
-          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_RecordEditor}" />
-          <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                     Margin="16" Text="{l:Tr Editor_Placeholder}" />
-        </DockPanel>
+        <views:RecordDetailsView DataContext="{Binding Details}" />
       </Border>
     </Grid>
   </DockPanel>

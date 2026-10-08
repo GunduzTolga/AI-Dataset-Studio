@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.1.0 (plan incelemesindeki kararlar işlendi, bkz. `docs/plan-review.md`)
+- **Versiyon:** 1.2.0 (M1: arama indeksi ve ayarlar tasarımı işlendi, bkz. `docs/plan-review.md`)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -355,8 +355,11 @@ Veri setini model eğitimine göndermeden önce bilimsel standartlarda 3 parçay
 ### 11.1. SQLite FTS5 (Full-Text Search) Mimarisi
 Girdi, çıktı, sistem talimatı ve meta veriler arka planda SQLite'ın sanal FTS5 tablosu ile indekslenir.
 - 100.000 satırlık bir veri setinde arama yaparken tüm metinleri bellekte aramak yerine, FTS5 B-Tree indeksi üzerinden milisaniyeler (10-20 ms) içinde sonuç döner.
-- **Arama Metni:** Her payload tipinden aranabilir metin (`SearchText`) çıkarılır; external-content FTS5 tablosu kayıt yazılırken senkron tutulur.
-- **Türkçe:** `unicode61` tokenizer'ı `İ/ı` dönüşümünde kusurludur; arama metni ve sorgu uygulama tarafında Türkçe kurallarıyla normalize edilir (`remove_diacritics` ile "şifre" ⇄ "sifre" eşleşmesi isteğe bağlı). Alt dize araması için `trigram` tokenizer'ı değerlendirilir; Türkçe veriyle performans ölçülür.
+- **İndeks Yapısı:** `RecordSearch`, metnin ikinci bir kopyasını tutmayan *contentless* bir FTS5 tablosudur (yalnızca indeks; disk maliyeti düşük). Satır kimlikleri `RecordSearchKeys.RowId` (INTEGER PRIMARY KEY) alanından gelir; `DatasetRecords`'un örtük rowid'i VACUUM sırasında değişebileceği için kullanılmaz.
+- **Senkronizasyon:** Kayıt ekleme, toplu ekleme ve içerik güncelleme aynı transaction içinde indeksi günceller; silmeler (veri seti/proje silmeden gelen cascade'ler dahil) bir trigger ile indeksten düşer. Çalışma alanı açılırken indeksi veya önizlemesi eksik kayıtlar (eski sürüm dosyaları, yarıda kalmış yazmalar) otomatik onarılır.
+- **Sorgu:** Kullanıcının yazdığı her kelime tırnak içine alınıp önek olarak aranır ("izi" → "izin"); FTS sözdizimi kullanıcı girdisiyle enjekte edilemez. Tüm kelimeler aynı kayıtta geçmelidir.
+- **Türkçe:** `unicode61` tokenizer'ı "I" harfini İngilizce kuralıyla küçültür ("ILIK" → "ilik"); bu yüzden hem indekslenen metinde hem sorguda `I`, `İ` ve `ı` uygulama tarafında "i"ye katlanır. `remove_diacritics 2` ile "şifre" ⇄ "sifre", "çift" ⇄ "cift" eşleşir. Alt dize araması (`trigram`) ihtiyaç doğarsa değerlendirilecek.
+- **Ölçüm (M1):** 10.000 kayıtlık veri setinde toplu ekleme ~1,5 sn; "şifre" araması (sayım + ilk sayfa) ~100 ms.
 - **Sayfalama:** Grid, `(Ordinal, Id)` üzerinden keyset sayfalama ile yalnızca hafif projeksiyonları (Id, durum, önizleme, token) yükler; tam payload sadece seçili kayıt için okunur.
 
 ### 11.2. Yapısal Filtreleme (Query Builder)
@@ -498,7 +501,7 @@ Veritabanı tabloları ve temel ilişkileri (bir `.adstudio` dosyası = bir çal
 - `Workspace`: Id, Name, Description, CreatedAt — dosya başına tek satır
 - `Projects`: Id, Name, Description, CreatedAt
 - `Datasets`: Id, ProjectId, Name, Description, Type, DefaultTokenizer, CreatedAt
-- `DatasetRecords`: Id, DatasetId, Type, Status, Ordinal, DataPayload, ContentHash, SearchText, HealthScore (önbellek), MetadataJson, SourceKind, SourceReference, CreatedBy, GeneratedByModel, CreatedAt, UpdatedAt
+- `DatasetRecords`: Id, DatasetId, Type, Status, Ordinal, DataPayload, ContentHash, Preview (liste önizlemesi, ≤200 karakter), HealthScore (önbellek), MetadataJson, SourceKind, SourceReference, CreatedBy, GeneratedByModel, CreatedAt, UpdatedAt
 - `RecordRevisions`: Id, RecordId, ContentHash, DataPayload, CreatedAt — değişmez içerik geçmişi
 - `RecordTokenStats`: RecordId, TokenizerId, ContentHash, InputTokens, OutputTokens, TotalTokens
 - `DatasetVersions`: Id, DatasetId, VersionTag, Description, IsFrozen, CreatedAt
@@ -511,7 +514,8 @@ Veritabanı tabloları ve temel ilişkileri (bir `.adstudio` dosyası = bir çal
 - `ExportHistories`: Id, DatasetId, VersionId, ProfileId, TargetFormat, FilePath, SplitType, RecordCount, ExportedAt
 - `EvaluationSets`: Id, ProjectId, DatasetId, Name, CreatedAt
 - `BenchmarkRuns`: Id, EvaluationSetId, ModelName, Score, ExecutedAt
-- `Records_FTS`: SQLite FTS5 sanal tablosu (external-content, `SearchText` üzerinden)
+- `RecordSearchKeys`: RowId (INTEGER PRIMARY KEY), RecordId (benzersiz) — FTS satırlarını kayıtlara bağlar
+- `RecordSearch`: SQLite FTS5 sanal tablosu (contentless, `contentless_delete=1`, `unicode61 remove_diacritics 2`); rowid = `RecordSearchKeys.RowId`
 
 Notlar: Kimlikler GUID v7, zaman damgaları UTC Unix milisaniye (INTEGER), enum'lar INTEGER olarak saklanır (ADR-016). Şema değişiklikleri EF Core migration'larıyla yapılır; ilk sürümden önce migration'lar sadeleştirilebilir.
 
@@ -616,3 +620,5 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-019: Export'a Hazırlık Hesaplanan Bir Koşuldur:** Kayıt durumları Draft / InReview / Approved / Archived'dir. "Export'a hazır" export profiline göre (token sınırı, PII) hesaplanır ve ayar değişince bayatlamaz.
 - **ADR-020: Çift Dilli Arayüz:** Arayüz Türkçe ve İngilizce'dir, çalışırken değiştirilebilir; metinler kaynak dosyalarındadır ve kültüre duyarlı kod analizörlerle engellenir.
 - **ADR-021: Dosya Uzantısı `.adstudio`:** Çalışma alanı dosyaları `.adstudio` uzantısını kullanır (`.aids` İngilizcede hastalık adını çağrıştırdığı için değiştirildi). Uzantı kodda tek bir sabittedir.
+- **ADR-022: Arama İndeksi:** Tam metin araması contentless FTS5 tablosu ve kararlı INTEGER anahtar tablosuyla yapılır; metin iki kez saklanmaz. Türkçe I harfleri uygulama tarafında katlanır; indeks yazma yollarında transaction içinde, silmelerde trigger ile güncel tutulur ve açılışta onarılır.
+- **ADR-023: Kullanıcı Ayarları:** Arayüz dili ve son açılan çalışma alanları, platformun ayar klasöründeki `app.settings.db` dosyasında tutulur. Dosya kullanılamazsa uygulama çökmez; ayarlar o oturum için bellekte kalır.

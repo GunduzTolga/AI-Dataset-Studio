@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+             xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+             x:Class="AIDatasetStudio.Desktop.Views.ExplorerView"
+             x:DataType="vm:MainWindowViewModel">
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="{l:Tr Pane_Explorer}" />
+
+    <!-- No workspace open -->
+    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="12,0,12,12" IsVisible="{Binding !HasWorkspace}">
+      <TextBlock Classes="muted" Text="{l:Tr Explorer_NoWorkspace}" />
+      <Button Content="{l:Tr Button_NewWorkspace}" Command="{Binding NewWorkspaceCommand}" HorizontalAlignment="Stretch" />
+      <Button Content="{l:Tr Button_OpenWorkspace}" Command="{Binding OpenWorkspaceCommand}" HorizontalAlignment="Stretch" />
+    </StackPanel>
+
+    <!-- Workspace open -->
+    <DockPanel DataContext="{Binding Explorer}" x:DataType="vm:ExplorerViewModel" IsVisible="{Binding IsWorkspaceOpen}">
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="12,0,12,8">
+        <Button Content="{l:Tr Explorer_NewProject}" Command="{Binding NewProjectCommand}" />
+        <Button Content="{l:Tr Explorer_NewDataset}" Command="{Binding NewDatasetCommand}" />
+      </StackPanel>
+      <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="12,4,12,0" Text="{l:Tr Explorer_Empty}" IsVisible="{Binding IsEmpty}" />
+
+      <TreeView ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedNode}" Margin="4,0,4,8">
+        <TreeView.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="{l:Tr Explorer_NewDataset}" Command="{Binding NewDatasetCommand}" />
+            <MenuItem Header="{l:Tr Explorer_Rename}" Command="{Binding RenameCommand}" />
+            <MenuItem Header="{l:Tr Explorer_Delete}" Command="{Binding DeleteCommand}" />
+          </ContextMenu>
+        </TreeView.ContextMenu>
+        <TreeView.Styles>
+          <Style Selector="TreeViewItem" x:DataType="vm:ExplorerNodeViewModel">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+          </Style>
+        </TreeView.Styles>
+        <TreeView.DataTemplates>
+          <TreeDataTemplate DataType="vm:ProjectNodeViewModel" ItemsSource="{Binding Datasets}">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+          </TreeDataTemplate>
+          <DataTemplate DataType="vm:DatasetNodeViewModel">
+            <StackPanel Spacing="1" Margin="0,2">
+              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="muted" FontSize="11" Text="{Binding Details}" />
+            </StackPanel>
+          </DataTemplate>
+        </TreeView.DataTemplates>
+      </TreeView>
+    </DockPanel>
+  </DockPanel>
+</UserControl>
