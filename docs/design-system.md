@@ -107,6 +107,11 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | İçe aktar / Kaynak dosya | `ArrowImport` / `DocumentTable` |
 | Geçerli / Atlanacak satır | `CheckmarkCircle` (olumlu renk) / `ErrorCircle` (hata rengi) |
 | Bilgi / Uyarı / Hata bildirimi | `Info` (konuşma biçiminde `Chat`) / `Warning` / `ErrorCircle`, `DismissCircle` |
+| Kaydet / Kaydedilmemiş değişiklik / Salt okunur | `Save` / `DocumentEdit` / `LockClosed` |
+| Geri al / Yinele | `ArrowUndo` / `ArrowRedo` |
+| Önceki / Sonraki kayıt | `ArrowUp` / `ArrowDown` |
+| Mesaj ekle / Rolü çevir / Mesajı kaldır | `Add` / `ArrowSwap` / `Dismiss` |
+| Çoklu seçim | `Multiselect` |
 | Gizlilik | `ShieldLock` |
 
 Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Symbol` yalnızca tekil kullanımlar içindir.
@@ -152,6 +157,12 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 ### Boş durumlar
 `StackPanel.empty`: dairesel ikon (`Border.empty-icon`), başlık (`.subtitle`), açıklama (`.muted`) ve varsa bir `accent` aksiyon (yanında en fazla bir `subtle` alternatif; ör. "Dosyadan içe aktar" + "Örnek kayıt üret"). Her boş ekran ne olduğunu ve bir sonraki adımı söyler.
 
+### Editör alanları
+`TextBox.field`: kendi kutusu olmayan, kartın (`Border.card`) veya balonun (`Border.bubble`) içine yerleşen çok satırlı metin alanı; boşken "Boş" yer tutucusu gösterir. Odak, kabın etrafında 3 px yarı saydam indigo halkayla (`BoxShadow`, `:focus-within`) gösterilir; böylece tercih edilen/reddedilen kartların yeşil/kırmızı kenarı korunur. Sohbet turlarının başlığında rol ikonu ve etiketinin yanında 22 px'lik `Button.mini` düğmeleri (rolü çevir, kaldır) bulunur. Kaydedilmemiş değişiklikler başlığın altında bilgi bildirimi + "Vazgeç" (`subtle`) + "Kaydet" (`accent`) olarak gösterilir; arşivlenmiş kayıtta uyarı bildirimi ve salt okunur alanlar vardır.
+
+### Toplu panel
+Birden fazla kayıt seçilince sağ panel: ikon kutusu + "N kayıt seçili" başlığı, durum rozetleri ve sayıları, uygun aksiyonlar (en az bir seçili kayda uygulanabilenler) ve kısa açıklama. Silme metinli `danger-subtle` düğmedir.
+
 ### Bildirimler (callout)
 `Border.callout`: ikon + metin, `RadiusMedium`, `12,10` iç boşluk. Varsayılan bilgi (vurgu zemin); `.warning` (amber) devam etmeyi engellemeyen sorunlar, `.danger` (kırmızı) devam edilemeyen durumlar için. İçinde `DockPanel`: solda `SymbolIcon`, kalan alanda kaydırmalı `TextBlock`.
 
@@ -171,6 +182,8 @@ Etiket `TextBlock.label` (küçük, yarı kalın, ikincil renk) kontrolün üst�
 | Karşılama (çalışma alanı yok) | Marka simgesi, başlık, slogan; "Yeni çalışma alanı" ve "Çalışma alanı aç" kutucukları; son açılanlar; gizlilik notu |
 | Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı, arama, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: kayıt başlığı + durum, aksiyonlar, içerik kartları/balonları, "BİLGİLER" |
 | Diyaloglar | 460 px; başlık, açıklama, giriş, sağa yaslı İptal (`subtle`) + onay (`accent` veya `danger`) |
+| Kayıt editörü (sağ panel) | Başlık + durum rozeti, duruma uygun aksiyonlar ve sağda sil · kaydedilmemiş değişiklik çubuğu · alan kartları veya sohbet balonları (düzenlenebilir) · "Mesaj ekle" · BİLGİLER. Çoklu seçimde toplu panel |
+| Menüler | Dosya · Düzen (Geri al/Yinele: son adımın adıyla, Kayıtlarda ara) · Görünüm · Kayıt (Kaydet, Onayla ve sonrakine geç, Arşivle ve sonrakine geç, Sonraki/Önceki, Sil) · Araçlar; kısayollar menüde gösterilir |
 | İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir. Üst: ikon kutusu, başlık, hedef veri seti · Sol (340 px, uygulama zemini): KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri), bildirimler, CSV AYARLARI, SÜTUN EŞLEME · Sağ: ÖNİZLEME (ilk 20 satır) · Alt çubuk: adıma göre özet + İptal + "N satırı içe aktar" (`accent`), aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
 
 **Tercihler:** Görünüm › Tema (Sistem / Açık / Koyu) ve Görünüm › Dil (English / Türkçe). İkisi de `app.settings.db` dosyasında saklanır ve yeniden başlatmadan uygulanır.

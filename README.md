@@ -84,6 +84,18 @@ Importing data: select a dataset, then **File › Import from File…** (or the 
 | JSON Lines (`.jsonl`, `.ndjson`) and JSON arrays (`.json`) | OpenAI messages, ShareGPT, Alpaca, prompt/completion, Hugging Face DPO, OpenAI preference, any flat object | Instruction, Chat, Preference |
 | CSV / TSV (`.csv`, `.tsv`, `.txt`) | Any columns, mapped by name (English and Turkish names are suggested automatically); UTF-8, UTF-16 and Turkish Windows-1254 files from Excel | Instruction, Chat, Preference |
 
+Reviewing records: edit fields directly in the right-hand panel; changes are saved with **Mod+S** or automatically when you move on. Shift/Ctrl-click selects several records for batch actions. (**Mod** is Ctrl on Windows/Linux and Cmd on macOS.)
+
+| Keys | Action |
+|---|---|
+| Mod+Enter | Approve and go to the next record |
+| Mod+Shift+Backspace | Archive and go to the next record |
+| F8 / Shift+F8 | Next / previous record (↑/↓ also work in the list) |
+| Mod+S | Save changes |
+| Mod+Z / Mod+Shift+Z (or Mod+Y) | Undo / redo edits, status changes and deletes, including batch actions |
+| Mod+F | Search records |
+| Delete | Delete the selected records (in the list) |
+
 Adding a database migration (after changing the EF Core model):
 
 ```bash
@@ -100,7 +112,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M0 | Solution skeleton, `.adstudio` files, bilingual shell | ✅ |
 | M1 | Project/dataset tree, record services, full-text search, paging, settings | ✅ |
 | M2 | Import (JSONL, JSON, CSV wizard) | ✅ |
-| M3 | Record editor, review shortcuts, undo/redo | ⏳ |
+| M3 | Record editor, review shortcuts, batch actions, undo/redo | ✅ |
 | M4 | Tokens, health rules, PII masking | ⏳ |
 | M5 | Export + train/val/test split | ⏳ |
 | M6 | Packaging, signing, first release | ⏳ |
