@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
@@ -14,7 +15,8 @@ public sealed record NewRecord(RecordPayload Payload, RecordLineage Lineage);
 /// </summary>
 /// <param name="Statuses">Only these statuses; <c>null</c> or empty for all.</param>
 /// <param name="SearchText">Full-text search over all record text; <c>null</c> or blank for none.</param>
-public sealed record RecordFilter(IReadOnlySet<RecordStatus>? Statuses = null, string? SearchText = null)
+/// <param name="Quality">Only records with these analysis results.</param>
+public sealed record RecordFilter(IReadOnlySet<RecordStatus>? Statuses = null, string? SearchText = null, QualityFilter Quality = QualityFilter.None)
 {
     public static RecordFilter None { get; } = new();
 }
@@ -27,12 +29,18 @@ public readonly record struct RecordCursor(long Ordinal, Guid Id);
 /// <summary>
 /// A lightweight list row; the full payload is loaded only for the selected record.
 /// </summary>
+/// <param name="TotalTokens">Content tokens with the dataset's tokenizer; <c>null</c> until analysed.</param>
+/// <param name="Score">Quality score 0–100; <c>null</c> until analysed.</param>
+/// <param name="IsOverContextLimit">More tokens than the dataset's context length.</param>
 public sealed record RecordSummary(
     Guid Id,
     long Ordinal,
     RecordStatus Status,
     string Preview,
-    DateTimeOffset UpdatedAt)
+    DateTimeOffset UpdatedAt,
+    int? TotalTokens = null,
+    int? Score = null,
+    bool IsOverContextLimit = false)
 {
     public RecordCursor Cursor => new(Ordinal, Id);
 }

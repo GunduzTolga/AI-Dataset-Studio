@@ -1,5 +1,7 @@
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Catalog;
 using AIDatasetStudio.Application.Common;
+using AIDatasetStudio.Domain.Common;
 using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Infrastructure.Persistence;
@@ -7,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AIDatasetStudio.Infrastructure.Catalog;
 
-internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider timeProvider) : ICatalogService
+internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider timeProvider, ITokenizerProvider tokenizers) : ICatalogService
 {
     public async Task<IReadOnlyList<ProjectSummary>> GetProjectsAsync(CancellationToken cancellationToken = default)
     {
@@ -31,7 +33,7 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
                 p.Name,
                 p.Description,
                 datasetsByProject[p.Id]
-                    .Select(d => new DatasetSummary(d.Id, d.ProjectId, d.Name, d.Type, counts.GetValueOrDefault(d.Id)))
+                    .Select(d => new DatasetSummary(d.Id, d.ProjectId, d.Name, d.Type, counts.GetValueOrDefault(d.Id), d.DefaultTokenizer, d.ContextLength))
                     .ToList()))
             .ToList();
     }
@@ -85,6 +87,21 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
         var dataset = await context.Datasets.FindAsync([datasetId], cancellationToken)
             ?? throw new NotFoundException(nameof(Dataset), datasetId);
         dataset.Rename(name);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetTokenSettingsAsync(Guid datasetId, string tokenizer, int contextLength, CancellationToken cancellationToken = default)
+    {
+        await using var context = database.CreateDbContext();
+        var dataset = await context.Datasets.FindAsync([datasetId], cancellationToken)
+            ?? throw new NotFoundException(nameof(Dataset), datasetId);
+        if (!tokenizers.Available.Contains(tokenizer, StringComparer.Ordinal))
+        {
+            throw new DomainException($"Unknown tokenizer '{tokenizer}'.");
+        }
+
+        // Results computed with another tokenizer no longer match the dataset and are recomputed.
+        dataset.ChangeTokenSettings(tokenizer, contextLength);
         await context.SaveChangesAsync(cancellationToken);
     }
 

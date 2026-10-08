@@ -33,4 +33,10 @@ public interface ICatalogService
     /// Deletes the dataset together with all of its records.
     /// </summary>
     Task DeleteDatasetAsync(Guid datasetId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets the tokenizer used for token counts and the context length records are checked against.
+    /// Changing the tokenizer makes the dataset's analysis results stale.
+    /// </summary>
+    Task SetTokenSettingsAsync(Guid datasetId, string tokenizer, int contextLength, CancellationToken cancellationToken = default);
 }

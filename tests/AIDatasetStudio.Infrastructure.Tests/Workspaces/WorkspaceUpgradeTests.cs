@@ -3,9 +3,11 @@ using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
+using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Persistence;
 using AIDatasetStudio.Infrastructure.Persistence.Converters;
 using AIDatasetStudio.Infrastructure.Records;
+using AIDatasetStudio.Infrastructure.Tests.Support;
 using AIDatasetStudio.Infrastructure.Workspaces;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +30,7 @@ public sealed class WorkspaceUpgradeTests : IAsyncDisposable
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task A_file_from_the_first_schema_version_gets_previews_and_search()
+    public async Task A_file_from_the_first_schema_version_gets_previews_search_and_analysis()
     {
         var path = Path.Combine(_directory, "old.adstudio");
         var (datasetId, recordId) = await CreateFirstVersionFileAsync(path);
@@ -44,6 +46,13 @@ public sealed class WorkspaceUpgradeTests : IAsyncDisposable
 
         await using var context = service.CreateDbContext();
         Assert.Empty(context.Database.GetPendingMigrations());
+
+        // AddRecordAnalysis: old datasets get the default context length and can be analysed.
+        Assert.Equal(Dataset.DefaultContextLength, (await context.Datasets.SingleAsync(Ct)).ContextLength);
+        var analysis = new RecordAnalysisService(service, TestWorkspace.Tokenizers, new FixedTimeProvider(Now));
+        Assert.Equal(1, await analysis.CountPendingAsync(datasetId, Ct));
+        Assert.Equal(1, await analysis.AnalyzeAsync(datasetId, cancellationToken: Ct));
+        Assert.Equal(0, await analysis.CountPendingAsync(datasetId, Ct));
     }
 
     public ValueTask DisposeAsync()

@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Persistence;
 using AIDatasetStudio.Infrastructure.Search;
 using Microsoft.Data.Sqlite;
@@ -33,7 +35,9 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
 
-        var sql = new StringBuilder("SELECT r.Id, r.Ordinal, r.Status, r.Preview, r.UpdatedAt FROM DatasetRecords r");
+        var sql = new StringBuilder(
+            $"SELECT r.Id, r.Ordinal, r.Status, r.Preview, r.UpdatedAt, a.TotalTokens, {AnalysisSql.Score}, " +
+            $"COALESCE({AnalysisSql.IsOverLimit}, 0) {From}");
         AppendFilter(sql, command, datasetId, filter, match);
         if (after is { } cursor)
         {
@@ -57,7 +61,10 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
                     reader.GetInt64(1),
                     (RecordStatus)reader.GetInt32(2),
                     reader.GetString(3),
-                    SqliteValues.ReadTimestamp(reader.GetInt64(4))));
+                    SqliteValues.ReadTimestamp(reader.GetInt64(4)),
+                    reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                    reader.IsDBNull(6) ? null : reader.GetInt32(6),
+                    reader.GetBoolean(7)));
             }
         }
 
@@ -78,7 +85,7 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
 
-        var sql = new StringBuilder("SELECT COUNT(*) FROM DatasetRecords r");
+        var sql = new StringBuilder($"SELECT COUNT(*) {From}");
         AppendFilter(sql, command, datasetId, filter, match);
         command.CommandText = sql.Append(';').ToString();
         return (long)(await command.ExecuteScalarAsync(cancellationToken))!;
@@ -87,14 +94,15 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
     public async Task<IReadOnlyDictionary<RecordStatus, long>> CountByStatusAsync(
         Guid datasetId,
         string? searchText,
+        QualityFilter quality = QualityFilter.None,
         CancellationToken cancellationToken = default)
     {
         var match = SearchText.ToMatchExpression(searchText);
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
 
-        var sql = new StringBuilder("SELECT r.Status, COUNT(*) FROM DatasetRecords r");
-        AppendFilter(sql, command, datasetId, RecordFilter.None, match);
+        var sql = new StringBuilder($"SELECT r.Status, COUNT(*) {From}");
+        AppendFilter(sql, command, datasetId, new RecordFilter(Quality: quality), match);
         command.CommandText = sql.Append(" GROUP BY r.Status;").ToString();
 
         var counts = Enum.GetValues<RecordStatus>().ToDictionary(status => status, _ => 0L);
@@ -176,5 +184,13 @@ internal sealed class RecordQueryService(IWorkspaceDatabase database) : IRecordQ
             sql.Append(CultureInfo.InvariantCulture, $" AND r.Id IN ({SearchIndex.MatchingRecordIdsSql})");
             command.Parameters.AddWithValue("$match", match);
         }
+
+        if (AnalysisSql.Condition(filter.Quality) is { } quality)
+        {
+            sql.Append(" AND ").Append(quality);
+        }
     }
+
+    // Lists read the record's up-to-date analysis (if any) for tokens, score and quality filters.
+    private static readonly string From = $"FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}";
 }

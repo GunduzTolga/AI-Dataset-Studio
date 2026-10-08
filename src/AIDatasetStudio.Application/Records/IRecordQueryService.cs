@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Domain.Enums;
 
 namespace AIDatasetStudio.Application.Records;
@@ -21,12 +22,13 @@ public interface IRecordQueryService
     Task<long> CountAsync(Guid datasetId, RecordFilter filter, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Record counts per status for the dataset, optionally narrowed by a full-text search.
+    /// Record counts per status for the dataset, optionally narrowed by a full-text search and a quality filter.
     /// Statuses without records are present with a count of zero.
     /// </summary>
     Task<IReadOnlyDictionary<RecordStatus, long>> CountByStatusAsync(
         Guid datasetId,
         string? searchText,
+        QualityFilter quality = QualityFilter.None,
         CancellationToken cancellationToken = default);
 
     /// <returns>The record, or <c>null</c> if it does not exist.</returns>

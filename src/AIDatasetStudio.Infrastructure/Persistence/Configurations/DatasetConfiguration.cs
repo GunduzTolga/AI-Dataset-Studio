@@ -12,6 +12,8 @@ internal sealed class DatasetConfiguration : IEntityTypeConfiguration<Dataset>
         builder.HasKey(d => d.Id);
         builder.Property(d => d.Name).HasMaxLength(Dataset.MaxNameLength).IsRequired();
         builder.Property(d => d.DefaultTokenizer).HasMaxLength(100).IsRequired();
+        // Datasets created before context lengths existed get the default.
+        builder.Property(d => d.ContextLength).HasDefaultValue(Dataset.DefaultContextLength);
 
         builder.HasOne<Project>()
             .WithMany()

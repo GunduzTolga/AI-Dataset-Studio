@@ -10,6 +10,9 @@ public sealed class Dataset
 {
     public const int MaxNameLength = 200;
     public const string DefaultTokenizerName = "o200k_base";
+    public const int DefaultContextLength = 4_096;
+    public const int MinContextLength = 256;
+    public const int MaxContextLength = 2_097_152;
 
     private Dataset()
     {
@@ -31,6 +34,11 @@ public sealed class Dataset
     /// Identifier of the tokenizer used for token statistics, e.g. "o200k_base".
     /// </summary>
     public string DefaultTokenizer { get; private set; }
+
+    /// <summary>
+    /// The context window training runs use; records with more tokens are flagged (SDD §7.3).
+    /// </summary>
+    public int ContextLength { get; private set; } = DefaultContextLength;
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -60,4 +68,15 @@ public sealed class Dataset
     }
 
     public void Rename(string name) => Name = Guard.NotBlank(name, nameof(name), MaxNameLength);
+
+    public void ChangeTokenSettings(string tokenizer, int contextLength)
+    {
+        if (contextLength is < MinContextLength or > MaxContextLength)
+        {
+            throw new DomainException($"The context length must be between {MinContextLength} and {MaxContextLength} tokens.");
+        }
+
+        DefaultTokenizer = Guard.NotBlank(tokenizer, nameof(tokenizer), 100);
+        ContextLength = contextLength;
+    }
 }
