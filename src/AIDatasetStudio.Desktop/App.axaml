@@ -1,0 +1,42 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AIDatasetStudio.Desktop.App"
+             RequestedThemeVariant="Default">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#F6F7F9" />
+          <SolidColorBrush x:Key="ContentBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="PaneBorderBrush" Color="#DDE1E6" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#69707A" />
+          <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#EBEEF2" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="PaneBackgroundBrush" Color="#1E2024" />
+          <SolidColorBrush x:Key="ContentBackgroundBrush" Color="#16181B" />
+          <SolidColorBrush x:Key="PaneBorderBrush" Color="#33373D" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#9AA1AB" />
+          <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#25282D" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <Style Selector="TextBlock.paneHeader">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="LetterSpacing" Value="0.6" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+      <Setter Property="Margin" Value="12,10,12,6" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </Application.Styles>
+</Application>

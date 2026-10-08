@@ -1,0 +1,30 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <AvaloniaVersion>12.1.3</AvaloniaVersion>
+    <EfCoreVersion>10.0.12</EfCoreVersion>
+    <ExtensionsVersion>10.0.12</ExtensionsVersion>
+  </PropertyGroup>
+
+  <ItemGroup Label="Desktop">
+    <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup Label="Persistence">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Hosting">
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(ExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(ExtensionsVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+</Project>

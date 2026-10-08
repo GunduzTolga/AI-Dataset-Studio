@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="AIDatasetStudio.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding Title}"
+        Width="1280" Height="800"
+        MinWidth="900" MinHeight="560"
+        WindowStartupLocation="CenterScreen">
+
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_File">
+        <MenuItem x:Name="NewWorkspaceMenuItem" Header="_New Workspace…" Command="{Binding NewWorkspaceCommand}" />
+        <MenuItem x:Name="OpenWorkspaceMenuItem" Header="_Open Workspace…" Command="{Binding OpenWorkspaceCommand}" />
+        <MenuItem Header="_Close Workspace" Command="{Binding CloseWorkspaceCommand}" />
+        <Separator />
+        <MenuItem Header="E_xit" Click="OnExitClick" />
+      </MenuItem>
+    </Menu>
+
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource StatusBarBackgroundBrush}"
+            BorderBrush="{DynamicResource PaneBorderBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="12,4">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextTrimming="CharacterEllipsis" />
+        <TextBlock Grid.Column="1" Classes="muted" FontSize="12" Margin="16,0,0,0"
+                   Text="{Binding Workspace.FilePath, FallbackValue='', TargetNullValue=''}" />
+      </Grid>
+    </Border>
+
+    <!-- Split view: explorer | records | editor (SDD §6.1) -->
+    <Grid ColumnDefinitions="260,Auto,*,Auto,380">
+
+      <!-- Left: workspace / project / dataset tree -->
+      <Border Grid.Column="0" Background="{DynamicResource PaneBackgroundBrush}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="EXPLORER" />
+          <Panel Margin="12,0,12,12">
+            <StackPanel Spacing="8" IsVisible="{Binding !HasWorkspace}">
+              <TextBlock Classes="muted" Text="No workspace is open." />
+              <Button Content="New Workspace…" Command="{Binding NewWorkspaceCommand}" HorizontalAlignment="Stretch" />
+              <Button Content="Open Workspace…" Command="{Binding OpenWorkspaceCommand}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+            <StackPanel Spacing="4" IsVisible="{Binding HasWorkspace}">
+              <TextBlock FontWeight="SemiBold" Text="{Binding Workspace.Name, FallbackValue=''}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="muted" FontSize="12" Text="Projects and datasets will appear here." />
+            </StackPanel>
+          </Panel>
+        </DockPanel>
+      </Border>
+
+      <GridSplitter Grid.Column="1" Width="1" Background="{DynamicResource PaneBorderBrush}" ResizeDirection="Columns" />
+
+      <!-- Center: virtualized record grid -->
+      <Border Grid.Column="2" Background="{DynamicResource ContentBackgroundBrush}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="RECORDS" />
+          <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                     Text="Select a dataset to see its records." />
+        </DockPanel>
+      </Border>
+
+      <GridSplitter Grid.Column="3" Width="1" Background="{DynamicResource PaneBorderBrush}" ResizeDirection="Columns" />
+
+      <!-- Right: record editor -->
+      <Border Grid.Column="4" Background="{DynamicResource PaneBackgroundBrush}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="paneHeader" Text="RECORD EDITOR" />
+          <TextBlock Classes="muted" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                     Margin="16" Text="Select a record to edit it." />
+        </DockPanel>
+      </Border>
+    </Grid>
+  </DockPanel>
+</Window>

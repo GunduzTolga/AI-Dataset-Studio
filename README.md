@@ -31,12 +31,13 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 
 ## 🛠️ Tech Stack
 
-- **Platform:** .NET 9 / C# 13
-- **UI Framework:** [Avalonia UI](https://avaloniaui.net/) 11+ (Cross-platform XAML)
-- **Architecture:** Clean Architecture + CQRS + MVVM
-- **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 9
-- **Tokenization:** `Microsoft.ML.Tokenizers` & `Tiktoken-CSharp`
-- **Editor:** AvaloniaEdit (Monaco/TextMate syntax highlighting)
+- **Platform:** .NET 10 (LTS) / C# 14
+- **UI Framework:** [Avalonia UI](https://avaloniaui.net/) 12 (Cross-platform XAML) + CommunityToolkit.Mvvm
+- **Architecture:** Clean Architecture + MVVM (plain application services, no MediatR)
+- **Storage:** SQLite (WAL Mode, FTS5 Full-Text Search, JSON1) via Entity Framework Core 10
+- **Tokenization:** `Microsoft.ML.Tokenizers` (offline `cl100k_base` / `o200k_base` vocabularies)
+- **Editor:** AvaloniaEdit (TextMate syntax highlighting)
+- **Tests:** xUnit v3 on Microsoft Testing Platform
 
 ---
 
@@ -45,16 +46,35 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 ```text
 AIDatasetStudio/
 ├── src/
-│   ├── AIDatasetStudio.Domain/          # Core entities, Enums, Value Objects (Zero dependencies)
-│   ├── AIDatasetStudio.Application/     # CQRS Handlers, Services, Interfaces, DTOs
-│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, File I/O, Tiktoken Tokenizer, Import/Export
-│   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Themes, Controls)
+│   ├── AIDatasetStudio.Domain/          # Entities, typed record payloads, lifecycle rules (zero dependencies)
+│   ├── AIDatasetStudio.Application/     # Use-case interfaces and DTOs (e.g. IWorkspaceService)
+│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .aids workspace files, migrations
+│   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Services)
 ├── tests/
 │   ├── AIDatasetStudio.Domain.Tests/
-│   ├── AIDatasetStudio.Application.Tests/
 │   └── AIDatasetStudio.Infrastructure.Tests/
-├── docs/                                # Software Design Document (SDD) & ADRs
-└── .gitignore
+├── docs/                                # Plan review & decision notes
+├── Plan.txt                             # Software Design Document (SDD)
+└── AIDatasetStudio.slnx
+```
+
+---
+
+## 🚀 Getting Started
+
+Prerequisite: [.NET 10 SDK](https://dotnet.microsoft.com/download) (pinned in `global.json`).
+
+```bash
+dotnet build AIDatasetStudio.slnx                      # build everything
+dotnet run --project src/AIDatasetStudio.Desktop       # start the desktop app
+dotnet test --solution AIDatasetStudio.slnx            # run all tests
+```
+
+Adding a database migration (after changing the EF Core model):
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --output-dir Persistence/Migrations
 ```
 
 ---
@@ -62,6 +82,7 @@ AIDatasetStudio/
 ## 📋 Documentation
 
 For detailed architectural specifications, data schemas, and the product roadmap, refer to [Plan.txt](Plan.txt).
+Review notes, open design decisions and the milestone plan are in [docs/plan-review.md](docs/plan-review.md).
 
 ---
 

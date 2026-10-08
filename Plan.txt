@@ -1,11 +1,11 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.0.0
+- **Versiyon:** 1.0.1 (teknoloji sürümleri güncellendi, bkz. `docs/plan-review.md`)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
-- **Hedef Framework:** .NET 9 / C# 13
-- **Arayüz Teknolojisi:** Avalonia UI 11+ (CommunityToolkit.Mvvm)
+- **Hedef Framework:** .NET 10 (LTS) / C# 14
+- **Arayüz Teknolojisi:** Avalonia UI 12 (CommunityToolkit.Mvvm)
 - **Veri Depolama:** SQLite (WAL Mode, FTS5 Tam Metin Arama, JSON1 Eklentisi)
 - **Mimari Desen:** Clean Architecture + CQRS + Specification Pattern + MVVM
 
@@ -266,7 +266,7 @@ Veri etiketleme ekiplerinin fareye dokunmadan günde binlerce satırı temizleye
 Fine-tuning sürecinde eğitim scriptlerinin en sık patlama sebebi olan **CUDA Out-of-Memory (OOM)** hatalarını ve context kırpılmalarını masaüstü ortamında, eğitim başlamadan önce tamamen engellemek.
 
 ### 7.2. Teknik Detaylar
-- **Kütüphane:** `Microsoft.ML.Tokenizers` ve `Tiktoken-CSharp` (tamamen çevrimdışı çalışır).
+- **Kütüphane:** `Microsoft.ML.Tokenizers` + `Microsoft.ML.Tokenizers.Data.*` sözlük paketleri (tamamen çevrimdışı çalışır).
 - **Desteklenen BPE / Kodlama Modelleri:**
   1. `cl100k_base` (OpenAI GPT-4, GPT-3.5-Turbo)
   2. `o200k_base` (OpenAI GPT-4o, GPT-4o-mini)
@@ -454,7 +454,7 @@ Uygulama genişletilebilir C# arayüzleri (interfaces) üzerine inşa edilir:
 
 ---
 
-## 18. VERİTABANI ŞEMASI (SQLITE & EF CORE 9)
+## 18. VERİTABANI ŞEMASI (SQLITE & EF CORE 10)
 
 Veritabanı tabloları ve temel ilişkileri:
 - `Workspaces`: Id, Name, Description, CreatedAt
@@ -533,7 +533,7 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 ## 23. MİMARİ KARAR KAYITLARI (ARCHITECTURE DECISION RECORDS - ADR)
 
 - **ADR-001: SQLite WAL Mode & .aids Proje Formatı:** Veriler tek ve taşınabilir bir dosya formatında tutulacak; WAL modu ile yüksek okuma/yazma performansı sağlanacak.
-- **ADR-002: Avalonia UI 11+:** .NET 9 tabanlı, tüm masaüstü işletim sistemlerinde (Win/Mac/Linux) yerel hızda çalışan modern XAML arayüzü kullanılacak.
+- **ADR-002: Avalonia UI 12:** .NET 10 tabanlı, tüm masaüstü işletim sistemlerinde (Win/Mac/Linux) yerel hızda çalışan modern XAML arayüzü kullanılacak.
 - **ADR-003: Model Bağımsız Dahili Depolama:** Veri tabanında kayıtlar modele özel değil, evrensel JSON şemasında saklanacak.
 - **ADR-004: Export Zamanı Model Dönüşümü:** Format dönüşümleri sadece export motorunda gerçekleşecek, kaynak veri asla bozulmayacak.
 - **ADR-005: Eklenti ve Arayüz Tabanlı Tasarım:** İçe/dışa aktarma ve kurallar `IExportProvider`, `IImportProvider` gibi soyutlamalarla gevşek bağlı (loosely coupled) tutulacak.
@@ -543,3 +543,8 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-009: Data Virtualization:** Büyük veri kümelerinde UI donmalarını engellemek için sadece ekranda görünen öğeler belleğe alınacak.
 - **ADR-010: Yerel Tokenizasyon Motoru:** API maliyetine katlanmadan doğrudan işlemci üzerinde Tiktoken kütüphanesiyle token ve context hesabı yapılacak.
 - **ADR-011: Deterministik Train/Val/Test Split:** Rastgelelik tohumu (seed) kullanılarak tekrarlanabilir ve bilimsel veri bölme sağlanacak.
+- **ADR-012: .NET 10 LTS Hedefi:** .NET 9 (STS) desteği Kasım 2026'da sona erdiği için uygulama .NET 10 LTS (destek: Kasım 2028) ve C# 14 hedefler.
+- **ADR-013: Ticari Lisanslı Bağımlılık Kullanılmaz:** MediatR, AutoMapper ve FluentAssertions gibi ticari lisansa geçmiş kütüphaneler yerine yalın uygulama servisleri ve xUnit `Assert` kullanılır; bağımlılıklar MIT/Apache benzeri lisanslarla sınırlıdır.
+- **ADR-014: Tipli Payload ve Kilitli JSON Biçimi:** Domain katmanı tipli payload kayıtlarıyla (`InstructionPayload`, `ChatPayload`, `PreferencePayload`) çalışır. `DataPayload` kolonundaki JSON, §4 alan adlarını ve bir `$type` ayırıcısını kullanır; biçim testlerle kilitlenmiştir ve değişikliği migration gerektirir.
+- **ADR-015: Dosya Kimliği ve Sürüm Uyumluluğu:** `.aids` dosyaları SQLite başlığında `application_id = 0x41494453` ("AIDS") taşır. Şema EF Core migration'larıyla yükseltilir; daha yeni bir sürümün yazdığı dosya açılmaz. Kapatırken WAL checkpoint yapılır ve dosya tek parça hâline döner.
+- **ADR-016: Kimlik ve Zaman Damgası Biçimi:** Kimlikler zaman sıralı GUID v7'dir; zaman damgaları sıralanabilir olmaları için UTC Unix milisaniye (INTEGER) olarak saklanır.
