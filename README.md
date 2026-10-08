@@ -50,12 +50,12 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 AIDatasetStudio/
 ├── src/
 │   ├── AIDatasetStudio.Domain/          # Entities, typed record payloads, lifecycle rules (zero dependencies)
-│   ├── AIDatasetStudio.Application/     # Use-case interfaces, DTOs and import conversion rules
+│   ├── AIDatasetStudio.Application/     # Use-case interfaces, DTOs, import conversion, quality rules and PII scanner
 │   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .adstudio workspace files, migrations, file readers
 │   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Themes, Localization)
 ├── tests/
 │   ├── AIDatasetStudio.Domain.Tests/
-│   ├── AIDatasetStudio.Application.Tests/    # Import layout detection and conversion
+│   ├── AIDatasetStudio.Application.Tests/    # Import conversion, quality rules, PII detection
 │   ├── AIDatasetStudio.Infrastructure.Tests/
 │   └── AIDatasetStudio.Desktop.Tests/   # Localization + headless UI tests
 ├── docs/                                # Plan review, design system
@@ -95,6 +95,16 @@ Reviewing records: edit fields directly in the right-hand panel; changes are sav
 | Mod+Z / Mod+Shift+Z (or Mod+Y) | Undo / redo edits, status changes and deletes, including batch actions |
 | Mod+F | Search records |
 | Delete | Delete the selected records (in the list) |
+| Mod+Shift+M | Masked preview of personal data |
+
+Tokens and quality: every record is analysed in the background with an offline tokenizer (`o200k_base` or `cl100k_base`, chosen per dataset together with its context length). With no record selected, the right-hand panel shows the **dataset overview**: quality score, token totals, a length histogram and the issues found, each with **Show** (filters the list) and, where it makes sense, **Archive** (undoable). The list shows tokens and a score per record and can be filtered by quality; the editor updates both while you type.
+
+| Severity | Rules |
+|---|---|
+| Error (−40) | Empty field or turn, chosen = rejected answer, longer than the context length |
+| Warning (−10) | Throwaway answer, answer 50× longer than the question, answer repeats the question, unclosed code block, invalid JSON, personal data, exact duplicate, same question with a different answer |
+
+Personal data: e-mail, phone, Turkish national ID, IBAN, card numbers, internal IPs and URLs, API keys, passwords and your own terms (**Tools › Custom Sensitive Terms…**) are detected locally. **Record › Masked Preview** shows the record with consistent placeholders (`[EMAIL_1]`); **Apply Masking** puts the masked text into the editor, to be saved (and undone) like any edit.
 
 Adding a database migration (after changing the EF Core model):
 
@@ -113,12 +123,12 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M1 | Project/dataset tree, record services, full-text search, paging, settings | ✅ |
 | M2 | Import (JSONL, JSON, CSV wizard) | ✅ |
 | M3 | Record editor, review shortcuts, batch actions, undo/redo | ✅ |
-| M4 | Tokens, health rules, PII masking | ⏳ |
+| M4 | Tokens, health rules, PII masking | ✅ |
 | M5 | Export + train/val/test split | ⏳ |
 | M6 | Packaging, signing, first release | ⏳ |
 | M7 | Design system, light/dark themes, welcome screen | ✅ |
 
-Until import lands, **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
+**Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
 ---
 
