@@ -13,7 +13,6 @@ using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
 using AIDatasetStudio.Infrastructure;
 using Avalonia.Threading;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AIDatasetStudio.Desktop.Tests.Support;
@@ -144,7 +143,6 @@ internal sealed class DesktopTestHost : IAsyncDisposable
         await Main.Overview.StopAsync();
         await Get<IWorkspaceService>().CloseAsync();
         await _services.DisposeAsync();
-        SqliteConnection.ClearAllPools();
         try
         {
             System.IO.Directory.Delete(Directory, recursive: true);

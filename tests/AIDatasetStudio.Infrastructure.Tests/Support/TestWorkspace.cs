@@ -6,7 +6,6 @@ using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Records;
 using AIDatasetStudio.Infrastructure.Workspaces;
-using Microsoft.Data.Sqlite;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Support;
 
@@ -91,7 +90,6 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Workspace.DisposeAsync();
-        SqliteConnection.ClearAllPools();
         try
         {
             System.IO.Directory.Delete(Directory, recursive: true);

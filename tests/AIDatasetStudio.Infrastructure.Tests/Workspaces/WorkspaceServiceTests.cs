@@ -204,7 +204,6 @@ public sealed class WorkspaceServiceTests : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _service.DisposeAsync();
-        SqliteConnection.ClearAllPools();
         try
         {
             Directory.Delete(_directory, recursive: true);
