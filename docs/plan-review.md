@@ -130,7 +130,7 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 |---|---|---|
 | **M0** | Çözüm iskeleti, CI, domain modeli, `.adstudio` oluştur/aç/kapat, üç panelli kabuk, TR/EN arayüz altyapısı | ✅ PR #1 |
 | **M1** | Kayıt CRUD servisleri, proje/veri seti ağacı, FTS5 arama (Türkçe I katlaması), keyset sayfalama, toplu ekleme, global ayarlar (kalıcı dil tercihi, son açılanlar), salt okunur kayıt detayı + inceleme aksiyonları, örnek veri üretici | ✅ PR #1 |
-| **M2** | Import: JSONL (OpenAI/ShareGPT/Alpaca otomatik tanıma), JSON dizisi, CSV sihirbazı + 20 satır önizleme | |
+| **M2** | Import: JSONL (OpenAI/ShareGPT/Alpaca/DPO otomatik tanıma), akış hâlinde JSON dizisi, CSV sihirbazı (ayraç + kodlama tespiti, Türkçe Excel desteği, sütun eşleme), 20 satır önizleme, atlanan satır raporu, iptal edilebilir tek transaction (ADR-025) | ✅ PR #1 |
 | **M3** | Sanallaştırılmış grid, tipine göre dinamik editör, inceleme kısayolları, geri al/yinele | |
 | **M4** | Token motoru (`cl100k_base`/`o200k_base`), temel sağlık kuralları, PII maskeleme önizlemesi | |
 | **M5** | Export (OpenAI JSONL, ShareGPT, Alpaca) + hash tabanlı Train/Val/Test bölmesi | |

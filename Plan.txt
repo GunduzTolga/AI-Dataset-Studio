@@ -1,7 +1,7 @@
 # AI DATASET STUDIO
 ## Kapsamlı Yazılım Mimari ve Tasarım Dokümanı (Software Design Document - SDD)
 
-- **Versiyon:** 1.3.0 (tasarım sistemi eklendi, bkz. `docs/design-system.md`)
+- **Versiyon:** 1.4.0 (içe aktarma sistemi ayrıntılandırıldı, bkz. §12.1 ve ADR-025)
 - **Durum:** Onaylanmış Kapsamlı Mimari Spesifikasyon
 - **Hedef Platform:** Desktop (Masaüstü) — Windows (x64/arm64), Linux (x64/arm64), macOS (Apple Silicon/Intel)
 - **Hedef Framework:** .NET 10 (LTS) / C# 14
@@ -375,10 +375,24 @@ Kullanıcı şu tip karmaşık sorguları arayüzdeki filtre chipleriyle kolayca
 ## 12. İÇE AKTARMA SİSTEMİ (IMPORT SYSTEM)
 
 ### 12.1. V1 (MVP) Kapsamı
-- **CSV Import Sihirbazı:** Otomatik delimiter (virgül, noktalı virgül, tab) tespiti. Kullanıcı dostu kolon eşleme ekranı (Hangi sütun `Instruction`, hangi sütun `Input`, hangi sütun `Output` olacak?).
+- **CSV Import Sihirbazı:** Otomatik delimiter (virgül, noktalı virgül, tab, dikey çizgi) tespiti. Kullanıcı dostu kolon eşleme ekranı (Hangi sütun `Instruction`, hangi sütun `Input`, hangi sütun `Output` olacak?).
 - **JSONL Import:** OpenAI messages dizilerini, ShareGPT formatını veya Alpaca anahtarlarını otomatik tanıyan akıllı JSONL okuyucu.
 - **JSON Array Import:** Standart JSON nesne dizilerinin içe aktarımı.
 - **Doğrulama ve Önizleme:** İlk 20 satırı tablo halinde göstererek eksik veya hatalı kolon eşleştirmelerinde kullanıcıyı uyarma.
+
+**Uygulama ayrıntıları (M2):**
+
+| Konu | Davranış |
+|---|---|
+| Dosya türleri | `.jsonl`, `.ndjson`, `.json`, `.csv`, `.tsv`, `.txt`. Uzantı belirsizse ilk karaktere bakılır: `[` → JSON dizisi, `{` → JSONL, diğer → CSV. |
+| Tanınan biçimler | Alpaca (`instruction/input/output`), prompt/completion, Hugging Face DPO (`prompt/chosen/rejected`; değerler metin veya mesaj listesi), OpenAI messages, ShareGPT (`conversations` + `from/value`), OpenAI tercih (`input.messages` + `preferred_output/non_preferred_output`). Karar ilk 100 satırın çoğunluğuyla verilir. |
+| Biçim ↔ veri seti türü | Sütun tabanlı biçimler (özel, Alpaca, prompt/completion, HF DPO) her türe eşlenebilir. Konuşmalar Sohbet'e olduğu gibi, Talimat'a yalnızca tek soru-cevap ve sistem talimatı yoksa aktarılır. OpenAI tercih yalnızca Tercih veri setine aktarılır. |
+| Sütun eşleme önerisi | Sütun adları normalize edilir (küçük harf, Türkçe harfler katlanır, noktalama atılır) ve İngilizce/Türkçe eş anlamlılarla eşleştirilir (ör. `Soru` → Talimat, `Cevap` → Çıktı). Her sütun en fazla bir alana önerilir. Zorunlu alan eşlenmemişse uyarılır ama engellenmez (örn. yalnızca istemler içe aktarılıp yanıtlar sonra üretilebilir). |
+| CSV | RFC 4180: tırnaklı alanlarda ayraç, satır sonu ve `""` desteklenir; bozuk tırnaklar hoşgörüyle okunur. Kodlama: BOM → UTF-8/UTF-16; BOM yoksa geçerli UTF-8 ise UTF-8, değilse **windows-1254** (Türkçe Excel'in "CSV" çıktısı). Ayraç, kodlama ve başlık satırı sihirbazda değiştirilebilir; değişince dosya yeniden okunur. Başlıksız dosyada sütunlar `#1`, `#2`… adını alır. Tamamen boş satırlar (`;;;`) sessizce atlanır. |
+| Akış | Dosyalar akış hâlinde okunur; JSON dizisi de öğe öğe ayrıştırılır, dosya belleğe alınmaz. Analiz tüm satırları sayar; önizleme ilk 20 satırı dönüştürür, hiçbir şey yazmaz. |
+| Hatalı satırlar | Dönüştürülemeyen satır atlanır ve nedeniyle raporlanır: geçersiz JSON, nesne değil, boş kayıt, konuşma yok, desteklenmeyen rol (ör. `tool`), çok turlu konuşma, sistem talimatı, uyumsuz biçim. İlk 100 hata saklanır. Bozuk bir JSON **dizisi** öğelere ayrılamadığı için dosya düzeyinde hata verir (satır numarasıyla). |
+| Yazma | Tüm kayıtlar tek transaction'da, `Draft` durumunda ve arama indeksiyle birlikte eklenir. İptal tamamen geri alır. İlerleme okunan/eklenen satır olarak raporlanır. |
+| Köken (lineage) | `RecordSourceKind.FileImport`; kaynak referansı `dosya.jsonl#line=N`, `dosya.json#item=N` veya `dosya.csv#row=N` (CSV'de satır numarası tablo programındaki satırdır; başlık 1. satırdır). |
 
 ### 12.2. V2 Kapsamı
 - **Excel (.xlsx) Import:** Çoklu çalışma sayfalarını (sheets) destekleyen içe aktarma.
@@ -625,3 +639,4 @@ MVP sürümünde kusursuz ve eksiksiz çalışacak çekirdek modüller:
 - **ADR-022: Arama İndeksi:** Tam metin araması contentless FTS5 tablosu ve kararlı INTEGER anahtar tablosuyla yapılır; metin iki kez saklanmaz. Türkçe I harfleri uygulama tarafında katlanır; indeks yazma yollarında transaction içinde, silmelerde trigger ile güncel tutulur ve açılışta onarılır.
 - **ADR-023: Kullanıcı Ayarları:** Arayüz dili ve son açılan çalışma alanları, platformun ayar klasöründeki `app.settings.db` dosyasında tutulur. Dosya kullanılamazsa uygulama çökmez; ayarlar o oturum için bellekte kalır.
 - **ADR-024: Tasarım Sistemi:** Arayüz Avalonia Fluent teması üzerine kurulu, token tabanlı bir tasarım sistemi kullanır (`Themes/Tokens.axaml`, `Themes/Controls.axaml`). Bileşenler ham renk değil semantik tokenlar kullanır; açık ve koyu tema aynı tokenlarla tanımlanır ve WCAG AA kontrastını karşılar. İkonlar Fluent UI System Icons'tır (FluentIcons.Avalonia, MIT).
+- **ADR-025: İçe Aktarma Hattı:** İçe aktarma üç aşamalıdır: *analiz* (biçim, CSV ayarları, düzen, sütunlar, satır sayısı, eşleme önerisi), *önizleme* (ilk 20 satır, yazmadan) ve *aktarım* (tek transaction). Okuyucular dosya biçiminden bağımsız `ISourceRow` üretir; dönüştürme (`ImportConverter`) saf ve dosya sisteminden bağımsızdır, bu sayede kurallar birim testleriyle doğrulanır. Satır hataları içe aktarmayı durdurmaz, dosya hataları durdurur. Kodlaması belirsiz CSV'lerde varsayılan windows-1254'tür.

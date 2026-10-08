@@ -50,11 +50,12 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 AIDatasetStudio/
 ├── src/
 │   ├── AIDatasetStudio.Domain/          # Entities, typed record payloads, lifecycle rules (zero dependencies)
-│   ├── AIDatasetStudio.Application/     # Use-case interfaces and DTOs (e.g. IWorkspaceService)
-│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .adstudio workspace files, migrations
+│   ├── AIDatasetStudio.Application/     # Use-case interfaces, DTOs and import conversion rules
+│   ├── AIDatasetStudio.Infrastructure/  # EF Core SQLite, .adstudio workspace files, migrations, file readers
 │   └── AIDatasetStudio.Desktop/         # Avalonia UI (Views, ViewModels, Themes, Localization)
 ├── tests/
 │   ├── AIDatasetStudio.Domain.Tests/
+│   ├── AIDatasetStudio.Application.Tests/    # Import layout detection and conversion
 │   ├── AIDatasetStudio.Infrastructure.Tests/
 │   └── AIDatasetStudio.Desktop.Tests/   # Localization + headless UI tests
 ├── docs/                                # Plan review, design system
@@ -76,6 +77,13 @@ dotnet test --solution AIDatasetStudio.slnx            # run all tests
 
 Adding or changing UI text: put every user-visible string in `src/AIDatasetStudio.Desktop/Localization/Strings.resx` (English) **and** `Strings.tr.resx` (Turkish), then use `{l:Tr Key}` in XAML or `Localizer` in code. Tests fail if a translation or key is missing.
 
+Importing data: select a dataset, then **File › Import from File…** (or the Import button above the record list). The wizard detects the format and layout, lets you adjust CSV settings and column mapping against a live preview, and reports every skipped row:
+
+| Source | Recognized layouts | Target dataset types |
+|---|---|---|
+| JSON Lines (`.jsonl`, `.ndjson`) and JSON arrays (`.json`) | OpenAI messages, ShareGPT, Alpaca, prompt/completion, Hugging Face DPO, OpenAI preference, any flat object | Instruction, Chat, Preference |
+| CSV / TSV (`.csv`, `.tsv`, `.txt`) | Any columns, mapped by name (English and Turkish names are suggested automatically); UTF-8, UTF-16 and Turkish Windows-1254 files from Excel | Instruction, Chat, Preference |
+
 Adding a database migration (after changing the EF Core model):
 
 ```bash
@@ -91,7 +99,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 |---|---|---|
 | M0 | Solution skeleton, `.adstudio` files, bilingual shell | ✅ |
 | M1 | Project/dataset tree, record services, full-text search, paging, settings | ✅ |
-| M2 | Import (JSONL, JSON, CSV wizard) | ⏳ |
+| M2 | Import (JSONL, JSON, CSV wizard) | ✅ |
 | M3 | Record editor, review shortcuts, undo/redo | ⏳ |
 | M4 | Tokens, health rules, PII masking | ⏳ |
 | M5 | Export + train/val/test split | ⏳ |

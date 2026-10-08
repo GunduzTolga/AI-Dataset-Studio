@@ -41,7 +41,9 @@ Temel: Avalonia'nın **Fluent** teması (`DensityStyle="Compact"`, indigo vurgu 
 | `AccentBrush` (+Hover/Pressed) | `#4F46E5` | `#5B54E8` | Birincil düğme, seçim çubuğu, odak kenarı |
 | `AccentSubtleBrush` | `#EEF0FF` | `#25264A` | Seçili satır/düğüm/çip zemini, kullanıcı balonu |
 | `AccentTextBrush` | `#4338CA` | `#A5B4FC` | Seçili öğe metni |
-| `DangerBrush` / `DangerTextBrush` | `#DC2626` / `#B91C1C` | `#DC2626` / `#FCA5A5` | Silme |
+| `DangerBrush` / `DangerTextBrush` | `#DC2626` / `#B91C1C` | `#DC2626` / `#FCA5A5` | Silme, hata mesajları |
+| `DangerSubtleBrush` | `#FEE2E2` | `#3F1720` | Hata bildirimi zemini |
+| `WarningSubtleBrush` / `WarningTextBrush` | `#FEF3C7` / `#92400E` | `#3A2C0F` / `#FCD34D` | Uyarı bildirimi (ör. eşlenmemiş zorunlu alan) |
 | `PositiveBrush` / `NegativeBrush` | `#059669` / `#E11D48` | `#34D399` / `#FB7185` | Tercih edilen / reddedilen yanıt |
 | `BrandGradientBrush` | `#6366F1 → #9333EA` | aynı | Uygulama simgesi |
 
@@ -102,6 +104,9 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | Ara | `Search` |
 | Aç / Son açılanlar / Kapat | `FolderOpen` / `History` / `Dismiss` |
 | Tema / Dil | `DarkTheme` / `LocalLanguage` |
+| İçe aktar / Kaynak dosya | `ArrowImport` / `DocumentTable` |
+| Geçerli / Atlanacak satır | `CheckmarkCircle` (olumlu renk) / `ErrorCircle` (hata rengi) |
+| Bilgi / Uyarı / Hata bildirimi | `Info` (konuşma biçiminde `Chat`) / `Warning` / `ErrorCircle`, `DismissCircle` |
 | Gizlilik | `ShieldLock` |
 
 Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Symbol` yalnızca tekil kullanımlar içindir.
@@ -145,7 +150,17 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 - `Border.bubble.user` (sağa yaslı, vurgu zemin) ve `Border.bubble.assistant` (sola yaslı, kenarlı): sohbet turları. En fazla 440 px genişlik.
 
 ### Boş durumlar
-`StackPanel.empty`: dairesel ikon (`Border.empty-icon`), başlık (`.subtitle`), açıklama (`.muted`) ve varsa tek bir `accent` aksiyon. Her boş ekran ne olduğunu ve bir sonraki adımı söyler.
+`StackPanel.empty`: dairesel ikon (`Border.empty-icon`), başlık (`.subtitle`), açıklama (`.muted`) ve varsa bir `accent` aksiyon (yanında en fazla bir `subtle` alternatif; ör. "Dosyadan içe aktar" + "Örnek kayıt üret"). Her boş ekran ne olduğunu ve bir sonraki adımı söyler.
+
+### Bildirimler (callout)
+`Border.callout`: ikon + metin, `RadiusMedium`, `12,10` iç boşluk. Varsayılan bilgi (vurgu zemin); `.warning` (amber) devam etmeyi engellemeyen sorunlar, `.danger` (kırmızı) devam edilemeyen durumlar için. İçinde `DockPanel`: solda `SymbolIcon`, kalan alanda kaydırmalı `TextBlock`.
+
+### Form alanları
+Etiket `TextBlock.label` (küçük, yarı kalın, ikincil renk) kontrolün üstünde durur; zorunlu alanın yanında hata renginde `*` ve "Zorunlu" ipucu bulunur. Açılır listeler genişliği doldurur.
+
+### İlerleme ve listeler
+- `ProgressBar`: vurgu rengi, hap biçimi, 6 px. Belirsiz süreler için `IsIndeterminate`.
+- `ItemsControl.lines`: seçimsiz, alt çizgiyle ayrılmış satırlar (önizleme, atlanan satırlar). Satır: numara (tablo rakamları) · durum ikonu · birincil metin + soluk ikincil metin, tek satırda kırpılır.
 
 ---
 
@@ -156,5 +171,6 @@ Yeni bir kavram ikonu `IconConverters` içine eklenir; görünümlerde sabit `Sy
 | Karşılama (çalışma alanı yok) | Marka simgesi, başlık, slogan; "Yeni çalışma alanı" ve "Çalışma alanı aç" kutucukları; son açılanlar; gizlilik notu |
 | Çalışma alanı | Sol: çalışma alanı başlığı + "PROJELER" + ağaç · Orta: veri seti başlığı, arama, durum çipleri, kolon başlıkları, kayıt listesi · Sağ: kayıt başlığı + durum, aksiyonlar, içerik kartları/balonları, "BİLGİLER" |
 | Diyaloglar | 460 px; başlık, açıklama, giriş, sağa yaslı İptal (`subtle`) + onay (`accent` veya `danger`) |
+| İçe aktarma sihirbazı | 1040×700, yeniden boyutlandırılabilir. Üst: ikon kutusu, başlık, hedef veri seti · Sol (340 px, uygulama zemini): KAYNAK kartı (dosya, satır sayısı, biçim ve düzen etiketleri), bildirimler, CSV AYARLARI, SÜTUN EŞLEME · Sağ: ÖNİZLEME (ilk 20 satır) · Alt çubuk: adıma göre özet + İptal + "N satırı içe aktar" (`accent`), aktarımda ilerleme çubuğu + İptal, bitince sonuç ekranı ve Kapat |
 
 **Tercihler:** Görünüm › Tema (Sistem / Açık / Koyu) ve Görünüm › Dil (English / Türkçe). İkisi de `app.settings.db` dosyasında saklanır ve yeniden başlatmadan uygulanır.
