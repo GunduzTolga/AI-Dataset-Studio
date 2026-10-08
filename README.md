@@ -30,6 +30,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - ✨ **Write with a local model:** Connect Ollama, LM Studio, vLLM or LocalAI (Tools › AI Connections) and let the model write an answer, a chat reply, or the chosen and a worse rejected answer of a DPO pair (Mod+G). You review the text before saving, and the model is recorded in the record's lineage. Nothing leaves your network unless you allow a remote server.
 - 📄 **Questions from documents:** File › Extract Q&A from Document reads a PDF, Word, Markdown or text document, splits it into passages along its headings, and has the model write the questions each passage answers. Review and edit them next to the passage, then add them as draft records that remember their source passage (Edit › Undo takes them back).
 - 🌿 **Variations:** Record › Generate Variations (Mod+Shift+G) has the model ask a record's question in other words — casual and with typos if you like, with the answer reworded too if you choose. Review the variants, then add them as draft records of the record's family: a family stays in one split part and is not flagged as near duplicates of itself.
+- ⚖️ **AI judge:** Record › Judge with AI (Mod+J) has the model rate a record from 1 to 5 with a reason — checking an answer written from a document against its passage and the order of a preference pair — and compare it with records that ask the same thing to find contradicting answers. Scores show in the list, filters list the low ones, and the overview shows how they spread.
 - 🔄 **Universal Import & Export:**
   - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF and Word.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
@@ -177,8 +178,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M12 | Local model connections (Ollama, LM Studio, vLLM, LocalAI) and writing records with AI | ✅ |
 | M13 | PDF and Word import; question–answer extraction from documents with a model, reviewed before adding | ✅ |
 | M14 | Synthetic variations of records, reviewed before adding; a record and its variations stay in one split part | ✅ |
-| M15 | LLM-as-a-judge scores with reasons | Next |
-| M16 | Questions alike in meaning (local embeddings) | Planned |
+| M15 | LLM-as-a-judge scores with reasons, grounding and preference checks, and contradicting answers | ✅ |
+| M16 | Questions alike in meaning (local embeddings) | Next |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

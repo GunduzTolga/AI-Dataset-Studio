@@ -5,6 +5,26 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### AI judge
+- **Record › Judge with AI** (Mod+J, also in the editor's new AI JUDGMENT section) has the model
+  rate the shown record from 1 to 5 as a training example, with a short reason in the app's
+  language. A chat's replies, the chosen answer of a preference pair (and whether the rejected one
+  is better) and an answer written from a document (against its passage) are judged as such. The
+  dataset's instructions count, and judgments are asked at temperature 0 so they stay the same.
+- Each answer is also compared with up to three records that ask the same or a nearly same
+  question, or are its variations, to find answers that contradict each other: "Contradicts #5:
+  one says 14 days, the other 30".
+- Several selected records, or all records not judged yet (from the dataset overview), are judged
+  in a window with a score per record, stop and judge again. Judgments are saved as they come.
+- Scores show on list rows; the quality filter lists low scores, records not judged, claims not
+  in the source passage, doubtful preference pairs and contradicting answers. The overview shows
+  the average score, how scores spread and what the judgments found.
+- A judgment is kept with the content it judged: after an edit it is shown as out of date and no
+  longer counts.
+
+### Fixed
+- Mod+G now stops writing with AI, as the menu says; the shortcut was disabled while the model wrote.
+
 ### Variations
 - **Record › Generate Variations** (Mod+Shift+G, also in the editor's header and in the panel for
   several selected records) has the model ask each record's question in other words: 1–10
