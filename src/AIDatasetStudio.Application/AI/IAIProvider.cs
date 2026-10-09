@@ -50,9 +50,19 @@ public interface IAIConnectionStore
     event EventHandler? Changed;
 
     /// <summary>
-    /// Adds the connection or replaces the one with the same id. The first one becomes the default.
+    /// Where API keys are kept: the operating system's key store, or
+    /// <see cref="Settings.SecretStoreKind.None"/> when there is none and keys are kept in the
+    /// settings file, unencrypted (ADR-041).
     /// </summary>
-    void Save(AIConnection connection);
+    Settings.SecretStoreKind KeyStore { get; }
+
+    /// <summary>
+    /// Adds the connection or replaces the one with the same id. The first one becomes the default.
+    /// An <see cref="AIConnection.ApiKey"/> goes to the key store, and the saved connection has
+    /// <see cref="AIConnection.HasStoredKey"/> instead; without either, a stored key is deleted.
+    /// </summary>
+    /// <returns>The connection as saved.</returns>
+    AIConnection Save(AIConnection connection);
 
     void Remove(Guid connectionId);
 

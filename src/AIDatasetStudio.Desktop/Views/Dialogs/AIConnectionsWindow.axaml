@@ -65,7 +65,10 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:AIConnectionItemViewModel">
                   <Grid ColumnDefinitions="Auto,*" Margin="2,4">
-                    <ic:SymbolIcon Symbol="Server" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                    <Panel VerticalAlignment="Top" Margin="0,1,0,0">
+                      <ic:SymbolIcon Symbol="Server" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding !IsCloud}" />
+                      <ic:SymbolIcon Symbol="Cloud" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsCloud}" />
+                    </Panel>
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="1">
                       <TextBlock Classes="strong" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
                       <StackPanel Orientation="Horizontal" Spacing="6">
@@ -116,13 +119,14 @@
               <TextBlock Classes="label" Text="{l:Tr AI_Address}" />
               <TextBox x:Name="AddressBox" FontFamily="{StaticResource MonoFontFamily}" Text="{Binding BaseUrl}" PlaceholderText="http://localhost:11434/v1" />
               <TextBlock Classes="small error" Text="{l:Tr AI_AddressInvalid}" Margin="0,4,0,0" IsVisible="{Binding IsUrlInvalid}" />
+              <TextBlock Classes="small muted" Text="{l:Tr AI_AzureAddressHint}" TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding IsAzure}" />
             </StackPanel>
 
             <Border Classes="callout warning" IsVisible="{Binding IsRemote}">
               <StackPanel Spacing="8">
                 <DockPanel>
                   <ic:SymbolIcon Symbol="Globe" />
-                  <TextBlock Text="{l:Tr AI_RemoteWarning}" />
+                  <TextBlock x:Name="RemoteWarningText" Text="{Binding RemoteWarning}" />
                 </DockPanel>
                 <CheckBox x:Name="ConsentBox" IsChecked="{Binding AllowRemote}" Content="{l:Tr AI_AllowRemote}" Margin="26,0,0,0" />
               </StackPanel>
@@ -140,11 +144,11 @@
               </Grid>
             </StackPanel>
 
-            <StackPanel>
+            <StackPanel IsVisible="{Binding OffersEmbeddings}">
               <TextBlock Classes="label" Text="{l:Tr AI_EmbeddingModel}" />
               <ComboBox x:Name="EmbeddingModelBox" IsEditable="True" HorizontalAlignment="Stretch" ItemsSource="{Binding Models}"
                         Text="{Binding EmbeddingModel, Mode=TwoWay}" PlaceholderText="{l:Tr AI_EmbeddingModelWatermark}" />
-              <TextBlock Classes="small muted" Text="{l:Tr AI_EmbeddingModelHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+              <TextBlock Classes="small muted" Text="{Binding EmbeddingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
             </StackPanel>
 
             <Grid ColumnDefinitions="*,12,*">
@@ -161,7 +165,15 @@
 
             <StackPanel>
               <TextBlock Classes="label" Text="{l:Tr AI_ApiKey}" />
-              <TextBox Text="{Binding ApiKey}" PasswordChar="•" PlaceholderText="{l:Tr AI_ApiKeyWatermark}" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox x:Name="ApiKeyBox" Text="{Binding ApiKey}" PasswordChar="•" PlaceholderText="{Binding KeyPlaceholder}" />
+                <Button Grid.Column="1" Classes="subtle icon" Margin="6,0,0,0" ToolTip.Tip="{l:Tr AI_RemoveKey}"
+                        Command="{Binding RemoveKeyCommand}" IsVisible="{Binding HasStoredKey}">
+                  <ic:SymbolIcon Symbol="KeyReset" />
+                </Button>
+              </Grid>
+              <TextBlock x:Name="KeyNoteText" Classes="small muted" Classes.warning="{Binding IsKeyStoreMissing}" Text="{Binding KeyNote}"
+                         TextWrapping="Wrap" Margin="0,6,0,0" />
             </StackPanel>
 
             <!-- Actions and the outcome of the last one -->

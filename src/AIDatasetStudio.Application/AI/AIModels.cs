@@ -5,8 +5,8 @@ using AIDatasetStudio.Domain.Enums;
 namespace AIDatasetStudio.Application.AI;
 
 /// <summary>
-/// The model servers the app can talk to (SDD §17.1). All of them serve the OpenAI chat
-/// completions API; they differ in their default address.
+/// The model servers the app can talk to (SDD §17.1). All but Anthropic serve the OpenAI chat
+/// completions API; they differ in their default address and how the API key is sent.
 /// </summary>
 /// <remarks>
 /// Values are persisted by name in the user settings; never rename existing members.
@@ -20,6 +20,19 @@ public enum AIProviderKind
 
     /// <summary>Any other server with an OpenAI-compatible API.</summary>
     OpenAICompatible,
+
+    /// <summary>OpenAI's cloud API (M19).</summary>
+    OpenAI,
+
+    /// <summary>Anthropic's Messages API; the only one that is not OpenAI-compatible.</summary>
+    Anthropic,
+
+    /// <summary>A resource of Azure OpenAI, through its OpenAI-compatible v1 API; the key goes in an <c>api-key</c> header.</summary>
+    AzureOpenAI,
+
+    OpenRouter,
+    Groq,
+    DeepSeek,
 }
 
 /// <summary>
@@ -33,6 +46,8 @@ public enum AIProviderKind
 /// computer and its local network (SDD §2, zero cloud dependency).</param>
 /// <param name="EmbeddingModel">The model that turns questions into vectors to find questions
 /// alike in meaning (SDD §8.2, e.g. "bge-m3"); <c>null</c> when none is chosen.</param>
+/// <param name="HasStoredKey">The API key is kept in the operating system's key store (M19)
+/// rather than in <paramref name="ApiKey"/>, which is then <c>null</c>.</param>
 public sealed record AIConnection(
     Guid Id,
     string Name,
@@ -43,7 +58,8 @@ public sealed record AIConnection(
     double Temperature = AIConnection.DefaultTemperature,
     int? MaxTokens = AIConnection.DefaultMaxTokens,
     bool AllowRemote = false,
-    string? EmbeddingModel = null)
+    string? EmbeddingModel = null,
+    bool HasStoredKey = false)
 {
     public const double DefaultTemperature = 0.7;
     public const int DefaultMaxTokens = 2_048;
@@ -72,8 +88,52 @@ public static class AIProviders
         AIProviderKind.LMStudio => "http://localhost:1234/v1",
         AIProviderKind.Vllm => "http://localhost:8000/v1",
         AIProviderKind.LocalAI => "http://localhost:8080/v1",
+        AIProviderKind.OpenAI => "https://api.openai.com/v1",
+        AIProviderKind.Anthropic => "https://api.anthropic.com/v1",
+
+        // Not an address yet: the user puts in the name of their resource.
+        AIProviderKind.AzureOpenAI => "https://<resource>.openai.azure.com/openai/v1",
+        AIProviderKind.OpenRouter => "https://openrouter.ai/api/v1",
+        AIProviderKind.Groq => "https://api.groq.com/openai/v1",
+        AIProviderKind.DeepSeek => "https://api.deepseek.com/v1",
         _ => "http://localhost:8080/v1",
     };
+
+    /// <summary>
+    /// A model service run by a company on the internet, rather than a server the user runs.
+    /// Records sent to it are subject to the company's terms; it always needs an API key.
+    /// </summary>
+    public static bool IsCloud(AIProviderKind kind) =>
+        kind is AIProviderKind.OpenAI or AIProviderKind.Anthropic or AIProviderKind.AzureOpenAI
+            or AIProviderKind.OpenRouter or AIProviderKind.Groq or AIProviderKind.DeepSeek;
+
+    /// <summary>
+    /// The environment variable the service's own tools read the API key from, used when the
+    /// connection has no key of its own (e.g. <c>OPENAI_API_KEY</c>); <c>null</c> for servers
+    /// people run themselves.
+    /// </summary>
+    public static string? KeyVariable(AIProviderKind kind) => kind switch
+    {
+        AIProviderKind.OpenAI => "OPENAI_API_KEY",
+        AIProviderKind.Anthropic => "ANTHROPIC_API_KEY",
+        AIProviderKind.AzureOpenAI => "AZURE_OPENAI_API_KEY",
+        AIProviderKind.OpenRouter => "OPENROUTER_API_KEY",
+        AIProviderKind.Groq => "GROQ_API_KEY",
+        AIProviderKind.DeepSeek => "DEEPSEEK_API_KEY",
+        _ => null,
+    };
+
+    /// <summary>
+    /// Whether the service can turn texts into vectors (SDD §8.2). Anthropic, Groq and DeepSeek
+    /// offer no embeddings API.
+    /// </summary>
+    public static bool OffersEmbeddings(AIProviderKind kind) =>
+        kind is not (AIProviderKind.Anthropic or AIProviderKind.Groq or AIProviderKind.DeepSeek);
+
+    /// <summary>
+    /// The name of a connection's API key in the operating system's key store.
+    /// </summary>
+    public static string SecretName(Guid connectionId) => $"ai-connection/{connectionId:D}";
 
     /// <summary>
     /// An absolute http(s) address without a trailing slash, or <c>null</c> if it is not one.

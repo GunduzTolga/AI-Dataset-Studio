@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using AIDatasetStudio.Application.AI;
+using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -32,6 +33,7 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
         BaseUrl = connection.BaseUrl;
         Model = connection.Model;
         ApiKey = connection.ApiKey;
+        HasStoredKey = connection.HasStoredKey;
         Temperature = (decimal)connection.Temperature;
         MaxTokens = connection.MaxTokens;
         AllowRemote = connection.AllowRemote;
@@ -42,6 +44,7 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
     public Guid Id { get; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCloud), nameof(OffersEmbeddings), nameof(EmbeddingHint), nameof(IsAzure), nameof(RemoteWarning), nameof(KeyPlaceholder), nameof(KeyNote))]
     public partial ProviderOption SelectedProvider { get; set; }
 
     [ObservableProperty]
@@ -56,8 +59,19 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(Title))]
     public partial string Model { get; set; }
 
+    /// <summary>
+    /// A key typed in this window. A saved key is not shown again: it stays in the key store.
+    /// </summary>
     [ObservableProperty]
     public partial string? ApiKey { get; set; }
+
+    /// <summary>
+    /// The connection's key is in the operating system's key store (M19).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KeyPlaceholder))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveKeyCommand))]
+    public partial bool HasStoredKey { get; private set; }
 
     /// <summary>
     /// The model that turns questions into vectors (SDD §8.2); empty when none is chosen.
@@ -103,6 +117,63 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
 
     public bool NeedsConsent => IsRemote && !AllowRemote;
 
+    /// <summary>
+    /// A model service run by a company (OpenAI, Anthropic…) rather than a server of the user's.
+    /// </summary>
+    public bool IsCloud => AIProviders.IsCloud(SelectedProvider.Kind);
+
+    public bool IsAzure => SelectedProvider.Kind == AIProviderKind.AzureOpenAI;
+
+    /// <summary>
+    /// Anthropic, Groq and DeepSeek cannot turn texts into vectors; the field is hidden for them.
+    /// </summary>
+    public bool OffersEmbeddings => AIProviders.OffersEmbeddings(SelectedProvider.Kind);
+
+    /// <summary>
+    /// A cloud service has its models ready; a server of the user's needs one downloaded first.
+    /// </summary>
+    public string EmbeddingHint => _owner.Localizer[IsCloud ? "AI_EmbeddingModelHintCloud" : "AI_EmbeddingModelHint"];
+
+    /// <summary>
+    /// What leaving the computer means: for a cloud service, its company's terms apply.
+    /// </summary>
+    public string RemoteWarning => IsCloud
+        ? _owner.Localizer.Format("AI_CloudWarning", SelectedProvider.Label)
+        : _owner.Localizer["AI_RemoteWarning"];
+
+    public string KeyPlaceholder => HasStoredKey
+        ? _owner.Localizer.Format("AI_ApiKeyStored", _owner.KeyStoreName)
+        : _owner.Localizer[IsCloud ? "AI_ApiKeyRequired" : "AI_ApiKeyWatermark"];
+
+    /// <summary>
+    /// Where a typed key is kept, and for a cloud service the environment variable read otherwise.
+    /// </summary>
+    public string KeyNote
+    {
+        get
+        {
+            var note = _owner.KeyStoreName is { } store
+                ? _owner.Localizer.Format("AI_ApiKeyKeptIn", store)
+                : _owner.Localizer["AI_ApiKeyNoKeyStore"];
+            return AIProviders.KeyVariable(SelectedProvider.Kind) is { } variable
+                ? note + " " + _owner.Localizer.Format("AI_ApiKeyVariable", variable)
+                : note;
+        }
+    }
+
+    public bool IsKeyStoreMissing => _owner.KeyStoreName is null;
+
+    /// <summary>
+    /// Deletes the stored key; the connection then uses the environment variable, or none.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasStoredKey))]
+    private void RemoveKey()
+    {
+        HasStoredKey = false;
+        ApiKey = null;
+        Save();
+    }
+
     public AIConnection ToConnection() => new(
         Id,
         string.IsNullOrWhiteSpace(Name) ? SelectedProvider.Label : Name.Trim(),
@@ -113,7 +184,13 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
         (double)Math.Clamp(Temperature ?? (decimal)AIConnection.DefaultTemperature, 0m, 2m),
         MaxTokens is > 0 ? (int)Math.Min(MaxTokens.Value, int.MaxValue) : null,
         AllowRemote && IsRemote,
-        string.IsNullOrWhiteSpace(EmbeddingModel) ? null : EmbeddingModel.Trim());
+        OffersEmbeddings && !string.IsNullOrWhiteSpace(EmbeddingModel) ? EmbeddingModel.Trim() : null,
+        HasStoredKey);
+
+    /// <summary>
+    /// Takes in how the connection was saved: a typed key now lives in the key store.
+    /// </summary>
+    internal void Saved(AIConnection saved) => HasStoredKey = saved.HasStoredKey;
 
     partial void OnSelectedProviderChanged(ProviderOption oldValue, ProviderOption newValue)
     {
@@ -167,7 +244,7 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
     {
         if (_ready)
         {
-            _owner.Save(this);
+            Saved(_owner.Save(this));
         }
     }
 }
@@ -183,6 +260,7 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
     private readonly IAIConnectionStore _store;
     private readonly IAIProviderFactory _providers;
     private readonly Localizer _localizer;
+    private readonly Lazy<string?> _keyStoreName;
     private CancellationTokenSource? _work;
 
     public AIConnectionsViewModel(IAIConnectionStore store, IAIProviderFactory providers, Localizer localizer)
@@ -190,6 +268,11 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
         _store = store;
         _providers = providers;
         _localizer = localizer;
+        _keyStoreName = new Lazy<string?>(() => store.KeyStore switch
+        {
+            SecretStoreKind.None => null,
+            var kind => localizer[$"KeyStore_{kind}"],
+        });
         ProviderOptions = [.. Enum.GetValues<AIProviderKind>().Select(kind => new ProviderOption(kind, AIText.Provider(localizer, kind)))];
         var defaultId = store.DefaultConnection?.Id;
         foreach (var connection in store.Connections)
@@ -207,6 +290,13 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
     public event EventHandler? CloseRequested;
 
     public IReadOnlyList<ProviderOption> ProviderOptions { get; }
+
+    internal Localizer Localizer => _localizer;
+
+    /// <summary>
+    /// "Windows Credential Manager", or <c>null</c> when keys are kept in the settings file.
+    /// </summary>
+    internal string? KeyStoreName => _keyStoreName.Value;
 
     public ObservableCollection<AIConnectionItemViewModel> Connections { get; } = [];
 
@@ -254,7 +344,9 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
         Connections.Add(item);
         MarkDefault();
         SelectedConnection = item;
-        return RefreshModelsAsync();
+
+        // A cloud service is asked only once the user allowed it and gave a key.
+        return item.IsRemote || item.IsUrlInvalid ? Task.CompletedTask : RefreshModelsAsync();
     }
 
     private bool HasSelectedConnection() => SelectedConnection is not null;
@@ -343,10 +435,11 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
         CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
-    internal void Save(AIConnectionItemViewModel item)
+    internal AIConnection Save(AIConnectionItemViewModel item)
     {
-        _store.Save(item.ToConnection());
+        var saved = _store.Save(item.ToConnection());
         Result = null;
+        return saved;
     }
 
     private static string Shorten(string text)

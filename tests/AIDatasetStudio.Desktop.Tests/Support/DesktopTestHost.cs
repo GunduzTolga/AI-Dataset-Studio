@@ -42,6 +42,9 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             .AddSingleton<IUpdateService>(Updates)
             .AddSingleton<IShellService>(Shell)
             .AddSingleton<IAIProviderFactory>(AI)
+
+            // Never the developer's own keychain.
+            .AddSingleton<ISecretStore>(Secrets)
             .BuildServiceProvider();
     }
 
@@ -56,6 +59,8 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeShell Shell { get; } = new();
 
     public FakeAIProviders AI { get; } = new();
+
+    public FakeSecretStore Secrets { get; } = new();
 
     /// <summary>
     /// Sets up a local Ollama connection with the model "qwen2.5:7b" as the default.

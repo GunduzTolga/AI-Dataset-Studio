@@ -34,6 +34,12 @@ public enum AIErrorKind
 
     /// <summary>The server does not have the embedding model, or it cannot make vectors.</summary>
     EmbeddingModelNotFound,
+
+    /// <summary>A cloud service needs an API key and none is set, stored or in its environment variable.</summary>
+    NoApiKey,
+
+    /// <summary>The connection's key is in the key store, but the key store cannot be read (e.g. locked or gone).</summary>
+    ApiKeyUnreadable,
 }
 
 /// <summary>

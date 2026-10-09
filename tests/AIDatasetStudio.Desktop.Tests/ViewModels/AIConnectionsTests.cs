@@ -112,6 +112,70 @@ public sealed class AIConnectionsTests
     });
 
     [Fact]
+    public Task A_cloud_service_names_its_terms_and_keeps_its_key_in_the_key_store() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var store = host.Get<IAIConnectionStore>();
+        var connections = host.Get<Services.AIAssistant>().CreateConnections();
+
+        await connections.AddCommand.ExecuteAsync(connections.ProviderOptions.Single(o => o.Kind == AIProviderKind.OpenAI));
+
+        // Nothing is asked of the service before the user allows it and gives a key.
+        var item = connections.SelectedConnection!;
+        Assert.Empty(host.AI.Requests);
+        Assert.Null(connections.Result);
+        Assert.Equal(("OpenAI", "https://api.openai.com/v1", true, true), (item.Name, item.BaseUrl, item.IsCloud, item.NeedsConsent));
+        Assert.Equal("Records you write with this connection are sent over the internet to OpenAI, and OpenAI's terms of use and privacy policy apply to them.", item.RemoteWarning);
+        Assert.Equal("Required for this service", item.KeyPlaceholder);
+        Assert.Equal("Keys are kept in Windows Credential Manager, never in the app's files. Left empty, the OPENAI_API_KEY environment variable is used.", item.KeyNote);
+        Assert.EndsWith("e.g. text-embedding-3-small.", item.EmbeddingHint, StringComparison.Ordinal);
+
+        item.AllowRemote = true;
+        host.AI.Failure = new AIException(AIErrorKind.NoApiKey, "no key");
+        await connections.TestCommand.ExecuteAsync(null);
+        Assert.Equal("OpenAI needs an API key. Type it in AI Connections, or set the OPENAI_API_KEY environment variable.", connections.Result);
+        host.AI.Failure = null;
+
+        item.ApiKey = "sk-test-123";
+        Assert.Equal("sk-test-123", host.Secrets.Items[AIProviders.SecretName(item.Id)]);
+        Assert.Equal((null, true), (store.DefaultConnection!.ApiKey, store.DefaultConnection.HasStoredKey));
+        Assert.True(item.HasStoredKey);
+
+        // Opened again, the key is not shown; it can be replaced or deleted.
+        var reopened = host.Get<Services.AIAssistant>().CreateConnections().SelectedConnection!;
+        Assert.Null(reopened.ApiKey);
+        Assert.Equal("Saved in Windows Credential Manager; type to replace it", reopened.KeyPlaceholder);
+        reopened.RemoveKeyCommand.Execute(null);
+        Assert.Empty(host.Secrets.Items);
+        Assert.False(store.DefaultConnection!.HasStoredKey);
+        Assert.False(reopened.RemoveKeyCommand.CanExecute(null));
+
+        // Anthropic makes no vectors: its embedding model is not kept.
+        reopened.EmbeddingModel = "text-embedding-3-small";
+        reopened.SelectedProvider = connections.ProviderOptions.Single(o => o.Kind == AIProviderKind.Anthropic);
+        Assert.Equal(("Anthropic", "https://api.anthropic.com/v1", false), (reopened.Name, reopened.BaseUrl, reopened.OffersEmbeddings));
+        Assert.Null(store.DefaultConnection!.EmbeddingModel);
+        Assert.Equal("Left empty, the ANTHROPIC_API_KEY environment variable is used.", reopened.KeyNote[(reopened.KeyNote.IndexOf("Left", StringComparison.Ordinal))..]);
+    });
+
+    [Fact]
+    public Task Without_a_key_store_the_key_is_kept_in_the_settings_file_and_the_window_says_so() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        host.Secrets.IsAvailable = false;
+        var connections = host.Get<Services.AIAssistant>().CreateConnections();
+        await connections.AddCommand.ExecuteAsync(connections.ProviderOptions.Single(o => o.Kind == AIProviderKind.Groq));
+        var item = connections.SelectedConnection!;
+
+        item.ApiKey = "gsk-test";
+
+        Assert.True(item.IsKeyStoreMissing);
+        Assert.StartsWith("This computer has no key store the app can use: keys are kept unencrypted in the settings file", item.KeyNote, StringComparison.Ordinal);
+        Assert.Equal(("gsk-test", false), (host.Get<IAIConnectionStore>().DefaultConnection!.ApiKey, item.HasStoredKey));
+        Assert.Empty(host.Secrets.Items);
+    });
+
+    [Fact]
     public Task Connections_can_be_made_default_and_deleted() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();

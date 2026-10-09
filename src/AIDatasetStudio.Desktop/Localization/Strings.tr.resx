@@ -774,6 +774,12 @@
   <data name="AIError_Rejected" xml:space="preserve">
     <value>Sunucu isteği reddetti: {0}</value>
   </data>
+  <data name="AIError_NoApiKey" xml:space="preserve">
+    <value>{0} bir API anahtarı istiyor. Anahtarı Yapay Zekâ Bağlantıları'nda girin ya da {1} ortam değişkenini ayarlayın.</value>
+  </data>
+  <data name="AIError_ApiKeyUnreadable" xml:space="preserve">
+    <value>API anahtarı anahtar deposundan okunamadı; depo kilitli olabilir. Kilidini açın ya da anahtarı Yapay Zekâ Bağlantıları'nda yeniden girin.</value>
+  </data>
   <data name="AIError_ServerError" xml:space="preserve">
     <value>Sunucu yanıt verirken hata verdi.</value>
   </data>
@@ -1774,7 +1780,7 @@
     <value>Yapay zekâ bağlantıları</value>
   </data>
   <data name="AI_Subtitle" xml:space="preserve">
-    <value>Bu bilgisayardaki ya da ağdaki, yanıt yazmaya yardım eden model sunucuları. Kayıtlar yalnızca onunla yazdığınız sunucuya gönderilir.</value>
+    <value>Bu bilgisayardaki ya da ağdaki model sunucuları ve yanıt yazmaya yardım eden bulut hizmetleri. Kayıtlar yalnızca onunla yazdığınız yere gönderilir.</value>
   </data>
   <data name="AI_SavedHint" xml:space="preserve">
     <value>Değişiklikler hemen kaydedilir. Bağlantılar bu bilgisayarda kalır, çalışma alanı dosyalarına girmez.</value>
@@ -1789,10 +1795,10 @@
     <value>Henüz bağlantı yok.</value>
   </data>
   <data name="AI_EmptyTitle" xml:space="preserve">
-    <value>Yerel bir model bağlayın</value>
+    <value>Bir model bağlayın</value>
   </data>
   <data name="AI_EmptyHint" xml:space="preserve">
-    <value>Ollama ya da LM Studio'yu kurup bir model indirin, ardından buradan bağlantı ekleyin. Siz eklemeden hiçbir yere bir şey gönderilmez.</value>
+    <value>Ollama ya da LM Studio'yu kurup bir model indirin ya da API anahtarınızla OpenAI, Anthropic gibi bir bulut hizmeti kullanın; ardından buradan bağlantı ekleyin. Siz eklemeden hiçbir yere bir şey gönderilmez.</value>
   </data>
   <data name="AI_Default" xml:space="preserve">
     <value>Varsayılan</value>
@@ -1811,6 +1817,9 @@
   </data>
   <data name="AI_RemoteWarning" xml:space="preserve">
     <value>Bu sunucu bu bilgisayarın ve yerel ağın dışında. Onunla yazdığınız kayıtlar oraya gönderilir.</value>
+  </data>
+  <data name="AI_CloudWarning" xml:space="preserve">
+    <value>Bu bağlantıyla yazdığınız kayıtlar internet üzerinden {0} hizmetine gönderilir; hizmetin kullanım ve gizlilik koşulları geçerlidir.</value>
   </data>
   <data name="AI_AllowRemote" xml:space="preserve">
     <value>Kayıtların bu sunucuya gönderilmesine izin ver</value>
@@ -1834,10 +1843,31 @@
     <value>Sunucu varsayılanı</value>
   </data>
   <data name="AI_ApiKey" xml:space="preserve">
-    <value>API anahtarı (isteğe bağlı)</value>
+    <value>API anahtarı</value>
   </data>
   <data name="AI_ApiKeyWatermark" xml:space="preserve">
     <value>Çoğu yerel sunucu gerektirmez</value>
+  </data>
+  <data name="AI_ApiKeyRequired" xml:space="preserve">
+    <value>Bu hizmet için gerekli</value>
+  </data>
+  <data name="AI_ApiKeyStored" xml:space="preserve">
+    <value>{0} içinde kayıtlı; değiştirmek için yazın</value>
+  </data>
+  <data name="AI_ApiKeyKeptIn" xml:space="preserve">
+    <value>Anahtarlar uygulamanın dosyalarında değil, {0} içinde saklanır.</value>
+  </data>
+  <data name="AI_ApiKeyNoKeyStore" xml:space="preserve">
+    <value>Bu bilgisayarda uygulamanın kullanabileceği bir anahtar deposu yok: anahtarlar şifrelenmeden, yalnızca sizin okuyabildiğiniz ayar dosyasında saklanır.</value>
+  </data>
+  <data name="AI_ApiKeyVariable" xml:space="preserve">
+    <value>Boş bırakılırsa {0} ortam değişkeni kullanılır.</value>
+  </data>
+  <data name="AI_RemoveKey" xml:space="preserve">
+    <value>Anahtarı sil</value>
+  </data>
+  <data name="AI_AzureAddressHint" xml:space="preserve">
+    <value>Kaynağınızın adını yazın: https://AD.openai.azure.com/openai/v1. Model, dağıtımınızın adıdır.</value>
   </data>
   <data name="AI_EmbeddingModel" xml:space="preserve">
     <value>Embedding modeli (isteğe bağlı)</value>
@@ -1847,6 +1877,9 @@
   </data>
   <data name="AI_EmbeddingModelHint" xml:space="preserve">
     <value>Soruları vektöre çevirip başka sözlerle sorulanları bulur (veri seti özeti › Anlamca benzer sorular). Önce sunucuya indirin, ör. ollama pull bge-m3.</value>
+  </data>
+  <data name="AI_EmbeddingModelHintCloud" xml:space="preserve">
+    <value>Soruları vektöre çevirip başka sözlerle sorulanları bulur (veri seti özeti › Anlamca benzer sorular), ör. text-embedding-3-small.</value>
   </data>
   <data name="AI_Test" xml:space="preserve">
     <value>Dene</value>
@@ -2294,6 +2327,33 @@
   </data>
   <data name="AIProvider_OpenAICompatible" xml:space="preserve">
     <value>Diğer OpenAI uyumlu sunucu</value>
+  </data>
+  <data name="AIProvider_OpenAI" xml:space="preserve">
+    <value>OpenAI</value>
+  </data>
+  <data name="AIProvider_Anthropic" xml:space="preserve">
+    <value>Anthropic</value>
+  </data>
+  <data name="AIProvider_AzureOpenAI" xml:space="preserve">
+    <value>Azure OpenAI</value>
+  </data>
+  <data name="AIProvider_OpenRouter" xml:space="preserve">
+    <value>OpenRouter</value>
+  </data>
+  <data name="AIProvider_Groq" xml:space="preserve">
+    <value>Groq</value>
+  </data>
+  <data name="AIProvider_DeepSeek" xml:space="preserve">
+    <value>DeepSeek</value>
+  </data>
+  <data name="KeyStore_WindowsCredentialManager" xml:space="preserve">
+    <value>Windows Kimlik Bilgisi Yöneticisi</value>
+  </data>
+  <data name="KeyStore_MacKeychain" xml:space="preserve">
+    <value>macOS Anahtar Zinciri</value>
+  </data>
+  <data name="KeyStore_SecretService" xml:space="preserve">
+    <value>Secret Service (GNOME Anahtarlık, KWallet)</value>
   </data>
   <data name="Menu_WriteWithAI" xml:space="preserve">
     <value>Yapay zekâyla yaz</value>

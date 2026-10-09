@@ -806,6 +806,12 @@
   <data name="AIError_Rejected" xml:space="preserve">
     <value>The server refused the request: {0}</value>
   </data>
+  <data name="AIError_NoApiKey" xml:space="preserve">
+    <value>{0} needs an API key. Type it in AI Connections, or set the {1} environment variable.</value>
+  </data>
+  <data name="AIError_ApiKeyUnreadable" xml:space="preserve">
+    <value>The API key could not be read from the key store; it may be locked. Unlock it, or type the key again in AI Connections.</value>
+  </data>
   <data name="AIError_ServerError" xml:space="preserve">
     <value>The server failed while answering.</value>
   </data>
@@ -1836,7 +1842,7 @@
     <value>AI connections</value>
   </data>
   <data name="AI_Subtitle" xml:space="preserve">
-    <value>Model servers on this computer or network that help write answers. Records are sent only to the server you write with.</value>
+    <value>Model servers on this computer or network, and cloud services, that help write answers. Records are sent only to the one you write with.</value>
   </data>
   <data name="AI_SavedHint" xml:space="preserve">
     <value>Changes are saved at once. Connections stay on this computer and are not part of workspace files.</value>
@@ -1851,10 +1857,10 @@
     <value>No connections yet.</value>
   </data>
   <data name="AI_EmptyTitle" xml:space="preserve">
-    <value>Connect a local model</value>
+    <value>Connect a model</value>
   </data>
   <data name="AI_EmptyHint" xml:space="preserve">
-    <value>Install Ollama or LM Studio, download a model, then add a connection here. Nothing is sent anywhere until you do.</value>
+    <value>Install Ollama or LM Studio and download a model, or use a cloud service such as OpenAI or Anthropic with your API key; then add a connection here. Nothing is sent anywhere until you do.</value>
   </data>
   <data name="AI_Default" xml:space="preserve">
     <value>Default</value>
@@ -1873,6 +1879,9 @@
   </data>
   <data name="AI_RemoteWarning" xml:space="preserve">
     <value>This server is outside this computer and its local network. Records you write with it are sent there.</value>
+  </data>
+  <data name="AI_CloudWarning" xml:space="preserve">
+    <value>Records you write with this connection are sent over the internet to {0}, and {0}'s terms of use and privacy policy apply to them.</value>
   </data>
   <data name="AI_AllowRemote" xml:space="preserve">
     <value>Allow sending records to this server</value>
@@ -1896,10 +1905,31 @@
     <value>Server default</value>
   </data>
   <data name="AI_ApiKey" xml:space="preserve">
-    <value>API key (optional)</value>
+    <value>API key</value>
   </data>
   <data name="AI_ApiKeyWatermark" xml:space="preserve">
     <value>Most local servers need none</value>
+  </data>
+  <data name="AI_ApiKeyRequired" xml:space="preserve">
+    <value>Required for this service</value>
+  </data>
+  <data name="AI_ApiKeyStored" xml:space="preserve">
+    <value>Saved in {0}; type to replace it</value>
+  </data>
+  <data name="AI_ApiKeyKeptIn" xml:space="preserve">
+    <value>Keys are kept in {0}, never in the app's files.</value>
+  </data>
+  <data name="AI_ApiKeyNoKeyStore" xml:space="preserve">
+    <value>This computer has no key store the app can use: keys are kept unencrypted in the settings file, which only you can read.</value>
+  </data>
+  <data name="AI_ApiKeyVariable" xml:space="preserve">
+    <value>Left empty, the {0} environment variable is used.</value>
+  </data>
+  <data name="AI_RemoveKey" xml:space="preserve">
+    <value>Delete the key</value>
+  </data>
+  <data name="AI_AzureAddressHint" xml:space="preserve">
+    <value>Put in your resource's name: https://NAME.openai.azure.com/openai/v1. The model is the name of your deployment.</value>
   </data>
   <data name="AI_EmbeddingModel" xml:space="preserve">
     <value>Embedding model (optional)</value>
@@ -1909,6 +1939,9 @@
   </data>
   <data name="AI_EmbeddingModelHint" xml:space="preserve">
     <value>Turns questions into vectors to find those asked in other words (dataset overview › Similar in meaning). Download one on the server first, e.g. ollama pull bge-m3.</value>
+  </data>
+  <data name="AI_EmbeddingModelHintCloud" xml:space="preserve">
+    <value>Turns questions into vectors to find those asked in other words (dataset overview › Similar in meaning), e.g. text-embedding-3-small.</value>
   </data>
   <data name="AI_Test" xml:space="preserve">
     <value>Test</value>
@@ -2356,6 +2389,33 @@
   </data>
   <data name="AIProvider_OpenAICompatible" xml:space="preserve">
     <value>Other OpenAI-compatible server</value>
+  </data>
+  <data name="AIProvider_OpenAI" xml:space="preserve">
+    <value>OpenAI</value>
+  </data>
+  <data name="AIProvider_Anthropic" xml:space="preserve">
+    <value>Anthropic</value>
+  </data>
+  <data name="AIProvider_AzureOpenAI" xml:space="preserve">
+    <value>Azure OpenAI</value>
+  </data>
+  <data name="AIProvider_OpenRouter" xml:space="preserve">
+    <value>OpenRouter</value>
+  </data>
+  <data name="AIProvider_Groq" xml:space="preserve">
+    <value>Groq</value>
+  </data>
+  <data name="AIProvider_DeepSeek" xml:space="preserve">
+    <value>DeepSeek</value>
+  </data>
+  <data name="KeyStore_WindowsCredentialManager" xml:space="preserve">
+    <value>Windows Credential Manager</value>
+  </data>
+  <data name="KeyStore_MacKeychain" xml:space="preserve">
+    <value>the macOS keychain</value>
+  </data>
+  <data name="KeyStore_SecretService" xml:space="preserve">
+    <value>the Secret Service (GNOME Keyring, KWallet)</value>
   </data>
   <data name="Menu_WriteWithAI" xml:space="preserve">
     <value>Write with AI</value>

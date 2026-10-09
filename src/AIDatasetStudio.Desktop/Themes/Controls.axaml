@@ -733,6 +733,9 @@
   <Style Selector="TextBlock.error">
     <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
   </Style>
+  <Style Selector="TextBlock.warning">
+    <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
   <!-- Histogram bar in its track -->
   <Style Selector="Border.bar-track">
     <Setter Property="Height" Value="10" />

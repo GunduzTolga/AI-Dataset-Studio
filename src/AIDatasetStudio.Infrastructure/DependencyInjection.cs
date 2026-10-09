@@ -20,6 +20,7 @@ using AIDatasetStudio.Infrastructure.Judgments;
 using AIDatasetStudio.Infrastructure.Persistence;
 using AIDatasetStudio.Infrastructure.Records;
 using AIDatasetStudio.Infrastructure.Settings;
+using AIDatasetStudio.Infrastructure.Settings.Secrets;
 using AIDatasetStudio.Infrastructure.Tags;
 using AIDatasetStudio.Infrastructure.Versions;
 using AIDatasetStudio.Infrastructure.Workspaces;
@@ -35,8 +36,11 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string? settingsDirectory = null)
     {
         services.TryAddSingleton(TimeProvider.System);
-        services.AddSingleton(provider =>
-            new SqliteUserSettings(settingsDirectory ?? UserSettingsLocation.GetDirectory(), provider.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton(_ => SecretStores.ForThisSystem());
+        services.AddSingleton(provider => new SqliteUserSettings(
+            settingsDirectory ?? UserSettingsLocation.GetDirectory(),
+            provider.GetRequiredService<TimeProvider>(),
+            provider.GetRequiredService<ISecretStore>()));
         services.AddSingleton<IUserSettings>(provider => provider.GetRequiredService<SqliteUserSettings>());
         services.AddSingleton<IAIConnectionStore>(provider => provider.GetRequiredService<SqliteUserSettings>());
         services.TryAddSingleton<IAIProviderFactory, AIProviderFactory>();

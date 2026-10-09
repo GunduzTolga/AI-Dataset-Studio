@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <!-- Source-generated P/Invoke into the operating systems' key stores (Settings/Secrets). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AIDatasetStudio.Application\AIDatasetStudio.Application.csproj" />
   </ItemGroup>

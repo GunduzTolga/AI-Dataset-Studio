@@ -28,6 +28,8 @@ internal static class AIText
         AIErrorKind.EmbeddingModelNotFound => localizer.Format("AIError_EmbeddingModelNotFound", connection.EmbeddingModel),
         AIErrorKind.NotAnApi => localizer.Format("AIError_NotAnApi", connection.BaseUrl),
         AIErrorKind.Rejected => localizer.Format("AIError_Rejected", exception.Detail ?? exception.Message),
+        AIErrorKind.NoApiKey => localizer.Format("AIError_NoApiKey", Provider(localizer, connection.Kind), AIProviders.KeyVariable(connection.Kind) ?? string.Empty),
+        AIErrorKind.ApiKeyUnreadable => localizer["AIError_ApiKeyUnreadable"],
         _ => exception.Detail is { } detail ? localizer.Format("AIError_ServerErrorDetail", detail) : localizer["AIError_ServerError"],
     };
 }
