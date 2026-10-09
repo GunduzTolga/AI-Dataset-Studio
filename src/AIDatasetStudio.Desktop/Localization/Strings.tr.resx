@@ -717,6 +717,12 @@
   <data name="AIError_ModelNotFound" xml:space="preserve">
     <value>Sunucuda “{0}” modeli yok. Yapay Zekâ Bağlantıları'ndan başka bir model seçin ya da sunucuya indirin (ör. ollama pull {0}).</value>
   </data>
+  <data name="AIError_NoEmbeddingModel" xml:space="preserve">
+    <value>{0} için bir embedding modeli seçilmedi. Yapay Zekâ Bağlantıları'ndan bir model seçin (ör. nomic-embed-text ya da bge-m3).</value>
+  </data>
+  <data name="AIError_EmbeddingModelNotFound" xml:space="preserve">
+    <value>Sunucuda “{0}” embedding modeli yok. Yapay Zekâ Bağlantıları'ndan başka bir model seçin ya da sunucuya indirin (ör. ollama pull {0}).</value>
+  </data>
   <data name="AIError_NotAnApi" xml:space="preserve">
     <value>{0} adresinde OpenAI uyumlu bir API yok. Çoğu sunucu bunu /v1 altında sunar.</value>
   </data>
@@ -746,6 +752,15 @@
   </data>
   <data name="Status_JudgedMany" xml:space="preserve">
     <value>“{1}” veri setinde {0:N0} kayıt değerlendirildi</value>
+  </data>
+  <data name="Status_SemanticDone" xml:space="preserve">
+    <value>{0:N0} soru {1} ile vektöre çevrildi</value>
+  </data>
+  <data name="Status_SemanticStopped" xml:space="preserve">
+    <value>Durduruldu; oluşturulan {0:N0} vektör saklandı</value>
+  </data>
+  <data name="Status_SemanticOff" xml:space="preserve">
+    <value>“{0}” soruları artık yalnızca ifadesiyle karşılaştırıyor</value>
   </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı; {2:N0} satır atlandı</value>
@@ -1779,6 +1794,15 @@
   <data name="AI_ApiKeyWatermark" xml:space="preserve">
     <value>Çoğu yerel sunucu gerektirmez</value>
   </data>
+  <data name="AI_EmbeddingModel" xml:space="preserve">
+    <value>Embedding modeli (isteğe bağlı)</value>
+  </data>
+  <data name="AI_EmbeddingModelWatermark" xml:space="preserve">
+    <value>ör. bge-m3 ya da nomic-embed-text</value>
+  </data>
+  <data name="AI_EmbeddingModelHint" xml:space="preserve">
+    <value>Soruları vektöre çevirip başka sözlerle sorulanları bulur (veri seti özeti › Anlamca benzer sorular). Önce sunucuya indirin, ör. ollama pull bge-m3.</value>
+  </data>
   <data name="AI_Test" xml:space="preserve">
     <value>Dene</value>
   </data>
@@ -1805,6 +1829,9 @@
   </data>
   <data name="AI_TestPassed" xml:space="preserve">
     <value>Çalışıyor: {0}, {1} sn'de yanıt verdi — “{2}”</value>
+  </data>
+  <data name="AI_EmbeddingTestPassed" xml:space="preserve">
+    <value>{0} bir metni {1:N0} sayıya çeviriyor.</value>
   </data>
   <data name="QA_Title" xml:space="preserve">
     <value>Belgeden Soru-Cevap Çıkar</value>
@@ -2166,6 +2193,48 @@
   <data name="Overview_JudgeHint" xml:space="preserve">
     <value>Şu anki hâliyle değerlendirilmemiş kayıtlarla değerlendirme penceresini açar.</value>
   </data>
+  <data name="Overview_SemanticSection" xml:space="preserve">
+    <value>ANLAMCA BENZER SORULAR</value>
+  </data>
+  <data name="Overview_SemanticOff" xml:space="preserve">
+    <value>Sorular ifadelerine göre karşılaştırılıyor. AI bağlantınızdaki bir embedding modeli başka sözlerle sorulanları da bulur; vektörler yalnızca siz başlattığınızda oluşturulur ve çalışma alanında saklanır.</value>
+  </data>
+  <data name="Overview_SemanticAll" xml:space="preserve">
+    <value>{0:N0} sorunun tümü anlamca karşılaştırılıyor.</value>
+  </data>
+  <data name="Overview_SemanticSome" xml:space="preserve">
+    <value>{1:N0} sorudan {0:N0} tanesi anlamca karşılaştırılıyor; yeni ve değişen sorular vektörü olana dek ifadesiyle karşılaştırılır.</value>
+  </data>
+  <data name="Overview_SemanticRun" xml:space="preserve">
+    <value>Anlamca karşılaştır</value>
+  </data>
+  <data name="Overview_SemanticRest" xml:space="preserve">
+    <value>{0:N0} soruyu daha karşılaştır</value>
+  </data>
+  <data name="Overview_SemanticSwitch" xml:space="preserve">
+    <value>Bunun yerine {0} ile karşılaştır</value>
+  </data>
+  <data name="Overview_SemanticHint" xml:space="preserve">
+    <value>Veri setindeki soruları AI bağlantınızdaki embedding modeline gönderir.</value>
+  </data>
+  <data name="Overview_SemanticNoConnection" xml:space="preserve">
+    <value>Önce embedding modeli olan bir AI bağlantısı kurun: bu bilgisayardaki Ollama ya da LM Studio yeterli.</value>
+  </data>
+  <data name="Overview_SemanticProgress" xml:space="preserve">
+    <value>Sorular {2} ile vektöre çevriliyor: {1:N0} sorudan {0:N0}…</value>
+  </data>
+  <data name="Overview_SemanticModel" xml:space="preserve">
+    <value>Model: {0}</value>
+  </data>
+  <data name="Overview_SemanticThreshold" xml:space="preserve">
+    <value>Benzerlik eşiği (kosinüs)</value>
+  </data>
+  <data name="Overview_SemanticThresholdHint" xml:space="preserve">
+    <value>Değer yükseldikçe seçicilik artar. Çoğu model için 0,90 uygundur; başka sözlerle sorulanlar kaçıyorsa düşürün.</value>
+  </data>
+  <data name="Overview_SemanticTurnOff" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
   <data name="AIProvider_Ollama" xml:space="preserve">
     <value>Ollama</value>
   </data>
@@ -2266,7 +2335,7 @@
     <value>Benzer sorular</value>
   </data>
   <data name="Issue_NearDuplicate" xml:space="preserve">
-    <value>#{0} numaralı kayıtla neredeyse aynı soru (%85 ve üzeri benzer).</value>
+    <value>#{0} numaralı kayıtla neredeyse aynı soru (ifade ya da anlam olarak).</value>
   </data>
   <data name="QualityFilter_NearDuplicates" xml:space="preserve">
     <value>Benzer sorular</value>

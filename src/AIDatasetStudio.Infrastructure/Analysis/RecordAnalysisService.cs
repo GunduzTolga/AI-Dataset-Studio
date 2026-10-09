@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -360,16 +361,38 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             }
         }
 
-        // Metadata is not part of the content hash, so the families are part of the stamp.
-        var stamp = Stamp(records.Select(r => (r.Id, r.Family == r.Id ? r.ContentHash : r.ContentHash + ":" + r.Family)));
+        // How the dataset compares by meaning, if it does (M16), and which questions have vectors.
+        string? stored = null;
+        (string Model, double Threshold)? semantic = null;
         await using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT Stamp FROM DatasetSimilarity WHERE DatasetId = $ds;";
+            command.CommandText = "SELECT Stamp, SemanticModel, SemanticThreshold FROM DatasetSimilarity WHERE DatasetId = $ds;";
             command.Parameters.AddWithValue("$ds", ds);
-            if (await command.ExecuteScalarAsync(cancellationToken) as string == stamp)
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
             {
-                return false;
+                stored = reader.GetString(0);
+                if (!reader.IsDBNull(1))
+                {
+                    semantic = (reader.GetString(1), reader.IsDBNull(2) ? SemanticQuestions.DefaultThreshold : reader.GetDouble(2));
+                }
             }
+        }
+
+        var embedded = semantic is { } current
+            ? await SemanticIndex.ReadSignaturesAsync(connection, ds, current.Model, cancellationToken)
+            : [];
+
+        // Metadata is not part of the content hash, so the families are part of the stamp; so are
+        // the choice of comparing by meaning and which questions have vectors.
+        var stamp = Stamp(
+            records.Select(r => (
+                r.Id,
+                (r.Family == r.Id ? r.ContentHash : r.ContentHash + ":" + r.Family) + (r.QuestionKey is { } key && embedded.ContainsKey(key) ? ":v" : string.Empty))),
+            semantic is { } choice ? $"semantic:{choice.Model}:{choice.Threshold.ToString("R", CultureInfo.InvariantCulture)}" : null);
+        if (stored == stamp)
+        {
+            return false;
         }
 
         var keys = records.Select(r => r.QuestionKey).ToList();
@@ -378,12 +401,34 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         // The exact check needs the questions of the candidates only.
         var involved = candidates.SelectMany(p => new[] { p.A, p.B }).Distinct().ToDictionary(i => records[i].Id, i => i, StringComparer.Ordinal);
         var shingles = await ReadShinglesAsync(connection, involved, cancellationToken);
+
+        // Questions alike in meaning: candidates from the signatures, then the vectors of those only.
+        var alike = new List<(int A, int B)>();
+        var vectors = new QuestionVector?[records.Count];
+        var threshold = semantic?.Threshold ?? SemanticQuestions.DefaultThreshold;
+        if (semantic is { } meaning && embedded.Count > 0)
+        {
+            alike.AddRange(SemanticQuestions.Candidates([.. keys.Select(k => k is not null && embedded.TryGetValue(k, out var signature) ? signature : null)], keys, threshold));
+            var needed = alike.SelectMany(p => new[] { keys[p.A]!, keys[p.B]! }).Distinct(StringComparer.Ordinal);
+            var storedVectors = await SemanticIndex.ReadVectorsAsync(connection, ds, meaning.Model, needed, cancellationToken);
+            for (var i = 0; i < records.Count; i++)
+            {
+                vectors[i] = keys[i] is { } key && storedVectors.TryGetValue(key, out var vector) ? vector : null;
+            }
+        }
+
         // A record and its variations ask the same thing on purpose: they are a family, not near duplicates.
         var roots = NearDuplicates.Group(
             records.Count,
             keys,
-            candidates,
-            (a, b) => !string.Equals(records[a].Family, records[b].Family, StringComparison.Ordinal) && NearDuplicates.Jaccard(shingles[a], shingles[b]) >= NearDuplicates.Threshold);
+            candidates.Concat(alike),
+            (a, b) => !string.Equals(records[a].Family, records[b].Family, StringComparison.Ordinal) && (Near(a, b) || Alike(a, b)));
+
+        bool Near(int a, int b) =>
+            shingles.TryGetValue(a, out var first) && shingles.TryGetValue(b, out var second) && NearDuplicates.Jaccard(first, second) >= NearDuplicates.Threshold;
+
+        bool Alike(int a, int b) =>
+            vectors[a] is { } first && vectors[b] is { } second && SemanticQuestions.Cosine(first.Values, first.Scale, second.Values, second.Scale) >= threshold;
 
         // A group whose records all ask exactly the same question has no near-duplicate in it.
         var mixed = roots.Select((root, i) => (root, key: keys[i])).GroupBy(x => x.root)
@@ -429,10 +474,15 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
     }
 
     // What the groups were made from. The rules version is part of it: new rules may compare differently.
-    private static string Stamp(IEnumerable<(string Id, string ContentHash)> records)
+    private static string Stamp(IEnumerable<(string Id, string ContentHash)> records, string? semantic)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(Encoding.UTF8.GetBytes($"rules:{QualityRules.Version}\n"));
+        if (semantic is not null)
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(semantic + "\n"));
+        }
+
         foreach (var (id, contentHash) in records)
         {
             hash.AppendData(Encoding.UTF8.GetBytes($"{id}:{contentHash}\n"));

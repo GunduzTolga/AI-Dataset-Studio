@@ -18,6 +18,12 @@ public interface IAIProvider
     /// </summary>
     /// <exception cref="AIException">The server cannot be reached, refuses the request or stops answering.</exception>
     IAsyncEnumerable<string> StreamChatAsync(AIChatRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Turns texts into vectors with the connection's embedding model, one per text in order.
+    /// </summary>
+    /// <exception cref="AIException">No embedding model is chosen, or the server cannot be reached or refuses the request.</exception>
+    Task<IReadOnlyList<float[]>> EmbedAsync(IReadOnlyList<string> inputs, CancellationToken cancellationToken = default);
 }
 
 public interface IAIProviderFactory

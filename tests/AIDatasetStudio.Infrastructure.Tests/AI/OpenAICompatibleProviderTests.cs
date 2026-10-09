@@ -159,6 +159,56 @@ public sealed class OpenAICompatibleProviderTests
     }
 
     [Fact]
+    public async Task Embeds_texts_with_the_embedding_model_in_input_order()
+    {
+        string? sent = null;
+        string? path = null;
+        using var http = new HttpClient(new StubHandler(async request =>
+        {
+            path = request.RequestUri!.AbsolutePath;
+            sent = await request.Content!.ReadAsStringAsync();
+            return Respond(HttpStatusCode.OK, """
+                {"object": "list", "data": [
+                  {"object": "embedding", "index": 1, "embedding": [0.5, -0.25]},
+                  {"object": "embedding", "index": 0, "embedding": [1, 2e-3]}
+                ]}
+                """);
+        }));
+        var provider = new OpenAICompatibleProvider(http, Connection("http://localhost:11434/v1") with { EmbeddingModel = " nomic-embed-text " });
+
+        var vectors = await provider.EmbedAsync(["Kargo ücreti ne kadar?", "İade süresi nedir?"], Ct);
+
+        Assert.Equal("/v1/embeddings", path);
+        var body = System.Text.Json.Nodes.JsonNode.Parse(sent!)!;
+        Assert.Equal("nomic-embed-text", (string?)body["model"]);
+        Assert.Equal(["Kargo ücreti ne kadar?", "İade süresi nedir?"], body["input"]!.AsArray().Select(i => (string?)i));
+        Assert.Equal([1f, 0.002f], vectors[0]);
+        Assert.Equal([0.5f, -0.25f], vectors[1]);
+        Assert.Empty(await provider.EmbedAsync([], Ct));
+    }
+
+    [Fact]
+    public async Task Embedding_failures_are_told_apart()
+    {
+        var noModel = Stubbed(_ => Respond(HttpStatusCode.OK, "{}"));
+        Assert.Equal(AIErrorKind.NoEmbeddingModel, (await Assert.ThrowsAsync<AIException>(() => noModel.EmbedAsync(["a"], Ct))).Kind);
+
+        var missing = Embedding(_ => Respond(HttpStatusCode.NotFound, """{"error": {"message": "model \"nomic-embed-text\" not found, try pulling it first"}}"""));
+        var error = await Assert.ThrowsAsync<AIException>(() => missing.EmbedAsync(["a"], Ct));
+        Assert.Equal(AIErrorKind.EmbeddingModelNotFound, error.Kind);
+        Assert.Contains("not found", error.Detail, StringComparison.Ordinal);
+
+        var chatOnly = Embedding(_ => Respond(HttpStatusCode.BadRequest, """{"error": "this model does not support embeddings"}"""));
+        Assert.Equal(AIErrorKind.Rejected, (await Assert.ThrowsAsync<AIException>(() => chatOnly.EmbedAsync(["a"], Ct))).Kind);
+
+        var shortAnswer = Embedding(_ => Respond(HttpStatusCode.OK, """{"data": [{"index": 0, "embedding": [1, 2]}]}"""));
+        Assert.Equal(AIErrorKind.NotAnApi, (await Assert.ThrowsAsync<AIException>(() => shortAnswer.EmbedAsync(["a", "b"], Ct))).Kind);
+
+        var notNumbers = Embedding(_ => Respond(HttpStatusCode.OK, """{"data": [{"index": 0, "embedding": ["x"]}]}"""));
+        Assert.Equal(AIErrorKind.NotAnApi, (await Assert.ThrowsAsync<AIException>(() => notNumbers.EmbedAsync(["a"], Ct))).Kind);
+    }
+
+    [Fact]
     public void Remote_servers_need_consent_and_addresses_must_be_http()
     {
         using var factory = new AIProviderFactory();
@@ -175,6 +225,9 @@ public sealed class OpenAICompatibleProviderTests
 
     private static OpenAICompatibleProvider Stubbed(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
         new(new HttpClient(new StubHandler(request => Task.FromResult(respond(request)))), Connection("http://localhost:11434/v1"));
+
+    private static OpenAICompatibleProvider Embedding(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
+        new(new HttpClient(new StubHandler(request => Task.FromResult(respond(request)))), Connection("http://localhost:11434/v1") with { EmbeddingModel = "nomic-embed-text" });
 
     private static async Task<List<string>> CollectAsync(IAIProvider provider)
     {

@@ -31,6 +31,8 @@ public enum AIProviderKind
 /// <param name="MaxTokens">The longest answer to ask for; <c>null</c> leaves it to the server.</param>
 /// <param name="AllowRemote">The user agreed that records may be sent to a server outside this
 /// computer and its local network (SDD §2, zero cloud dependency).</param>
+/// <param name="EmbeddingModel">The model that turns questions into vectors to find questions
+/// alike in meaning (SDD §8.2, e.g. "bge-m3"); <c>null</c> when none is chosen.</param>
 public sealed record AIConnection(
     Guid Id,
     string Name,
@@ -40,7 +42,8 @@ public sealed record AIConnection(
     string? ApiKey = null,
     double Temperature = AIConnection.DefaultTemperature,
     int? MaxTokens = AIConnection.DefaultMaxTokens,
-    bool AllowRemote = false)
+    bool AllowRemote = false,
+    string? EmbeddingModel = null)
 {
     public const double DefaultTemperature = 0.7;
     public const int DefaultMaxTokens = 2_048;

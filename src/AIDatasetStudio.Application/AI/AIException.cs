@@ -28,6 +28,12 @@ public enum AIErrorKind
 
     /// <summary>The server failed; <see cref="AIException.Detail"/> says why.</summary>
     ServerError,
+
+    /// <summary>The connection has no embedding model chosen.</summary>
+    NoEmbeddingModel,
+
+    /// <summary>The server does not have the embedding model, or it cannot make vectors.</summary>
+    EmbeddingModelNotFound,
 }
 
 /// <summary>

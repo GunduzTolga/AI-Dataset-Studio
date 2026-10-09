@@ -61,6 +61,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     private readonly StatusBarViewModel _status;
     private readonly AIAssistant _ai;
     private readonly IJudgmentService _judgments;
+    private readonly ISemanticIndex _semantic;
     private readonly Localizer _localizer;
     private CancellationTokenSource? _guidanceDelay;
     private CancellationTokenSource? _running;
@@ -76,6 +77,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         StatusBarViewModel status,
         AIAssistant ai,
         IJudgmentService judgments,
+        ISemanticIndex semantic,
         Localizer localizer)
     {
         _analysis = analysis;
@@ -85,11 +87,13 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         _status = status;
         _ai = ai;
         _judgments = judgments;
+        _semantic = semantic;
         _localizer = localizer;
         _ai.ConnectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(AIConnectionText));
             OnPropertyChanged(nameof(HasAIConnection));
+            RefreshSemanticTexts();
         };
         TokenizerOptions = tokenizers.Available.Select(id => new TokenizerOption(id, TokenizerLabel(id))).ToList();
         ContextOptions = Tokenizers.ContextLengths.Select(n => new ContextLengthOption(n, ContextLabel(n))).ToList();
@@ -221,11 +225,15 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     public async Task ShowAsync(DatasetNodeViewModel? dataset)
     {
         await StopAsync();
+        await StopEmbeddingAsync();
         await FlushGuidanceAsync();
         Dataset = dataset;
         Summary = null;
         ApplyJudgments(null);
+        ApplySemantic(null);
+        SemanticError = null;
         OnPropertyChanged(nameof(CanJudgeRecords));
+        OnPropertyChanged(nameof(CanCompareMeaning));
         Histogram.Clear();
         Issues.Clear();
         OnPropertyChanged(nameof(HasIssues));
@@ -293,6 +301,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
             }
 
             await LoadJudgmentsAsync(dataset);
+            await LoadSemanticAsync(dataset);
         }
         catch (Exception ex) when (_status.TryReport(ex))
         {
@@ -570,6 +579,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         }
 
         ApplyJudgments(Judgments);
+        RefreshSemanticTexts();
         OnPropertyChanged(nameof(JudgedText));
         OnPropertyChanged(nameof(OutdatedText));
         OnPropertyChanged(nameof(JudgeRestText));

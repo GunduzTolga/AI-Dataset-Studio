@@ -157,6 +157,65 @@
         </StackPanel>
       </Border>
 
+      <!-- Questions alike in meaning (SDD §8.2, M16) -->
+      <StackPanel IsVisible="{Binding CanCompareMeaning}">
+        <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Overview_SemanticSection}" IsVisible="{Binding HasRecords}" />
+        <Border x:Name="SemanticCard" Classes="card" Padding="14,12" IsVisible="{Binding HasRecords}">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="Auto,*">
+              <ic:SymbolIcon Symbol="ShapeIntersect" FontSize="16" Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Top" Margin="0,1,8,0" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock x:Name="SemanticStatusText" Classes="small" Text="{Binding SemanticStatusText}" TextWrapping="Wrap" />
+                <TextBlock Classes="caption muted" Text="{Binding SemanticModelText}" IsVisible="{Binding IsSemanticOn}" />
+              </StackPanel>
+            </Grid>
+
+            <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding IsSemanticOn}">
+              <StackPanel>
+                <TextBlock Classes="label" Text="{l:Tr Overview_SemanticThreshold}" />
+                <NumericUpDown x:Name="SemanticThresholdBox" Value="{Binding SemanticThreshold}" Minimum="{Binding MinSemanticThreshold}"
+                               Maximum="{Binding MaxSemanticThreshold}" Increment="0.01" FormatString="0.00" Width="120" IsEnabled="{Binding !IsEmbedding}" />
+              </StackPanel>
+              <TextBlock Grid.Column="1" Classes="caption muted" Text="{l:Tr Overview_SemanticThresholdHint}" TextWrapping="Wrap"
+                         VerticalAlignment="Bottom" Margin="12,0,0,4" />
+            </Grid>
+
+            <StackPanel Spacing="4" IsVisible="{Binding IsEmbedding}">
+              <ProgressBar Minimum="0" Maximum="1" Value="{Binding EmbeddingProgress}" />
+              <TextBlock x:Name="EmbeddingText" Classes="caption muted" Text="{Binding EmbeddingText}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="callout danger" Padding="12,8" IsVisible="{Binding HasSemanticError}">
+              <StackPanel Spacing="8">
+                <TextBlock x:Name="SemanticErrorText" Classes="small" Text="{Binding SemanticError}" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button Classes="accent" Content="{l:Tr Editor_AIConnections}" Command="{Binding OpenAIConnectionsCommand}" />
+                  <Button Classes="subtle" Content="{l:Tr Import_Close}" Command="{Binding DismissSemanticErrorCommand}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button x:Name="SemanticRunButton" Classes="subtle" Command="{Binding RunSemanticCommand}" ToolTip.Tip="{l:Tr Overview_SemanticHint}"
+                      IsVisible="{Binding ShowSemanticRun}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="ShapeIntersect" />
+                  <TextBlock Text="{Binding SemanticRunText}" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="SemanticStopButton" Command="{Binding StopSemanticCommand}" IsVisible="{Binding IsEmbedding}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
+                  <TextBlock Text="{l:Tr Editor_StopWriting}" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="SemanticOffButton" Classes="subtle" Content="{l:Tr Overview_SemanticTurnOff}" Command="{Binding TurnOffSemanticCommand}"
+                      IsVisible="{Binding ShowSemanticOff}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
       <!-- Judgments by a model (SDD §17.7) -->
       <StackPanel IsVisible="{Binding CanJudgeRecords}">
         <TextBlock Classes="overline" Margin="2,14,0,2" Text="{l:Tr Judge_Section}" IsVisible="{Binding HasRecords}" />

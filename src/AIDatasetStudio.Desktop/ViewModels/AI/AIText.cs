@@ -24,6 +24,8 @@ internal static class AIText
         AIErrorKind.Timeout => localizer.Format("AIError_Timeout", connection.BaseUrl),
         AIErrorKind.Unauthorized => localizer["AIError_Unauthorized"],
         AIErrorKind.ModelNotFound => localizer.Format("AIError_ModelNotFound", connection.Model),
+        AIErrorKind.NoEmbeddingModel => localizer.Format("AIError_NoEmbeddingModel", connection.Name),
+        AIErrorKind.EmbeddingModelNotFound => localizer.Format("AIError_EmbeddingModelNotFound", connection.EmbeddingModel),
         AIErrorKind.NotAnApi => localizer.Format("AIError_NotAnApi", connection.BaseUrl),
         AIErrorKind.Rejected => localizer.Format("AIError_Rejected", exception.Detail ?? exception.Message),
         _ => exception.Detail is { } detail ? localizer.Format("AIError_ServerErrorDetail", detail) : localizer["AIError_ServerError"],

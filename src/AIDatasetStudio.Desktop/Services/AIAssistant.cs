@@ -58,6 +58,16 @@ public sealed class AIAssistant
     }
 
     /// <summary>
+    /// Turns texts into vectors with the connection's embedding model, one per text.
+    /// </summary>
+    /// <exception cref="AIException">No embedding model is chosen, or the server cannot be used.</exception>
+    public Task<IReadOnlyList<float[]>> EmbedAsync(AIConnection connection, IReadOnlyList<string> texts, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        return _providers.Create(connection).EmbedAsync(texts, cancellationToken);
+    }
+
+    /// <summary>
     /// The messages that ask for <paramref name="target"/>, or <c>null</c> when the record has
     /// nothing to answer yet.
     /// </summary>

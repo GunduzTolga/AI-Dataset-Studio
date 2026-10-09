@@ -34,6 +34,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Versions = new VersionService(Workspace, Analysis, Clock);
         Tags = new TagService(Workspace, Clock);
         Judgments = new JudgmentService(Workspace);
+        Semantic = new SemanticIndex(Workspace);
     }
 
     /// <summary>
@@ -52,6 +53,8 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public TagService Tags { get; }
 
     public JudgmentService Judgments { get; }
+
+    public SemanticIndex Semantic { get; }
 
     public string Directory { get; }
 

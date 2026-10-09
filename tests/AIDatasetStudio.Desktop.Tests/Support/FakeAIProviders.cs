@@ -29,6 +29,37 @@ internal sealed class FakeAIProviders : IAIProviderFactory
 
     public ConcurrentQueue<(AIConnection Connection, AIChatRequest Request)> Requests { get; } = new();
 
+    /// <summary>
+    /// Turns a text into its vector; by default the words of the text, so texts sharing most
+    /// words are close.
+    /// </summary>
+    public Func<string, float[]> Embedder { get; set; } = WordVector;
+
+    /// <summary>
+    /// The texts sent to be embedded, one list per request.
+    /// </summary>
+    public ConcurrentQueue<IReadOnlyList<string>> Embedded { get; } = new();
+
+    /// <summary>
+    /// A vector counting the words of a text, each word in one of 64 dimensions.
+    /// </summary>
+    public static float[] WordVector(string text)
+    {
+        var vector = new float[64];
+        foreach (var word in text.ToLowerInvariant().Split([' ', '?', '.', ',', '!', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var hash = 2166136261u;
+            foreach (var c in word)
+            {
+                hash = (hash ^ c) * 16777619u;
+            }
+
+            vector[hash % 64]++;
+        }
+
+        return vector;
+    }
+
     public IAIProvider Create(AIConnection connection)
     {
         if (AIProviders.ParseUrl(connection.BaseUrl) is null)
@@ -71,6 +102,29 @@ internal sealed class FakeAIProviders : IAIProviderFactory
 
                 await Task.Yield();
             }
+        }
+
+        public async Task<IReadOnlyList<float[]>> EmbedAsync(IReadOnlyList<string> inputs, CancellationToken cancellationToken = default)
+        {
+            owner.Embedded.Enqueue([.. inputs]);
+            if (owner.Failure is { } failure)
+            {
+                throw failure;
+            }
+
+            if (string.IsNullOrWhiteSpace(connection.EmbeddingModel))
+            {
+                throw new AIException(AIErrorKind.NoEmbeddingModel, "no embedding model");
+            }
+
+            if (owner.Hold is { } hold)
+            {
+                await hold.Task.WaitAsync(cancellationToken);
+            }
+
+            await Task.Yield();
+            cancellationToken.ThrowIfCancellationRequested();
+            return [.. inputs.Select(owner.Embedder)];
         }
     }
 }

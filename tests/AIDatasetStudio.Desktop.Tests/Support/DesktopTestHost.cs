@@ -60,9 +60,10 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     /// <summary>
     /// Sets up a local Ollama connection with the model "qwen2.5:7b" as the default.
     /// </summary>
-    public AIConnection AddAIConnection()
+    public AIConnection AddAIConnection(string? embeddingModel = null)
     {
-        var connection = new AIConnection(Guid.CreateVersion7(), "Ollama", AIProviderKind.Ollama, AIProviders.DefaultUrl(AIProviderKind.Ollama), "qwen2.5:7b");
+        var connection = new AIConnection(
+            Guid.CreateVersion7(), "Ollama", AIProviderKind.Ollama, AIProviders.DefaultUrl(AIProviderKind.Ollama), "qwen2.5:7b", EmbeddingModel: embeddingModel);
         Get<IAIConnectionStore>().Save(connection);
         return connection;
     }

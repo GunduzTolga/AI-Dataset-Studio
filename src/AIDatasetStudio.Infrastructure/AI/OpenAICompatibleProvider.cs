@@ -13,6 +13,7 @@ namespace AIDatasetStudio.Infrastructure.AI;
 /// <summary>
 /// Talks to a server with the OpenAI chat completions API: Ollama, LM Studio, vLLM, LocalAI and
 /// others. Answers are streamed as server-sent events; a server that answers in one piece works too.
+/// Texts are turned into vectors with the same server's embeddings API.
 /// </summary>
 internal sealed class OpenAICompatibleProvider : IAIProvider
 {
@@ -117,6 +118,61 @@ internal sealed class OpenAICompatibleProvider : IAIProvider
         }
     }
 
+    public async Task<IReadOnlyList<float[]>> EmbedAsync(IReadOnlyList<string> inputs, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        if (string.IsNullOrWhiteSpace(Connection.EmbeddingModel))
+        {
+            throw new AIException(AIErrorKind.NoEmbeddingModel, "No embedding model is chosen for this connection.");
+        }
+
+        if (inputs.Count == 0)
+        {
+            return [];
+        }
+
+        var body = new JsonObject
+        {
+            ["model"] = Connection.EmbeddingModel.Trim(),
+            ["input"] = new JsonArray([.. inputs.Select(input => (JsonNode?)JsonValue.Create(input))]),
+        };
+        using var idle = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        idle.CancelAfter(_idleTimeout);
+        using var message = Request(HttpMethod.Post, "embeddings");
+        message.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
+        using var response = await SendAsync(message, idle.Token, cancellationToken, embedding: true);
+        var answer = await ReadBodyAsync(response, idle.Token, cancellationToken);
+        try
+        {
+            var node = JsonNode.Parse(answer);
+            if (node?["error"] is { } error)
+            {
+                throw new AIException(AIErrorKind.ServerError, "The server reported an error while embedding.", ErrorText(error));
+            }
+
+            // Each vector carries its input's index; servers may send them in another order.
+            var vectors = new float[]?[inputs.Count];
+            var data = node?["data"]?.AsArray() ?? throw NotAnApi(null);
+            for (var i = 0; i < data.Count; i++)
+            {
+                var item = data[i] ?? throw NotAnApi(null);
+                var index = item["index"]?.GetValue<int>() ?? i;
+                if (index < 0 || index >= vectors.Length || item["embedding"] is not JsonArray values || values.Count == 0)
+                {
+                    throw NotAnApi(null);
+                }
+
+                vectors[index] = [.. values.Select(value => value?.GetValue<float>() ?? throw NotAnApi(null))];
+            }
+
+            return [.. vectors.Select(vector => vector ?? throw NotAnApi(null))];
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+        {
+            throw NotAnApi(ex);
+        }
+    }
+
     private static string Role(ChatRole role) => role switch
     {
         ChatRole.System => "system",
@@ -165,7 +221,8 @@ internal sealed class OpenAICompatibleProvider : IAIProvider
 
     /// <param name="token">Cancels the request, also when the server is silent too long.</param>
     /// <param name="userToken">Cancelled only by the caller; tells a stop from a timeout.</param>
-    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token, CancellationToken userToken)
+    /// <param name="embedding">Whether the embedding model is asked for, rather than the chat model.</param>
+    private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token, CancellationToken userToken, bool embedding = false)
     {
         HttpResponseMessage response;
         try
@@ -189,6 +246,8 @@ internal sealed class OpenAICompatibleProvider : IAIProvider
             {
                 HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
                     new AIException(AIErrorKind.Unauthorized, "The server refused the API key.", detail),
+                HttpStatusCode.NotFound when embedding && detail?.Contains("model", StringComparison.OrdinalIgnoreCase) == true =>
+                    new AIException(AIErrorKind.EmbeddingModelNotFound, $"The server has no embedding model '{Connection.EmbeddingModel}'.", detail),
                 HttpStatusCode.NotFound when detail?.Contains("model", StringComparison.OrdinalIgnoreCase) == true =>
                     new AIException(AIErrorKind.ModelNotFound, $"The server has no model '{Connection.Model}'.", detail),
                 HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed =>

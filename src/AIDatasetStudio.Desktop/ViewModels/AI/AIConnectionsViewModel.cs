@@ -35,6 +35,7 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
         Temperature = (decimal)connection.Temperature;
         MaxTokens = connection.MaxTokens;
         AllowRemote = connection.AllowRemote;
+        EmbeddingModel = connection.EmbeddingModel;
         _ready = true;
     }
 
@@ -57,6 +58,12 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string? ApiKey { get; set; }
+
+    /// <summary>
+    /// The model that turns questions into vectors (SDD §8.2); empty when none is chosen.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? EmbeddingModel { get; set; }
 
     /// <summary>
     /// 0 (always the same answer) to 2 (very varied).
@@ -105,7 +112,8 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
         string.IsNullOrWhiteSpace(ApiKey) ? null : ApiKey.Trim(),
         (double)Math.Clamp(Temperature ?? (decimal)AIConnection.DefaultTemperature, 0m, 2m),
         MaxTokens is > 0 ? (int)Math.Min(MaxTokens.Value, int.MaxValue) : null,
-        AllowRemote && IsRemote);
+        AllowRemote && IsRemote,
+        string.IsNullOrWhiteSpace(EmbeddingModel) ? null : EmbeddingModel.Trim());
 
     partial void OnSelectedProviderChanged(ProviderOption oldValue, ProviderOption newValue)
     {
@@ -146,6 +154,8 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
     partial void OnModelChanged(string value) => Save();
 
     partial void OnApiKeyChanged(string? value) => Save();
+
+    partial void OnEmbeddingModelChanged(string? value) => Save();
 
     partial void OnTemperatureChanged(decimal? value) => Save();
 
@@ -292,7 +302,8 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
     });
 
     /// <summary>
-    /// Lists the models and has the chosen one answer a short question.
+    /// Lists the models and has the chosen one answer a short question; the embedding model, if
+    /// one is chosen, turns the question into a vector.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanTalkToServer))]
     private Task TestAsync() => Run(async (item, connection, token) =>
@@ -315,7 +326,14 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
         }
 
         var seconds = watch.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.CurrentCulture);
-        ShowResult(_localizer.Format("AI_TestPassed", connection.Model, seconds, Shorten(answer.ToString())), isError: false);
+        var result = _localizer.Format("AI_TestPassed", connection.Model, seconds, Shorten(answer.ToString()));
+        if (connection.EmbeddingModel is { } embeddingModel)
+        {
+            var vector = (await _providers.Create(connection).EmbedAsync([TestPrompt], token))[0];
+            result += Environment.NewLine + _localizer.Format("AI_EmbeddingTestPassed", embeddingModel, vector.Length);
+        }
+
+        ShowResult(result, isError: false);
     });
 
     [RelayCommand]

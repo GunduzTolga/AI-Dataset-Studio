@@ -749,6 +749,12 @@
   <data name="AIError_ModelNotFound" xml:space="preserve">
     <value>The server has no model “{0}”. Choose another in AI Connections, or download it on the server (e.g. ollama pull {0}).</value>
   </data>
+  <data name="AIError_NoEmbeddingModel" xml:space="preserve">
+    <value>No embedding model is chosen for {0}. Choose one in AI Connections (e.g. nomic-embed-text or bge-m3).</value>
+  </data>
+  <data name="AIError_EmbeddingModelNotFound" xml:space="preserve">
+    <value>The server has no embedding model “{0}”. Choose another in AI Connections, or download it on the server (e.g. ollama pull {0}).</value>
+  </data>
   <data name="AIError_NotAnApi" xml:space="preserve">
     <value>There is no OpenAI-compatible API at {0}. Most servers serve it under /v1.</value>
   </data>
@@ -778,6 +784,15 @@
   </data>
   <data name="Status_JudgedMany" xml:space="preserve">
     <value>Judged {0:N0} records in “{1}”</value>
+  </data>
+  <data name="Status_SemanticDone" xml:space="preserve">
+    <value>{0:N0} questions turned into vectors with {1}</value>
+  </data>
+  <data name="Status_SemanticStopped" xml:space="preserve">
+    <value>Stopped; the {0:N0} vectors made are kept</value>
+  </data>
+  <data name="Status_SemanticOff" xml:space="preserve">
+    <value>“{0}” compares questions by their words only</value>
   </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>{0:N0} records imported into “{1}”; {2:N0} rows skipped</value>
@@ -1841,6 +1856,15 @@
   <data name="AI_ApiKeyWatermark" xml:space="preserve">
     <value>Most local servers need none</value>
   </data>
+  <data name="AI_EmbeddingModel" xml:space="preserve">
+    <value>Embedding model (optional)</value>
+  </data>
+  <data name="AI_EmbeddingModelWatermark" xml:space="preserve">
+    <value>e.g. bge-m3 or nomic-embed-text</value>
+  </data>
+  <data name="AI_EmbeddingModelHint" xml:space="preserve">
+    <value>Turns questions into vectors to find those asked in other words (dataset overview › Similar in meaning). Download one on the server first, e.g. ollama pull bge-m3.</value>
+  </data>
   <data name="AI_Test" xml:space="preserve">
     <value>Test</value>
   </data>
@@ -1867,6 +1891,9 @@
   </data>
   <data name="AI_TestPassed" xml:space="preserve">
     <value>Works: {0} answered in {1} s — “{2}”</value>
+  </data>
+  <data name="AI_EmbeddingTestPassed" xml:space="preserve">
+    <value>{0} turns a text into {1:N0} numbers.</value>
   </data>
   <data name="QA_Title" xml:space="preserve">
     <value>Extract Q&amp;A from a Document</value>
@@ -2228,6 +2255,48 @@
   <data name="Overview_JudgeHint" xml:space="preserve">
     <value>Opens the judge window with the records not judged as they are now.</value>
   </data>
+  <data name="Overview_SemanticSection" xml:space="preserve">
+    <value>SIMILAR IN MEANING</value>
+  </data>
+  <data name="Overview_SemanticOff" xml:space="preserve">
+    <value>Questions are compared by their words. An embedding model on your AI connection also finds those asked in other words; vectors are made only when you start it and are kept in the workspace.</value>
+  </data>
+  <data name="Overview_SemanticAll" xml:space="preserve">
+    <value>All {0:N0} questions are compared by meaning.</value>
+  </data>
+  <data name="Overview_SemanticSome" xml:space="preserve">
+    <value>{0:N0} of {1:N0} questions are compared by meaning; new and edited ones by their words until they get a vector.</value>
+  </data>
+  <data name="Overview_SemanticRun" xml:space="preserve">
+    <value>Compare by meaning</value>
+  </data>
+  <data name="Overview_SemanticRest" xml:space="preserve">
+    <value>Compare {0:N0} more questions</value>
+  </data>
+  <data name="Overview_SemanticSwitch" xml:space="preserve">
+    <value>Compare with {0} instead</value>
+  </data>
+  <data name="Overview_SemanticHint" xml:space="preserve">
+    <value>Sends the dataset's questions to the embedding model of your AI connection.</value>
+  </data>
+  <data name="Overview_SemanticNoConnection" xml:space="preserve">
+    <value>Set up an AI connection with an embedding model first: Ollama or LM Studio on this computer is enough.</value>
+  </data>
+  <data name="Overview_SemanticProgress" xml:space="preserve">
+    <value>Turning questions into vectors with {2}: {0:N0} of {1:N0}…</value>
+  </data>
+  <data name="Overview_SemanticModel" xml:space="preserve">
+    <value>Model: {0}</value>
+  </data>
+  <data name="Overview_SemanticThreshold" xml:space="preserve">
+    <value>Alike from (cosine)</value>
+  </data>
+  <data name="Overview_SemanticThresholdHint" xml:space="preserve">
+    <value>Higher is stricter. 0.90 suits most models; lower it if questions asked in other words are missed.</value>
+  </data>
+  <data name="Overview_SemanticTurnOff" xml:space="preserve">
+    <value>Turn off</value>
+  </data>
   <data name="AIProvider_Ollama" xml:space="preserve">
     <value>Ollama</value>
   </data>
@@ -2328,7 +2397,7 @@
     <value>Near-duplicate questions</value>
   </data>
   <data name="Issue_NearDuplicate" xml:space="preserve">
-    <value>Nearly the same question as #{0} (85% or more alike).</value>
+    <value>Nearly the same question as #{0}, in wording or in meaning.</value>
   </data>
   <data name="QualityFilter_NearDuplicates" xml:space="preserve">
     <value>Near-duplicate questions</value>

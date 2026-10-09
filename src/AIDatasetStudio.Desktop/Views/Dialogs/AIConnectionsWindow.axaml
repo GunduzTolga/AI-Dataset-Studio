@@ -140,6 +140,13 @@
               </Grid>
             </StackPanel>
 
+            <StackPanel>
+              <TextBlock Classes="label" Text="{l:Tr AI_EmbeddingModel}" />
+              <ComboBox x:Name="EmbeddingModelBox" IsEditable="True" HorizontalAlignment="Stretch" ItemsSource="{Binding Models}"
+                        Text="{Binding EmbeddingModel, Mode=TwoWay}" PlaceholderText="{l:Tr AI_EmbeddingModelWatermark}" />
+              <TextBlock Classes="small muted" Text="{l:Tr AI_EmbeddingModelHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+
             <Grid ColumnDefinitions="*,12,*">
               <StackPanel>
                 <TextBlock Classes="label" Text="{l:Tr AI_Temperature}" />

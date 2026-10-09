@@ -38,7 +38,7 @@ public sealed class NearDuplicateFlowTests
         records.SelectedItem = records.Items[2];
         await host.WaitForDetailsAsync(records.Items[2].Id);
         await DesktopTestHost.WaitUntilAsync(() => details.QualityIssues.Count > 0);
-        Assert.Equal(["Nearly the same question as #1 (85% or more alike)."], details.QualityIssues.Select(i => i.Text));
+        Assert.Equal(["Nearly the same question as #1, in wording or in meaning."], details.QualityIssues.Select(i => i.Text));
         records.SelectedItem = null;
 
         overview.ShowRecordsCommand.Execute(near);
@@ -69,7 +69,7 @@ public sealed class NearDuplicateFlowTests
         await DesktopTestHost.WaitUntilAsync(() => overview.Issues.Any(i => i.Rule == QualityRule.NearDuplicate && i.Count == 4));
         await DesktopTestHost.WaitUntilAsync(() => records.Items.All(row => row.Score == 90));
         await DesktopTestHost.WaitUntilAsync(() => details.QualityIssues.Any(i => i.Rule == QualityRule.NearDuplicate));
-        Assert.Equal("Nearly the same question as #4 (85% or more alike).", details.QualityIssues.Single(i => i.Rule == QualityRule.NearDuplicate).Text);
+        Assert.Equal("Nearly the same question as #4, in wording or in meaning.", details.QualityIssues.Single(i => i.Rule == QualityRule.NearDuplicate).Text);
         Assert.Equal(2L, records.SelectedItem!.Ordinal);
     });
 

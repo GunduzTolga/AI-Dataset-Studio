@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddSingleton<ITokenizerProvider, TiktokenProvider>();
         services.AddSingleton<IRecordAnalysisService, RecordAnalysisService>();
         services.AddSingleton<IJudgmentService, JudgmentService>();
+        services.AddSingleton<ISemanticIndex, SemanticIndex>();
         services.AddSingleton<IExportService, ExportService>();
         services.AddSingleton<IVersionService, VersionService>();
         services.AddSingleton<ITagService, TagService>();
