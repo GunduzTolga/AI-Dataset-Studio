@@ -2452,10 +2452,34 @@
     <value>Veri setlerini birleştir</value>
   </data>
   <data name="Merge_Subtitle" xml:space="preserve">
-    <value>Herhangi projelerdeki aynı türden veri setleri yeni bir veri setinde birleştirilir. Seçtiğiniz veri setleri olduğu gibi kalır.</value>
+    <value>Bu çalışma alanının ya da başka bir çalışma alanı dosyasının herhangi projelerindeki aynı türden veri setleri yeni bir veri setinde birleştirilir. Seçtiğiniz veri setleri olduğu gibi kalır.</value>
   </data>
   <data name="Merge_SectionSources" xml:space="preserve">
     <value>BİRLEŞTİRİLECEK VERİ SETLERİ</value>
+  </data>
+  <data name="Merge_FromThisWorkspace" xml:space="preserve">
+    <value>Bu çalışma alanından</value>
+  </data>
+  <data name="Merge_FromOtherFile" xml:space="preserve">
+    <value>{0} dosyasından</value>
+  </data>
+  <data name="Merge_ChooseFile" xml:space="preserve">
+    <value>Başka bir dosyadan…</value>
+  </data>
+  <data name="Merge_UseThisWorkspace" xml:space="preserve">
+    <value>Bu çalışma alanı</value>
+  </data>
+  <data name="Merge_OpeningFile" xml:space="preserve">
+    <value>Dosya okunuyor…</value>
+  </data>
+  <data name="Merge_OtherFileHint" xml:space="preserve">
+    <value>Dosya bir kopyasından okunur, kendisi hiç değiştirilmez. Etiketler adlarıyla eşleştirilir; bu çalışma alanında olmayanlar renkleriyle eklenir.</value>
+  </data>
+  <data name="Merge_NoDatasets" xml:space="preserve">
+    <value>Burada veri seti yok.</value>
+  </data>
+  <data name="Merge_SameFile" xml:space="preserve">
+    <value>Seçtiğiniz dosya zaten açık olan çalışma alanı.</value>
   </data>
   <data name="Merge_SectionTarget" xml:space="preserve">
     <value>YENİ VERİ SETİ</value>
@@ -2484,8 +2508,14 @@
   <data name="Merge_ChooseAnother" xml:space="preserve">
     <value>Birleştirmek için bir {0} veri seti daha seçin.</value>
   </data>
+  <data name="Merge_ChooseFromFile" xml:space="preserve">
+    <value>Getirilecek veri setlerini seçin.</value>
+  </data>
   <data name="Merge_Summary" xml:space="preserve">
     <value>{0} veri seti · {1:N0} kayıt · {2}</value>
+  </data>
+  <data name="Merge_SummaryOne" xml:space="preserve">
+    <value>1 veri seti · {0:N0} kayıt · {1}</value>
   </data>
   <data name="Merge_Start" xml:space="preserve">
     <value>Birleştir</value>

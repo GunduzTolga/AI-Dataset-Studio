@@ -15,14 +15,16 @@ public sealed partial class ExplorerViewModel : ViewModelBase
     private readonly ICatalogService _catalog;
     private readonly IDatasetMergeService _merge;
     private readonly IDialogService _dialogs;
+    private readonly IFileDialogService _files;
     private readonly StatusBarViewModel _status;
     private readonly Localizer _localizer;
 
-    public ExplorerViewModel(ICatalogService catalog, IDatasetMergeService merge, IDialogService dialogs, StatusBarViewModel status, Localizer localizer)
+    public ExplorerViewModel(ICatalogService catalog, IDatasetMergeService merge, IDialogService dialogs, IFileDialogService files, StatusBarViewModel status, Localizer localizer)
     {
         _catalog = catalog;
         _merge = merge;
         _dialogs = dialogs;
+        _files = files;
         _status = status;
         _localizer = localizer;
         _localizer.CultureChanged += (_, _) =>
@@ -93,7 +95,7 @@ public sealed partial class ExplorerViewModel : ViewModelBase
     {
         try
         {
-            var merge = new Catalog.DatasetMergeViewModel(_merge, _localizer, await _catalog.GetProjectsAsync(), SelectedDataset?.Id);
+            await using var merge = new Catalog.DatasetMergeViewModel(_merge, _files, _localizer, await _catalog.GetProjectsAsync(), SelectedDataset?.Id);
             await _dialogs.ShowDatasetMergeAsync(merge);
             if (merge.Result is { } result)
             {

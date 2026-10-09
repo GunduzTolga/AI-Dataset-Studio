@@ -2514,10 +2514,34 @@
     <value>Merge datasets</value>
   </data>
   <data name="Merge_Subtitle" xml:space="preserve">
-    <value>Datasets of one type, from any projects, are combined into a new dataset. The datasets you choose stay as they are.</value>
+    <value>Datasets of one type, from any projects of this workspace or of another workspace file, are combined into a new dataset. The datasets you choose stay as they are.</value>
   </data>
   <data name="Merge_SectionSources" xml:space="preserve">
     <value>DATASETS TO MERGE</value>
+  </data>
+  <data name="Merge_FromThisWorkspace" xml:space="preserve">
+    <value>From this workspace</value>
+  </data>
+  <data name="Merge_FromOtherFile" xml:space="preserve">
+    <value>From {0}</value>
+  </data>
+  <data name="Merge_ChooseFile" xml:space="preserve">
+    <value>From another file…</value>
+  </data>
+  <data name="Merge_UseThisWorkspace" xml:space="preserve">
+    <value>This workspace</value>
+  </data>
+  <data name="Merge_OpeningFile" xml:space="preserve">
+    <value>Reading the file…</value>
+  </data>
+  <data name="Merge_OtherFileHint" xml:space="preserve">
+    <value>The file is read from a copy and never changed. Tags are matched by name; tags this workspace lacks are added with their color.</value>
+  </data>
+  <data name="Merge_NoDatasets" xml:space="preserve">
+    <value>There are no datasets here.</value>
+  </data>
+  <data name="Merge_SameFile" xml:space="preserve">
+    <value>The file you chose is the open workspace.</value>
   </data>
   <data name="Merge_SectionTarget" xml:space="preserve">
     <value>NEW DATASET</value>
@@ -2546,8 +2570,14 @@
   <data name="Merge_ChooseAnother" xml:space="preserve">
     <value>Choose another {0} dataset to merge with.</value>
   </data>
+  <data name="Merge_ChooseFromFile" xml:space="preserve">
+    <value>Choose the datasets to bring over.</value>
+  </data>
   <data name="Merge_Summary" xml:space="preserve">
     <value>{0} datasets · {1:N0} records · {2}</value>
+  </data>
+  <data name="Merge_SummaryOne" xml:space="preserve">
+    <value>1 dataset · {0:N0} records · {1}</value>
   </data>
   <data name="Merge_Start" xml:space="preserve">
     <value>Merge</value>

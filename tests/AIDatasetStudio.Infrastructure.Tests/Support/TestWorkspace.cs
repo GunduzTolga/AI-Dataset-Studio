@@ -35,7 +35,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Versions = new VersionService(Workspace, Analysis, Clock);
         Tags = new TagService(Workspace, Clock);
         Judgments = new JudgmentService(Workspace);
-        Merge = new DatasetMergeService(Catalog, Queries, Commands);
+        Merge = new DatasetMergeService(Catalog, Queries, Commands, Workspace, Tags, Tokenizers, Clock);
         Evaluations = new EvaluationRunService(Workspace, Clock);
         Semantic = new SemanticIndex(Workspace);
     }

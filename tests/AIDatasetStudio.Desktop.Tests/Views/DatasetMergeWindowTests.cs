@@ -13,7 +13,7 @@ using Avalonia.VisualTree;
 namespace AIDatasetStudio.Desktop.Tests.Views;
 
 /// <summary>
-/// The Merge Datasets window, rendered (M21).
+/// The Merge Datasets window, rendered (M21, M23).
 /// </summary>
 [Collection(LanguageCollection.Name)]
 public sealed class DatasetMergeWindowTests
@@ -28,7 +28,7 @@ public sealed class DatasetMergeWindowTests
         var catalog = host.Get<ICatalogService>();
         var second = await catalog.CreateDatasetAsync((await catalog.GetProjectsAsync()).Single().Id, "Second", DatasetType.Instruction);
         await host.Get<IRecordCommandService>().AddAsync(second, new InstructionPayload("Başka soru", "", "Cevap"), RecordLineage.Manual());
-        var merge = new DatasetMergeViewModel(host.Get<IDatasetMergeService>(), host.Get<Localizer>(), await catalog.GetProjectsAsync(), first.Id);
+        var merge = new DatasetMergeViewModel(host.Get<IDatasetMergeService>(), host.Files, host.Get<Localizer>(), await catalog.GetProjectsAsync(), first.Id);
         merge.Sources.Single(s => s.Name == "Second").IsChecked = true;
         var window = new DatasetMergeWindow { DataContext = merge };
         window.Show();
@@ -55,6 +55,29 @@ public sealed class DatasetMergeWindowTests
         {
             Assert.Equal(31, Assert.Single(made).RecordCount);
         }
+    });
+
+    [Fact]
+    public Task Datasets_of_another_file_are_listed_under_its_name() => UiTest.RunAsync(async () =>
+    {
+        await using var other = new DesktopTestHost();
+        await other.CreateDatasetAsync(DatasetType.Chat, []);
+        await using var host = new DesktopTestHost();
+        await host.CreateDatasetAsync(DatasetType.Instruction, []);
+        await using var merge = new DatasetMergeViewModel(host.Get<IDatasetMergeService>(), host.Files, host.Get<Localizer>(), await host.Get<ICatalogService>().GetProjectsAsync());
+        var window = new DatasetMergeWindow { DataContext = merge };
+        window.Show();
+        Assert.Equal("From this workspace", Find<TextBlock>(window, "SourceText").Text);
+        Assert.False(Find<Button>(window, "ThisWorkspaceButton").IsVisible);
+
+        host.Files.OpenPath = other.PathFor("Test");
+        Find<Button>(window, "ChooseFileButton").Command!.Execute(null);
+        await DesktopTestHost.WaitUntilAsync(() => merge.IsFromOtherFile);
+
+        Assert.Equal("From Test.adstudio", Find<TextBlock>(window, "SourceText").Text);
+        Assert.True(Find<Button>(window, "ThisWorkspaceButton").IsVisible);
+        Assert.Contains(window.GetVisualDescendants().OfType<CheckBox>(), c => c.IsEffectivelyVisible && c.DataContext is MergeSourceItem { Type: DatasetType.Chat });
+        window.Close();
     });
 
     private static T Find<T>(Window window, string name)

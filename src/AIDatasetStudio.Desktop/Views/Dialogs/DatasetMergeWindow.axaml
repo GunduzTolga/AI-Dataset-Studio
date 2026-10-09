@@ -52,6 +52,34 @@
         <ScrollViewer x:Name="SourceList" IsEnabled="{Binding !IsMerging}">
           <StackPanel Margin="24,18,24,20" Spacing="16">
             <TextBlock Classes="overline" Text="{l:Tr Merge_SectionSources}" />
+
+            <!-- Where the datasets come from: this workspace, or another workspace file (M23) -->
+            <Border x:Name="SourceBar" Classes="callout" Padding="12,10">
+              <StackPanel Spacing="8">
+                <DockPanel>
+                  <Panel DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <ic:SymbolIcon Symbol="Folder" IsVisible="{Binding !IsFromOtherFile}" />
+                    <ic:SymbolIcon Symbol="FolderOpen" IsVisible="{Binding IsFromOtherFile}" />
+                  </Panel>
+                  <TextBlock x:Name="SourceText" Classes="small strong" Text="{Binding SourceText}"
+                             VerticalAlignment="Center" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+                <TextBlock Classes="caption muted" Text="{l:Tr Merge_OtherFileHint}" TextWrapping="Wrap" IsVisible="{Binding IsFromOtherFile}" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Button x:Name="ChooseFileButton" Classes="subtle small" Command="{Binding ChooseFileCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <ic:SymbolIcon Symbol="FolderOpen" />
+                      <TextBlock Text="{l:Tr Merge_ChooseFile}" />
+                    </StackPanel>
+                  </Button>
+                  <Button x:Name="ThisWorkspaceButton" Classes="subtle small" Content="{l:Tr Merge_UseThisWorkspace}"
+                          Command="{Binding UseThisWorkspaceCommand}" IsVisible="{Binding IsFromOtherFile}" />
+                  <TextBlock Classes="caption muted" Text="{l:Tr Merge_OpeningFile}" VerticalAlignment="Center" IsVisible="{Binding IsOpeningFile}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Classes="muted" Text="{l:Tr Merge_NoDatasets}" IsVisible="{Binding HasNoSources}" />
             <ItemsControl ItemsSource="{Binding Groups}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MergeProjectGroup">

@@ -1,6 +1,9 @@
+using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Catalog;
 using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Application.Tags;
+using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Domain.Entities;
 using AIDatasetStudio.Domain.Enums;
 
@@ -9,9 +12,17 @@ namespace AIDatasetStudio.Infrastructure.Catalog;
 /// <summary>
 /// Merges datasets into a new one (M21, ADR-043) through the same snapshots that bring back
 /// deleted records: every record is copied whole, with a new id, in the sources' order. The
-/// sources are only read.
+/// sources are only read; they may be in another workspace file (M23), whose tags are matched to
+/// this workspace's by name.
 /// </summary>
-internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryService queries, IRecordCommandService commands) : IDatasetMergeService
+internal sealed class DatasetMergeService(
+    ICatalogService catalog,
+    IRecordQueryService queries,
+    IRecordCommandService commands,
+    IWorkspaceService workspaces,
+    ITagService tags,
+    ITokenizerProvider tokenizers,
+    TimeProvider timeProvider) : IDatasetMergeService
 {
     private const int BatchSize = 500;
 
@@ -29,16 +40,36 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
         return Task.Run(() => MergeCoreAsync(request, progress, cancellationToken), cancellationToken);
     }
 
+    public async Task<IMergeSource> OpenWorkspaceAsync(string path, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (workspaces.Current is { } current && SamePath(current.FilePath, path))
+        {
+            throw new ArgumentException("This is the open workspace; its datasets are merged without opening it again.", nameof(path));
+        }
+
+        return await OtherWorkspace.OpenAsync(path, timeProvider, tokenizers, cancellationToken);
+    }
+
+    private static bool SamePath(string a, string b) => string.Equals(
+        Path.GetFullPath(a), Path.GetFullPath(b), OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+
     private async Task<DatasetMergeResult> MergeCoreAsync(
         DatasetMergeRequest request, IProgress<DatasetMergeProgress>? progress, CancellationToken cancellationToken)
     {
+        var other = request.From switch
+        {
+            null => null,
+            OtherWorkspace workspace => workspace,
+            _ => throw new ArgumentException("Merge sources come from OpenWorkspaceAsync.", nameof(request)),
+        };
         var projects = await catalog.GetProjectsAsync(cancellationToken);
         if (projects.All(p => p.Id != request.TargetProjectId))
         {
             throw new NotFoundException(nameof(Project), request.TargetProjectId);
         }
 
-        var datasets = projects.SelectMany(p => p.Datasets).ToDictionary(d => d.Id);
+        var datasets = (other?.Projects ?? projects).SelectMany(p => p.Datasets).ToDictionary(d => d.Id);
         var sources = request.SourceDatasetIds.Distinct().Select(id => datasets.GetValueOrDefault(id) ?? throw new NotFoundException(nameof(Dataset), id)).ToList();
         if (sources.Select(s => s.Type).Distinct().Count() > 1)
         {
@@ -47,22 +78,41 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
 
         var first = sources[0];
         var targetId = await catalog.CreateDatasetAsync(request.TargetProjectId, request.Name, first.Type, cancellationToken);
+        TagMap? tagMap = null;
         try
         {
+            if (other is not null)
+            {
+                tagMap = new TagMap(await other.Tags.ListAsync(cancellationToken: cancellationToken), tags);
+            }
+
             await catalog.SetTokenSettingsAsync(targetId, first.Tokenizer, first.ContextLength, cancellationToken);
             await catalog.SetAIGuidanceAsync(targetId, first.AIGuidance, cancellationToken);
-            return await CopyAsync(request, sources, targetId, progress, cancellationToken);
+            return await CopyAsync(request, other?.Queries ?? queries, tagMap, sources, targetId, progress, cancellationToken);
         }
         catch
         {
-            // Cancelled or failed: no half-merged dataset stays behind.
+            // Cancelled or failed: no half-merged dataset, nor the tags added for it, stays behind.
             await catalog.DeleteDatasetAsync(targetId, CancellationToken.None);
+            foreach (var added in tagMap?.Added ?? [])
+            {
+                await tags.DeleteAsync(added, CancellationToken.None);
+            }
+
             throw;
         }
     }
 
+    /// <param name="sourceQueries">Where the sources are read: this workspace, or the other file's copy.</param>
+    /// <param name="tagMap">The other file's tags as this workspace's; <c>null</c> within this workspace.</param>
     private async Task<DatasetMergeResult> CopyAsync(
-        DatasetMergeRequest request, List<DatasetSummary> sources, Guid targetId, IProgress<DatasetMergeProgress>? progress, CancellationToken cancellationToken)
+        DatasetMergeRequest request,
+        IRecordQueryService sourceQueries,
+        TagMap? tagMap,
+        List<DatasetSummary> sources,
+        Guid targetId,
+        IProgress<DatasetMergeProgress>? progress,
+        CancellationToken cancellationToken)
     {
         // The records in order first, to tell how far the merge is.
         var order = new List<(Guid DatasetId, List<Guid> Ids)>();
@@ -72,7 +122,7 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
             RecordCursor? after = null;
             do
             {
-                var page = await queries.GetPageAsync(source.Id, RecordFilter.None, after, BatchSize, cancellationToken);
+                var page = await sourceQueries.GetPageAsync(source.Id, RecordFilter.None, after, BatchSize, cancellationToken);
                 ids.AddRange(page.Items.Select(item => item.Id));
 
                 after = page.Next;
@@ -95,7 +145,7 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
         {
             foreach (var batch in ids.Chunk(BatchSize))
             {
-                var snapshots = (await queries.GetSnapshotsAsync(batch, cancellationToken)).OrderBy(s => s.Ordinal).ToList();
+                var snapshots = (await sourceQueries.GetSnapshotsAsync(batch, cancellationToken)).OrderBy(s => s.Ordinal).ToList();
                 var write = new List<RecordSnapshot>(snapshots.Count);
                 foreach (var snapshot in snapshots)
                 {
@@ -126,6 +176,7 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
                         Ordinal = ordinal,
                         Status = request.AsDrafts && !isArchived ? RecordStatus.Draft : snapshot.Status,
                         MetadataJson = metadata,
+                        TagIds = tagMap is null ? snapshot.TagIds : await tagMap.MapAsync(snapshot.TagIds, cancellationToken),
                     });
                 }
 
@@ -146,4 +197,51 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
         VariantOf.FromMetadata(metadata) is not { } family ? metadata
         : families.TryGetValue(family.Id, out var copy) ? VariantOf.WithFamily(metadata, copy)
         : VariantOf.WithoutFamily(metadata);
+
+    /// <summary>
+    /// The other workspace's tags as this workspace's, by name. A tag only it has is added when a
+    /// copied record first carries it, with its color and no shortcut (the keys 1–5 stay with the
+    /// tags they are on).
+    /// </summary>
+    private sealed class TagMap(IReadOnlyList<TagInfo> theirs, ITagService tags)
+    {
+        private readonly Dictionary<Guid, TagInfo> _theirs = theirs.ToDictionary(t => t.Id);
+        private readonly Dictionary<Guid, Guid> _map = [];
+        private Dictionary<string, Guid>? _ours;
+
+        /// <summary>
+        /// The tags added to this workspace for the merge.
+        /// </summary>
+        public List<Guid> Added { get; } = [];
+
+        public async Task<IReadOnlyList<Guid>> MapAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken)
+        {
+            var mapped = new List<Guid>(ids.Count);
+            foreach (var id in ids)
+            {
+                if (!_map.TryGetValue(id, out var mine))
+                {
+                    if (!_theirs.TryGetValue(id, out var tag))
+                    {
+                        continue;
+                    }
+
+                    _ours ??= (await tags.ListAsync(cancellationToken: cancellationToken)).ToDictionary(t => Tag.FoldName(t.Name), t => t.Id, StringComparer.Ordinal);
+                    if (!_ours.TryGetValue(Tag.FoldName(tag.Name), out mine))
+                    {
+                        var added = await tags.CreateAsync(tag.Name, cancellationToken);
+                        Added.Add(added.Id);
+                        await tags.UpdateAsync(added.Id, added.Name, tag.ColorHex, shortcut: null, cancellationToken);
+                        mine = _ours[Tag.FoldName(tag.Name)] = added.Id;
+                    }
+
+                    _map[id] = mine;
+                }
+
+                mapped.Add(mine);
+            }
+
+            return mapped;
+        }
+    }
 }

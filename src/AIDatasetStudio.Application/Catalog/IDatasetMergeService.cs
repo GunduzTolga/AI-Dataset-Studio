@@ -9,13 +9,30 @@ namespace AIDatasetStudio.Application.Catalog;
 /// <param name="SkipDuplicates">Copy only the first of records with exactly the same content.</param>
 /// <param name="IncludeArchived">Also copy archived records (they stay archived).</param>
 /// <param name="AsDrafts">Copy every record as a draft, to be reviewed again in its new dataset.</param>
+/// <param name="From">Another workspace file the sources are in (M23); <c>null</c> for this workspace.</param>
 public sealed record DatasetMergeRequest(
     IReadOnlyList<Guid> SourceDatasetIds,
     Guid TargetProjectId,
     string Name,
     bool SkipDuplicates = true,
     bool IncludeArchived = false,
-    bool AsDrafts = false);
+    bool AsDrafts = false,
+    IMergeSource? From = null);
+
+/// <summary>
+/// Another workspace file to merge datasets from (M23). It is read from a private copy: the file
+/// itself is never written, not even upgraded, and may stay open in another window. Dispose it to
+/// remove the copy.
+/// </summary>
+public interface IMergeSource : IAsyncDisposable
+{
+    /// <summary>
+    /// "Destek.adstudio".
+    /// </summary>
+    string FileName { get; }
+
+    IReadOnlyList<ProjectSummary> Projects { get; }
+}
 
 /// <param name="DatasetId">The new dataset.</param>
 /// <param name="Copied">Records written to it.</param>
@@ -41,4 +58,11 @@ public interface IDatasetMergeService
     /// <exception cref="Common.NotFoundException">A source or the project does not exist.</exception>
     /// <exception cref="OperationCanceledException">Cancelled; the new dataset is removed again.</exception>
     Task<DatasetMergeResult> MergeAsync(DatasetMergeRequest request, IProgress<DatasetMergeProgress>? progress = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Opens another workspace file to merge its datasets into this workspace (M23).
+    /// </summary>
+    /// <exception cref="Workspaces.WorkspaceFileException">The file is missing, not a workspace, made by a newer version, or cannot be read.</exception>
+    /// <exception cref="ArgumentException">The file is the open workspace itself.</exception>
+    Task<IMergeSource> OpenWorkspaceAsync(string path, CancellationToken cancellationToken = default);
 }
