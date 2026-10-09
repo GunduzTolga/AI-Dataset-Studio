@@ -54,6 +54,11 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   records only when you ask, and every record can be taken as a draft to review again. The merge
   runs in the background with its progress shown; stopping it, or closing the window, leaves no
   half-made dataset.
+- **From another file…** in the merge window lists the datasets of another `.adstudio` file to
+  bring over, one or more, into a project of the open workspace. The file is read from a copy and
+  never changed, not even upgraded, also while it is open in another window. Tags are matched by
+  name; a tag the open workspace lacks is added with its color and without a shortcut, and taken
+  back again if the merge is stopped.
 
 ### Training configurations
 - The export wizard's new **Training configuration** writes a ready-to-run LoRA fine-tuning setup

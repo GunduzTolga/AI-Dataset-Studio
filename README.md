@@ -16,7 +16,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 ## ✨ Key Features (v0.3 Roadmap & MVP)
 
 - 🔒 **100% Offline & Private:** Built with an offline-first architecture. Your proprietary data never touches third-party clouds unless you connect a cloud model service yourself and allow it.
-- 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files.
+- 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files; Tools › Merge Datasets brings datasets over from another `.adstudio` file without changing it.
 - 🌐 **Bilingual UI:** English and Turkish, switchable at runtime (View › Language).
 - 🎨 **Light & Dark Themes:** Token-based design system with Fluent UI icons (View › Theme).
 - 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat, Preference (DPO/ORPO/RLHF), and Tool Calling formats.
@@ -190,6 +190,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M20 | Axolotl and LLaMA-Factory training configurations written next to exported files | ✅ |
 | M21 | Merging datasets of one type from several projects into a new dataset | ✅ |
 | M22 | Model evaluation: a model answers the test part's questions, a grader scores them against the dataset's answers; earlier evaluations kept to compare | ✅ |
+| M23 | Merging datasets from another `.adstudio` file, read from a copy and never changed; tags matched by name | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
