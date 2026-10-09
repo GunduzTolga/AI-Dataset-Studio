@@ -166,6 +166,23 @@
                   <TextBlock Classes="caption muted" Text="{Binding SplitHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
                 </StackPanel>
               </StackPanel>
+
+              <!-- A fine-tuning configuration next to the files (M20) -->
+              <StackPanel Spacing="10">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionTraining}" />
+                <ComboBox x:Name="TrainingBox" ItemsSource="{Binding TrainingChoices}" SelectedItem="{Binding SelectedTraining}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TrainingChoice">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <StackPanel IsVisible="{Binding IsTraining}">
+                  <TextBlock Classes="label" Text="{l:Tr Export_BaseModel}" />
+                  <TextBox x:Name="BaseModelBox" Text="{Binding BaseModel}" FontFamily="{StaticResource MonoFontFamily}" PlaceholderText="Qwen/Qwen2.5-7B-Instruct" />
+                  <TextBlock Classes="caption muted" Text="{Binding TrainingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+              </StackPanel>
             </StackPanel>
           </ScrollViewer>
         </Border>

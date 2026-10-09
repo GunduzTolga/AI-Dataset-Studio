@@ -55,6 +55,11 @@ public sealed record SplitModeOption(SplitMode Mode, string Label);
 public sealed record StratifyOption(string? StratifyBy, string Label);
 
 /// <summary>
+/// A fine-tuning tool to write a configuration for, or none (M20).
+/// </summary>
+public sealed record TrainingChoice(TrainingFramework? Framework, string Label);
+
+/// <summary>
 /// A written file on the result screen.
 /// </summary>
 public sealed record ExportedFileItem(string Name, string Folder, string CountText);

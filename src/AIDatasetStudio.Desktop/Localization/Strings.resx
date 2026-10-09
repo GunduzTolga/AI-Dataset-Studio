@@ -1357,6 +1357,33 @@
   <data name="Export_SplitHint" xml:space="preserve">
     <value>Each record's file follows from the seed and its question: the same seed gives the same files, new records never move existing ones, and records asking the same or nearly the same question stay together.</value>
   </data>
+  <data name="Export_SectionTraining" xml:space="preserve">
+    <value>TRAINING CONFIGURATION</value>
+  </data>
+  <data name="Export_TrainingNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Export_TrainingAxolotl" xml:space="preserve">
+    <value>Axolotl</value>
+  </data>
+  <data name="Export_TrainingLlamaFactory" xml:space="preserve">
+    <value>LLaMA-Factory</value>
+  </data>
+  <data name="Export_BaseModel" xml:space="preserve">
+    <value>Base model (Hugging Face id)</value>
+  </data>
+  <data name="Export_TrainingAxolotlHint" xml:space="preserve">
+    <value>axolotl.yaml is written next to the files, to fine-tune this model with LoRA. Run it in that folder: axolotl train axolotl.yaml</value>
+  </data>
+  <data name="Export_TrainingLlamaFactoryHint" xml:space="preserve">
+    <value>dataset_info.json and llamafactory.yaml are written next to the files, to fine-tune this model with LoRA. Run it in that folder: llamafactory-cli train llamafactory.yaml</value>
+  </data>
+  <data name="Export_TrainingUnsupported" xml:space="preserve">
+    <value>{0} cannot read {1} files; choose another format.</value>
+  </data>
+  <data name="Export_TrainingFile" xml:space="preserve">
+    <value>training configuration</value>
+  </data>
   <data name="SplitPart_Train" xml:space="preserve">
     <value>train</value>
   </data>

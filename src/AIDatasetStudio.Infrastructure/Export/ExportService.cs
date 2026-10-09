@@ -217,7 +217,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 pipeline.Unsupported,
                 pipeline.OverLimit,
                 pipeline.Duplicates,
-                pipeline.Masked);
+                pipeline.Masked,
+                options.Training is { } training ? WriteTrainingFiles(training, source, options, files) : null);
             // The files are in place: record them even if cancellation comes now.
             await RememberAsync(source, options, result, CancellationToken.None);
             return result;
@@ -234,6 +235,29 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// The fine-tuning configuration, next to the data files and naming them by file name, so the
+    /// folder can be moved to a training machine as it is (M20).
+    /// </summary>
+    private static List<string> WriteTrainingFiles(TrainingOptions training, Source source, ExportOptions options, List<PartFile> files)
+    {
+        var folder = Path.GetDirectoryName(files[0].Path)!;
+        var target = new TrainingTarget(
+            source.Name, source.Type, options.Format, source.ContextLength,
+            [.. files.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed);
+        var written = new List<string>();
+        foreach (var config in TrainingConfigs.Render(training, target))
+        {
+            var path = Path.Combine(folder, config.FileName);
+            var partial = path + ".partial";
+            File.WriteAllText(partial, config.Content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            File.Move(partial, path, overwrite: true);
+            written.Add(path);
+        }
+
+        return written;
     }
 
     private async Task RememberAsync(Source source, ExportOptions options, ExportResult result, CancellationToken cancellationToken)
@@ -296,14 +320,19 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         {
             throw new ArgumentException("Archived records are never exported.", nameof(options));
         }
+
+        if (options.Training is { } training && !TrainingConfigs.Supports(training.Framework, options.Format, type))
+        {
+            throw new ArgumentException($"{training.Framework} cannot train on {options.Format} files.", nameof(options));
+        }
     }
 
     private static async Task<Source> ReadSourceAsync(SqliteConnection connection, Guid datasetId, Guid? versionId, CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
         command.CommandText = versionId is null
-            ? "SELECT Type, NULL FROM Datasets WHERE Id = $ds;"
-            : "SELECT d.Type, v.Number FROM DatasetVersions v JOIN Datasets d ON d.Id = v.DatasetId WHERE v.Id = $version AND v.DatasetId = $ds;";
+            ? "SELECT Type, NULL, Name, ContextLength FROM Datasets WHERE Id = $ds;"
+            : "SELECT d.Type, v.Number, d.Name, v.ContextLength FROM DatasetVersions v JOIN Datasets d ON d.Id = v.DatasetId WHERE v.Id = $version AND v.DatasetId = $ds;";
         command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));
         if (versionId is { } version)
         {
@@ -316,7 +345,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             throw versionId is { } id ? new NotFoundException(nameof(DatasetVersion), id) : new NotFoundException(nameof(Dataset), datasetId);
         }
 
-        return new Source((DatasetType)reader.GetInt64(0), datasetId, versionId, reader.IsDBNull(1) ? null : reader.GetString(1));
+        return new Source(
+            (DatasetType)reader.GetInt64(0), datasetId, versionId, reader.IsDBNull(1) ? null : reader.GetString(1), reader.GetString(2), reader.GetInt32(3));
     }
 
     private static async Task<long> CountSelectedAsync(
@@ -508,7 +538,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             : "0";
 
     /// <param name="VersionNumber">"1.2.0" for a version.</param>
-    private sealed record Source(DatasetType Type, Guid DatasetId, Guid? VersionId, string? VersionNumber)
+    private sealed record Source(DatasetType Type, Guid DatasetId, Guid? VersionId, string? VersionNumber, string Name, int ContextLength)
     {
         public void Bind(SqliteCommand command)
         {

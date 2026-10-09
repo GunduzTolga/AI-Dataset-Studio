@@ -1302,6 +1302,33 @@
   <data name="Export_SplitHint" xml:space="preserve">
     <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı ya da neredeyse aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
   </data>
+  <data name="Export_SectionTraining" xml:space="preserve">
+    <value>EĞİTİM YAPILANDIRMASI</value>
+  </data>
+  <data name="Export_TrainingNone" xml:space="preserve">
+    <value>Yok</value>
+  </data>
+  <data name="Export_TrainingAxolotl" xml:space="preserve">
+    <value>Axolotl</value>
+  </data>
+  <data name="Export_TrainingLlamaFactory" xml:space="preserve">
+    <value>LLaMA-Factory</value>
+  </data>
+  <data name="Export_BaseModel" xml:space="preserve">
+    <value>Temel model (Hugging Face kimliği)</value>
+  </data>
+  <data name="Export_TrainingAxolotlHint" xml:space="preserve">
+    <value>Bu modeli LoRA ile eğitmek için dosyaların yanına axolotl.yaml yazılır. O klasörde çalıştırın: axolotl train axolotl.yaml</value>
+  </data>
+  <data name="Export_TrainingLlamaFactoryHint" xml:space="preserve">
+    <value>Bu modeli LoRA ile eğitmek için dosyaların yanına dataset_info.json ve llamafactory.yaml yazılır. O klasörde çalıştırın: llamafactory-cli train llamafactory.yaml</value>
+  </data>
+  <data name="Export_TrainingUnsupported" xml:space="preserve">
+    <value>{0} bu biçimdeki ({1}) dosyaları okuyamaz; başka bir biçim seçin.</value>
+  </data>
+  <data name="Export_TrainingFile" xml:space="preserve">
+    <value>eğitim yapılandırması</value>
+  </data>
   <data name="SplitPart_Train" xml:space="preserve">
     <value>eğitim</value>
   </data>

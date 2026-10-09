@@ -52,8 +52,14 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             new SourceOption(null, localizer["Export_SourceCurrent"]),
             .. (target.Versions ?? []).Select(v => new SourceOption(v, localizer.Format("Export_SourceVersion", v.Number, v.CreatedAt.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)))),
         ];
+        TrainingChoices =
+        [
+            new TrainingChoice(null, localizer["Export_TrainingNone"]),
+            .. Enum.GetValues<TrainingFramework>().Select(framework => new TrainingChoice(framework, localizer[$"Export_Training{framework}"])),
+        ];
         SkipItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasSkips));
         _applying = true;
+        SelectedTraining = TrainingChoices[0];
         SelectedFormat = Formats.FirstOrDefault();
         SelectedSplitMode = SplitModes[0];
         SelectedStratify = StratifyOptions[0];
@@ -169,6 +175,32 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     public bool IsSplit => SelectedSplitMode is { Mode: not SplitMode.None };
 
+    // ===== Training configuration (M20) =====
+
+    public IReadOnlyList<TrainingChoice> TrainingChoices { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTraining), nameof(TrainingHint))]
+    public partial TrainingChoice? SelectedTraining { get; set; }
+
+    /// <summary>
+    /// The Hugging Face id of the model to fine-tune; follows the format until the user types one.
+    /// </summary>
+    [ObservableProperty]
+    public partial string BaseModel { get; set; } = TrainingConfigs.DefaultBaseModel(ExportFormat.OpenAi);
+
+    public bool IsTraining => SelectedTraining?.Framework is not null;
+
+    /// <summary>
+    /// Which files are written next to the data and the command that runs them.
+    /// </summary>
+    public string TrainingHint => SelectedTraining?.Framework switch
+    {
+        TrainingFramework.Axolotl => _localizer["Export_TrainingAxolotlHint"],
+        TrainingFramework.LlamaFactory => _localizer["Export_TrainingLlamaFactoryHint"],
+        _ => string.Empty,
+    };
+
     public bool IsCustomSplit => SelectedSplitMode?.Mode == SplitMode.Custom;
 
     /// <summary>
@@ -192,7 +224,13 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 SplitMode.Custom => new SplitOptions((int)(TrainPercent ?? 0), (int)(ValidationPercent ?? 0), (int)(TestPercent ?? 0), seed, stratifyBy),
                 _ => null,
             };
-            return split is { IsValid: false } ? null : new ExportOptions(format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split);
+            var training = SelectedTraining?.Framework is { } framework ? new TrainingOptions(framework, BaseModel.Trim()) : null;
+            if (split is { IsValid: false } || (training is not null && !TrainingConfigs.Supports(training.Framework, format.Format, Target.Type)))
+            {
+                return null;
+            }
+
+            return new ExportOptions(format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split, training);
         }
     }
 
@@ -443,6 +481,11 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                     _localizer.Format("Export_FileCount", file.Count)));
             }
 
+            foreach (var file in result.TrainingFiles ?? [])
+            {
+                WrittenFiles.Add(new ExportedFileItem(Path.GetFileName(file), Path.GetDirectoryName(file) ?? string.Empty, _localizer["Export_TrainingFile"]));
+            }
+
             SkipItems.Clear();
             AddSkips(result.Unsupported, result.OverContextLimit, result.Duplicates, notAnalyzed: 0);
             if (result.Masked > 0)
@@ -469,7 +512,20 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     partial void OnSelectedSourceChanged(SourceOption? value) => OnOptionChanged();
 
-    partial void OnSelectedFormatChanged(FormatOption? value) => OnOptionChanged();
+    partial void OnSelectedFormatChanged(FormatOption? oldValue, FormatOption? newValue)
+    {
+        // The suggested model follows the format's chat template unless the user typed their own.
+        if (oldValue is not null && newValue is not null && BaseModel.Trim() == TrainingConfigs.DefaultBaseModel(oldValue.Format))
+        {
+            BaseModel = TrainingConfigs.DefaultBaseModel(newValue.Format);
+        }
+
+        OnOptionChanged();
+    }
+
+    partial void OnSelectedTrainingChanged(TrainingChoice? value) => OnOptionChanged();
+
+    partial void OnBaseModelChanged(string value) => OnOptionChanged();
 
     partial void OnIncludeApprovedChanged(bool value) => OnOptionChanged();
 
@@ -522,7 +578,10 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             OnPropertyChanged(nameof(HasSplitEstimate));
             if (Options is not { } options)
             {
-                ProblemText = Statuses.Count == 0 ? _localizer["Export_NoStatus"] : _localizer["Export_InvalidSplit"];
+                ProblemText = Statuses.Count == 0 ? _localizer["Export_NoStatus"]
+                    : SelectedTraining?.Framework is { } framework && SelectedFormat is { } format && !TrainingConfigs.Supports(framework, format.Format, Target.Type)
+                        ? _localizer.Format("Export_TrainingUnsupported", SelectedTraining.Label, format.Label)
+                        : _localizer["Export_InvalidSplit"];
                 Preview = null;
                 Samples.Clear();
                 SkipItems.Clear();
@@ -599,6 +658,12 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             SkipOverContextLimit = options.SkipOverContextLimit;
             SkipDuplicates = options.SkipDuplicates;
             MaskPersonalData = options.MaskPersonalData;
+            SelectedTraining = TrainingChoices.First(c => c.Framework == options.Training?.Framework);
+            if (options.Training is { BaseModel.Length: > 0 } training)
+            {
+                BaseModel = training.BaseModel;
+            }
+
             // The shares decide the mode; seed and strata are set apart.
             var shares = options.Split is { } chosen ? chosen with { Seed = SplitOptions.DefaultSeed, StratifyBy = null } : null;
             var mode = shares switch
@@ -625,7 +690,11 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     }
 
     private static List<string> ExistingFiles(ExportOptions options, string folder) =>
-        [.. ExportFormats.Files(options, folder).Select(f => f.Path).Where(File.Exists)];
+        [
+            .. ExportFormats.Files(options, folder).Select(f => f.Path)
+                .Concat(options.Training is { } training ? TrainingConfigs.FileNames(training.Framework).Select(name => Path.Combine(folder, name)) : [])
+                .Where(File.Exists),
+        ];
 
     /// <summary>
     /// The dataset name as a file name: characters no file system allows are replaced.

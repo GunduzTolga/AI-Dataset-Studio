@@ -111,6 +111,41 @@ public sealed class ExportServiceTests
     }
 
     [Fact]
+    public async Task A_training_configuration_is_written_next_to_the_files_and_remembered()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        await AddAsync(ws, datasetId, [.. Enumerable.Range(0, 40).Select(i => (RecordPayload)new InstructionPayload($"Soru {i}", "", $"Cevap {i}"))]);
+        var training = new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct");
+        var options = new ExportOptions(ExportFormat.ShareGpt, [RecordStatus.Draft], Split: SplitOptions.Standard, Training: training);
+        var folder = Path.Combine(ws.Directory, "egitim");
+
+        var result = await ws.Export.ExportAsync(datasetId, options, folder, cancellationToken: Ct);
+
+        Assert.Equal(
+            ["dataset_info.json", "llamafactory.yaml", "test.jsonl", "train.jsonl", "val.jsonl"],
+            Directory.EnumerateFiles(folder).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        Assert.Equal([Path.Combine(folder, "dataset_info.json"), Path.Combine(folder, "llamafactory.yaml")], result.TrainingFiles);
+        var yaml = await File.ReadAllTextAsync(Path.Combine(folder, "llamafactory.yaml"), Ct);
+        Assert.Contains("# Fine-tuning \"Dataset\" with LoRA", yaml, StringComparison.Ordinal);
+        Assert.Contains("cutoff_len: 4096\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("\"file_name\": \"val.jsonl\"", await File.ReadAllTextAsync(Path.Combine(folder, "dataset_info.json"), Ct), StringComparison.Ordinal);
+        Assert.Equal(training, (await ws.Export.GetLastOptionsAsync(datasetId, Ct))!.Training);
+
+        // A single file gets its configuration in the same folder.
+        var single = Path.Combine(ws.Directory, "tek", "sss.jsonl");
+        Directory.CreateDirectory(Path.GetDirectoryName(single)!);
+        var alone = await ws.Export.ExportAsync(datasetId, options with { Split = null, Training = training with { Framework = TrainingFramework.Axolotl } }, single, cancellationToken: Ct);
+        Assert.Equal([Path.Combine(ws.Directory, "tek", "axolotl.yaml")], alone.TrainingFiles);
+        Assert.Contains("  - path: \"sss.jsonl\"\n", await File.ReadAllTextAsync(alone.TrainingFiles![0], Ct), StringComparison.Ordinal);
+
+        // A tool that cannot read the format is refused before anything is written.
+        await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.ExportAsync(
+            datasetId, options with { Format = ExportFormat.ChatMl }, Path.Combine(ws.Directory, "chatml"), cancellationToken: Ct));
+        Assert.False(Directory.Exists(Path.Combine(ws.Directory, "chatml")));
+    }
+
+    [Fact]
     public async Task Alpaca_leaves_out_longer_chats_and_says_so()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

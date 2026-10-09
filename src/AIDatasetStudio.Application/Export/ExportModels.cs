@@ -89,13 +89,15 @@ public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int T
 /// <param name="SkipDuplicates">Export only the first of records with exactly the same content.</param>
 /// <param name="MaskPersonalData">Replace personal data with placeholders such as <c>[EMAIL_1]</c> (SDD §9).</param>
 /// <param name="Split">Write train / validation / test files; <c>null</c> for a single file.</param>
+/// <param name="Training">Also write a fine-tuning configuration for the files (M20); <c>null</c> for none.</param>
 public sealed record ExportOptions(
     ExportFormat Format,
     IReadOnlyList<RecordStatus> Statuses,
     bool SkipOverContextLimit = true,
     bool SkipDuplicates = true,
     bool MaskPersonalData = true,
-    SplitOptions? Split = null)
+    SplitOptions? Split = null,
+    TrainingOptions? Training = null)
 {
     /// <summary>
     /// Approved records only, the safe default (SDD §13.2).
@@ -110,7 +112,8 @@ public sealed record ExportOptions(
         && SkipOverContextLimit == other.SkipOverContextLimit
         && SkipDuplicates == other.SkipDuplicates
         && MaskPersonalData == other.MaskPersonalData
-        && Split == other.Split;
+        && Split == other.Split
+        && Training == other.Training;
 
     public override int GetHashCode()
     {
@@ -125,6 +128,7 @@ public sealed record ExportOptions(
         hash.Add(SkipDuplicates);
         hash.Add(MaskPersonalData);
         hash.Add(Split);
+        hash.Add(Training);
         return hash.ToHashCode();
     }
 }
@@ -155,13 +159,15 @@ public sealed record ExportedFile(SplitPart? Part, string Path, long Count);
 /// A finished export.
 /// </summary>
 /// <param name="Masked">Records in which personal data was replaced.</param>
+/// <param name="TrainingFiles">The fine-tuning configuration written next to the data, if one was asked for.</param>
 public sealed record ExportResult(
     IReadOnlyList<ExportedFile> Files,
     long Exported,
     long Unsupported,
     long OverContextLimit,
     long Duplicates,
-    long Masked);
+    long Masked,
+    IReadOnlyList<string>? TrainingFiles = null);
 
 /// <param name="Processed">Records read so far.</param>
 /// <param name="Total">Records with a chosen status.</param>
