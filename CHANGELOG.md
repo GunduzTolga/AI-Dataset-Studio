@@ -17,6 +17,11 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   `system` column when a written record has one.
 - Merging datasets runs in the background with its progress and Cancel working, and model
   evaluation chooses its questions without holding up the window.
+- Web pages with broken markup no longer stop an import: a table cell outside a table is read as
+  text, pages that never close their tags are read quickly and can be stopped, and a charset that
+  cannot be used (UTF-7, UTF-16 without a byte order mark) is ignored.
+- Comparing judged records with others and finding questions to compare by meaning no longer hold
+  up the window, and closing the judge window mid-run still shows the scores already kept.
 
 ### Leaving out records the model scored low
 - The export wizard's **Leave out records the model scored low (1–2)** keeps records that

@@ -88,9 +88,17 @@ internal sealed class SemanticIndex(IWorkspaceDatabase database) : ISemanticInde
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<PendingQuestion>> FindPendingAsync(Guid datasetId, int max, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<PendingQuestion>> FindPendingAsync(Guid datasetId, int max, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(max);
+
+        // SQLite's async calls complete synchronously, and this reads the whole dataset: keep it
+        // off the caller's (UI) thread.
+        return Task.Run(() => FindPendingCoreAsync(datasetId, max, cancellationToken), cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<PendingQuestion>> FindPendingCoreAsync(Guid datasetId, int max, CancellationToken cancellationToken)
+    {
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         // SQLite takes the bare columns from the row of MIN(): each question's first record.

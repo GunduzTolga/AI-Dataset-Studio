@@ -23,6 +23,7 @@ public sealed partial class JudgeViewModel : ViewModelBase, IDisposable
     private readonly Localizer _localizer;
     private readonly HashSet<Guid> _judged = [];
     private CancellationTokenSource? _run;
+    private TaskCompletionSource? _idle;
 
     public JudgeViewModel(
         RecordJudge judge,
@@ -239,6 +240,8 @@ public sealed partial class JudgeViewModel : ViewModelBase, IDisposable
         AIError = null;
         using var cancellation = new CancellationTokenSource();
         _run = cancellation;
+        var idle = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _idle = idle;
         IsRunning = true;
         var done = 0;
         JudgeRecordViewModel? previous = null;
@@ -281,8 +284,15 @@ public sealed partial class JudgeViewModel : ViewModelBase, IDisposable
             _run = null;
             IsRunning = false;
             OnRecordsChanged();
+            idle.TrySetResult();
         }
     }
+
+    /// <summary>
+    /// Ends when no judging is going on. Closing the window stops a run, which then unwinds; scores
+    /// kept as it stopped are known only after that.
+    /// </summary>
+    public Task Idle => _idle?.Task ?? Task.CompletedTask;
 
     private async Task JudgeAsync(JudgeRecordViewModel record, AIConnection connection, CancellationToken cancellationToken)
     {

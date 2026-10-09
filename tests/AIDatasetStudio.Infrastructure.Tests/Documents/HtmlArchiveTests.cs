@@ -223,6 +223,33 @@ public sealed class HtmlArchiveTests : IDisposable
         Assert.Equal("Gövde metni", Assert.Single(bare).Text);
     }
 
+    [Fact]
+    public void Broken_markup_and_odd_charsets_are_read_as_well_as_they_can_be()
+    {
+        // Cells outside a table, or left after the table was closed, are their text.
+        Assert.Equal(["x", "y"], HtmlDocument.Read("<p>x</p><td>y</td>", Ct).Blocks.Select(b => b.Text));
+        Assert.Contains(HtmlDocument.Read("<div><table><tr><td>a</div><td>b", Ct).Blocks, b => b.Text.Contains('b', StringComparison.Ordinal));
+
+        // A charset .NET does not offer, or one that does not read the ASCII markup as ASCII, is not used.
+        Assert.Equal("<p>Ücret</p>", HtmlDocument.Decode(Encoding.UTF8.GetBytes("""<meta charset="utf-7"><p>Ücret</p>"""))[^12..]);
+        Assert.StartsWith("<meta charset=\"utf-16\"><p>İade", HtmlDocument.Decode(Encoding.UTF8.GetBytes("""<meta charset="utf-16"><p>İade</p>""")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Tags_never_closed_are_read_in_linear_time_and_reading_can_be_stopped()
+    {
+        // 80,000 unclosed links took 37 seconds when each tag looked through every open one.
+        var html = string.Concat(Enumerable.Repeat("<a>x", 80_000)) + string.Concat(Enumerable.Repeat("<p>y", 40_000));
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var (blocks, _) = HtmlDocument.Read(html, Ct);
+        Assert.InRange(watch.Elapsed.TotalSeconds, 0, 20);
+        Assert.NotEmpty(blocks);
+
+        using var stopped = new CancellationTokenSource();
+        stopped.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => HtmlDocument.Read(html, stopped.Token));
+    }
+
     private string Write(string name, string content)
     {
         var path = Path.Combine(_directory.FullName, name);

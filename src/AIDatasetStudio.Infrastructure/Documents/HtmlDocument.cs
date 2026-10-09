@@ -86,9 +86,13 @@ internal static partial class HtmlDocument
             try
             {
                 // Pages that say ISO-8859-1 are written in windows-1252, as browsers assume.
-                return TextEncodings.Get(name.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase) ? "windows-1252" : name);
+                var encoding = TextEncodings.Get(name.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase) ? "windows-1252" : name);
+
+                // The markup that named it was read as ASCII: a charset that reads ASCII otherwise
+                // (UTF-16 without a byte order mark, EBCDIC) is not the page's, as browsers decide.
+                return encoding.GetString("<meta charset>"u8) == "<meta charset>" ? encoding : null;
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
             {
                 return null;
             }
@@ -116,7 +120,10 @@ internal static partial class HtmlDocument
     private sealed class Reader(string html, CancellationToken cancellationToken)
     {
         private readonly List<int> _newlines = [];
+        private const int MaxDepth = 512;
+
         private readonly List<(string Name, bool Skip)> _open = [];
+        private bool _inHead;
         private readonly StringBuilder _text = new();
         private readonly Stack<Table> _tables = new();
 
@@ -146,9 +153,10 @@ internal static partial class HtmlDocument
             }
 
             var position = 0;
+            var steps = 0;
             while (position < html.Length)
             {
-                if ((position & 0xFFF) == 0)
+                if ((++steps & 0xFF) == 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                 }
@@ -331,8 +339,16 @@ internal static partial class HtmlDocument
                 return;
             }
 
+            // Pages that never close their tags would nest without end; past a depth no page
+            // needs, elements are taken as if they had no content of their own.
+            if (_open.Count >= MaxDepth)
+            {
+                return;
+            }
+
             var skip = IsSkipped(name, attributes);
             _open.Add((name, skip));
+            _inHead |= name == "head";
             if (skip)
             {
                 _skipping++;
@@ -370,10 +386,19 @@ internal static partial class HtmlDocument
                     _tables.Push(new Table(Line(position)));
                     return;
                 case "tr":
-                    _tables.Peek().Row();
+                    // A row or cell outside any table is just its text.
+                    if (_tables.Count > 0)
+                    {
+                        _tables.Peek().Row();
+                    }
+
                     return;
                 case "td" or "th":
-                    _tables.Peek().Cell();
+                    if (_tables.Count > 0)
+                    {
+                        _tables.Peek().Cell();
+                    }
+
                     return;
             }
 
@@ -495,7 +520,14 @@ internal static partial class HtmlDocument
         // An open head ends where the body's content begins (minified pages leave out </head> and <body>).
         private void LeaveHead()
         {
-            if (_open.Count > 0 && _open.FindLastIndex(e => e.Name == "head") is var head and >= 0)
+            // Looked for once: every tag and every piece of text asks.
+            if (!_inHead)
+            {
+                return;
+            }
+
+            _inHead = false;
+            if (_open.FindLastIndex(e => e.Name == "head") is var head and >= 0)
             {
                 End(_open[head].Name);
             }

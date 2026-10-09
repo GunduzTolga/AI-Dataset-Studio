@@ -166,6 +166,9 @@ public sealed partial class MainWindowViewModel
 
         judge.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
         await _dialogs.ShowJudgeAsync(judge);
+
+        // Closed mid-run: a score kept as the run stopped counts too.
+        await judge.Idle;
         if (judge.JudgedIds.Count > 0)
         {
             await OnJudgedAsync([.. judge.JudgedIds]);

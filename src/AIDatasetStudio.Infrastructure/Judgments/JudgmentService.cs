@@ -133,9 +133,17 @@ internal sealed class JudgmentService(IWorkspaceDatabase database) : IJudgmentSe
         return judgment is null && contradictions.Count == 0 ? JudgmentDetails.None : new JudgmentDetails(judgment, current, contradictions);
     }
 
-    public async Task<IReadOnlyList<SiblingRecord>> FindSiblingsAsync(Guid recordId, int max, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<SiblingRecord>> FindSiblingsAsync(Guid recordId, int max, CancellationToken cancellationToken = default)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(max, 1);
+
+        // SQLite's async calls complete synchronously, and this scans the dataset: keep it off the
+        // caller's (UI) thread.
+        return Task.Run(() => FindSiblingsCoreAsync(recordId, max, cancellationToken), cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<SiblingRecord>> FindSiblingsCoreAsync(Guid recordId, int max, CancellationToken cancellationToken)
+    {
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         // Records that ask the same question or one of its near duplicates, as analysed now, and
