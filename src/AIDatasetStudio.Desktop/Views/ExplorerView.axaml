@@ -54,6 +54,9 @@
             <MenuItem Header="{l:Tr Explorer_Rename}" Command="{Binding RenameCommand}">
               <MenuItem.Icon><ic:SymbolIcon Symbol="Rename" /></MenuItem.Icon>
             </MenuItem>
+            <MenuItem Header="{l:Tr Menu_MergeDatasets}" Command="{Binding MergeDatasetsCommand}">
+              <MenuItem.Icon><ic:SymbolIcon Symbol="Merge" /></MenuItem.Icon>
+            </MenuItem>
             <Separator />
             <MenuItem Header="{l:Tr Explorer_Delete}" Command="{Binding DeleteCommand}">
               <MenuItem.Icon><ic:SymbolIcon Symbol="Delete" /></MenuItem.Icon>

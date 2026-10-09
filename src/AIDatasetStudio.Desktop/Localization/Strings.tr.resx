@@ -1767,6 +1767,9 @@
   <data name="Status_NoTagShortcut" xml:space="preserve">
     <value>{0} kısayolu bir etikete atanmamış. Kısayolları Araçlar › Etiketler'den atayabilirsiniz.</value>
   </data>
+  <data name="Status_Merged" xml:space="preserve">
+    <value>'{0}' veri setinde birleştirildi: {1:N0} kayıt</value>
+  </data>
   <data name="Editor_AddTag" xml:space="preserve">
     <value>Etiket ekle</value>
   </data>
@@ -1799,6 +1802,9 @@
   </data>
   <data name="Menu_Tags" xml:space="preserve">
     <value>_Etiketler…</value>
+  </data>
+  <data name="Menu_MergeDatasets" xml:space="preserve">
+    <value>Veri Setlerini Birleştir…</value>
   </data>
   <data name="Menu_AIConnections" xml:space="preserve">
     <value>Yapay Zekâ Bağlantıları…</value>
@@ -2426,6 +2432,66 @@
   </data>
   <data name="Tags_RecordCount" xml:space="preserve">
     <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Merge_Title" xml:space="preserve">
+    <value>Veri setlerini birleştir</value>
+  </data>
+  <data name="Merge_Subtitle" xml:space="preserve">
+    <value>Herhangi projelerdeki aynı türden veri setleri yeni bir veri setinde birleştirilir. Seçtiğiniz veri setleri olduğu gibi kalır.</value>
+  </data>
+  <data name="Merge_SectionSources" xml:space="preserve">
+    <value>BİRLEŞTİRİLECEK VERİ SETLERİ</value>
+  </data>
+  <data name="Merge_SectionTarget" xml:space="preserve">
+    <value>YENİ VERİ SETİ</value>
+  </data>
+  <data name="Merge_Name" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="Merge_Project" xml:space="preserve">
+    <value>Proje</value>
+  </data>
+  <data name="Merge_SkipDuplicates" xml:space="preserve">
+    <value>Birebir kopyaları dışarıda bırak (ilki kalır)</value>
+  </data>
+  <data name="Merge_IncludeArchived" xml:space="preserve">
+    <value>Arşivlenmiş kayıtları da al</value>
+  </data>
+  <data name="Merge_AsDrafts" xml:space="preserve">
+    <value>Bütün kayıtları yeniden incelemek için taslak olarak al</value>
+  </data>
+  <data name="Merge_Hint" xml:space="preserve">
+    <value>Kayıtlar içerikleri, durumları, kaynakları, etiketleri ve tarihleriyle, varyantlar aileleriyle kopyalanır. Yeni veri seti ilk seçilen veri setinin tokenizer'ını, bağlam uzunluğunu ve yapay zekâ talimatlarını alır. Model değerlendirmeleri kopyalanmaz.</value>
+  </data>
+  <data name="Merge_ChooseDatasets" xml:space="preserve">
+    <value>Aynı türden en az iki veri seti seçin.</value>
+  </data>
+  <data name="Merge_ChooseAnother" xml:space="preserve">
+    <value>Birleştirmek için bir {0} veri seti daha seçin.</value>
+  </data>
+  <data name="Merge_Summary" xml:space="preserve">
+    <value>{0} veri seti · {1:N0} kayıt · {2}</value>
+  </data>
+  <data name="Merge_Start" xml:space="preserve">
+    <value>Birleştir</value>
+  </data>
+  <data name="Merge_Progress" xml:space="preserve">
+    <value>{1:N0} kaydın {0:N0} tanesi kopyalandı</value>
+  </data>
+  <data name="Merge_Cancelled" xml:space="preserve">
+    <value>Birleştirme durduruldu; veri seti oluşturulmadı.</value>
+  </data>
+  <data name="Merge_DoneTitle" xml:space="preserve">
+    <value>Veri setleri birleştirildi</value>
+  </data>
+  <data name="Merge_Done" xml:space="preserve">
+    <value>'{0}' {1:N0} kayıtla oluşturuldu.</value>
+  </data>
+  <data name="Merge_DoneDuplicates" xml:space="preserve">
+    <value>Dışarıda bırakılan birebir kopya: {0:N0}.</value>
+  </data>
+  <data name="Merge_DoneArchived" xml:space="preserve">
+    <value>Dışarıda bırakılan arşivlenmiş kayıt: {0:N0}.</value>
   </data>
   <data name="Tags_Created" xml:space="preserve">
     <value>“{0}” oluşturuldu.</value>

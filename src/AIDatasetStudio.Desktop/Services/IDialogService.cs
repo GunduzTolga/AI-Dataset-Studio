@@ -92,4 +92,9 @@ public interface IDialogService
     /// Shows judging records with a model until the window is closed.
     /// </summary>
     Task ShowJudgeAsync(JudgeViewModel judge);
+
+    /// <summary>
+    /// Shows merging datasets until the window is closed.
+    /// </summary>
+    Task ShowDatasetMergeAsync(ViewModels.Catalog.DatasetMergeViewModel merge);
 }

@@ -1829,6 +1829,9 @@
   <data name="Status_NoTagShortcut" xml:space="preserve">
     <value>No tag uses {0}. Give tags shortcuts in Tools › Tags.</value>
   </data>
+  <data name="Status_Merged" xml:space="preserve">
+    <value>Merged into '{0}': {1:N0} records</value>
+  </data>
   <data name="Editor_AddTag" xml:space="preserve">
     <value>Add tag</value>
   </data>
@@ -1861,6 +1864,9 @@
   </data>
   <data name="Menu_Tags" xml:space="preserve">
     <value>T_ags…</value>
+  </data>
+  <data name="Menu_MergeDatasets" xml:space="preserve">
+    <value>Merge Datasets…</value>
   </data>
   <data name="Menu_AIConnections" xml:space="preserve">
     <value>AI Connections…</value>
@@ -2488,6 +2494,66 @@
   </data>
   <data name="Tags_RecordCount" xml:space="preserve">
     <value>{0:N0} records</value>
+  </data>
+  <data name="Merge_Title" xml:space="preserve">
+    <value>Merge datasets</value>
+  </data>
+  <data name="Merge_Subtitle" xml:space="preserve">
+    <value>Datasets of one type, from any projects, are combined into a new dataset. The datasets you choose stay as they are.</value>
+  </data>
+  <data name="Merge_SectionSources" xml:space="preserve">
+    <value>DATASETS TO MERGE</value>
+  </data>
+  <data name="Merge_SectionTarget" xml:space="preserve">
+    <value>NEW DATASET</value>
+  </data>
+  <data name="Merge_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Merge_Project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Merge_SkipDuplicates" xml:space="preserve">
+    <value>Leave out exact copies (the first one stays)</value>
+  </data>
+  <data name="Merge_IncludeArchived" xml:space="preserve">
+    <value>Include archived records</value>
+  </data>
+  <data name="Merge_AsDrafts" xml:space="preserve">
+    <value>Take every record as a draft, to review again</value>
+  </data>
+  <data name="Merge_Hint" xml:space="preserve">
+    <value>Records keep their content, status, source, tags and dates, and variations their family. The new dataset takes the first chosen dataset's tokenizer, context length and AI instructions. Model judgments are not copied.</value>
+  </data>
+  <data name="Merge_ChooseDatasets" xml:space="preserve">
+    <value>Choose at least two datasets of one type.</value>
+  </data>
+  <data name="Merge_ChooseAnother" xml:space="preserve">
+    <value>Choose another {0} dataset to merge with.</value>
+  </data>
+  <data name="Merge_Summary" xml:space="preserve">
+    <value>{0} datasets · {1:N0} records · {2}</value>
+  </data>
+  <data name="Merge_Start" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Merge_Progress" xml:space="preserve">
+    <value>{0:N0} of {1:N0} records copied</value>
+  </data>
+  <data name="Merge_Cancelled" xml:space="preserve">
+    <value>Merging was stopped; no dataset was created.</value>
+  </data>
+  <data name="Merge_DoneTitle" xml:space="preserve">
+    <value>Datasets merged</value>
+  </data>
+  <data name="Merge_Done" xml:space="preserve">
+    <value>'{0}' was created with {1:N0} records.</value>
+  </data>
+  <data name="Merge_DoneDuplicates" xml:space="preserve">
+    <value>Exact copies left out: {0:N0}.</value>
+  </data>
+  <data name="Merge_DoneArchived" xml:space="preserve">
+    <value>Archived records left out: {0:N0}.</value>
   </data>
   <data name="Tags_Created" xml:space="preserve">
     <value>“{0}” created.</value>

@@ -296,6 +296,19 @@ internal sealed class FakeDialogs : IDialogService
     }
 
     /// <summary>
+    /// What the user does in Tools › Merge Datasets; by default nothing.
+    /// </summary>
+    public Func<Desktop.ViewModels.Catalog.DatasetMergeViewModel, Task> MergeScript { get; set; } = _ => Task.CompletedTask;
+
+    public Desktop.ViewModels.Catalog.DatasetMergeViewModel? LastMerge { get; private set; }
+
+    public async Task ShowDatasetMergeAsync(Desktop.ViewModels.Catalog.DatasetMergeViewModel merge)
+    {
+        LastMerge = merge;
+        await MergeScript(merge);
+    }
+
+    /// <summary>
     /// What the user does in Tools › AI Connections; by default nothing.
     /// </summary>
     public Func<AIConnectionsViewModel, Task> AIConnectionsScript { get; set; } = _ => Task.CompletedTask;

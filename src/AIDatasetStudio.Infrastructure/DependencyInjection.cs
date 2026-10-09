@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddSingleton<IWorkspaceService>(provider => provider.GetRequiredService<WorkspaceService>());
         services.AddSingleton<IWorkspaceDatabase>(provider => provider.GetRequiredService<WorkspaceService>());
         services.AddSingleton<ICatalogService, CatalogService>();
+        services.AddSingleton<IDatasetMergeService, DatasetMergeService>();
         services.AddSingleton<IRecordCommandService, RecordCommandService>();
         services.AddSingleton<IRecordQueryService, RecordQueryService>();
         services.AddSingleton<DocumentReader>();

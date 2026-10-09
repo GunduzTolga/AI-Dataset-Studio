@@ -61,6 +61,31 @@ public sealed record VariantOf(Guid Id, long Ordinal)
         return root.ToJsonString(Options);
     }
 
+    /// <summary>
+    /// The metadata of a record copied to another dataset (M21), its family now that dataset's
+    /// copy of the first record.
+    /// </summary>
+    public static string WithFamily(string metadata, VariantOf family)
+    {
+        ArgumentNullException.ThrowIfNull(family);
+        var root = Parse(metadata) ?? [];
+        root[Key] = JsonSerializer.SerializeToNode(family, Options);
+        return root.ToJsonString(Options);
+    }
+
+    /// <summary>
+    /// The metadata without a family, for a copied variation whose first record was not copied.
+    /// </summary>
+    public static string WithoutFamily(string metadata)
+    {
+        if (Parse(metadata) is not { } root || !root.Remove(Key))
+        {
+            return metadata;
+        }
+
+        return root.ToJsonString(Options);
+    }
+
     private static JsonObject? Parse(string? metadata)
     {
         if (string.IsNullOrWhiteSpace(metadata))

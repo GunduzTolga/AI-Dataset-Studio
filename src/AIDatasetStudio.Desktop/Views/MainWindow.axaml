@@ -150,6 +150,9 @@
         <MenuItem x:Name="CustomTermsMenuItem" Header="{l:Tr Menu_CustomTerms}" Command="{Binding EditCustomTermsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ShieldKeyhole" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="MergeDatasetsMenuItem" Header="{l:Tr Menu_MergeDatasets}" Command="{Binding Explorer.MergeDatasetsCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Merge" /></MenuItem.Icon>
+        </MenuItem>
         <MenuItem x:Name="TagsMenuItem" Header="{l:Tr Menu_Tags}" Command="{Binding ManageTagsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="TagMultiple" /></MenuItem.Icon>
         </MenuItem>

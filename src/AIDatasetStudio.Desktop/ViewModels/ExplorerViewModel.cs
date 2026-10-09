@@ -13,13 +13,15 @@ namespace AIDatasetStudio.Desktop.ViewModels;
 public sealed partial class ExplorerViewModel : ViewModelBase
 {
     private readonly ICatalogService _catalog;
+    private readonly IDatasetMergeService _merge;
     private readonly IDialogService _dialogs;
     private readonly StatusBarViewModel _status;
     private readonly Localizer _localizer;
 
-    public ExplorerViewModel(ICatalogService catalog, IDialogService dialogs, StatusBarViewModel status, Localizer localizer)
+    public ExplorerViewModel(ICatalogService catalog, IDatasetMergeService merge, IDialogService dialogs, StatusBarViewModel status, Localizer localizer)
     {
         _catalog = catalog;
+        _merge = merge;
         _dialogs = dialogs;
         _status = status;
         _localizer = localizer;
@@ -36,7 +38,7 @@ public sealed partial class ExplorerViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedDataset), nameof(IsEmpty))]
-    [NotifyCanExecuteChangedFor(nameof(NewProjectCommand), nameof(NewDatasetCommand), nameof(RenameCommand), nameof(DeleteCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewProjectCommand), nameof(NewDatasetCommand), nameof(RenameCommand), nameof(DeleteCommand), nameof(MergeDatasetsCommand))]
     public partial bool IsWorkspaceOpen { get; set; }
 
     [ObservableProperty]
@@ -81,6 +83,28 @@ public sealed partial class ExplorerViewModel : ViewModelBase
 
         SelectedNode = FindNode(selectedId);
         OnPropertyChanged(nameof(IsEmpty));
+    }
+
+    /// <summary>
+    /// Merges datasets of one type from any projects into a new dataset, which is then shown (M21).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(IsWorkspaceOpen))]
+    private async Task MergeDatasetsAsync()
+    {
+        try
+        {
+            var merge = new Catalog.DatasetMergeViewModel(_merge, _localizer, await _catalog.GetProjectsAsync(), SelectedDataset?.Id);
+            await _dialogs.ShowDatasetMergeAsync(merge);
+            if (merge.Result is { } result)
+            {
+                await ReloadAsync();
+                SelectedNode = FindNode(result.DatasetId);
+                _status.Set("Status_Merged", merge.Name.Trim(), result.Copied);
+            }
+        }
+        catch (Exception ex) when (_status.TryReport(ex))
+        {
+        }
     }
 
     public void Clear()
