@@ -33,7 +33,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - ⚖️ **AI judge:** Record › Judge with AI (Mod+J) has the model rate a record from 1 to 5 with a reason — checking an answer written from a document against its passage and the order of a preference pair — and compare it with records that ask the same thing to find contradicting answers. Scores show in the list, filters list the low ones, and the overview shows how they spread.
 - 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
 - 🔄 **Universal Import & Export:**
-  - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, and Notion or Confluence exports (ZIP).
+  - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
 
 ---
@@ -111,6 +111,8 @@ Importing data: select a dataset, then **File › Import from File…** (or the 
 | Markdown (`.md`, `.markdown`) | One record per heading with text under it: the heading asks, the text answers; the headings above it can fill the input | Instruction, Chat, Preference |
 | PDF (`.pdf`) and Word (`.docx`, `.docm`) | Read like Markdown: headings (by font size in PDFs, by style in Word), lists and tables are recognised; running headers, page numbers and tables of contents are left out. Scanned PDFs (no text) and Word 97–2003 files are explained | Instruction, Chat, Preference |
 | Plain text (`.txt`) | One record per paragraph: the first line asks, the lines after it answer. A `.txt` file is read as a table or as text, whichever it looks like, and the wizard can switch | Instruction, Chat, Preference |
+| HTML pages (`.html`, `.htm`) and ZIPs of pages (Notion, Confluence exports) | Read like Markdown; scripts, navigation and a site's header and footer are left out. A ZIP is one document of pages, a page before the pages under it, each under its title | Instruction, Chat, Preference |
+| Conversation logs: WhatsApp chat exports (Android and iOS) and transcripts (`Customer: …` / `**Agent:** …`, `.txt` or `.md`) | One record per conversation; speakers are mapped like columns (the customer asks, the agent answers). A chat starts a new conversation after a 6-hour pause, a transcript at `---` or headings; media and deleted messages are left out | Chat; Instruction for single exchanges |
 
 Reviewing records: edit fields directly in the right-hand panel; changes are saved with **Mod+S** or automatically when you move on. Fields colour Markdown, fenced code blocks (```` ```json ````, `python`, `javascript`, `csharp`, `sql`, `bash`, `xml`) and JSON documents. Shift/Ctrl-click selects several records for batch actions. (**Mod** is Ctrl on Windows/Linux and Cmd on macOS.)
 
@@ -182,6 +184,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M15 | LLM-as-a-judge scores with reasons, grounding and preference checks, and contradicting answers | ✅ |
 | M16 | Questions alike in meaning: an embedding model on the AI connection, vectors kept in the workspace, pairs joined to the near-duplicate groups | ✅ |
 | M17 | HTML pages and Notion or Confluence exports (ZIP of pages) as documents, for import and Q&A extraction | ✅ |
+| M18 | Customer conversations (WhatsApp chat exports, transcripts) as chat records, speakers mapped to roles | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

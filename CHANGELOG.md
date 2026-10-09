@@ -5,6 +5,21 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Customer conversations
+- WhatsApp chat exports (Android and iOS, in any date format) and transcripts that name the
+  speaker before each message ("Customer: …", "**Agent:** …", in `.txt` or `.md` files) are
+  recognised in **Import from File** and imported as chat records, one per conversation.
+- The wizard shows the log's **speakers** in place of columns: choose the customer (user turns)
+  and, optionally, the agent (assistant turns). Both are suggested from their names ("Müşteri",
+  "Mağaza Destek") or from who opens the conversations; without an agent, everyone else answers.
+- A chat starts a new conversation after a 6-hour pause, a transcript at lines such as `---` or at
+  headings (or else at blank lines). Messages in a row from one side become one turn; a
+  conversation starts with the customer and ends with an answer. System lines, media and deleted
+  messages are left out, and "<This message was edited>" is cut.
+- Instruction datasets take conversations of one question and its answer, so a Markdown FAQ
+  written as "**Soru:** … / **Cevap:** …" under headings gives one record per section.
+- Records point to the conversation's first line: `WhatsApp Chat.txt#line=3`.
+
 ### HTML pages and Notion or Confluence exports
 - HTML pages (`.html`, `.htm`) and ZIPs of pages can be imported and used for **Extract Q&A from
   Document**: headings, paragraphs, nested lists, tables and preformatted text are read, while
