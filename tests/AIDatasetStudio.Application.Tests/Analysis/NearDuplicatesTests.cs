@@ -3,6 +3,7 @@ using AIDatasetStudio.Application.Analysis;
 
 namespace AIDatasetStudio.Application.Tests.Analysis;
 
+[Collection(TimingCollection.Name)]
 public sealed class NearDuplicatesTests
 {
     [Fact]
@@ -113,7 +114,9 @@ public sealed class NearDuplicatesTests
         var groups = NearDuplicates.Group(questions);
         watch.Stop();
 
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5), $"took {watch.Elapsed}");
+        // Comparing every pair would take minutes; the bound leaves room for a busy build machine
+        // (test assemblies run side by side on two cores).
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), $"took {watch.Elapsed}");
         // A number at the start changes only the few 5-grams that cover it, so most are near.
         Assert.All(Enumerable.Range(1, 9), i => Assert.Equal(0, groups[i]));
     }
