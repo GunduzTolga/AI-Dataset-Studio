@@ -20,6 +20,8 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - Web pages with broken markup no longer stop an import: a table cell outside a table is read as
   text, pages that never close their tags are read quickly and can be stopped, and a charset that
   cannot be used (UTF-7, UTF-16 without a byte order mark) is ignored.
+- A damaged or encrypted ZIP attached inside a Notion or Confluence export is left out instead of
+  failing the whole import.
 - Comparing judged records with others and finding questions to compare by meaning no longer hold
   up the window, and closing the judge window mid-run still shows the scores already kept.
 

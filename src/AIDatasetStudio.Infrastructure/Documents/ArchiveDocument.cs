@@ -124,8 +124,17 @@ internal static partial class ArchiveDocument
             {
                 var bytes = ReadEntry(entry, MaxTotalBytes - total);
                 total += bytes.Length;
-                using var inner = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
-                Collect(inner, prefix + name[..^4] + "/", pages, ref total, nested: true, cancellationToken);
+                try
+                {
+                    using var inner = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
+                    Collect(inner, prefix + name[..^4] + "/", pages, ref total, nested: true, cancellationToken);
+                }
+                catch (InvalidDataException)
+                {
+                    // A damaged or encrypted archive among the pages (an attachment) is left out;
+                    // the export's own pages are still read.
+                }
+
                 continue;
             }
 

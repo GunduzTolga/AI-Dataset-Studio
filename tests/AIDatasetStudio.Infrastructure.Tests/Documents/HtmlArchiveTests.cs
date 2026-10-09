@@ -224,6 +224,22 @@ public sealed class HtmlArchiveTests : IDisposable
     }
 
     [Fact]
+    public void A_damaged_archive_among_the_pages_is_left_out()
+    {
+        var path = Path.Combine(_directory.FullName, "Export.zip");
+        File.WriteAllBytes(path, Zip(new Dictionary<string, byte[]>
+        {
+            ["Kargo.html"] = Encoding.UTF8.GetBytes("<h1>Kargo</h1><p>500 TL üzeri ücretsiz.</p>"),
+            ["Ekler/yedek.zip"] = [0x50, 0x4B, 0x03, 0x04, 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x01],
+        }));
+
+        var (blocks, pages) = ArchiveDocument.Read(path, Ct);
+
+        Assert.Equal(1, pages);
+        Assert.Contains(blocks, b => b.Text == "500 TL üzeri ücretsiz.");
+    }
+
+    [Fact]
     public void Broken_markup_and_odd_charsets_are_read_as_well_as_they_can_be()
     {
         // Cells outside a table, or left after the table was closed, are their text.
