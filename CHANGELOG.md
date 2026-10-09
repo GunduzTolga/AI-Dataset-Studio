@@ -5,6 +5,23 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Cloud model services
+- **AI Connections** can now connect OpenAI, Anthropic, Azure OpenAI, OpenRouter, Groq and
+  DeepSeek, besides servers on your computer or network. Anthropic is spoken to through its own
+  Messages API; the others through the OpenAI-compatible one.
+- A cloud service is never asked anything before you allow it: the warning names the service and
+  says its terms of use and privacy policy apply to the records you write with it.
+- **API keys are kept in the operating system's key store:** Windows Credential Manager, the
+  macOS keychain, or the Secret Service on Linux (GNOME Keyring, KWallet, KeePassXC). A saved key
+  is not shown again; it can be replaced or deleted, and goes when its connection is deleted.
+  Keys kept in the settings file by earlier versions move to the key store.
+- Without a key store, keys stay in the settings file, which only you can read, and the window
+  says so. A connection without a key uses the service's environment variable, such as
+  `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`.
+- OpenAI's reasoning models are asked for an answer length the way they accept it, and a model
+  that takes only its own temperature is asked again without one.
+- Services without embeddings (Anthropic, Groq, DeepSeek) hide the embedding model.
+
 ### Customer conversations
 - WhatsApp chat exports (Android and iOS, in any date format) and transcripts that name the
   speaker before each message ("Customer: …", "**Agent:** …", in `.txt` or `.md` files) are

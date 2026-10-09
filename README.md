@@ -15,7 +15,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 
 ## ✨ Key Features (v0.3 Roadmap & MVP)
 
-- 🔒 **100% Offline & Private:** Built with an offline-first architecture. Your proprietary data never touches third-party clouds.
+- 🔒 **100% Offline & Private:** Built with an offline-first architecture. Your proprietary data never touches third-party clouds unless you connect a cloud model service yourself and allow it.
 - 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files.
 - 🌐 **Bilingual UI:** English and Turkish, switchable at runtime (View › Language).
 - 🎨 **Light & Dark Themes:** Token-based design system with Fluent UI icons (View › Theme).
@@ -27,7 +27,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🎲 **Train / Validation / Test Split:** Deterministic, seed-based dataset splitting with stratified sampling.
 - 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
 - 🏷️ **Tags:** Colored tags shared by all datasets, toggled with Mod+1…5, on one record or many; filter the list by tag and split exports within each tag or tag group (`kategori:hukuk`).
-- ✨ **Write with a local model:** Connect Ollama, LM Studio, vLLM or LocalAI (Tools › AI Connections) and let the model write an answer, a chat reply, or the chosen and a worse rejected answer of a DPO pair (Mod+G). You review the text before saving, and the model is recorded in the record's lineage. Nothing leaves your network unless you allow a remote server.
+- ✨ **Write with a local or cloud model:** Connect Ollama, LM Studio, vLLM or LocalAI, or OpenAI, Anthropic, Azure OpenAI, OpenRouter, Groq or DeepSeek (Tools › AI Connections), and let the model write an answer, a chat reply, or the chosen and a worse rejected answer of a DPO pair (Mod+G). You review the text before saving, and the model is recorded in the record's lineage. Nothing leaves your network unless you allow a remote server or a cloud service; API keys are kept in Windows Credential Manager, the macOS keychain or the Secret Service on Linux.
 - 📄 **Questions from documents:** File › Extract Q&A from Document reads a PDF, Word, Markdown, text or HTML document, or a Notion or Confluence export, splits it into passages along its headings, and has the model write the questions each passage answers. Review and edit them next to the passage, then add them as draft records that remember their source passage (Edit › Undo takes them back).
 - 🌿 **Variations:** Record › Generate Variations (Mod+Shift+G) has the model ask a record's question in other words — casual and with typos if you like, with the answer reworded too if you choose. Review the variants, then add them as draft records of the record's family: a family stays in one split part and is not flagged as near duplicates of itself.
 - ⚖️ **AI judge:** Record › Judge with AI (Mod+J) has the model rate a record from 1 to 5 with a reason — checking an answer written from a document against its passage and the order of a preference pair — and compare it with records that ask the same thing to find contradicting answers. Scores show in the list, filters list the low ones, and the overview shows how they spread.
@@ -185,6 +185,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M16 | Questions alike in meaning: an embedding model on the AI connection, vectors kept in the workspace, pairs joined to the near-duplicate groups | ✅ |
 | M17 | HTML pages and Notion or Confluence exports (ZIP of pages) as documents, for import and Q&A extraction | ✅ |
 | M18 | Customer conversations (WhatsApp chat exports, transcripts) as chat records, speakers mapped to roles | ✅ |
+| M19 | Cloud model services (OpenAI, Anthropic, Azure OpenAI, OpenRouter, Groq, DeepSeek) with consent, API keys in the OS key store | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
