@@ -5,6 +5,19 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Model evaluation
+- **Tools › Evaluate a Model…** asks a model the dataset's questions as a model trained on it
+  would see them, at temperature 0, and has a grader model score each answer against the
+  dataset's answer from 1 to 5, with a one-sentence reason. Word overlap (token F1) is counted
+  too. Works with instruction, chat and preference datasets.
+- The questions come from the test part of the dataset's last export by default: the records
+  that export put in `test.jsonl`, found again without writing files, so the model is asked
+  questions it was not trained on. The validation part or all records can be chosen instead;
+  for all records the window warns that a trained model has seen most of them.
+- A seed picks the sample, so two models evaluated with the same part and seed get the same
+  questions. Every finished evaluation is kept with the dataset under **Earlier evaluations**
+  to compare models; **Save report…** writes every answer as JSON Lines.
+
 ### Merging datasets
 - **Tools › Merge Datasets…** (also in the project tree's context menu) combines datasets of one
   type, from any projects, into a new dataset. The datasets you choose are left as they are.
