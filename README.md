@@ -23,7 +23,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - ⚡ **High-Performance Virtualization:** Seamlessly navigate and search 100,000+ records with zero UI lag.
 - 📐 **Token & Context Engine:** Real-time token counting (Tiktoken / BPE) to prevent Out-Of-Memory (OOM) training failures.
 - 🛡️ **PII & Secret Scrubber:** Automatically detect and mask emails, phone numbers, API keys, and sensitive tokens before training.
-- 🧹 **Dataset Health Engine:** Detect exact copies and near-duplicate questions (MinHash), empty prompts, syntax errors, and formatting anomalies.
+- 🧹 **Dataset Health Engine:** Detect exact copies and near-duplicate questions (MinHash, and by meaning with an embedding model), empty prompts, syntax errors, and formatting anomalies.
 - 🎲 **Train / Validation / Test Split:** Deterministic, seed-based dataset splitting with stratified sampling.
 - 🕰️ **Dataset Versions:** Freeze a dataset as v1.0.0, compare any two versions word by word, export a version exactly as it was frozen, and go back to it (undoable).
 - 🏷️ **Tags:** Colored tags shared by all datasets, toggled with Mod+1…5, on one record or many; filter the list by tag and split exports within each tag or tag group (`kategori:hukuk`).
@@ -31,6 +31,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 📄 **Questions from documents:** File › Extract Q&A from Document reads a PDF, Word, Markdown or text document, splits it into passages along its headings, and has the model write the questions each passage answers. Review and edit them next to the passage, then add them as draft records that remember their source passage (Edit › Undo takes them back).
 - 🌿 **Variations:** Record › Generate Variations (Mod+Shift+G) has the model ask a record's question in other words — casual and with typos if you like, with the answer reworded too if you choose. Review the variants, then add them as draft records of the record's family: a family stays in one split part and is not flagged as near duplicates of itself.
 - ⚖️ **AI judge:** Record › Judge with AI (Mod+J) has the model rate a record from 1 to 5 with a reason — checking an answer written from a document against its passage and the order of a preference pair — and compare it with records that ask the same thing to find contradicting answers. Scores show in the list, filters list the low ones, and the overview shows how they spread.
+- 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
 - 🔄 **Universal Import & Export:**
   - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF and Word.
   - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
@@ -144,7 +145,7 @@ Exporting: **File › Export to File…** (Mod+E) or the Export button above the
 
 By default only approved records are exported, without records longer than the context length or exact copies, and with personal data masked. A split writes `train.jsonl`, `val.jsonl` and `test.jsonl` (80/10/10, 90/10 or custom shares) from a hash of the seed and each record's question: the same seed always gives the same files, new records never move existing ones, and records asking the same or nearly the same question stay in one file. Files appear only when complete, and the settings (including the seed) are remembered per dataset.
 
-Near-duplicate questions: after the background analysis, records whose questions share at least 85% of their character 5-grams ("Kargo ücreti ne kadar?" / "Kargo ücreti ne kadardır?") are flagged; the editor names the first similar record, and the overview's **Archive** keeps the first of each group. For preference pairs, the editor's **Compare the answers** button marks the words only the chosen or only the rejected answer has, live while you type.
+Near-duplicate questions: after the background analysis, records whose questions share at least 85% of their character 5-grams ("Kargo ücreti ne kadar?" / "Kargo ücreti ne kadardır?") are flagged; the editor names the first similar record, and the overview's **Archive** keeps the first of each group. With an embedding model on the AI connection, the overview's **Similar in meaning** card also compares questions by meaning (cosine 0.90 by default, 0.80–0.98): their pairs join the same groups. For preference pairs, the editor's **Compare the answers** button marks the words only the chosen or only the rejected answer has, live while you type.
 
 Tags: **Add tag** in the editor finds a tag as you type or creates it (a prefix such as `kategori:` puts it in a group); the × on a chip removes it. With several records selected, the panel adds a tag to all of them or removes one from all. **Tools › Tags…** renames, recolors and deletes tags and gives them Mod+1…5; **Record › Tag** lists them. The list shows each record's tags and filters by tag (or *Untagged*). In the export wizard, **Split within** gives every tag, or every tag of a group, exactly the chosen shares — unlike the plain split, new records can then move a few records at the cut.
 
@@ -179,7 +180,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M13 | PDF and Word import; question–answer extraction from documents with a model, reviewed before adding | ✅ |
 | M14 | Synthetic variations of records, reviewed before adding; a record and its variations stay in one split part | ✅ |
 | M15 | LLM-as-a-judge scores with reasons, grounding and preference checks, and contradicting answers | ✅ |
-| M16 | Questions alike in meaning (local embeddings) | Next |
+| M16 | Questions alike in meaning: an embedding model on the AI connection, vectors kept in the workspace, pairs joined to the near-duplicate groups | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

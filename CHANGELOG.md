@@ -5,6 +5,23 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Questions alike in meaning
+- An AI connection can name an **embedding model** (e.g. `bge-m3` or `nomic-embed-text`);
+  **Test** then also turns a text into a vector and says how long it is.
+- The dataset overview's new **Similar in meaning** card compares the questions of an
+  instruction or chat dataset by meaning: "Parolamı unuttum, ne yapmalıyım?" and "Şifremi nasıl
+  sıfırlarım?" share few words but mean the same. Questions are sent to the embedding model only
+  when you start it, each distinct question once, with progress and stop; a chat's system prompt
+  is left out.
+- Pairs whose vectors are close (cosine 0.90 by default, adjustable from 0.80 to 0.98) join the
+  near-duplicate groups: the *Near-duplicate questions* rule, filter and clean-up, the split and
+  versions treat them like questions that share their wording. Variations of a record still do
+  not count.
+- Vectors are kept in the workspace, so they are made once. New and edited questions are compared
+  by their wording until **Compare N more questions**; another embedding model on the connection
+  offers to start over with it, and **Turn off** goes back to wording only.
+- The near-duplicate issue now reads "Nearly the same question as #1, in wording or in meaning."
+
 ### AI judge
 - **Record › Judge with AI** (Mod+J, also in the editor's new AI JUDGMENT section) has the model
   rate the shown record from 1 to 5 as a training example, with a short reason in the app's
