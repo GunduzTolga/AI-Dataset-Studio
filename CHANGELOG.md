@@ -5,6 +5,20 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### HTML pages and Notion or Confluence exports
+- HTML pages (`.html`, `.htm`) and ZIPs of pages can be imported and used for **Extract Q&A from
+  Document**: headings, paragraphs, nested lists, tables and preformatted text are read, while
+  scripts, styles, navigation, forms, hidden parts and a site's header and footer are left out.
+  The page's declared charset is honoured.
+- **Confluence** space exports (HTML) leave out breadcrumbs, "Created by …" lines, attachments,
+  comments, the footer and the space's index page, and page titles lose their "Space : " prefix.
+- **Notion** exports (Markdown or HTML, also in parts) lose the 32-digit ids in page names and the
+  property tables of database pages.
+- A ZIP is read as one document of pages, a page before the pages under it. Each page starts with
+  its title, so passages and sections carry the page they come from, and records point to it:
+  `Export.zip#page=2`. A page always starts a new passage, so short pages are not mixed.
+  Archives without pages, damaged or oversized ones are explained.
+
 ### Questions alike in meaning
 - An AI connection can name an **embedding model** (e.g. `bge-m3` or `nomic-embed-text`);
   **Test** then also turns a text into a vector and says how long it is.
