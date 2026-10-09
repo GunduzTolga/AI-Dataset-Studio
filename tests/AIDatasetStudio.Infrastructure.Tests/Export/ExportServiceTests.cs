@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -208,6 +210,54 @@ public sealed class ExportServiceTests
         Assert.Equal("eski\n", await File.ReadAllTextAsync(path, Ct));
         Assert.DoesNotContain(Directory.EnumerateFiles(ws.Directory), f => f.EndsWith(".partial", StringComparison.Ordinal));
         Assert.Null(await ws.Export.GetLastExportAsync(datasetId, Ct));
+    }
+
+    [Fact]
+    public async Task Records_the_model_scored_low_can_be_left_out()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var ids = await AddAsync(ws, datasetId,
+            new InstructionPayload("a", "", "iyi"),        // scored 5
+            new InstructionPayload("b", "", "kötü"),       // scored 1
+            new InstructionPayload("c", "", "eski"),       // scored 2, then changed
+            new InstructionPayload("b", "", "kötü"),       // a copy of the low one, not judged
+            new InstructionPayload("d", "", "orta"));      // scored 3
+        foreach (var (id, score) in new[] { (ids[0], 5), (ids[1], 1), (ids[2], 2), (ids[4], 3) })
+        {
+            var hash = (await ws.Queries.GetAsync(id, Ct))!.ContentHash;
+            await ws.Judgments.SaveAsync(new RecordJudgment(id, hash, score, "", JudgeFlags.None, "qwen2.5:7b", TestWorkspace.Now), Ct);
+        }
+
+        var version = await ws.Versions.CreateAsync(datasetId, "1.0.0", null, cancellationToken: Ct);
+        await ws.Commands.UpdatePayloadAsync(ids[2], new InstructionPayload("c", "", "yeni"), Ct);
+        // An edited record goes back to review.
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft, RecordStatus.InReview], MaskPersonalData: false, SkipLowJudgeScore: true);
+        var path = Path.Combine(ws.Directory, "scored.jsonl");
+
+        var preview = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 0, cancellationToken: Ct);
+        var result = await ws.Export.ExportAsync(datasetId, options, path, cancellationToken: Ct);
+
+        // The low one is left out; its copy is written in its place, and a judgment of earlier content does not count.
+        string[] expected =
+        [
+            """{"instruction":"a","input":"","output":"iyi"}""",
+            """{"instruction":"c","input":"","output":"yeni"}""",
+            """{"instruction":"b","input":"","output":"kötü"}""",
+            """{"instruction":"d","input":"","output":"orta"}""",
+        ];
+        Assert.Equal(expected, await File.ReadAllLinesAsync(path, Ct));
+        Assert.Equal((1L, 0L, 4L), (preview.LowJudgeScore, preview.Duplicates, preview.Exported));
+        Assert.Equal((1L, 0L, 4L), (result.LowJudgeScore, result.Duplicates, result.Exported));
+        Assert.Equal(options, await ws.Export.GetLastOptionsAsync(datasetId, Ct));
+
+        // Off, the copy is left out instead.
+        var all = await ws.Export.PreviewAsync(datasetId, options with { SkipLowJudgeScore = false }, sampleLines: 0, cancellationToken: Ct);
+        Assert.Equal((0L, 1L, 4L), (all.LowJudgeScore, all.Duplicates, all.Exported));
+
+        // A version keeps a judgment while its record's content is the judged one: "c" was scored 2 as frozen.
+        var frozen = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 0, version.Id, Ct);
+        Assert.Equal((2L, 3L), (frozen.LowJudgeScore, frozen.Exported));
     }
 
     [Fact]

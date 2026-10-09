@@ -1,4 +1,6 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Tests.Support;
@@ -128,6 +130,37 @@ public sealed class ExportWizardTests
         Assert.Equal(["train.jsonl", "val.jsonl", "test.jsonl"], wizard.WrittenFiles.Select(f => f.Name));
         Assert.Equal(4, wizard.Result!.Files.Sum(f => f.Count));
         Assert.DoesNotContain("eski", await File.ReadAllTextAsync(Path.Combine(folder, "train.jsonl"), TestContext.Current.CancellationToken), StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task Records_the_model_scored_low_can_be_left_out() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction, Samples);
+        var queries = host.Get<IRecordQueryService>();
+        foreach (var row in host.Main.Records.Items)
+        {
+            if (await queries.GetAsync(row.Id) is { Payload: InstructionPayload { Instruction: "İade süresi?" } } record)
+            {
+                await host.Get<IJudgmentService>().SaveAsync(new RecordJudgment(record.Id, record.ContentHash, 1, "Eksik.", JudgeFlags.None, "qwen2.5:7b", DateTimeOffset.UtcNow));
+            }
+        }
+
+        var wizard = CreateWizard(host, dataset.Id);
+        await wizard.InitializeAsync();
+        wizard.IncludeDraft = true;
+        await wizard.PendingWork;
+
+        // Off by default.
+        Assert.True(wizard.CanSkipLowJudgeScore);
+        Assert.False(wizard.SkipLowJudgeScore);
+        Assert.Equal(4, wizard.Preview!.Exported);
+
+        wizard.SkipLowJudgeScore = true;
+        await wizard.PendingWork;
+        Assert.Equal(3, wizard.Preview!.Exported);
+        Assert.Contains(wizard.SkipItems, s => s.Text == "Left out: the model scored them low" && s.CountText == "1");
+        Assert.True(wizard.Options!.SkipLowJudgeScore);
     });
 
     [Fact]

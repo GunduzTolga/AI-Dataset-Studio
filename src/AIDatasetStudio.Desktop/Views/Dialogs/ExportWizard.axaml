@@ -121,6 +121,8 @@
                 </StackPanel>
                 <CheckBox IsChecked="{Binding SkipOverContextLimit}" Content="{l:Tr Export_SkipOverLimitOption}" />
                 <CheckBox IsChecked="{Binding SkipDuplicates}" Content="{l:Tr Export_SkipDuplicatesOption}" />
+                <CheckBox x:Name="SkipLowScoreBox" IsChecked="{Binding SkipLowJudgeScore}" Content="{l:Tr Export_SkipLowJudgeScoreOption}"
+                          IsVisible="{Binding CanSkipLowJudgeScore}" ToolTip.Tip="{l:Tr Export_SkipLowJudgeScoreHint}" />
                 <CheckBox IsChecked="{Binding MaskPersonalData}" Content="{l:Tr Export_MaskOption}" />
               </StackPanel>
 

@@ -90,6 +90,10 @@ public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int T
 /// <param name="MaskPersonalData">Replace personal data with placeholders such as <c>[EMAIL_1]</c> (SDD §9).</param>
 /// <param name="Split">Write train / validation / test files; <c>null</c> for a single file.</param>
 /// <param name="Training">Also write a fine-tuning configuration for the files (M20); <c>null</c> for none.</param>
+/// <param name="SkipLowJudgeScore">
+/// Leave out records the model scored 1–2 (SDD §17.7), by a judgment of their content as it is;
+/// an outdated judgment does not count.
+/// </param>
 public sealed record ExportOptions(
     ExportFormat Format,
     IReadOnlyList<RecordStatus> Statuses,
@@ -97,7 +101,8 @@ public sealed record ExportOptions(
     bool SkipDuplicates = true,
     bool MaskPersonalData = true,
     SplitOptions? Split = null,
-    TrainingOptions? Training = null)
+    TrainingOptions? Training = null,
+    bool SkipLowJudgeScore = false)
 {
     /// <summary>
     /// Approved records only, the safe default (SDD §13.2).
@@ -113,7 +118,8 @@ public sealed record ExportOptions(
         && SkipDuplicates == other.SkipDuplicates
         && MaskPersonalData == other.MaskPersonalData
         && Split == other.Split
-        && Training == other.Training;
+        && Training == other.Training
+        && SkipLowJudgeScore == other.SkipLowJudgeScore;
 
     public override int GetHashCode()
     {
@@ -129,6 +135,7 @@ public sealed record ExportOptions(
         hash.Add(MaskPersonalData);
         hash.Add(Split);
         hash.Add(Training);
+        hash.Add(SkipLowJudgeScore);
         return hash.ToHashCode();
     }
 }
@@ -142,15 +149,17 @@ public sealed record ExportOptions(
 /// <param name="Duplicates">Later copies left out.</param>
 /// <param name="NotAnalyzed">Records whose length is not known yet; they are checked when exporting.</param>
 /// <param name="SampleLines">The first lines of the file, exactly as they will be written.</param>
+/// <param name="LowJudgeScore">Records left out for the model's low score.</param>
 public sealed record ExportPreview(
     long Selected,
     long Unsupported,
     long OverContextLimit,
     long Duplicates,
     long NotAnalyzed,
-    IReadOnlyList<string> SampleLines)
+    IReadOnlyList<string> SampleLines,
+    long LowJudgeScore = 0)
 {
-    public long Exported => Selected - Unsupported - OverContextLimit - Duplicates;
+    public long Exported => Selected - Unsupported - OverContextLimit - LowJudgeScore - Duplicates;
 }
 
 public sealed record ExportedFile(SplitPart? Part, string Path, long Count);
@@ -160,6 +169,7 @@ public sealed record ExportedFile(SplitPart? Part, string Path, long Count);
 /// </summary>
 /// <param name="Masked">Records in which personal data was replaced.</param>
 /// <param name="TrainingFiles">The fine-tuning configuration written next to the data, if one was asked for.</param>
+/// <param name="LowJudgeScore">Records left out for the model's low score.</param>
 public sealed record ExportResult(
     IReadOnlyList<ExportedFile> Files,
     long Exported,
@@ -167,7 +177,8 @@ public sealed record ExportResult(
     long OverContextLimit,
     long Duplicates,
     long Masked,
-    IReadOnlyList<string>? TrainingFiles = null);
+    IReadOnlyList<string>? TrainingFiles = null,
+    long LowJudgeScore = 0);
 
 /// <param name="Processed">Records read so far.</param>
 /// <param name="Total">Records with a chosen status.</param>

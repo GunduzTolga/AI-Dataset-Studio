@@ -1336,6 +1336,12 @@
   <data name="Export_SkipDuplicatesOption" xml:space="preserve">
     <value>Leave out exact copies (keep the first)</value>
   </data>
+  <data name="Export_SkipLowJudgeScoreOption" xml:space="preserve">
+    <value>Leave out records the model scored low (1–2)</value>
+  </data>
+  <data name="Export_SkipLowJudgeScoreHint" xml:space="preserve">
+    <value>Records whose content as it is now was scored 1 or 2 with Judge with AI. Records not judged, or changed since, are written.</value>
+  </data>
   <data name="Export_MaskOption" xml:space="preserve">
     <value>Mask personal data (e-mail, phone, IDs, keys…)</value>
   </data>
@@ -1451,6 +1457,9 @@
   </data>
   <data name="Export_SkipOverLimit" xml:space="preserve">
     <value>Left out: longer than the context length</value>
+  </data>
+  <data name="Export_SkipLowJudgeScore" xml:space="preserve">
+    <value>Left out: the model scored them low</value>
   </data>
   <data name="Export_SkipDuplicates" xml:space="preserve">
     <value>Left out: copies of an earlier record</value>

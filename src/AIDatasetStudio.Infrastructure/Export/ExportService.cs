@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Export;
@@ -54,30 +55,34 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             return new ExportPreview(0, 0, 0, 0, 0, []);
         }
 
-        // The checks in the pipeline's order; ROW_NUMBER finds the copies of an earlier record.
+        // The checks in the pipeline's order; ROW_NUMBER finds the copies of an earlier record
+        // among those not left out for a low score (a copy of a left-out record is written).
+        var low = options.SkipLowJudgeScore ? "s.LowScore" : "0";
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
             {SourceSql(source)},
             chosen AS (
                 SELECT {UnsupportedSql(options, source.Type)} AS Unsupported,
                        {(options.SkipOverContextLimit ? "s.OverLimit" : "0")} AS OverLimit,
-                       {(options.SkipDuplicates ? "ROW_NUMBER() OVER (PARTITION BY s.ContentHash ORDER BY s.Ordinal) > 1" : "0")} AS Copy,
+                       {low} AS LowScore,
+                       {(options.SkipDuplicates ? $"ROW_NUMBER() OVER (PARTITION BY s.ContentHash, {low} ORDER BY s.Ordinal) > 1" : "0")} AS Copy,
                        {(options.SkipOverContextLimit ? "s.NotAnalyzed" : "0")} AS NotAnalyzed
                 FROM s WHERE s.Status IN ({StatusList(options)}))
             SELECT COUNT(*),
                    COALESCE(SUM(Unsupported), 0),
                    COALESCE(SUM(NOT Unsupported AND OverLimit), 0),
-                   COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND Copy), 0),
-                   COALESCE(SUM(NotAnalyzed), 0)
+                   COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND NOT LowScore AND Copy), 0),
+                   COALESCE(SUM(NotAnalyzed), 0),
+                   COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND LowScore), 0)
             FROM chosen;
             """;
         source.Bind(command);
-        long selected, unsupported, overLimit, duplicates, notAnalyzed;
+        long selected, unsupported, overLimit, duplicates, notAnalyzed, lowScore;
         await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
         {
             await reader.ReadAsync(cancellationToken);
-            (selected, unsupported, overLimit, duplicates, notAnalyzed) =
-                (reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4));
+            (selected, unsupported, overLimit, duplicates, notAnalyzed, lowScore) =
+                (reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetInt64(5));
         }
 
         var samples = new List<string>(sampleLines);
@@ -98,7 +103,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             }
         }
 
-        return new ExportPreview(selected, unsupported, overLimit, duplicates, notAnalyzed, samples);
+        return new ExportPreview(selected, unsupported, overLimit, duplicates, notAnalyzed, samples, lowScore);
     }
 
     public Task<ExportResult> ExportAsync(
@@ -256,7 +261,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 pipeline.OverLimit,
                 pipeline.Duplicates,
                 pipeline.Masked,
-                options.Training is { } training ? WriteTrainingFiles(training, source, options, files) : null);
+                options.Training is { } training ? WriteTrainingFiles(training, source, options, files) : null,
+                pipeline.LowJudgeScore);
             // The files are in place: record them even if cancellation comes now.
             await RememberAsync(source, options, result, CancellationToken.None);
             return result;
@@ -502,7 +508,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 command.Transaction = transaction;
                 command.CommandText = $"""
                     {SourceSql(source)}
-                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}, s.NearGroup, s.Family
+                    SELECT s.Id, s.Ordinal, s.ContentHash, s.DataPayload, s.OverLimit, {(withTags ? "s.TagNames" : "NULL")}, s.NearGroup, s.Family, s.LowScore
                     FROM s WHERE s.Status IN ({StatusList(options)}) AND s.Ordinal > $after
                     ORDER BY s.Ordinal
                     LIMIT {BatchSize};
@@ -519,7 +525,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                         reader.GetBoolean(4),
                         reader.IsDBNull(5) ? null : reader.GetString(5),
                         reader.IsDBNull(6) ? null : SqliteValues.ReadGuid(reader.GetString(6)),
-                        reader.IsDBNull(7) || !Guid.TryParse(reader.GetString(7), out var family) ? null : family));
+                        reader.IsDBNull(7) || !Guid.TryParse(reader.GetString(7), out var family) ? null : family,
+                        reader.GetBoolean(8)));
                     after = reader.GetInt64(1);
                 }
             }
@@ -538,10 +545,12 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     /// <summary>
     /// The records to export as a common table <c>s</c> (Id, Ordinal, Status, ContentHash,
-    /// DataPayload, OverLimit, NotAnalyzed, TagNames, NearGroup, Family): the dataset's records with
-    /// their up-to-date analysis, or a version's records with the token counts, context length and
-    /// groups of near-duplicate questions frozen with it. Family is the record a variation was
-    /// written from, as it is in the metadata (<see cref="VariantOf"/>).
+    /// DataPayload, OverLimit, NotAnalyzed, TagNames, NearGroup, Family, LowScore): the dataset's
+    /// records with their up-to-date analysis, or a version's records with the token counts,
+    /// context length and groups of near-duplicate questions frozen with it. Family is the record a
+    /// variation was written from, as it is in the metadata (<see cref="VariantOf"/>). LowScore is
+    /// a model judgment of 1–2 of exactly this content: a version's record keeps it while the
+    /// judged content is the frozen one.
     /// </summary>
     private static string SourceSql(Source source) => source.VersionId is null
         ? $"""
@@ -549,7 +558,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
               SELECT r.Id AS Id, r.Ordinal AS Ordinal, r.Status AS Status, r.ContentHash AS ContentHash, r.DataPayload AS DataPayload,
                      (a.RecordId IS NOT NULL AND a.TotalTokens > d.ContextLength) AS OverLimit, (a.RecordId IS NULL) AS NotAnalyzed,
                      (SELECT json_group_array(t.Name) FROM RecordTags rt JOIN Tags t ON t.Id = rt.TagId WHERE rt.RecordId = r.Id) AS TagNames,
-                     a.NearGroup AS NearGroup, {AnalysisSql.VariantOf("r")} AS Family
+                     a.NearGroup AS NearGroup, {AnalysisSql.VariantOf("r")} AS Family, {LowScoreSql("r.Id", "r.ContentHash")} AS LowScore
               FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
               WHERE r.DatasetId = $ds)
           """
@@ -558,12 +567,15 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
               SELECT x.RecordId AS Id, m.Ordinal AS Ordinal, m.Status AS Status, x.ContentHash AS ContentHash, x.DataPayload AS DataPayload,
                      (m.Tokens IS NOT NULL AND m.Tokens > v.ContextLength) AS OverLimit, 0 AS NotAnalyzed,
                      (SELECT json_group_array(t.Name) FROM json_each(m.TagIds) j JOIN Tags t ON t.Id = j.value) AS TagNames,
-                     m.NearGroup AS NearGroup, {AnalysisSql.VariantOf("x")} AS Family
+                     m.NearGroup AS NearGroup, {AnalysisSql.VariantOf("x")} AS Family, {LowScoreSql("x.RecordId", "x.ContentHash")} AS LowScore
               FROM VersionRecordMappings m
               JOIN RecordRevisions x ON x.Id = m.RevisionId
               JOIN DatasetVersions v ON v.Id = m.VersionId
               WHERE m.VersionId = $version)
           """;
+
+    private static string LowScoreSql(string recordId, string contentHash) =>
+        $"EXISTS (SELECT 1 FROM RecordJudgments j WHERE j.RecordId = {recordId} AND j.ContentHash = {contentHash} AND j.Score <= {Judging.LowScore})";
 
     private static string StatusList(ExportOptions options) =>
         string.Join(", ", options.Statuses.Distinct().Select(s => ((int)s).ToString(CultureInfo.InvariantCulture)));
@@ -591,7 +603,9 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     /// <param name="TagNames">The record's tag names as a JSON array, when asked for.</param>
     /// <param name="NearGroup">The first record of its group of near-duplicate questions, if any.</param>
     /// <param name="Family">The record it is a variation of, if any.</param>
-    private sealed record ExportRecord(Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null, Guid? NearGroup = null, Guid? Family = null);
+    /// <param name="IsLowScore">The model scored this content 1–2.</param>
+    private sealed record ExportRecord(
+        Guid Id, string ContentHash, string Json, bool IsOverLimit, string? TagNames = null, Guid? NearGroup = null, Guid? Family = null, bool IsLowScore = false);
 
     private readonly record struct ExportLine(SplitPart? Part, string Text);
 
@@ -631,7 +645,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     /// <summary>
     /// Decides for each record, in list order, whether and how it is written. The order of the
-    /// checks (unsupported, too long, copy) matches the preview counts.
+    /// checks (unsupported, too long, low model score, copy) matches the preview counts.
     /// </summary>
     /// <param name="parts">The parts of a stratified split by group key; <c>null</c> to assign by hash alone.</param>
     /// <param name="families">Group keys joined with those of their family (<see cref="SplitFamilies"/>), if any.</param>
@@ -645,6 +659,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         public long Unsupported { get; private set; }
 
         public long OverLimit { get; private set; }
+
+        public long LowJudgeScore { get; private set; }
 
         public long Duplicates { get; private set; }
 
@@ -715,6 +731,12 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             if (options.SkipOverContextLimit && record.IsOverLimit)
             {
                 OverLimit++;
+                return null;
+            }
+
+            if (options.SkipLowJudgeScore && record.IsLowScore)
+            {
+                LowJudgeScore++;
                 return null;
             }
 

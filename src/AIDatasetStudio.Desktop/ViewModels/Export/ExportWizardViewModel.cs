@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
@@ -143,6 +144,17 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool SkipDuplicates { get; set; } = true;
 
+    /// <summary>
+    /// Leave out records the model scored 1–2 (SDD §17.7); off unless chosen.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool SkipLowJudgeScore { get; set; }
+
+    /// <summary>
+    /// Whether records of this type can be judged, and so left out for a low score.
+    /// </summary>
+    public bool CanSkipLowJudgeScore => Judging.Supports(Target.Type);
+
     [ObservableProperty]
     public partial bool MaskPersonalData { get; set; } = true;
 
@@ -230,7 +242,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 return null;
             }
 
-            return new ExportOptions(format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split, training);
+            return new ExportOptions(
+                format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split, training, SkipLowJudgeScore && CanSkipLowJudgeScore);
         }
     }
 
@@ -487,7 +500,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             }
 
             SkipItems.Clear();
-            AddSkips(result.Unsupported, result.OverContextLimit, result.Duplicates, notAnalyzed: 0);
+            AddSkips(result.Unsupported, result.OverContextLimit, result.LowJudgeScore, result.Duplicates, notAnalyzed: 0);
             if (result.Masked > 0)
             {
                 SkipItems.Add(new SkipItem(_localizer["Export_Masked"], ExportText.Count(result.Masked), IsInfo: true));
@@ -536,6 +549,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     partial void OnSkipOverContextLimitChanged(bool value) => OnOptionChanged();
 
     partial void OnSkipDuplicatesChanged(bool value) => OnOptionChanged();
+
+    partial void OnSkipLowJudgeScoreChanged(bool value) => OnOptionChanged();
 
     partial void OnMaskPersonalDataChanged(bool value) => OnOptionChanged();
 
@@ -602,7 +617,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 }
 
                 SkipItems.Clear();
-                AddSkips(preview.Unsupported, preview.OverContextLimit, preview.Duplicates, preview.NotAnalyzed);
+                AddSkips(preview.Unsupported, preview.OverContextLimit, preview.LowJudgeScore, preview.Duplicates, preview.NotAnalyzed);
                 ErrorMessage = null;
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -623,7 +638,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         }
     }
 
-    private void AddSkips(long unsupported, long overLimit, long duplicates, long notAnalyzed)
+    private void AddSkips(long unsupported, long overLimit, long lowScore, long duplicates, long notAnalyzed)
     {
         if (unsupported > 0)
         {
@@ -633,6 +648,11 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         if (overLimit > 0)
         {
             SkipItems.Add(new SkipItem(_localizer["Export_SkipOverLimit"], ExportText.Count(overLimit)));
+        }
+
+        if (lowScore > 0)
+        {
+            SkipItems.Add(new SkipItem(_localizer["Export_SkipLowJudgeScore"], ExportText.Count(lowScore)));
         }
 
         if (duplicates > 0)
@@ -657,6 +677,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             IncludeDraft = options.Statuses.Contains(RecordStatus.Draft);
             SkipOverContextLimit = options.SkipOverContextLimit;
             SkipDuplicates = options.SkipDuplicates;
+            SkipLowJudgeScore = options.SkipLowJudgeScore;
             MaskPersonalData = options.MaskPersonalData;
             SelectedTraining = TrainingChoices.First(c => c.Framework == options.Training?.Framework);
             if (options.Training is { BaseModel.Length: > 0 } training)

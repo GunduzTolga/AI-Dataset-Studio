@@ -1281,6 +1281,12 @@
   <data name="Export_SkipDuplicatesOption" xml:space="preserve">
     <value>Birebir kopyaları dışarıda bırak (ilki kalır)</value>
   </data>
+  <data name="Export_SkipLowJudgeScoreOption" xml:space="preserve">
+    <value>Modelin düşük puan verdiği kayıtları dışarıda bırak (1–2)</value>
+  </data>
+  <data name="Export_SkipLowJudgeScoreHint" xml:space="preserve">
+    <value>Şimdiki içeriği Modelle Değerlendir'de 1 ya da 2 puan almış kayıtlar. Değerlendirilmemiş ya da o zamandan beri değişmiş kayıtlar yazılır.</value>
+  </data>
   <data name="Export_MaskOption" xml:space="preserve">
     <value>Kişisel verileri maskele (e-posta, telefon, kimlik, anahtar…)</value>
   </data>
@@ -1394,6 +1400,9 @@
   </data>
   <data name="Export_SkipOverLimit" xml:space="preserve">
     <value>Dışarıda: bağlam uzunluğunu aşıyor</value>
+  </data>
+  <data name="Export_SkipLowJudgeScore" xml:space="preserve">
+    <value>Dışarıda: model düşük puan verdi</value>
   </data>
   <data name="Export_SkipDuplicates" xml:space="preserve">
     <value>Dışarıda: önceki bir kaydın kopyası</value>
