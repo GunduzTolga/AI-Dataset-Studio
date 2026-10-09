@@ -309,6 +309,19 @@ internal sealed class FakeDialogs : IDialogService
     }
 
     /// <summary>
+    /// What the user does in Tools › Evaluate a Model; by default nothing.
+    /// </summary>
+    public Func<ModelEvaluationViewModel, Task> EvaluationScript { get; set; } = _ => Task.CompletedTask;
+
+    public ModelEvaluationViewModel? LastEvaluation { get; private set; }
+
+    public async Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation)
+    {
+        LastEvaluation = evaluation;
+        await EvaluationScript(evaluation);
+    }
+
+    /// <summary>
     /// What the user does in Tools › AI Connections; by default nothing.
     /// </summary>
     public Func<AIConnectionsViewModel, Task> AIConnectionsScript { get; set; } = _ => Task.CompletedTask;

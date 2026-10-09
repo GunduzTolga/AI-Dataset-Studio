@@ -1809,6 +1809,9 @@
   <data name="Menu_AIConnections" xml:space="preserve">
     <value>Yapay Zekâ Bağlantıları…</value>
   </data>
+  <data name="Menu_EvaluateModel" xml:space="preserve">
+    <value>Modeli Değerlendir…</value>
+  </data>
   <data name="AI_Title" xml:space="preserve">
     <value>Yapay zekâ bağlantıları</value>
   </data>
@@ -2492,6 +2495,126 @@
   </data>
   <data name="Merge_DoneArchived" xml:space="preserve">
     <value>Dışarıda bırakılan arşivlenmiş kayıt: {0:N0}.</value>
+  </data>
+  <data name="Evaluate_Title" xml:space="preserve">
+    <value>Modeli değerlendir</value>
+  </data>
+  <data name="Evaluate_Model" xml:space="preserve">
+    <value>Değerlendirilecek model</value>
+  </data>
+  <data name="Evaluate_Judge" xml:space="preserve">
+    <value>Puanlayan model</value>
+  </data>
+  <data name="Evaluate_SampleSize" xml:space="preserve">
+    <value>Soru sayısı</value>
+  </data>
+  <data name="Evaluate_IncludeUnapproved" xml:space="preserve">
+    <value>Onaylanmamış kayıtları da sor</value>
+  </data>
+  <data name="Evaluate_Source" xml:space="preserve">
+    <value>Sorular</value>
+  </data>
+  <data name="Evaluate_SourceTest" xml:space="preserve">
+    <value>Son dışa aktarımın test bölümü (%{0}, tohum {1})</value>
+  </data>
+  <data name="Evaluate_SourceValidation" xml:space="preserve">
+    <value>Son dışa aktarımın doğrulama bölümü (%{0}, tohum {1})</value>
+  </data>
+  <data name="Evaluate_SourceAll" xml:space="preserve">
+    <value>Bütün kayıtlar</value>
+  </data>
+  <data name="Evaluate_SourceTestHint" xml:space="preserve">
+    <value>Modelin eğitimde görmediği sorular: son dışa aktarımın test.jsonl dosyasına koyduğu kayıtlar, veri setinin şimdiki hâliyle.</value>
+  </data>
+  <data name="Evaluate_SourceValidationHint" xml:space="preserve">
+    <value>Son dışa aktarımın val.jsonl dosyasına koyduğu kayıtlar: model bunlarla eğitilmedi, ama eğitim ilerlemesini bunlarla ölçtü.</value>
+  </data>
+  <data name="Evaluate_SourceAllHint" xml:space="preserve">
+    <value>Bu veri setiyle eğitilmiş bir model bu soruların çoğunu gördü; puanı olduğundan iyi görünür. Görmediği sorularla ölçmek için test bölümlü dışa aktarın.</value>
+  </data>
+  <data name="Evaluate_Hint" xml:space="preserve">
+    <value>Model, veri setinden seçilen soruları onunla eğitilmiş bir modelin göreceği gibi, sıcaklık 0'da yanıtlar; puanlayan model her yanıtı veri setinin yanıtıyla 1–5 arası karşılaştırır. Kelime örtüşmesi (F1) de hesaplanır. Aynı tohum aynı soruları sorar. Veri setine hiçbir şey yazılmaz.</value>
+  </data>
+  <data name="Evaluate_NoModels" xml:space="preserve">
+    <value>Önce Yapay Zekâ Bağlantıları'nda bir model ekleyin.</value>
+  </data>
+  <data name="Evaluate_Run" xml:space="preserve">
+    <value>Değerlendir</value>
+  </data>
+  <data name="Evaluate_Export" xml:space="preserve">
+    <value>Raporu kaydet…</value>
+  </data>
+  <data name="Evaluate_Question" xml:space="preserve">
+    <value>SORU</value>
+  </data>
+  <data name="Evaluate_Reference" xml:space="preserve">
+    <value>VERİ SETİNİN YANITI</value>
+  </data>
+  <data name="Evaluate_Answer" xml:space="preserve">
+    <value>MODELİN YANITI</value>
+  </data>
+  <data name="Evaluate_Empty" xml:space="preserve">
+    <value>Modeli ve puanlayanı seçip Değerlendir'e basın. Yanıtlar geldikçe burada görünür.</value>
+  </data>
+  <data name="Evaluate_History" xml:space="preserve">
+    <value>Önceki değerlendirmeler ({0:N0})</value>
+  </data>
+  <data name="Evaluate_HistoryHint" xml:space="preserve">
+    <value>Biten her değerlendirme veri setiyle saklanır. Modelleri karşılaştırırken aynı soruları soran değerlendirmelere bakın: aynı bölüm ve tohum.</value>
+  </data>
+  <data name="Evaluate_NoHistory" xml:space="preserve">
+    <value>Bu veri seti henüz değerlendirilmedi. Biten değerlendirmeler burada saklanır, böylece modeller karşılaştırılabilir: örneğin temel model ile bu veri setiyle eğitilen model.</value>
+  </data>
+  <data name="Evaluate_RunDetail" xml:space="preserve">
+    <value>puanlayan {0} · {1} · {2:N0} soru · {3}</value>
+  </data>
+  <data name="Evaluate_RunTest" xml:space="preserve">
+    <value>test bölümü, tohum {0}</value>
+  </data>
+  <data name="Evaluate_RunValidation" xml:space="preserve">
+    <value>doğrulama bölümü, tohum {0}</value>
+  </data>
+  <data name="Evaluate_RunAll" xml:space="preserve">
+    <value>bütün kayıtlar, tohum {0}</value>
+  </data>
+  <data name="Evaluate_DeleteRunTitle" xml:space="preserve">
+    <value>Değerlendirmeyi sil</value>
+  </data>
+  <data name="Evaluate_DeleteRunMessage" xml:space="preserve">
+    <value>{0} modelinin {1} tarihli değerlendirmesi silinsin mi? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Evaluate_Sampling" xml:space="preserve">
+    <value>Sorular seçiliyor…</value>
+  </data>
+  <data name="Evaluate_Progress" xml:space="preserve">
+    <value>{1:N0} sorudan {0:N0}. soru: {2} yanıtlıyor…</value>
+  </data>
+  <data name="Evaluate_Answering" xml:space="preserve">
+    <value>Yanıtlıyor…</value>
+  </data>
+  <data name="Evaluate_Grading" xml:space="preserve">
+    <value>Puanlanıyor…</value>
+  </data>
+  <data name="Evaluate_Unreadable" xml:space="preserve">
+    <value>Puanlayanın kararı okunamadı.</value>
+  </data>
+  <data name="Evaluate_Summary" xml:space="preserve">
+    <value>Ortalama {0} / 5 · kelime örtüşmesi {1} · {3:N0} yanıttan {2:N0} tanesi puanlandı</value>
+  </data>
+  <data name="Evaluate_Done" xml:space="preserve">
+    <value>{0:N0} soru değerlendirildi.</value>
+  </data>
+  <data name="Evaluate_NothingToAsk" xml:space="preserve">
+    <value>Hiçbir kayıtta karşılaştırılacak bir soru ve yanıt yok.</value>
+  </data>
+  <data name="Evaluate_Stopped" xml:space="preserve">
+    <value>{0:N0} sorudan sonra durduruldu.</value>
+  </data>
+  <data name="Evaluate_Saved" xml:space="preserve">
+    <value>Rapor kaydedildi: {0}</value>
+  </data>
+  <data name="Evaluate_SaveFailed" xml:space="preserve">
+    <value>Rapor kaydedilemedi: {0}</value>
   </data>
   <data name="Tags_Created" xml:space="preserve">
     <value>“{0}” oluşturuldu.</value>

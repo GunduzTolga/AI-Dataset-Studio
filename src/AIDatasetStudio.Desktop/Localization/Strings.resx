@@ -1871,6 +1871,9 @@
   <data name="Menu_AIConnections" xml:space="preserve">
     <value>AI Connections…</value>
   </data>
+  <data name="Menu_EvaluateModel" xml:space="preserve">
+    <value>Evaluate a Model…</value>
+  </data>
   <data name="AI_Title" xml:space="preserve">
     <value>AI connections</value>
   </data>
@@ -2554,6 +2557,126 @@
   </data>
   <data name="Merge_DoneArchived" xml:space="preserve">
     <value>Archived records left out: {0:N0}.</value>
+  </data>
+  <data name="Evaluate_Title" xml:space="preserve">
+    <value>Evaluate a model</value>
+  </data>
+  <data name="Evaluate_Model" xml:space="preserve">
+    <value>Model to evaluate</value>
+  </data>
+  <data name="Evaluate_Judge" xml:space="preserve">
+    <value>Grader</value>
+  </data>
+  <data name="Evaluate_SampleSize" xml:space="preserve">
+    <value>Questions</value>
+  </data>
+  <data name="Evaluate_IncludeUnapproved" xml:space="preserve">
+    <value>Also records not approved</value>
+  </data>
+  <data name="Evaluate_Source" xml:space="preserve">
+    <value>Questions from</value>
+  </data>
+  <data name="Evaluate_SourceTest" xml:space="preserve">
+    <value>Test part of the last export ({0}%, seed {1})</value>
+  </data>
+  <data name="Evaluate_SourceValidation" xml:space="preserve">
+    <value>Validation part of the last export ({0}%, seed {1})</value>
+  </data>
+  <data name="Evaluate_SourceAll" xml:space="preserve">
+    <value>All records</value>
+  </data>
+  <data name="Evaluate_SourceTestHint" xml:space="preserve">
+    <value>Questions the model was not trained on: the records the last export put in test.jsonl, with the dataset as it is now.</value>
+  </data>
+  <data name="Evaluate_SourceValidationHint" xml:space="preserve">
+    <value>The records the last export put in val.jsonl: the model was not trained on them, though training used them to measure its progress.</value>
+  </data>
+  <data name="Evaluate_SourceAllHint" xml:space="preserve">
+    <value>A model trained on this dataset has seen most of these questions, so its score will look better than it is. To ask questions it has not seen, export with a test part.</value>
+  </data>
+  <data name="Evaluate_Hint" xml:space="preserve">
+    <value>The model answers a sample of the dataset's questions as a model trained on it would see them, at temperature 0; the grader compares each answer with the dataset's answer from 1 to 5. Word overlap (F1) is counted too. The same seed asks the same questions. Nothing is written to the dataset.</value>
+  </data>
+  <data name="Evaluate_NoModels" xml:space="preserve">
+    <value>Add a model in AI Connections first.</value>
+  </data>
+  <data name="Evaluate_Run" xml:space="preserve">
+    <value>Evaluate</value>
+  </data>
+  <data name="Evaluate_Export" xml:space="preserve">
+    <value>Save report…</value>
+  </data>
+  <data name="Evaluate_Question" xml:space="preserve">
+    <value>QUESTION</value>
+  </data>
+  <data name="Evaluate_Reference" xml:space="preserve">
+    <value>DATASET'S ANSWER</value>
+  </data>
+  <data name="Evaluate_Answer" xml:space="preserve">
+    <value>MODEL'S ANSWER</value>
+  </data>
+  <data name="Evaluate_Empty" xml:space="preserve">
+    <value>Choose the model and the grader, then press Evaluate. The answers appear here as they come.</value>
+  </data>
+  <data name="Evaluate_History" xml:space="preserve">
+    <value>Earlier evaluations ({0:N0})</value>
+  </data>
+  <data name="Evaluate_HistoryHint" xml:space="preserve">
+    <value>Every finished evaluation is kept with the dataset. To compare models, compare evaluations that asked the same questions: the same part and seed.</value>
+  </data>
+  <data name="Evaluate_NoHistory" xml:space="preserve">
+    <value>No evaluation of this dataset yet. Finished evaluations are kept here, so models can be compared: the base model and the one trained on this dataset, for example.</value>
+  </data>
+  <data name="Evaluate_RunDetail" xml:space="preserve">
+    <value>graded by {0} · {1} · {2:N0} questions · {3}</value>
+  </data>
+  <data name="Evaluate_RunTest" xml:space="preserve">
+    <value>test part, seed {0}</value>
+  </data>
+  <data name="Evaluate_RunValidation" xml:space="preserve">
+    <value>validation part, seed {0}</value>
+  </data>
+  <data name="Evaluate_RunAll" xml:space="preserve">
+    <value>all records, seed {0}</value>
+  </data>
+  <data name="Evaluate_DeleteRunTitle" xml:space="preserve">
+    <value>Delete evaluation</value>
+  </data>
+  <data name="Evaluate_DeleteRunMessage" xml:space="preserve">
+    <value>Delete the evaluation of {0} from {1}? This cannot be undone.</value>
+  </data>
+  <data name="Evaluate_Sampling" xml:space="preserve">
+    <value>Choosing the questions…</value>
+  </data>
+  <data name="Evaluate_Progress" xml:space="preserve">
+    <value>{0:N0} of {1:N0}: {2} answers…</value>
+  </data>
+  <data name="Evaluate_Answering" xml:space="preserve">
+    <value>Answering…</value>
+  </data>
+  <data name="Evaluate_Grading" xml:space="preserve">
+    <value>Grading…</value>
+  </data>
+  <data name="Evaluate_Unreadable" xml:space="preserve">
+    <value>The grader's verdict could not be read.</value>
+  </data>
+  <data name="Evaluate_Summary" xml:space="preserve">
+    <value>Average {0} / 5 · word overlap {1} · {2:N0} of {3:N0} scored</value>
+  </data>
+  <data name="Evaluate_Done" xml:space="preserve">
+    <value>{0:N0} questions evaluated.</value>
+  </data>
+  <data name="Evaluate_NothingToAsk" xml:space="preserve">
+    <value>No record has both a question and an answer to compare with.</value>
+  </data>
+  <data name="Evaluate_Stopped" xml:space="preserve">
+    <value>Stopped after {0:N0} questions.</value>
+  </data>
+  <data name="Evaluate_Saved" xml:space="preserve">
+    <value>Report saved: {0}</value>
+  </data>
+  <data name="Evaluate_SaveFailed" xml:space="preserve">
+    <value>The report could not be saved: {0}</value>
   </data>
   <data name="Tags_Created" xml:space="preserve">
     <value>“{0}” created.</value>

@@ -30,6 +30,7 @@ public static class AppServices
         services.AddSingleton<DocumentQuestions>();
         services.AddSingleton<RecordVariations>();
         services.AddSingleton<RecordJudge>();
+        services.AddSingleton<ModelEvaluator>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();

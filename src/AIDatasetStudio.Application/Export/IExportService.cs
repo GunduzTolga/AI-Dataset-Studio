@@ -43,6 +43,17 @@ public interface IExportService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// The records an export with these options writes to one part of its split, in list order,
+    /// without writing anything: the questions a model trained on the other parts has not seen
+    /// (M22). Empty when the options have no split or the part has no share.
+    /// </summary>
+    /// <param name="datasetId">The dataset, as it is now.</param>
+    /// <param name="options">The export's options, with its split.</param>
+    /// <param name="part">The part, usually the test part.</param>
+    /// <param name="cancellationToken">Cancels the reading.</param>
+    Task<IReadOnlyList<Guid>> GetSplitPartAsync(Guid datasetId, ExportOptions options, SplitPart part, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The options of the dataset's last export, to start from; <c>null</c> if it was never exported.
     /// </summary>
     Task<ExportOptions?> GetLastOptionsAsync(Guid datasetId, CancellationToken cancellationToken = default);

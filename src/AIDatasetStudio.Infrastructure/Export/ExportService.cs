@@ -115,6 +115,44 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         return Task.Run(() => ExportCoreAsync(datasetId, versionId, options, Path.GetFullPath(destination), progress, cancellationToken), cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetSplitPartAsync(Guid datasetId, ExportOptions options, SplitPart part, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.Split is not { } split || split.PercentOf(part) == 0)
+        {
+            return [];
+        }
+
+        Source source;
+        await using (var connection = await database.OpenConnectionAsync(cancellationToken))
+        {
+            source = await ReadSourceAsync(connection, datasetId, null, cancellationToken);
+        }
+
+        Validate(options, source.Type);
+
+        // The same passes as an export, so the same records come out: token counts and groups of
+        // near-duplicate questions first, then families and strata.
+        await analysis.AnalyzeAsync(datasetId, cancellationToken: cancellationToken);
+        var ids = new List<Guid>();
+        await using (var connection = await database.OpenConnectionAsync(cancellationToken))
+        {
+            await using var snapshot = connection.BeginTransaction(deferred: true);
+            var families = await JoinFamiliesAsync(connection, snapshot, source, options, cancellationToken);
+            var parts = split.IsStratified ? await StratifyAsync(connection, snapshot, source, options, split, families, cancellationToken) : null;
+            var pipeline = new Pipeline(options, scanner: null, parts, families);
+            await foreach (var record in ReadAsync(connection, snapshot, source, options, withTags: false, cancellationToken))
+            {
+                if (pipeline.PartOf(record) == part)
+                {
+                    ids.Add(record.Id);
+                }
+            }
+        }
+
+        return ids;
+    }
+
     public async Task<ExportOptions?> GetLastOptionsAsync(Guid datasetId, CancellationToken cancellationToken = default)
     {
         await using var context = database.CreateDbContext();
@@ -621,6 +659,12 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             return families is not null && families.TryGetValue(key, out var joined) ? joined : key;
         }
 
+        private SplitPart? Assign(RecordPayload payload, ExportRecord record) => options.Split is { } split
+            ? parts is not null && parts.TryGetValue(GroupKey(payload, record), out var assigned)
+                ? assigned
+                : ExportSplit.Assign(split, GroupKey(payload, record))
+            : null;
+
         public ExportLine? Convert(ExportRecord record)
         {
             if (Accept(record) is not { } payload)
@@ -629,11 +673,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             }
 
             // The split follows the stored question, so masking never moves a record to another file.
-            SplitPart? part = options.Split is { } split
-                ? parts is not null && parts.TryGetValue(GroupKey(payload, record), out var assigned)
-                    ? assigned
-                    : ExportSplit.Assign(split, GroupKey(payload, record))
-                : null;
+            var part = Assign(payload, record);
             if (scanner is not null && scanner.Mask(payload) is { HasFindings: true } masked)
             {
                 payload = masked.Payload;
@@ -643,6 +683,12 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             Exported++;
             return new ExportLine(part, ExportRenderer.Render(options.Format, payload));
         }
+
+        /// <summary>
+        /// The checks and the split alone, nothing rendered: the part the record is written to, or
+        /// <c>null</c> when it is not written or there is no split.
+        /// </summary>
+        public SplitPart? PartOf(ExportRecord record) => Accept(record) is { } payload ? Assign(payload, record) : null;
 
         /// <summary>
         /// The checks alone: the record's content if it is written, otherwise <c>null</c> (counted).

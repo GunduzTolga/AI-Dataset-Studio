@@ -34,6 +34,11 @@ public sealed class AIAssistant
     /// </summary>
     public AIConnection? Connection => _store.DefaultConnection;
 
+    /// <summary>
+    /// Every connection, for choosing a model to evaluate (M22).
+    /// </summary>
+    public IReadOnlyList<AIConnection> Connections => _store.Connections;
+
     public AIConnectionsViewModel CreateConnections() => new(_store, _providers, _localizer);
 
     /// <summary>

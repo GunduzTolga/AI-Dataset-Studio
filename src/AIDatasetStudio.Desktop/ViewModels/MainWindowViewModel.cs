@@ -45,6 +45,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly DocumentQuestions _questions;
     private readonly RecordVariations _variations;
     private readonly RecordJudge _judge;
+    private readonly ModelEvaluator _evaluator;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -67,6 +68,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         DocumentQuestions questions,
         RecordVariations variations,
         RecordJudge judge,
+        ModelEvaluator evaluator,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -93,6 +95,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _questions = questions;
         _variations = variations;
         _judge = judge;
+        _evaluator = evaluator;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -145,7 +148,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
     [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
@@ -630,6 +633,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             ImportCommand.NotifyCanExecuteChanged();
             ExtractQuestionsCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
+            EvaluateModelCommand.NotifyCanExecuteChanged();
             VersionsCommand.NotifyCanExecuteChanged();
             CreateVersionCommand.NotifyCanExecuteChanged();
             Details.Dataset = Explorer.SelectedDataset;

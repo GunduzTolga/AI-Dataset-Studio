@@ -3,6 +3,7 @@ using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Catalog;
 using AIDatasetStudio.Infrastructure.Documents;
+using AIDatasetStudio.Infrastructure.Evaluation;
 using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Judgments;
@@ -35,6 +36,7 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Tags = new TagService(Workspace, Clock);
         Judgments = new JudgmentService(Workspace);
         Merge = new DatasetMergeService(Catalog, Queries, Commands);
+        Evaluations = new EvaluationRunService(Workspace, Clock);
         Semantic = new SemanticIndex(Workspace);
     }
 
@@ -68,6 +70,8 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public CatalogService Catalog { get; }
 
     public DatasetMergeService Merge { get; }
+
+    public EvaluationRunService Evaluations { get; }
 
     public RecordCommandService Commands { get; }
 

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
@@ -207,6 +208,31 @@ public sealed class ExportServiceTests
         Assert.Equal("eski\n", await File.ReadAllTextAsync(path, Ct));
         Assert.DoesNotContain(Directory.EnumerateFiles(ws.Directory), f => f.EndsWith(".partial", StringComparison.Ordinal));
         Assert.Null(await ws.Export.GetLastExportAsync(datasetId, Ct));
+    }
+
+    [Fact]
+    public async Task A_split_part_holds_the_records_its_file_gets()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var payloads = Enumerable.Range(0, 120).Select(i => (RecordPayload)new InstructionPayload($"Soru {Code(i % 60)}", "", $"Cevap {i}")).ToArray();
+        var ids = await AddAsync(ws, datasetId, payloads);
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft], Split: SplitOptions.Standard);
+
+        var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "split"), cancellationToken: Ct);
+        var test = await ws.Export.GetSplitPartAsync(datasetId, options, SplitPart.Test, Ct);
+        var validation = await ws.Export.GetSplitPartAsync(datasetId, options, SplitPart.Validation, Ct);
+
+        // The test file's records, in its order: the questions a model trained on the rest has not seen.
+        var answers = File.ReadLines(result.Files.Single(f => f.Part == SplitPart.Test).Path).Select(line => (string?)JsonNode.Parse(line)!["output"]);
+        Assert.NotEmpty(test);
+        Assert.Equal(answers, test.Select(id => $"Cevap {ids.IndexOf(id)}"));
+        Assert.Equal(result.Files.Single(f => f.Part == SplitPart.Validation).Count, validation.Count);
+        Assert.Empty(test.Intersect(validation));
+
+        // No test part, no split: nothing.
+        Assert.Empty(await ws.Export.GetSplitPartAsync(datasetId, options with { Split = SplitOptions.TrainValidation }, SplitPart.Test, Ct));
+        Assert.Empty(await ws.Export.GetSplitPartAsync(datasetId, options with { Split = null }, SplitPart.Test, Ct));
     }
 
     [Fact]

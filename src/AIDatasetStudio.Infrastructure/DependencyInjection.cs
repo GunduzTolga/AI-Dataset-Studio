@@ -14,6 +14,7 @@ using AIDatasetStudio.Infrastructure.AI;
 using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Catalog;
 using AIDatasetStudio.Infrastructure.Documents;
+using AIDatasetStudio.Infrastructure.Evaluation;
 using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Judgments;
@@ -57,6 +58,7 @@ public static class DependencyInjection
         services.AddSingleton<ITokenizerProvider, TiktokenProvider>();
         services.AddSingleton<IRecordAnalysisService, RecordAnalysisService>();
         services.AddSingleton<IJudgmentService, JudgmentService>();
+        services.AddSingleton<IEvaluationRunService, EvaluationRunService>();
         services.AddSingleton<ISemanticIndex, SemanticIndex>();
         services.AddSingleton<IExportService, ExportService>();
         services.AddSingleton<IVersionService, VersionService>();

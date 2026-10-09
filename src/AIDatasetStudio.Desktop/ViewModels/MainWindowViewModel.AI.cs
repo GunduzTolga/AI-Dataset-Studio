@@ -86,6 +86,24 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    private bool CanEvaluateModel() => !IsBusy && Explorer.SelectedDataset is { } dataset && ModelEvaluation.Supports(dataset.Type);
+
+    /// <summary>
+    /// Tools › Evaluate a Model: a model answers the dataset's questions and a grader compares the
+    /// answers with the dataset's (M22).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanEvaluateModel))]
+    private async Task EvaluateModelAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset)
+        {
+            return;
+        }
+
+        var evaluation = await _evaluator.CreateAsync(dataset.Id, dataset.Name, dataset.Type);
+        await _dialogs.ShowModelEvaluationAsync(evaluation);
+    }
+
     private bool CanJudge() =>
         CanReview() && Records.SelectedRows.Count > 0 && Records.Dataset is { } dataset && Judging.Supports(dataset.Type);
 

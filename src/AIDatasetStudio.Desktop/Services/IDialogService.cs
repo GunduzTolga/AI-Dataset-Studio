@@ -97,4 +97,9 @@ public interface IDialogService
     /// Shows merging datasets until the window is closed.
     /// </summary>
     Task ShowDatasetMergeAsync(ViewModels.Catalog.DatasetMergeViewModel merge);
+
+    /// <summary>
+    /// Shows evaluating a model until the window is closed.
+    /// </summary>
+    Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation);
 }

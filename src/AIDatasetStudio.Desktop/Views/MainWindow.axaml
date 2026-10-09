@@ -156,6 +156,9 @@
         <MenuItem x:Name="TagsMenuItem" Header="{l:Tr Menu_Tags}" Command="{Binding ManageTagsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="TagMultiple" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="EvaluateModelMenuItem" Header="{l:Tr Menu_EvaluateModel}" Command="{Binding EvaluateModelCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Trophy" /></MenuItem.Icon>
+        </MenuItem>
         <MenuItem x:Name="AIConnectionsMenuItem" Header="{l:Tr Menu_AIConnections}" Command="{Binding ManageAIConnectionsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="BrainCircuit" /></MenuItem.Icon>
         </MenuItem>
