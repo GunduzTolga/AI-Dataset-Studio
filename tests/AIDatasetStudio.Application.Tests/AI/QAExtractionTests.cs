@@ -42,6 +42,26 @@ public sealed class QAExtractionTests
     }
 
     [Fact]
+    public void A_page_title_always_starts_a_passage_so_pages_are_not_mixed()
+    {
+        // Pages of an archive start with their title (level 0); short pages still get passages of their own.
+        var chunks = DocumentChunker.Split(
+        [
+            H(0, "Destek", 1),
+            P("Genel bilgiler.", 1),
+            H(0, "Kargo", 2),
+            H(1, "Ücret", 2),
+            P("49,90 TL.", 2),
+            H(0, "İade", 3),
+            P("14 gün.", 3),
+        ], 800, Tokens);
+
+        Assert.Equal(
+            [("Destek", 1, 1), ("Kargo › Ücret", 2, 2), ("İade", 3, 3)],
+            chunks.Select(c => (c.Section, c.First, c.Last)));
+    }
+
+    [Fact]
     public void Headings_at_the_end_of_a_passage_go_with_the_text_under_them()
     {
         var chunks = DocumentChunker.Split(

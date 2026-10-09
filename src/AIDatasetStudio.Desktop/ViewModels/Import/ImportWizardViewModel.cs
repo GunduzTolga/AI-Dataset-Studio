@@ -171,8 +171,9 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     /// </summary>
     public string? TextLayoutHint => Analysis switch
     {
+        { Layout: SourceLayout.Sections, Format: ImportFormat.Archive } => _localizer["Import_ArchiveSectionsHint"],
         { Layout: SourceLayout.Sections } => _localizer["Import_SectionsHint"],
-        { Layout: SourceLayout.Paragraphs, Format: ImportFormat.Pdf or ImportFormat.Word } => _localizer["Import_DocumentParagraphsHint"],
+        { Layout: SourceLayout.Paragraphs, Format: ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive } => _localizer["Import_DocumentParagraphsHint"],
         { Layout: SourceLayout.Paragraphs } => _localizer["Import_ParagraphsHint"],
         _ => null,
     };
@@ -183,7 +184,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     /// A document whose questions a model can write instead (SDD §17.5).
     /// </summary>
     public bool CanExtractQuestions =>
-        Analysis?.Format is ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Markdown or ImportFormat.PlainText
+        Analysis?.Format is ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Html or ImportFormat.Archive
         && QAExtraction.Supports(Target.Type);
 
     /// <summary>

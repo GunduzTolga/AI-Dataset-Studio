@@ -15,7 +15,8 @@ public sealed record DocumentChunk(int Number, string Section, string Text, int 
 
 /// <summary>
 /// Splits a document into passages of about a given length that follow its structure (SDD §17.5):
-/// a heading starts a new passage once the current one has some substance, a block never breaks
+/// a heading starts a new passage once the current one has some substance (a title, such as a
+/// page's in an archive, always does), a block never breaks
 /// unless it alone is too long (then at sentences, a table at its rows), and small sections
 /// share a passage. Each passage knows the headings above it, so a model reads it in context.
 /// </summary>
@@ -67,7 +68,8 @@ public static partial class DocumentChunker
         {
             if (block.IsHeading)
             {
-                if (contentTokens >= substance)
+                // A title (of a page in an archive) always starts a passage: pages are not mixed.
+                if (contentTokens >= substance || (block.Level == 0 && contentTokens > 0))
                 {
                     Close();
                 }

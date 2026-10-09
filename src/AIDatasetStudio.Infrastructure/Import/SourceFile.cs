@@ -54,9 +54,20 @@ internal static class SourceFile
             return (ImportFormat.Word, [ImportFormat.Word]);
         }
 
+        // A ZIP of pages (Notion, Confluence) rather than a workbook.
+        if (XlsxWorkbook.IsZip(start) && !HasExtension(path, ".xlsx") && !HasExtension(path, ".xlsm") && ArchiveDocument.IsPageArchive(path))
+        {
+            return (ImportFormat.Archive, [ImportFormat.Archive]);
+        }
+
         if (XlsxWorkbook.IsZip(start) || HasExtension(path, ".xlsx") || HasExtension(path, ".xlsm"))
         {
             return (ImportFormat.Excel, [ImportFormat.Excel]);
+        }
+
+        if (DocumentReader.IsHtml(path, start))
+        {
+            return (ImportFormat.Html, [ImportFormat.Html]);
         }
 
         if (HasExtension(path, ".csv") || HasExtension(path, ".tsv"))
@@ -187,7 +198,7 @@ internal static class SourceFile
     private static bool HasExtension(string path, string extension) =>
         Path.GetExtension(path).Equals(extension, StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsWordExtension(string path) =>
+    public static bool IsWordExtension(string path) =>
         HasExtension(path, ".docx") || HasExtension(path, ".docm") || HasExtension(path, ".doc") || HasExtension(path, ".dotx");
 
     /// <summary>

@@ -415,13 +415,13 @@
     <value>İçe aktarılacak dosyayı seçin</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Veri setleri ve belgeler (JSONL, JSON, CSV, Excel, Markdown, metin, PDF, Word)</value>
+    <value>Veri setleri ve belgeler (JSONL, JSON, CSV, Excel, Markdown, metin, PDF, Word, HTML, sayfa arşivi)</value>
   </data>
   <data name="Dialog_DocumentTitle" xml:space="preserve">
     <value>Soru-cevap çıkarılacak belge</value>
   </data>
   <data name="Dialog_DocumentType" xml:space="preserve">
-    <value>Belgeler (PDF, Word, Markdown, metin)</value>
+    <value>Belgeler (PDF, Word, Markdown, metin, HTML, Notion ya da Confluence ZIP'i)</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Dosyadan içe aktar</value>
@@ -473,6 +473,9 @@
   </data>
   <data name="Import_SectionsHint" xml:space="preserve">
     <value>Altında metin olan her başlık bir kayıt olur: başlık soruyu, altındaki metin yanıtı verir. İlk başlıktan önceki metin alınmaz.</value>
+  </data>
+  <data name="Import_ArchiveSectionsHint" xml:space="preserve">
+    <value>Her sayfa sırayla, başlığının altında okunur; altında metin olan her başlık bir kayıt olur: başlık soruyu, altındaki metin yanıtı verir. Sayfalar yollarının sırasıyla numaralanır.</value>
   </data>
   <data name="Import_ParagraphsHint" xml:space="preserve">
     <value>Her paragraf (boş satırlar arasındaki satırlar) bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
@@ -566,6 +569,12 @@
   </data>
   <data name="ImportFormat_Word" xml:space="preserve">
     <value>Word belgesi</value>
+  </data>
+  <data name="ImportFormat_Html" xml:space="preserve">
+    <value>HTML sayfası</value>
+  </data>
+  <data name="ImportFormat_Archive" xml:space="preserve">
+    <value>Sayfa arşivi (Notion, Confluence)</value>
   </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Özel sütunlar</value>
@@ -698,6 +707,9 @@
   </data>
   <data name="Error_ImportNoText" xml:space="preserve">
     <value>“{0}” içinde okunacak metin yok; sayfaları taranmış görüntü olabilir. Önce metni tanıtın (OCR), örneğin aranabilir PDF olarak kaydedin.</value>
+  </data>
+  <data name="Error_ImportEmptyArchive" xml:space="preserve">
+    <value>“{0}” içinde metni olan bir HTML, Markdown ya da metin sayfası yok. Notion sayfalarını Markdown ya da HTML, Confluence alanını HTML olarak dışa aktarın.</value>
   </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” geçerli bir adres değil. http://localhost:11434/v1 gibi olmalı.</value>

@@ -149,7 +149,9 @@ internal static class ImportText
     /// paragraphs have localized names, file columns keep their own.
     /// </summary>
     public static string Column(Localizer localizer, ImportFormat format, string column) =>
-        format is ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Pdf or ImportFormat.Word ? localizer[$"ImportColumn_{column}"] : column;
+        format is ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive
+            ? localizer[$"ImportColumn_{column}"]
+            : column;
 
     public static string Error(Localizer localizer, ImportRowError error) =>
         localizer.Format($"ImportError_{error.Code}", error.Detail);
@@ -188,6 +190,7 @@ internal static class ImportText
             ImportFileError.InvalidDocument => localizer.Format("Error_ImportInvalidDocument", name),
             ImportFileError.ProtectedPdf => localizer.Format("Error_ImportProtectedPdf", name),
             ImportFileError.NoText => localizer.Format("Error_ImportNoText", name),
+            ImportFileError.EmptyArchive => localizer.Format("Error_ImportEmptyArchive", name),
             _ => localizer.Format("Error_ImportFileUnreadable", name, exception.InnerException?.Message),
         };
     }

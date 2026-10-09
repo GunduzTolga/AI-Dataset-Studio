@@ -73,7 +73,7 @@ public sealed class QAExtractionTests
 
         await host.Main.ExtractQuestionsCommand.ExecuteAsync(null);
 
-        Assert.Equal([".pdf", ".docx", ".docm", ".md", ".markdown", ".txt"], host.Files.DocumentExtensions);
+        Assert.Equal([".pdf", ".docx", ".docm", ".md", ".markdown", ".txt", ".html", ".htm", ".zip"], host.Files.DocumentExtensions);
         var requests = host.AI.Requests.Select(r => r.Request).ToList();
         Assert.Equal(2, requests.Count);
         Assert.EndsWith("Instructions for this dataset:\nKısa yanıtla.", requests[0].Messages[0].Content, StringComparison.Ordinal);

@@ -11,6 +11,12 @@ public enum DocumentFormat
     Word,
     Markdown,
     PlainText,
+
+    /// <summary>An HTML page (.html, .htm).</summary>
+    Html,
+
+    /// <summary>A ZIP of pages: a Notion or Confluence export, or any folder of HTML, Markdown and text files.</summary>
+    Archive,
 }
 
 public enum DocumentBlockKind
@@ -27,7 +33,7 @@ public enum DocumentBlockKind
 /// A part of a document in reading order.
 /// </summary>
 /// <param name="Text">The block's text; paragraphs are one line, tables and code keep their lines.</param>
-/// <param name="Position">Where the block starts, 1-based: the page of a PDF, the paragraph of a Word document, the line of a text file.</param>
+/// <param name="Position">Where the block starts, 1-based: the page of a PDF or of an archive, the paragraph of a Word document, the line of a text or HTML file.</param>
 /// <param name="Level">The level of a heading (0 for a document title, then 1, 2…); the depth of a list item (0 at the top); otherwise 0.</param>
 public sealed record DocumentBlock(DocumentBlockKind Kind, string Text, int Position, int Level = 0)
 {
@@ -37,7 +43,7 @@ public sealed record DocumentBlock(DocumentBlockKind Kind, string Text, int Posi
 /// <summary>
 /// A document read as text.
 /// </summary>
-/// <param name="PageCount">The pages of a PDF; 0 for other formats.</param>
+/// <param name="PageCount">The pages of a PDF or of an archive; 0 for other formats.</param>
 public sealed record SourceDocument(string FilePath, DocumentFormat Format, IReadOnlyList<DocumentBlock> Blocks, int PageCount = 0)
 {
     public string FileName => Path.GetFileName(FilePath);
@@ -49,7 +55,7 @@ public sealed record SourceDocument(string FilePath, DocumentFormat Format, IRea
     /// </summary>
     public string PositionUnit => Format switch
     {
-        DocumentFormat.Pdf => "page",
+        DocumentFormat.Pdf or DocumentFormat.Archive => "page",
         DocumentFormat.Word => "paragraph",
         _ => "line",
     };
@@ -62,7 +68,7 @@ public sealed record SourceDocument(string FilePath, DocumentFormat Format, IRea
 }
 
 /// <summary>
-/// Reads PDF, Word, Markdown and plain-text documents as blocks of text.
+/// Reads PDF, Word, Markdown, plain-text and HTML documents, and ZIPs of pages, as blocks of text.
 /// </summary>
 public interface IDocumentReader
 {
@@ -76,7 +82,8 @@ public interface IDocumentReader
     /// </summary>
     /// <exception cref="Import.ImportFileException">
     /// The file cannot be read: missing, unreadable, a Word 97–2003 or protected document, a
-    /// damaged file, a password-protected PDF, or a PDF without text (scanned pages).
+    /// damaged file, a password-protected PDF, a PDF without text (scanned pages), or a ZIP
+    /// without pages.
     /// </exception>
     Task<SourceDocument> ReadAsync(string filePath, CancellationToken cancellationToken = default);
 }

@@ -30,6 +30,9 @@ public enum ImportFileError
 
     /// <summary>A PDF without text, such as scanned pages; its text would have to be recognised (OCR) first.</summary>
     NoText,
+
+    /// <summary>A ZIP without HTML, Markdown or text pages that have text.</summary>
+    EmptyArchive,
 }
 
 /// <summary>

@@ -5,9 +5,9 @@ using AIDatasetStudio.Infrastructure.Import;
 namespace AIDatasetStudio.Infrastructure.Documents;
 
 /// <summary>
-/// Reads PDF, Word, Markdown and plain-text documents as blocks (SDD §12.3). The last document
-/// read is kept: the import wizard reads a file several times (analysis, preview, import) and
-/// reading a long PDF takes a while.
+/// Reads PDF, Word, Markdown, plain-text and HTML documents and ZIPs of pages as blocks (SDD
+/// §12.3). The last document read is kept: the import wizard reads a file several times
+/// (analysis, preview, import) and reading a long PDF takes a while.
 /// </summary>
 internal sealed class DocumentReader : IDocumentReader
 {
@@ -19,7 +19,7 @@ internal sealed class DocumentReader : IDocumentReader
     private readonly Lock _lock = new();
     private (string Path, long Length, DateTime Written, SourceDocument Document)? _last;
 
-    public IReadOnlyList<string> SupportedExtensions { get; } = [".pdf", ".docx", ".docm", ".md", ".markdown", ".txt"];
+    public IReadOnlyList<string> SupportedExtensions { get; } = [".pdf", ".docx", ".docm", ".md", ".markdown", ".txt", ".html", ".htm", ".zip"];
 
     public async Task<SourceDocument> ReadAsync(string filePath, CancellationToken cancellationToken = default)
     {
@@ -64,6 +64,8 @@ internal sealed class DocumentReader : IDocumentReader
             DocumentFormat.Pdf => Pdf(path, cancellationToken),
             DocumentFormat.Word => new SourceDocument(path, format, DocxDocument.Read(path, cancellationToken)),
             DocumentFormat.Markdown => new SourceDocument(path, format, [.. TextDocuments.MarkdownBlocks([.. SourceFile.ReadTextLines(path)])]),
+            DocumentFormat.Html => Html(path, cancellationToken),
+            DocumentFormat.Archive => Archive(path, cancellationToken),
             _ => new SourceDocument(path, format, [.. TextDocuments.ParagraphBlocks(SourceFile.ReadTextLines(path))]),
         };
 
@@ -76,7 +78,8 @@ internal sealed class DocumentReader : IDocumentReader
     }
 
     /// <summary>
-    /// The kind of document: PDF and Word by their content, Markdown by extension, otherwise plain text.
+    /// The kind of document: PDF, Word and archives by their content, HTML by extension or
+    /// content, Markdown by extension, otherwise plain text.
     /// </summary>
     public static DocumentFormat DetectFormat(string path)
     {
@@ -93,9 +96,19 @@ internal sealed class DocumentReader : IDocumentReader
             return DocumentFormat.Pdf;
         }
 
+        if (XlsxWorkbook.IsZip(start) && !SourceFile.IsWordExtension(path) && ArchiveDocument.IsPageArchive(path))
+        {
+            return DocumentFormat.Archive;
+        }
+
         if (XlsxWorkbook.IsZip(start) || XlsxWorkbook.IsCompoundFile(start))
         {
             return DocumentFormat.Word;
+        }
+
+        if (IsHtml(path, start))
+        {
+            return DocumentFormat.Html;
         }
 
         var extension = Path.GetExtension(path);
@@ -105,9 +118,43 @@ internal sealed class DocumentReader : IDocumentReader
     }
 
     /// <summary>
+    /// Whether the file is an HTML page: by its extension, or by a doctype or &lt;html&gt; tag at its start.
+    /// </summary>
+    public static bool IsHtml(string path, ReadOnlySpan<byte> start)
+    {
+        var extension = Path.GetExtension(path);
+        if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) || extension.Equals(".htm", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var text = System.Text.Encoding.Latin1.GetString(start[TextEncodings.Utf8BomLength(start)..]).TrimStart();
+        return text.StartsWith("<!doctype html", StringComparison.OrdinalIgnoreCase) || text.StartsWith("<html", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Whether the file starts like a PDF.
     /// </summary>
     public static bool IsPdf(ReadOnlySpan<byte> start) => start.IndexOf(PdfSignature) >= 0;
+
+    private static SourceDocument Html(string path, CancellationToken cancellationToken)
+    {
+        var (blocks, title) = HtmlDocument.Read(HtmlDocument.Decode(File.ReadAllBytes(path)), cancellationToken);
+
+        // A page without headings is one section under its title.
+        if (!blocks.Any(b => b.IsHeading) && !string.IsNullOrWhiteSpace(title) && blocks.Count > 0)
+        {
+            blocks = [new DocumentBlock(DocumentBlockKind.Heading, title, blocks[0].Position, 0), .. blocks];
+        }
+
+        return new SourceDocument(path, DocumentFormat.Html, blocks);
+    }
+
+    private static SourceDocument Archive(string path, CancellationToken cancellationToken)
+    {
+        var (blocks, pages) = ArchiveDocument.Read(path, cancellationToken);
+        return new SourceDocument(path, DocumentFormat.Archive, blocks, pages);
+    }
 
     private static SourceDocument Pdf(string path, CancellationToken cancellationToken)
     {

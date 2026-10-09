@@ -447,13 +447,13 @@
     <value>Choose a file to import</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Datasets and documents (JSONL, JSON, CSV, Excel, Markdown, text, PDF, Word)</value>
+    <value>Datasets and documents (JSONL, JSON, CSV, Excel, Markdown, text, PDF, Word, HTML, ZIP of pages)</value>
   </data>
   <data name="Dialog_DocumentTitle" xml:space="preserve">
     <value>Document to extract Q&amp;A from</value>
   </data>
   <data name="Dialog_DocumentType" xml:space="preserve">
-    <value>Documents (PDF, Word, Markdown, text)</value>
+    <value>Documents (PDF, Word, Markdown, text, HTML, Notion or Confluence ZIP)</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Import from file</value>
@@ -505,6 +505,9 @@
   </data>
   <data name="Import_SectionsHint" xml:space="preserve">
     <value>Each heading with text under it becomes a record: the heading asks and the text answers. Text before the first heading is left out.</value>
+  </data>
+  <data name="Import_ArchiveSectionsHint" xml:space="preserve">
+    <value>Each page is read in turn under its title, and each heading with text under it becomes a record: the heading asks and the text answers. Pages are numbered in the order of their paths.</value>
   </data>
   <data name="Import_ParagraphsHint" xml:space="preserve">
     <value>Each paragraph (lines between blank lines) becomes a record: its first line asks and the lines after it answer.</value>
@@ -598,6 +601,12 @@
   </data>
   <data name="ImportFormat_Word" xml:space="preserve">
     <value>Word document</value>
+  </data>
+  <data name="ImportFormat_Html" xml:space="preserve">
+    <value>HTML page</value>
+  </data>
+  <data name="ImportFormat_Archive" xml:space="preserve">
+    <value>ZIP of pages (Notion, Confluence)</value>
   </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Custom columns</value>
@@ -730,6 +739,9 @@
   </data>
   <data name="Error_ImportNoText" xml:space="preserve">
     <value>“{0}” has no text to read; its pages may be scanned images. Recognise the text (OCR) first, for example by saving it as a searchable PDF.</value>
+  </data>
+  <data name="Error_ImportEmptyArchive" xml:space="preserve">
+    <value>“{0}” holds no HTML, Markdown or text page with text. Export Notion pages as Markdown or HTML, and a Confluence space as HTML.</value>
   </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” is not a valid address. It should look like http://localhost:11434/v1.</value>

@@ -23,6 +23,12 @@ public enum ImportFormat
 
     /// <summary>A Word document (.docx), read as sections at its headings or as paragraphs.</summary>
     Word,
+
+    /// <summary>An HTML page, read as sections at its headings or as paragraphs.</summary>
+    Html,
+
+    /// <summary>A ZIP of pages (a Notion or Confluence export), read as sections under each page's title.</summary>
+    Archive,
 }
 
 /// <summary>

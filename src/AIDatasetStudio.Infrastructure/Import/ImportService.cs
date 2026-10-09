@@ -16,7 +16,7 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
     private const int ProgressInterval = 500;
 
     public IReadOnlyList<string> SupportedExtensions { get; } =
-        [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown", ".pdf", ".docx", ".docm"];
+        [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown", ".pdf", ".docx", ".docm", ".html", ".htm", ".zip"];
 
     // File reading is synchronous, so every operation runs off the caller's (usually the UI) thread.
     public Task<ImportAnalysis> AnalyzeAsync(
@@ -62,9 +62,9 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
         var fileName = Path.GetFileName(plan.FilePath);
         var unit = plan.Format switch
         {
-            ImportFormat.JsonLines or ImportFormat.Markdown or ImportFormat.PlainText => "line",
+            ImportFormat.JsonLines or ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Html => "line",
             ImportFormat.JsonArray => "item",
-            ImportFormat.Pdf => "page",
+            ImportFormat.Pdf or ImportFormat.Archive => "page",
             ImportFormat.Word => "paragraph",
             _ => "row",
         };
@@ -118,7 +118,7 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
     /// </summary>
     private IEnumerable<SourceItem> Read(ImportPlan plan, CancellationToken cancellationToken)
     {
-        if (plan.Format is not (ImportFormat.Pdf or ImportFormat.Word))
+        if (plan.Format is not (ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive))
         {
             return SourceFile.Read(plan.FilePath, plan.Format, plan.Csv, plan.Sheet);
         }
@@ -135,7 +135,7 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
         {
             ImportFormat.Excel => AnalyzeWorkbook(filePath, targetType, overrides?.Sheet, cancellationToken),
             ImportFormat.Markdown or ImportFormat.PlainText => AnalyzeText(filePath, format, targetType, cancellationToken),
-            ImportFormat.Pdf or ImportFormat.Word => AnalyzeDocument(filePath, format, targetType, cancellationToken),
+            ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive => AnalyzeDocument(filePath, format, targetType, cancellationToken),
             _ => AnalyzeRows(filePath, format, targetType, overrides?.Csv, cancellationToken),
         };
 
@@ -212,7 +212,8 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
     }
 
     /// <summary>
-    /// A PDF or Word document is read as sections at its headings, or as paragraphs when it has none.
+    /// A PDF, Word or HTML document or a ZIP of pages is read as sections at its headings, or as
+    /// paragraphs when it has none.
     /// </summary>
     private ImportAnalysis AnalyzeDocument(string filePath, ImportFormat format, DatasetType targetType, CancellationToken cancellationToken)
     {
