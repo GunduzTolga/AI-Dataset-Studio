@@ -30,8 +30,10 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - Records are copied whole: content, status, source, tags, metadata and dates. Variations keep
   their family. The new dataset takes the first chosen dataset's tokenizer, context length and AI
   instructions.
-- Exact copies are left out by default, archived records only when you ask, and every record can
-  be taken as a draft to review again. Stopping the merge leaves no half-made dataset.
+- Exact copies are left out by default (an archived record never leaves out a live copy), archived
+  records only when you ask, and every record can be taken as a draft to review again. The merge
+  runs in the background with its progress shown; stopping it, or closing the window, leaves no
+  half-made dataset.
 
 ### Training configurations
 - The export wizard's new **Training configuration** writes a ready-to-run LoRA fine-tuning setup

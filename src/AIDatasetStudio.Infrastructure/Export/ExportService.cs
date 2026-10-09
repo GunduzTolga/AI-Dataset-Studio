@@ -120,9 +120,16 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         return Task.Run(() => ExportCoreAsync(datasetId, versionId, options, Path.GetFullPath(destination), progress, cancellationToken), cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Guid>> GetSplitPartAsync(Guid datasetId, ExportOptions options, SplitPart part, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Guid>> GetSplitPartAsync(Guid datasetId, ExportOptions options, SplitPart part, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
+
+        // Reading every record is CPU work, as in an export; keep it off the caller's (UI) thread.
+        return Task.Run(() => GetSplitPartCoreAsync(datasetId, options, part, cancellationToken), cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<Guid>> GetSplitPartCoreAsync(Guid datasetId, ExportOptions options, SplitPart part, CancellationToken cancellationToken)
+    {
         if (options.Split is not { } split || split.PercentOf(part) == 0)
         {
             return [];

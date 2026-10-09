@@ -15,7 +15,7 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
 {
     private const int BatchSize = 500;
 
-    public async Task<DatasetMergeResult> MergeAsync(
+    public Task<DatasetMergeResult> MergeAsync(
         DatasetMergeRequest request, IProgress<DatasetMergeProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -24,6 +24,14 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
             throw new ArgumentException("Choose at least one dataset to merge.", nameof(request));
         }
 
+        // SQLite's async calls complete synchronously; keep the work off the caller's (UI) thread
+        // so progress shows and the merge can be stopped.
+        return Task.Run(() => MergeCoreAsync(request, progress, cancellationToken), cancellationToken);
+    }
+
+    private async Task<DatasetMergeResult> MergeCoreAsync(
+        DatasetMergeRequest request, IProgress<DatasetMergeProgress>? progress, CancellationToken cancellationToken)
+    {
         var projects = await catalog.GetProjectsAsync(cancellationToken);
         if (projects.All(p => p.Id != request.TargetProjectId))
         {
@@ -74,9 +82,12 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
         }
 
         var total = order.Sum(o => (long)o.Ids.Count);
-        // Each kept record's copy, by content and by the original's id; a variation is written
-        // after the record it varies, so its family's copy is known by then.
+        // By content, the family each kept record belongs to (its first record's copy), for the
+        // copies left out of it; archived ones apart, so an archived record never leaves out a
+        // live one. By the original's id, the family to join; a variation is written after the
+        // record it varies, so its family's copy is known by then.
         var kept = new Dictionary<string, VariantOf>(StringComparer.Ordinal);
+        var keptArchived = new Dictionary<string, VariantOf>(StringComparer.Ordinal);
         var families = new Dictionary<Guid, VariantOf>();
         long processed = 0, ordinal = 0, duplicates = 0, archived = 0;
         progress?.Report(new DatasetMergeProgress(0, total));
@@ -95,7 +106,8 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
                     }
 
                     var hash = snapshot.Payload.ComputeContentHash();
-                    if (request.SkipDuplicates && kept.TryGetValue(hash, out var earlier))
+                    var isArchived = snapshot.Status == RecordStatus.Archived;
+                    if (request.SkipDuplicates && (kept.TryGetValue(hash, out var earlier) || (isArchived && keptArchived.TryGetValue(hash, out earlier))))
                     {
                         // Variations of a left-out copy join the kept record's family.
                         families[snapshot.Id] = earlier;
@@ -105,14 +117,15 @@ internal sealed class DatasetMergeService(ICatalogService catalog, IRecordQueryS
 
                     var copy = new VariantOf(Guid.CreateVersion7(), ++ordinal);
                     families[snapshot.Id] = copy;
-                    kept.TryAdd(hash, copy);
+                    var metadata = Family(snapshot.MetadataJson, families);
+                    (isArchived ? keptArchived : kept).TryAdd(hash, VariantOf.FromMetadata(metadata) ?? copy);
                     write.Add(snapshot with
                     {
                         Id = copy.Id,
                         DatasetId = targetId,
                         Ordinal = ordinal,
-                        Status = request.AsDrafts && snapshot.Status != RecordStatus.Archived ? RecordStatus.Draft : snapshot.Status,
-                        MetadataJson = Family(snapshot.MetadataJson, families),
+                        Status = request.AsDrafts && !isArchived ? RecordStatus.Draft : snapshot.Status,
+                        MetadataJson = metadata,
                     });
                 }
 

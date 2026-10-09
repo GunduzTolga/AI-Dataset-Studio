@@ -65,6 +65,9 @@ public sealed class ModelEvaluationTests
             Assert.StartsWith("graded by qwen2.5:7b · all records, seed 42 · 2 questions · ", run.DetailText, StringComparison.Ordinal);
             Assert.Equal("Earlier evaluations (1)", evaluation.HistoryText);
 
+            // The report names the models that answered and graded, whatever is chosen now.
+            evaluation.SelectedModel = null;
+            evaluation.SelectedJudge = null;
             await evaluation.ExportCommand.ExecuteAsync(null);
         };
 
@@ -81,7 +84,8 @@ public sealed class ModelEvaluationTests
 
         var lines = (await File.ReadAllLinesAsync(path, TestContext.Current.CancellationToken)).Select(l => JsonNode.Parse(l)!).ToList();
         Assert.Equal(2, lines.Count);
-        Assert.Equal(("qwen2.5:7b", asked, "14 gün içinde.", 4), ((string?)lines[0]["model"], (string?)lines[0]["question"], (string?)lines[0]["answer"], (int?)lines[0]["score"]));
+        Assert.Equal(("qwen2.5:7b", "qwen2.5:7b", asked, "14 gün içinde.", 4), ((string?)lines[0]["model"], (string?)lines[0]["judge"], (string?)lines[0]["question"], (string?)lines[0]["answer"], (int?)lines[0]["score"]));
+        Assert.Equal("Dataset - qwen2.5_7b.jsonl", host.Files.SuggestedExportName);
         Assert.Equal((1.0, 0.0), ((double?)lines[0]["f1"], (double?)lines[1]["f1"]));
 
         // The next time, the evaluation is there; deleting it asks first.

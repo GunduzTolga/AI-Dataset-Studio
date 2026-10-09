@@ -49,7 +49,7 @@
     <Panel>
       <!-- Choosing -->
       <Grid ColumnDefinitions="*,320" IsVisible="{Binding !IsDone}">
-        <ScrollViewer>
+        <ScrollViewer x:Name="SourceList" IsEnabled="{Binding !IsMerging}">
           <StackPanel Margin="24,18,24,20" Spacing="16">
             <TextBlock Classes="overline" Text="{l:Tr Merge_SectionSources}" />
             <ItemsControl ItemsSource="{Binding Groups}">
@@ -83,11 +83,11 @@
           <ScrollViewer>
             <StackPanel Margin="20,18,20,20" Spacing="14">
               <TextBlock Classes="overline" Text="{l:Tr Merge_SectionTarget}" />
-              <StackPanel>
+              <StackPanel IsEnabled="{Binding !IsMerging}">
                 <TextBlock Classes="label" Text="{l:Tr Merge_Name}" />
                 <TextBox x:Name="NameBox" Text="{Binding Name}" MaxLength="100" />
               </StackPanel>
-              <StackPanel>
+              <StackPanel IsEnabled="{Binding !IsMerging}">
                 <TextBlock Classes="label" Text="{l:Tr Merge_Project}" />
                 <ComboBox x:Name="ProjectBox" ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" HorizontalAlignment="Stretch">
                   <ComboBox.ItemTemplate>
@@ -97,7 +97,7 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
               </StackPanel>
-              <StackPanel Spacing="8">
+              <StackPanel Spacing="8" IsEnabled="{Binding !IsMerging}">
                 <CheckBox IsChecked="{Binding SkipDuplicates}" Content="{l:Tr Merge_SkipDuplicates}" />
                 <CheckBox IsChecked="{Binding IncludeArchived}" Content="{l:Tr Merge_IncludeArchived}" />
                 <CheckBox IsChecked="{Binding AsDrafts}" Content="{l:Tr Merge_AsDrafts}" />

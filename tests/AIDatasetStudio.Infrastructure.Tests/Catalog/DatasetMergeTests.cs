@@ -92,6 +92,45 @@ public sealed class DatasetMergeTests
     }
 
     [Fact]
+    public async Task An_archived_record_never_leaves_out_a_live_copy_and_left_out_copies_join_their_family()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var project = await ws.Catalog.CreateProjectAsync("Destek", cancellationToken: Ct);
+        var a = await ws.Catalog.CreateDatasetAsync(project, "A", DatasetType.Instruction, Ct);
+        var b = await ws.Catalog.CreateDatasetAsync(project, "B", DatasetType.Instruction, Ct);
+        var synthetic = new RecordLineage(RecordSourceKind.Synthetic, GeneratedByModel: "qwen2.5:7b");
+
+        // A: an archived record, and a record with a variation.
+        var archived = await Add(ws, a, "Kargo ücreti?", "49,90 TL.");
+        await ws.Commands.SetStatusAsync([archived], RecordStatus.Archived, Ct);
+        var root = (await ws.Queries.GetAsync(await Add(ws, a, "Şifremi unuttum", "Bağlantıya tıklayın."), Ct))!;
+        await ws.Commands.AddManyAsync(a, [new NewRecord(new InstructionPayload("Parolamı nasıl sıfırlarım?", "", "Bağlantıya tıklayın."), synthetic, VariantOf.For(root))], Ct);
+
+        // B: the archived record's content, live; the variation's content as a record of its own, with a variation.
+        await Add(ws, b, "Kargo ücreti?", "49,90 TL.");
+        var same = (await ws.Queries.GetAsync(await Add(ws, b, "Parolamı nasıl sıfırlarım?", "Bağlantıya tıklayın.", synthetic), Ct))!;
+        await ws.Commands.AddManyAsync(b, [new NewRecord(new InstructionPayload("Şifre sıfırlama nasıl yapılır?", "", "Bağlantıya tıklayın."), synthetic, VariantOf.For(same))], Ct);
+
+        var result = await ws.Merge.MergeAsync(new DatasetMergeRequest([a, b], project, "A + B", IncludeArchived: true), cancellationToken: Ct);
+
+        var copies = new List<RecordDetails>();
+        foreach (var item in (await ws.Queries.GetPageAsync(result.DatasetId, new RecordFilter(new HashSet<RecordStatus>(Enum.GetValues<RecordStatus>())), after: null, pageSize: 10, Ct)).Items)
+        {
+            copies.Add((await ws.Queries.GetAsync(item.Id, Ct))!);
+        }
+
+        // The live "Kargo" stays next to the archived one; B's own "Parolamı" is a copy of A's variation.
+        Assert.Equal(
+            [("Kargo ücreti?", RecordStatus.Archived), ("Şifremi unuttum", RecordStatus.Draft), ("Parolamı nasıl sıfırlarım?", RecordStatus.Draft), ("Kargo ücreti?", RecordStatus.Draft), ("Şifre sıfırlama nasıl yapılır?", RecordStatus.Draft)],
+            copies.Select(c => (((InstructionPayload)c.Payload).Instruction, c.Status)));
+        Assert.Equal((5L, 1L), (result.Copied, result.Duplicates));
+
+        // The left-out copy's variation joins the family of its first record, not the variation it copied.
+        Assert.Equal(new VariantOf(copies[1].Id, 2), VariantOf.FromMetadata(copies[2].MetadataJson));
+        Assert.Equal(new VariantOf(copies[1].Id, 2), VariantOf.FromMetadata(copies[4].MetadataJson));
+    }
+
+    [Fact]
     public async Task Datasets_of_different_types_are_refused_and_a_cancelled_merge_leaves_nothing()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

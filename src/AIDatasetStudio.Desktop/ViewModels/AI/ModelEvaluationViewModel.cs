@@ -126,6 +126,10 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
     private readonly Localizer _localizer;
     private CancellationTokenSource? _work;
 
+    // The models of the evaluation shown, for its report: the choices may have changed since.
+    private string _runModel = string.Empty;
+    private string _runJudge = string.Empty;
+
     /// <param name="history">The dataset's earlier evaluations, the latest first.</param>
     internal ModelEvaluationViewModel(ModelEvaluator services, EvaluationTarget target, IReadOnlyList<EvaluationRun> history)
     {
@@ -314,7 +318,7 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
     [RelayCommand(CanExecute = nameof(CanExport))]
     private async Task ExportAsync()
     {
-        var model = SelectedModel?.Connection.Model ?? string.Empty;
+        var model = _runModel;
         if (await _files.PickExportFileAsync(Export.ExportWizardViewModel.SuggestedFileName($"{Target.Name} - {model}")) is not { } path)
         {
             return;
@@ -325,7 +329,7 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         {
             record = r.Ordinal,
             model,
-            judge = SelectedJudge?.Connection.Model,
+            judge = _runJudge,
             question = r.Question,
             reference = r.Reference,
             answer = r.Result!.Answer,
@@ -419,6 +423,7 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         var token = work.Token;
         var source = SelectedSource?.Source ?? EvaluationSource.AllRecords;
         var seed = (int)(Seed ?? 42);
+        (_runModel, _runJudge) = (model.Model, judge.Model);
         IsRunning = true;
         ShowHistory = false;
         ErrorMessage = null;
