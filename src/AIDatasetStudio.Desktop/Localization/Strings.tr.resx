@@ -168,6 +168,12 @@
   <data name="Field_Assistant" xml:space="preserve">
     <value>Asistan</value>
   </data>
+  <data name="TranscriptField_User" xml:space="preserve">
+    <value>Müşteri (kullanıcı turları)</value>
+  </data>
+  <data name="TranscriptField_Assistant" xml:space="preserve">
+    <value>Temsilci (asistan turları)</value>
+  </data>
   <data name="Field_System" xml:space="preserve">
     <value>Sistem</value>
   </data>
@@ -415,7 +421,7 @@
     <value>İçe aktarılacak dosyayı seçin</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Veri setleri ve belgeler (JSONL, JSON, CSV, Excel, Markdown, metin, PDF, Word, HTML, sayfa arşivi)</value>
+    <value>Veri setleri ve belgeler (JSONL, JSON, CSV, Excel, Markdown, metin, WhatsApp sohbetleri, PDF, Word, HTML, sayfa arşivi)</value>
   </data>
   <data name="Dialog_DocumentTitle" xml:space="preserve">
     <value>Soru-cevap çıkarılacak belge</value>
@@ -435,6 +441,9 @@
   <data name="Import_RowCount" xml:space="preserve">
     <value>{0:N0} satır</value>
   </data>
+  <data name="Import_ConversationCount" xml:space="preserve">
+    <value>{0:N0} konuşma</value>
+  </data>
   <data name="Import_SectionSource" xml:space="preserve">
     <value>KAYNAK</value>
   </data>
@@ -443,6 +452,9 @@
   </data>
   <data name="Import_SectionMapping" xml:space="preserve">
     <value>SÜTUN EŞLEME</value>
+  </data>
+  <data name="Import_SectionSpeakers" xml:space="preserve">
+    <value>KONUŞMACILAR</value>
   </data>
   <data name="Import_SectionPreview" xml:space="preserve">
     <value>ÖNİZLEME</value>
@@ -477,6 +489,9 @@
   <data name="Import_ArchiveSectionsHint" xml:space="preserve">
     <value>Her sayfa sırayla, başlığının altında okunur; altında metin olan her başlık bir kayıt olur: başlık soruyu, altındaki metin yanıtı verir. Sayfalar yollarının sırasıyla numaralanır.</value>
   </data>
+  <data name="Import_TranscriptHint" xml:space="preserve">
+    <value>Her konuşma bir kayıt olur. WhatsApp sohbetinde 6 saatlik bir aradan sonra yeni konuşma başlar; dökümde --- gibi satırlarda ya da başlıklarda, bunlar yoksa boş satırlarda. Müşterinin mesajları kullanıcı, temsilcinin mesajları asistan turu olur (temsilci seçilmezse herkesinki); bir tarafın art arda mesajları tek tur sayılır. Konuşma müşteriyle başlar ve bir yanıtla biter; medya ve silinen mesajlar alınmaz.</value>
+  </data>
   <data name="Import_ParagraphsHint" xml:space="preserve">
     <value>Her paragraf (boş satırlar arasındaki satırlar) bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
   </data>
@@ -507,14 +522,23 @@
   <data name="Import_PreviewSummary" xml:space="preserve">
     <value>İlk {0:N0} satır: {1:N0} hazır, {2:N0} atlanacak</value>
   </data>
+  <data name="Import_PreviewSummaryConversations" xml:space="preserve">
+    <value>İlk {0:N0} konuşma: {1:N0} hazır, {2:N0} atlanacak</value>
+  </data>
   <data name="Import_EmptyFile" xml:space="preserve">
     <value>Bu dosyada satır bulunamadı.</value>
   </data>
   <data name="Import_Start" xml:space="preserve">
     <value>{0:N0} satırı içe aktar</value>
   </data>
+  <data name="Import_StartConversations" xml:space="preserve">
+    <value>{0:N0} konuşmayı içe aktar</value>
+  </data>
   <data name="Import_Progress" xml:space="preserve">
     <value>{1:N0} satırın {0:N0} tanesi okundu · {2:N0} kayıt eklendi</value>
+  </data>
+  <data name="Import_ProgressConversations" xml:space="preserve">
+    <value>{1:N0} konuşmanın {0:N0} tanesi okundu · {2:N0} kayıt eklendi</value>
   </data>
   <data name="Import_Importing" xml:space="preserve">
     <value>İçe aktarılıyor…</value>
@@ -533,6 +557,9 @@
   </data>
   <data name="Import_DoneSkipped" xml:space="preserve">
     <value>Atlanan satırlar ({0:N0})</value>
+  </data>
+  <data name="Import_DoneSkippedConversations" xml:space="preserve">
+    <value>Atlanan konuşmalar ({0:N0})</value>
   </data>
   <data name="Import_MoreSkipped" xml:space="preserve">
     <value>…ve {0:N0} satır daha</value>
@@ -576,6 +603,9 @@
   <data name="ImportFormat_Archive" xml:space="preserve">
     <value>Sayfa arşivi (Notion, Confluence)</value>
   </data>
+  <data name="ImportFormat_Transcript" xml:space="preserve">
+    <value>Konuşma kaydı (WhatsApp, döküm)</value>
+  </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Özel sütunlar</value>
   </data>
@@ -602,6 +632,9 @@
   </data>
   <data name="Layout_Paragraphs" xml:space="preserve">
     <value>Paragraflar</value>
+  </data>
+  <data name="Layout_Transcript" xml:space="preserve">
+    <value>Konuşmacıya göre konuşmalar</value>
   </data>
   <data name="ImportColumn_heading" xml:space="preserve">
     <value>Başlık</value>

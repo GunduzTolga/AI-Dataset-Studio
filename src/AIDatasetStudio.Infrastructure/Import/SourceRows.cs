@@ -62,6 +62,22 @@ internal sealed class TextSourceRow(TextRow row) : ISourceRow
 }
 
 /// <summary>
+/// A conversation of a log; its messages are converted as a whole (<see cref="SourceLayout.Transcript"/>).
+/// </summary>
+internal sealed class TranscriptSourceRow(TranscriptReader.Conversation conversation) : ITranscriptRow
+{
+    public long Number => conversation.Line;
+
+    public JsonElement? Json => null;
+
+    public IReadOnlyList<TranscriptMessage> Messages => conversation.Messages;
+
+    public JsonElement? GetElement(string column) => null;
+
+    public string? GetText(string column) => null;
+}
+
+/// <summary>
 /// Column names of a CSV file or a sheet: its header, made unique, or generated names without
 /// one — "#1", "#2"… for CSV and the column letters for Excel.
 /// </summary>

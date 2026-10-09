@@ -86,6 +86,28 @@ public sealed class ImportLayoutsTests
         Assert.Null(ImportLayouts.NaturalType(SourceLayout.Paragraphs));
     }
 
+    [Fact]
+    public void Speakers_of_a_log_are_told_apart_by_name_or_by_who_opens()
+    {
+        // "Müşteri Hizmetleri" is customer service: the agent, not the customer.
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = "Müşteri", [TargetField.Assistant] = "Müşteri Hizmetleri" },
+            ImportLayouts.SuggestSpeakers(["Müşteri Hizmetleri", "Müşteri"], new Dictionary<string, int> { ["Müşteri Hizmetleri"] = 3 }));
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = "Zeynep", [TargetField.Assistant] = "Mehmet" },
+            ImportLayouts.SuggestSpeakers(["Mehmet", "Zeynep"], new Dictionary<string, int> { ["Zeynep"] = 4, ["Mehmet"] = 1 }));
+
+        // Two agents and no telling names: everyone but the customer answers.
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = "Ali" },
+            ImportLayouts.SuggestSpeakers(["Ali", "Veli", "Ayşe"], new Dictionary<string, int> { ["Ali"] = 2 }));
+        Assert.Equal(
+            [new TargetFieldInfo(TargetField.User, true), new TargetFieldInfo(TargetField.Assistant, false)],
+            ImportLayouts.FieldsFor(DatasetType.Chat, SourceLayout.Transcript));
+        Assert.Empty(ImportLayouts.FieldsFor(DatasetType.Preference, SourceLayout.Transcript));
+        Assert.Equal(DatasetType.Chat, ImportLayouts.NaturalType(SourceLayout.Transcript));
+    }
+
     [Theory]
     [InlineData("System Prompt", "systemprompt")]
     [InlineData("Sistem Talimatı", "sistemtalimati")]

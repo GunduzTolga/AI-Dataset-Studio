@@ -189,7 +189,7 @@
 
               <!-- Column mapping -->
               <StackPanel Spacing="12" IsVisible="{Binding IsColumnBased}">
-                <TextBlock Classes="overline" Text="{l:Tr Import_SectionMapping}" />
+                <TextBlock Classes="overline" Text="{Binding MappingTitle}" />
                 <ItemsControl ItemsSource="{Binding Mappings}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

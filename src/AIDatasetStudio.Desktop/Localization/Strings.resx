@@ -182,6 +182,12 @@
   <data name="Field_Assistant" xml:space="preserve">
     <value>Assistant</value>
   </data>
+  <data name="TranscriptField_User" xml:space="preserve">
+    <value>Customer (user turns)</value>
+  </data>
+  <data name="TranscriptField_Assistant" xml:space="preserve">
+    <value>Agent (assistant turns)</value>
+  </data>
   <data name="Field_System" xml:space="preserve">
     <value>System</value>
   </data>
@@ -447,7 +453,7 @@
     <value>Choose a file to import</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Datasets and documents (JSONL, JSON, CSV, Excel, Markdown, text, PDF, Word, HTML, ZIP of pages)</value>
+    <value>Datasets and documents (JSONL, JSON, CSV, Excel, Markdown, text, WhatsApp chats, PDF, Word, HTML, ZIP of pages)</value>
   </data>
   <data name="Dialog_DocumentTitle" xml:space="preserve">
     <value>Document to extract Q&amp;A from</value>
@@ -467,6 +473,9 @@
   <data name="Import_RowCount" xml:space="preserve">
     <value>{0:N0} rows</value>
   </data>
+  <data name="Import_ConversationCount" xml:space="preserve">
+    <value>{0:N0} conversations</value>
+  </data>
   <data name="Import_SectionSource" xml:space="preserve">
     <value>SOURCE</value>
   </data>
@@ -475,6 +484,9 @@
   </data>
   <data name="Import_SectionMapping" xml:space="preserve">
     <value>COLUMN MAPPING</value>
+  </data>
+  <data name="Import_SectionSpeakers" xml:space="preserve">
+    <value>SPEAKERS</value>
   </data>
   <data name="Import_SectionPreview" xml:space="preserve">
     <value>PREVIEW</value>
@@ -509,6 +521,9 @@
   <data name="Import_ArchiveSectionsHint" xml:space="preserve">
     <value>Each page is read in turn under its title, and each heading with text under it becomes a record: the heading asks and the text answers. Pages are numbered in the order of their paths.</value>
   </data>
+  <data name="Import_TranscriptHint" xml:space="preserve">
+    <value>Each conversation becomes a record. A WhatsApp chat starts a new conversation after a 6-hour pause; a transcript at lines such as --- or headings, or else at blank lines. The customer's messages are user turns and the agent's assistant turns (everyone else's when no agent is chosen); messages in a row from one side are one turn. A conversation starts with the customer and ends with an answer; media and deleted messages are left out.</value>
+  </data>
   <data name="Import_ParagraphsHint" xml:space="preserve">
     <value>Each paragraph (lines between blank lines) becomes a record: its first line asks and the lines after it answer.</value>
   </data>
@@ -539,14 +554,23 @@
   <data name="Import_PreviewSummary" xml:space="preserve">
     <value>First {0:N0} rows: {1:N0} ready, {2:N0} will be skipped</value>
   </data>
+  <data name="Import_PreviewSummaryConversations" xml:space="preserve">
+    <value>First {0:N0} conversations: {1:N0} ready, {2:N0} will be skipped</value>
+  </data>
   <data name="Import_EmptyFile" xml:space="preserve">
     <value>No rows were found in this file.</value>
   </data>
   <data name="Import_Start" xml:space="preserve">
     <value>Import {0:N0} rows</value>
   </data>
+  <data name="Import_StartConversations" xml:space="preserve">
+    <value>Import {0:N0} conversations</value>
+  </data>
   <data name="Import_Progress" xml:space="preserve">
     <value>{0:N0} of {1:N0} rows read · {2:N0} records added</value>
+  </data>
+  <data name="Import_ProgressConversations" xml:space="preserve">
+    <value>{0:N0} of {1:N0} conversations read · {2:N0} records added</value>
   </data>
   <data name="Import_Importing" xml:space="preserve">
     <value>Importing…</value>
@@ -565,6 +589,9 @@
   </data>
   <data name="Import_DoneSkipped" xml:space="preserve">
     <value>Skipped rows ({0:N0})</value>
+  </data>
+  <data name="Import_DoneSkippedConversations" xml:space="preserve">
+    <value>Skipped conversations ({0:N0})</value>
   </data>
   <data name="Import_MoreSkipped" xml:space="preserve">
     <value>…and {0:N0} more</value>
@@ -608,6 +635,9 @@
   <data name="ImportFormat_Archive" xml:space="preserve">
     <value>ZIP of pages (Notion, Confluence)</value>
   </data>
+  <data name="ImportFormat_Transcript" xml:space="preserve">
+    <value>Conversation log (WhatsApp, transcript)</value>
+  </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Custom columns</value>
   </data>
@@ -634,6 +664,9 @@
   </data>
   <data name="Layout_Paragraphs" xml:space="preserve">
     <value>Paragraphs</value>
+  </data>
+  <data name="Layout_Transcript" xml:space="preserve">
+    <value>Conversations by speaker</value>
   </data>
   <data name="ImportColumn_heading" xml:space="preserve">
     <value>Heading</value>

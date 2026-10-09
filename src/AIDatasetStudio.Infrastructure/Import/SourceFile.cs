@@ -82,7 +82,16 @@ internal static class SourceFile
 
         if (HasExtension(path, ".md") || HasExtension(path, ".markdown"))
         {
-            return (ImportFormat.Markdown, [ImportFormat.Markdown, ImportFormat.PlainText]);
+            // A transcript kept as Markdown ("**Müşteri:** …") is read as one.
+            return LooksLikeTranscript(path)
+                ? (ImportFormat.Transcript, [ImportFormat.Transcript, ImportFormat.Markdown, ImportFormat.PlainText])
+                : (ImportFormat.Markdown, [ImportFormat.Markdown, ImportFormat.PlainText]);
+        }
+
+        // A WhatsApp chat or a transcript (iOS exports start with "[", like a JSON array).
+        if (!HasExtension(path, ".json") && LooksLikeTranscript(path))
+        {
+            return (ImportFormat.Transcript, [ImportFormat.Transcript, ImportFormat.PlainText]);
         }
 
         using (var reader = OpenText(path, Encoding.UTF8))
@@ -124,6 +133,7 @@ internal static class SourceFile
         ImportFormat.Excel => new ExcelSource(path, sheet ?? new SheetOptions(null, HasHeader: true)).Read(),
         ImportFormat.Markdown => TextItems(TextDocuments.Sections([.. ReadTextLines(path)])),
         ImportFormat.PlainText => TextItems(TextDocuments.Paragraphs(ReadTextLines(path))),
+        ImportFormat.Transcript => TranscriptItems(TranscriptReader.Read(ReadTextLines(path))),
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, null),
     };
 
@@ -217,6 +227,9 @@ internal static class SourceFile
         }
     }
 
+    public static IEnumerable<SourceItem> TranscriptItems(TranscriptReader.Log log) =>
+        log.Conversations.Select(conversation => new SourceItem(conversation.Line, new TranscriptSourceRow(conversation), null));
+
     public static IEnumerable<SourceItem> TextItems(IEnumerable<TextRow> rows) =>
         rows.Select(row => new SourceItem(row.Line, new TextSourceRow(row), null));
 
@@ -236,6 +249,14 @@ internal static class SourceFile
         var isWholeFile = length < sample.Length;
         var encodingName = TextEncodings.Detect(bytes, isWholeFile);
         return (TextEncodings.Get(encodingName).GetString(bytes), isWholeFile, encodingName);
+    }
+
+    // The start of the file, whole lines only, read as a conversation log.
+    private static bool LooksLikeTranscript(string path)
+    {
+        var (text, isWholeFile, _) = ReadSample(path);
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        return TranscriptReader.Looks(isWholeFile ? lines : lines[..^1]);
     }
 
     /// <summary>

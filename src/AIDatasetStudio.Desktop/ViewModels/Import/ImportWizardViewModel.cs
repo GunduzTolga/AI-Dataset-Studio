@@ -67,7 +67,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(HasAnalysis), nameof(IsCsv), nameof(IsExcel), nameof(IsAllSheets), nameof(IsColumnBased), nameof(IsConversation),
-        nameof(IsUnsupported), nameof(FormatText), nameof(LayoutText), nameof(RowCountText), nameof(ConversationText),
+        nameof(IsUnsupported), nameof(FormatText), nameof(LayoutText), nameof(RowCountText), nameof(ConversationText), nameof(MappingTitle),
         nameof(UnsupportedText), nameof(StartText), nameof(IsEmptyFile), nameof(TextLayoutHint), nameof(HasTextLayoutHint), nameof(CanExtractQuestions))]
     [NotifyCanExecuteChangedFor(nameof(ImportCommand))]
     public partial ImportAnalysis? Analysis { get; private set; }
@@ -172,6 +172,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     public string? TextLayoutHint => Analysis switch
     {
         { Layout: SourceLayout.Sections, Format: ImportFormat.Archive } => _localizer["Import_ArchiveSectionsHint"],
+        { Layout: SourceLayout.Transcript } => _localizer["Import_TranscriptHint"],
         { Layout: SourceLayout.Sections } => _localizer["Import_SectionsHint"],
         { Layout: SourceLayout.Paragraphs, Format: ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive } => _localizer["Import_DocumentParagraphsHint"],
         { Layout: SourceLayout.Paragraphs } => _localizer["Import_ParagraphsHint"],
@@ -194,9 +195,17 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     public bool IsColumnBased => Analysis is { } a && ImportLayouts.IsColumnBased(a.Layout) && a.SupportsTargetType;
 
+    /// <summary>
+    /// "COLUMN MAPPING", or "SPEAKERS" for a conversation log.
+    /// </summary>
+    public string MappingTitle => _localizer[IsLog ? "Import_SectionSpeakers" : "Import_SectionMapping"];
+
     public bool IsConversation => Analysis is { } a && !ImportLayouts.IsColumnBased(a.Layout) && a.SupportsTargetType;
 
     public bool IsUnsupported => Analysis is { SupportsTargetType: false };
+
+    // A conversation log counts conversations rather than rows.
+    private bool IsLog => Analysis?.Layout == SourceLayout.Transcript;
 
     public bool IsEmptyFile => Analysis is { RowCount: 0 };
 
@@ -217,7 +226,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     public string LayoutText => Analysis is { } a ? ImportText.Layout(_localizer, a.Layout) : string.Empty;
 
-    public string RowCountText => _localizer.Format("Import_RowCount", Analysis?.RowCount ?? 0);
+    public string RowCountText => _localizer.Format(IsLog ? "Import_ConversationCount" : "Import_RowCount", Analysis?.RowCount ?? 0);
 
     public string ConversationText => _localizer.Format("Import_ConversationLayout", LayoutText);
 
@@ -226,13 +235,13 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     /// <summary>
     /// Label of the import button, with the number of rows.
     /// </summary>
-    public string StartText => _localizer.Format("Import_Start", Analysis?.RowCount ?? 0);
+    public string StartText => _localizer.Format(IsLog ? "Import_StartConversations" : "Import_Start", Analysis?.RowCount ?? 0);
 
     public string ResultText => Result is { } r ? _localizer.Format("Import_DoneSummary", r.Imported, Target.Name) : string.Empty;
 
     public bool HasSkipped => Result is { Skipped: > 0 };
 
-    public string SkippedText => _localizer.Format("Import_DoneSkipped", Result?.Skipped ?? 0);
+    public string SkippedText => _localizer.Format(IsLog ? "Import_DoneSkippedConversations" : "Import_DoneSkipped", Result?.Skipped ?? 0);
 
     public bool HasMoreSkipped => Result is { } r && r.Skipped > r.Errors.Count;
 
@@ -275,12 +284,13 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
         Notice = null;
         ErrorMessage = null;
         ProgressValue = 0;
-        ProgressText = _localizer.Format("Import_Progress", 0, total, 0);
+        var progressKey = IsLog ? "Import_ProgressConversations" : "Import_Progress";
+        ProgressText = _localizer.Format(progressKey, 0, total, 0);
         IsImporting = true;
         var progress = new Progress<ImportProgress>(p =>
         {
             ProgressValue = total == 0 ? 0 : Math.Min(1, (double)p.RowsRead / total);
-            ProgressText = _localizer.Format("Import_Progress", p.RowsRead, total, p.Imported);
+            ProgressText = _localizer.Format(progressKey, p.RowsRead, total, p.Imported);
         });
 
         try
@@ -481,9 +491,11 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
             Mappings.Clear();
             var columns = new List<ColumnOption> { new(null, _localizer["Import_NotMapped"]) };
             columns.AddRange(analysis.Columns.Select(c => new ColumnOption(c, ImportText.Column(_localizer, analysis.Format, c))));
-            foreach (var field in ImportLayouts.FieldsFor(Target.Type))
+            // A log's speakers are mapped to the customer and the agent instead of columns to fields.
+            var labels = analysis.Layout == SourceLayout.Transcript ? "TranscriptField" : "Field";
+            foreach (var field in ImportLayouts.FieldsFor(Target.Type, analysis.Layout))
             {
-                var mapping = new ColumnMappingViewModel(field, _localizer[$"Field_{field.Field}"], columns);
+                var mapping = new ColumnMappingViewModel(field, _localizer[$"{labels}_{field.Field}"], columns);
                 mapping.SelectedColumn = analysis.SuggestedMapping.TryGetValue(field.Field, out var column)
                     ? columns.First(c => c.Column == column)
                     : columns[0];
@@ -519,7 +531,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
         var valid = preview.Rows.Count(r => r.IsValid);
         PreviewSummary = preview.Rows.Count == 0
             ? null
-            : _localizer.Format("Import_PreviewSummary", preview.Rows.Count, valid, preview.Rows.Count - valid);
+            : _localizer.Format(IsLog ? "Import_PreviewSummaryConversations" : "Import_PreviewSummary", preview.Rows.Count, valid, preview.Rows.Count - valid);
     }
 
     private void ClearPreview()

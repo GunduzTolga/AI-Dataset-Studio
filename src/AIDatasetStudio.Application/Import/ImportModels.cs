@@ -29,6 +29,9 @@ public enum ImportFormat
 
     /// <summary>A ZIP of pages (a Notion or Confluence export), read as sections under each page's title.</summary>
     Archive,
+
+    /// <summary>A conversation log: a WhatsApp export or a transcript with a speaker before each message.</summary>
+    Transcript,
 }
 
 /// <summary>
@@ -63,6 +66,9 @@ public enum SourceLayout
 
     /// <summary>Paragraphs of plain text or a document: first line, the rest and the whole paragraph.</summary>
     Paragraphs,
+
+    /// <summary>Conversations of a log, message by message; its speakers are mapped to roles.</summary>
+    Transcript,
 }
 
 /// <summary>

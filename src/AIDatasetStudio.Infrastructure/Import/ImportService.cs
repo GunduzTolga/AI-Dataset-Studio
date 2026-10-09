@@ -62,7 +62,7 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
         var fileName = Path.GetFileName(plan.FilePath);
         var unit = plan.Format switch
         {
-            ImportFormat.JsonLines or ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Html => "line",
+            ImportFormat.JsonLines or ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Html or ImportFormat.Transcript => "line",
             ImportFormat.JsonArray => "item",
             ImportFormat.Pdf or ImportFormat.Archive => "page",
             ImportFormat.Word => "paragraph",
@@ -135,6 +135,7 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
         {
             ImportFormat.Excel => AnalyzeWorkbook(filePath, targetType, overrides?.Sheet, cancellationToken),
             ImportFormat.Markdown or ImportFormat.PlainText => AnalyzeText(filePath, format, targetType, cancellationToken),
+            ImportFormat.Transcript => AnalyzeTranscript(filePath, targetType),
             ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive => AnalyzeDocument(filePath, format, targetType, cancellationToken),
             _ => AnalyzeRows(filePath, format, targetType, overrides?.Csv, cancellationToken),
         };
@@ -209,6 +210,23 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
             rowCount,
             ImportLayouts.SuggestTextMapping(layout, targetType),
             ImportLayouts.Supports(layout, targetType));
+    }
+
+    /// <summary>
+    /// A conversation log: one row per conversation, its speakers in place of columns.
+    /// </summary>
+    private static ImportAnalysis AnalyzeTranscript(string filePath, DatasetType targetType)
+    {
+        var log = TranscriptReader.Read(SourceFile.ReadTextLines(filePath));
+        return new ImportAnalysis(
+            filePath,
+            ImportFormat.Transcript,
+            null,
+            SourceLayout.Transcript,
+            log.Speakers,
+            log.Conversations.Count,
+            ImportLayouts.SuggestSpeakers(log.Speakers, log.Openers),
+            ImportLayouts.Supports(SourceLayout.Transcript, targetType));
     }
 
     /// <summary>
