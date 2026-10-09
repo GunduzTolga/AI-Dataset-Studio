@@ -5,6 +5,18 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Training configurations
+- The export wizard's new **Training configuration** writes a ready-to-run LoRA fine-tuning setup
+  next to the exported files: `axolotl.yaml` for Axolotl, or `dataset_info.json` and
+  `llamafactory.yaml` for LLaMA-Factory. Choose the base model by its Hugging Face id; the
+  suggestion follows the format's chat template.
+- The configuration names the files by name, so the folder can be copied to a training machine as
+  it is. It reads each format the way the tool expects (chat templates, Alpaca, completion text,
+  DPO pairs), uses the dataset's context length and the split's seed, evaluates on the validation
+  file and keeps the test file out of training.
+- Formats a tool cannot read are explained instead of exported, and the choice is remembered
+  with the dataset's other export settings.
+
 ### Cloud model services
 - **AI Connections** can now connect OpenAI, Anthropic, Azure OpenAI, OpenRouter, Groq and
   DeepSeek, besides servers on your computer or network. Anthropic is spoken to through its own

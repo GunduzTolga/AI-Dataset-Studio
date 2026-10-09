@@ -34,7 +34,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
 - 🔄 **Universal Import & Export:**
   - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
-  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO.
+  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally with a ready-to-run Axolotl or LLaMA-Factory LoRA configuration next to the files.
 
 ---
 
@@ -186,6 +186,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M17 | HTML pages and Notion or Confluence exports (ZIP of pages) as documents, for import and Q&A extraction | ✅ |
 | M18 | Customer conversations (WhatsApp chat exports, transcripts) as chat records, speakers mapped to roles | ✅ |
 | M19 | Cloud model services (OpenAI, Anthropic, Azure OpenAI, OpenRouter, Groq, DeepSeek) with consent, API keys in the OS key store | ✅ |
+| M20 | Axolotl and LLaMA-Factory training configurations written next to exported files | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
