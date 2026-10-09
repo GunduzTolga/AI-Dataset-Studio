@@ -155,6 +155,8 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 
 > Not: V3 (Plan §21) beş aşamaya bölündü. Model bağlantısı diğer dört aşamanın ön koşulu olduğu için ilk sırada. Notion/Confluence/HTML kaynakları M17'de, müşteri sohbeti ayrıştırma M18'de, ağ erişimi gerektirmeyen dışa aktarım dosyalarıyla eklendi. Bulut sağlayıcıları M19'da, açık onay ve işletim sisteminin anahtar deposuyla geldi; V3 tamamlandı.
 
+> Not: M15'te sonraya bırakılan "dışa aktarmayı model puanına göre süzme" M22'den sonra eklendi: dışa aktarma sihirbazında modelin 1–2 puan verdiği kayıtları dışarıda bırakma seçeneği (varsayılan kapalı). Yalnızca şimdiki içeriğin değerlendirmesi sayılır, sürümde dondurulan içeriğinki de; önizlemede sayılır, profilde hatırlanır (Plan §13.2).
+
 > Not: V4 (Plan §21) eğitim yapılandırmalarıyla (M20) ve projeler arası veri seti birleştirmeyle (M21) başladı; ikisi de ağ ve model gerektirmez. Model değerlendirme (M22) dışa aktarımın test bölümünü kullanır: eğitimle değerlendirme aynı bölmeye dayanır, ayrı bir değerlendirme kümesi tutulmaz. Başka çalışma alanı dosyalarından birleştirme sonraya kaldı.
 
 > Not: V2 (Plan §21) dört aşamaya bölündü; Llama 3 ve Hugging Face DPO şablonları M5'te yapıldığı için V2'de yer almıyor. Sıralama kullanıcıyla belirlendi: önce sürümleme, çünkü 1.0.0'dan sonra yapılan düzenlemelerin eski hâli ancak bir sürümde tutulabiliyor.

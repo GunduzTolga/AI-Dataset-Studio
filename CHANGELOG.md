@@ -5,6 +5,12 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Leaving out records the model scored low
+- The export wizard's **Leave out records the model scored low (1–2)** keeps records that
+  Judge with AI scored 1 or 2 out of the training files. Only a judgment of the record's content
+  as it is counts; records not judged, or changed since, are written. Off by default, remembered
+  with the export's other settings, and counted in the preview.
+
 ### Model evaluation
 - **Tools › Evaluate a Model…** asks a model the dataset's questions as a model trained on it
   would see them, at temperature 0, and has a grader model score each answer against the

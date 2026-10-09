@@ -35,7 +35,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the one you trained — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models; the answers can be saved as a JSON Lines report.
 - 🔄 **Universal Import & Export:**
   - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
-  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally with a ready-to-run Axolotl or LLaMA-Factory LoRA configuration next to the files.
+  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA configuration next to the files.
 
 ---
 
