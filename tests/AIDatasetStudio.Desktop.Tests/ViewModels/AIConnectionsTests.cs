@@ -136,13 +136,22 @@ public sealed class AIConnectionsTests
         Assert.Equal("OpenAI needs an API key. Type it in AI Connections, or set the OPENAI_API_KEY environment variable.", connections.Result);
         host.AI.Failure = null;
 
-        item.ApiKey = "sk-test-123";
+        // Saved once typing pauses: the key store is written once, not at every keystroke.
+        foreach (var typed in new[] { "s", "sk", "sk-", "sk-test-123" })
+        {
+            item.ApiKey = typed;
+        }
+
+        Assert.Empty(host.Secrets.Items);
+        await DesktopTestHost.WaitUntilAsync(() => host.Secrets.Items.Count > 0);
+        Assert.Equal(1, host.Secrets.Writes);
         Assert.Equal("sk-test-123", host.Secrets.Items[AIProviders.SecretName(item.Id)]);
         Assert.Equal((null, true), (store.DefaultConnection!.ApiKey, store.DefaultConnection.HasStoredKey));
         Assert.True(item.HasStoredKey);
 
         // Opened again, the key is not shown; it can be replaced or deleted.
-        var reopened = host.Get<Services.AIAssistant>().CreateConnections().SelectedConnection!;
+        var again = host.Get<Services.AIAssistant>().CreateConnections();
+        var reopened = again.SelectedConnection!;
         Assert.Null(reopened.ApiKey);
         Assert.Equal("Saved in Windows Credential Manager; type to replace it", reopened.KeyPlaceholder);
         reopened.RemoveKeyCommand.Execute(null);
@@ -150,9 +159,18 @@ public sealed class AIConnectionsTests
         Assert.False(store.DefaultConnection!.HasStoredKey);
         Assert.False(reopened.RemoveKeyCommand.CanExecute(null));
 
+        // A key typed just before the window closes is kept.
+        reopened.ApiKey = "sk-openai-2";
+        again.SavePendingKeys();
+        Assert.True(reopened.HasStoredKey);
+
+        // Switched to another service, the key goes: it is never sent to another one.
         // Anthropic makes no vectors: its embedding model is not kept.
         reopened.EmbeddingModel = "text-embedding-3-small";
         reopened.SelectedProvider = connections.ProviderOptions.Single(o => o.Kind == AIProviderKind.Anthropic);
+        Assert.Equal((false, null), (reopened.HasStoredKey, reopened.ApiKey));
+        Assert.Empty(host.Secrets.Items);
+        Assert.False(store.DefaultConnection!.HasStoredKey);
         Assert.Equal(("Anthropic", "https://api.anthropic.com/v1", false), (reopened.Name, reopened.BaseUrl, reopened.OffersEmbeddings));
         Assert.Null(store.DefaultConnection!.EmbeddingModel);
         Assert.Equal("Left empty, the ANTHROPIC_API_KEY environment variable is used.", reopened.KeyNote[(reopened.KeyNote.IndexOf("Left", StringComparison.Ordinal))..]);
@@ -168,6 +186,7 @@ public sealed class AIConnectionsTests
         var item = connections.SelectedConnection!;
 
         item.ApiKey = "gsk-test";
+        connections.SavePendingKeys();
 
         Assert.True(item.IsKeyStoreMissing);
         Assert.StartsWith("This computer has no key store the app can use: keys are kept unencrypted in the settings file", item.KeyNote, StringComparison.Ordinal);

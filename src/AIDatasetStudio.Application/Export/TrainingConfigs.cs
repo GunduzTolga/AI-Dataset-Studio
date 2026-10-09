@@ -31,7 +31,9 @@ public sealed record TrainingOptions(TrainingFramework Framework, string BaseMod
 /// What a configuration is written for: the dataset, its export and the files it wrote.
 /// </summary>
 /// <param name="Files">The data files by split part (<c>null</c> for a single file), as names in the same folder.</param>
-public sealed record TrainingTarget(string DatasetName, DatasetType Type, ExportFormat Format, int ContextLength, IReadOnlyList<(SplitPart? Part, string FileName)> Files, int Seed);
+/// <param name="HasSystemPrompts">Some written record has a system prompt of its own (Alpaca's <c>system</c> field).</param>
+public sealed record TrainingTarget(
+    string DatasetName, DatasetType Type, ExportFormat Format, int ContextLength, IReadOnlyList<(SplitPart? Part, string FileName)> Files, int Seed, bool HasSystemPrompts = false);
 
 public sealed record TrainingFile(string FileName, string Content);
 
@@ -309,6 +311,12 @@ public static class TrainingConfigs
                 case ExportFormat.Alpaca:
                     entry["formatting"] = "alpaca";
                     entry["columns"] = new JsonObject { ["prompt"] = "instruction", ["query"] = "input", ["response"] = "output" };
+                    if (target.HasSystemPrompts)
+                    {
+                        // Read only when mapped; a record without one gets the template's default.
+                        entry["columns"]!["system"] = "system";
+                    }
+
                     break;
                 default:
                     // Hugging Face DPO: a prompt with a better and a worse answer.

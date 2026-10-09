@@ -15,5 +15,8 @@ public sealed partial class AIConnectionsWindow : Window
                 connections.CloseRequested += (_, _) => Close();
             }
         };
+
+        // A key typed just before closing is kept.
+        Closed += (_, _) => (DataContext as AIConnectionsViewModel)?.SavePendingKeys();
     }
 }

@@ -5,6 +5,19 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Fixes
+- WhatsApp chats exported on iOS no longer bring attachments ("<attached: …>"), deleted messages
+  or WhatsApp's notices in as customer messages, and Android exports with media leave out the
+  attached file's line while keeping its caption.
+- Anthropic models that take only their own temperature are asked again without one, as OpenAI's
+  reasoning models already were.
+- An API key is saved once typing pauses, not at every keystroke, and is deleted when the
+  connection is switched to another service, so it is never sent to that service.
+- LLaMA-Factory reads the system prompts of Alpaca exports: `dataset_info.json` names the
+  `system` column when a written record has one.
+- Merging datasets runs in the background with its progress and Cancel working, and model
+  evaluation chooses its questions without holding up the window.
+
 ### Leaving out records the model scored low
 - The export wizard's **Leave out records the model scored low (1–2)** keeps records that
   Judge with AI scored 1 or 2 out of the training files. Only a judgment of the record's content

@@ -596,6 +596,9 @@
   <data name="Import_MoreSkipped" xml:space="preserve">
     <value>…and {0:N0} more</value>
   </data>
+  <data name="Import_MoreSkippedConversations" xml:space="preserve">
+    <value>…and {0:N0} more conversations</value>
+  </data>
   <data name="Import_NothingSkipped" xml:space="preserve">
     <value>Every row was imported.</value>
   </data>

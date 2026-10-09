@@ -71,10 +71,19 @@ internal sealed class AnthropicProvider(HttpClient http, AIConnection connection
 
         using var idle = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         idle.CancelAfter(Idle);
-        using var message = Request(HttpMethod.Post, "messages");
-        message.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
-        message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-        using var response = await SendAsync(message, idle.Token, cancellationToken);
+        HttpResponseMessage sent;
+        try
+        {
+            sent = await SendMessagesAsync(body, idle.Token, cancellationToken);
+        }
+        catch (AIException ex) when (ex.Kind == AIErrorKind.Rejected && ex.Detail?.Contains("temperature", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            // A model that takes only its own temperature, as OpenAI's reasoning models do.
+            body.Remove("temperature");
+            sent = await SendMessagesAsync(body, idle.Token, cancellationToken);
+        }
+
+        using var response = sent;
         if (response.Content.Headers.ContentType?.MediaType is not "text/event-stream")
         {
             // A whole message: {"content": [{"type": "text", "text": "…"}]}.
@@ -103,6 +112,14 @@ internal sealed class AnthropicProvider(HttpClient http, AIConnection connection
                 yield break;
             }
         }
+    }
+
+    private async Task<HttpResponseMessage> SendMessagesAsync(JsonObject body, CancellationToken idle, CancellationToken cancellationToken)
+    {
+        using var message = Request(HttpMethod.Post, "messages");
+        message.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
+        message.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        return await SendAsync(message, idle, cancellationToken);
     }
 
     public override Task<IReadOnlyList<float[]>> EmbedAsync(IReadOnlyList<string> inputs, CancellationToken cancellationToken = default) =>

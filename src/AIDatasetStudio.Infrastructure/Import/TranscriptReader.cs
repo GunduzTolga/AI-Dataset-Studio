@@ -29,7 +29,8 @@ internal static partial class TranscriptReader
 
     private static readonly string[] Deleted =
     [
-        "This message was deleted", "You deleted this message", "Bu mesaj silindi", "Bu mesajı sildiniz", "Bu mesaj silindi.", "null",
+        "This message was deleted", "You deleted this message", "This message was deleted.", "You deleted this message.",
+        "Bu mesaj silindi", "Bu mesajı sildiniz", "Bu mesaj silindi.", "Bu mesajı sildiniz.", "null",
     ];
 
     private static readonly string[] EditedSuffixes = ["<This message was edited>", "<Bu mesaj düzenlendi>", "<Bu mesaj düzenlenmiştir>"];
@@ -188,7 +189,15 @@ internal static partial class TranscriptReader
     /// </summary>
     private static string? MessageText(string text)
     {
-        text = text.Trim();
+        // iOS marks attachments, deleted messages and its own notices with a left-to-right mark.
+        if (text.TrimStart().StartsWith('\u200E'))
+        {
+            return null;
+        }
+
+        // Android names an attached file on a line of its own; a caption may follow it.
+        text = string.Join('\n', text.Split('\n').Where(line => !AttachmentRegex().IsMatch(line.Trim(Invisible).Trim())));
+        text = text.Trim().Trim(Invisible).Trim();
         foreach (var suffix in EditedSuffixes)
         {
             if (text.EndsWith(suffix, StringComparison.Ordinal))
@@ -288,7 +297,11 @@ internal static partial class TranscriptReader
     [GeneratedRegex(@"^\s*(?:([-=*_#~])\1{2,}\s*|#{1,6}\s+\S.*)$")]
     private static partial Regex SeparatorRegex();
 
-    // "<Media omitted>", "<Medya dahil edilmedi>".
-    [GeneratedRegex(@"^<[^<>]{3,60}>$")]
+    // "<Media omitted>", "<Medya dahil edilmedi>", "<attached: 00000012-PHOTO-….jpg>".
+    [GeneratedRegex(@"^<[^<>]{3,150}>$")]
     private static partial Regex PlaceholderRegex();
+
+    // "IMG-20261008-WA0001.jpg (file attached)", "Fatura.pdf (dosya ekli)".
+    [GeneratedRegex(@"^.{1,150}\.\w{2,5} \((?:file attached|dosya ekli)\)$")]
+    private static partial Regex AttachmentRegex();
 }

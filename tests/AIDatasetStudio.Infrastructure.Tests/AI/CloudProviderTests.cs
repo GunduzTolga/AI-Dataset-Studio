@@ -76,6 +76,14 @@ public sealed class CloudProviderTests
 
         Assert.Equal([1.4, null], requests.Select(r => (double?)r.Body["temperature"]));
 
+        // Anthropic too.
+        var anthropicRequests = new List<(HttpRequestMessage Request, JsonNode Body)>();
+        var anthropic = Recording(anthropicRequests, body => body["temperature"] is null
+            ? Respond(HttpStatusCode.OK, """{"content":[{"type":"text","text":"Tamam."}]}""")
+            : Respond(HttpStatusCode.BadRequest, """{"type":"error","error":{"type":"invalid_request_error","message":"temperature is not supported for this model."}}"""));
+        Assert.Equal(["Tamam."], await CollectAsync(new AnthropicProvider(anthropic, Connection(AIProviderKind.Anthropic), "sk-ant"), Hello));
+        Assert.Equal([1.0, null], anthropicRequests.Select(r => (double?)r.Body["temperature"]));
+
         // Other refusals are reported as they are.
         var refused = Recording([], _ => Respond(HttpStatusCode.BadRequest, """{"error":{"message":"context_length_exceeded"}}"""));
         var error = await Assert.ThrowsAsync<AIException>(() => CollectAsync(new OpenAICompatibleProvider(refused, Connection(AIProviderKind.OpenAI), "sk"), Hello));

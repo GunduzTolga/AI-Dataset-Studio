@@ -13,7 +13,12 @@ public sealed partial class MainWindowViewModel
     /// computer, so no workspace is needed.
     /// </summary>
     [RelayCommand]
-    private Task ManageAIConnectionsAsync() => _dialogs.ShowAIConnectionsAsync(_ai.CreateConnections());
+    private async Task ManageAIConnectionsAsync()
+    {
+        var connections = _ai.CreateConnections();
+        await _dialogs.ShowAIConnectionsAsync(connections);
+        connections.SavePendingKeys();
+    }
 
     /// <summary>
     /// File › Extract Q&amp;A from Document: picks a document and has the model write the questions

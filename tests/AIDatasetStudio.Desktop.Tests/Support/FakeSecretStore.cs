@@ -15,8 +15,14 @@ internal sealed class FakeSecretStore : ISecretStore
 
     public string? Read(string name) => IsAvailable ? Items.GetValueOrDefault(name) : null;
 
+    /// <summary>
+    /// How many times a secret was written.
+    /// </summary>
+    public int Writes { get; private set; }
+
     public bool Write(string name, string secret)
     {
+        Writes++;
         if (!IsAvailable)
         {
             return false;

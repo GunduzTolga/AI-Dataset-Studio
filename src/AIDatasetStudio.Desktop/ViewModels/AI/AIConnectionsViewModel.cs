@@ -5,6 +5,7 @@ using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -21,8 +22,15 @@ public sealed record ProviderOption(AIProviderKind Kind, string Label);
 /// </summary>
 public sealed partial class AIConnectionItemViewModel : ViewModelBase
 {
+    /// <summary>
+    /// How long typing pauses before a typed key is saved: the key store is written once, not at
+    /// every keystroke.
+    /// </summary>
+    internal static readonly TimeSpan KeySaveDelay = TimeSpan.FromMilliseconds(600);
+
     private readonly AIConnectionsViewModel _owner;
     private readonly bool _ready;
+    private DispatcherTimer? _keySave;
 
     internal AIConnectionItemViewModel(AIConnection connection, AIConnectionsViewModel owner)
     {
@@ -210,6 +218,13 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
             Name = newValue.Label;
         }
 
+        // A key belongs to its service: it is never sent to another one.
+        if (oldValue.Kind != newValue.Kind && (HasStoredKey || !string.IsNullOrWhiteSpace(ApiKey)))
+        {
+            HasStoredKey = false;
+            ApiKey = null;
+        }
+
         Save();
     }
 
@@ -230,7 +245,22 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
 
     partial void OnModelChanged(string value) => Save();
 
-    partial void OnApiKeyChanged(string? value) => Save();
+    partial void OnApiKeyChanged(string? value)
+    {
+        if (!_ready)
+        {
+            return;
+        }
+
+        if (_keySave is null)
+        {
+            _keySave = new DispatcherTimer { Interval = KeySaveDelay };
+            _keySave.Tick += (_, _) => Save();
+        }
+
+        _keySave.Stop();
+        _keySave.Start();
+    }
 
     partial void OnEmbeddingModelChanged(string? value) => Save();
 
@@ -240,8 +270,25 @@ public sealed partial class AIConnectionItemViewModel : ViewModelBase
 
     partial void OnAllowRemoteChanged(bool value) => Save();
 
+    /// <summary>
+    /// Saves a key still being typed, e.g. when the window closes.
+    /// </summary>
+    internal void SavePendingKey()
+    {
+        if (_keySave?.IsEnabled == true)
+        {
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// Forgets a key still being typed, for a connection being deleted.
+    /// </summary>
+    internal void DropPendingKey() => _keySave?.Stop();
+
     private void Save()
     {
+        _keySave?.Stop();
         if (_ready)
         {
             Saved(_owner.Save(this));
@@ -362,6 +409,7 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
         }
 
         _work?.Cancel();
+        item.DropPendingKey();
         _store.Remove(item.Id);
         var index = Connections.IndexOf(item);
         Connections.Remove(item);
@@ -433,6 +481,17 @@ public sealed partial class AIConnectionsViewModel : ViewModelBase
     {
         _work?.Cancel();
         CloseRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Saves keys still being typed; called when the window closes, however it is closed.
+    /// </summary>
+    public void SavePendingKeys()
+    {
+        foreach (var connection in Connections)
+        {
+            connection.SavePendingKey();
+        }
     }
 
     internal AIConnection Save(AIConnectionItemViewModel item)

@@ -245,7 +245,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     public bool HasMoreSkipped => Result is { } r && r.Skipped > r.Errors.Count;
 
-    public string MoreSkippedText => Result is { } r ? _localizer.Format("Import_MoreSkipped", r.Skipped - r.Errors.Count) : string.Empty;
+    public string MoreSkippedText => Result is { } r ? _localizer.Format(IsLog ? "Import_MoreSkippedConversations" : "Import_MoreSkipped", r.Skipped - r.Errors.Count) : string.Empty;
 
     /// <summary>
     /// The plan for the current settings; <c>null</c> before the file is analyzed.

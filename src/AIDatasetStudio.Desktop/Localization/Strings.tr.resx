@@ -564,6 +564,9 @@
   <data name="Import_MoreSkipped" xml:space="preserve">
     <value>…ve {0:N0} satır daha</value>
   </data>
+  <data name="Import_MoreSkippedConversations" xml:space="preserve">
+    <value>…ve {0:N0} konuşma daha</value>
+  </data>
   <data name="Import_NothingSkipped" xml:space="preserve">
     <value>Tüm satırlar içe aktarıldı.</value>
   </data>

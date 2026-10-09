@@ -71,6 +71,36 @@ public sealed class TranscriptImportTests
     }
 
     [Fact]
+    public void Attachments_deleted_messages_and_notices_are_left_out_as_ios_and_android_mark_them()
+    {
+        // iOS puts a left-to-right mark before its attachments, deleted messages and notices.
+        var ios = TranscriptReader.Read(
+        [
+            "[08.10.2026 14:30:00] Mağaza Destek: \u200EMesajlar ve aramalar uçtan uca şifrelidir.",
+            "[08.10.2026 14:31:00] Ayşe: Merhaba, ürün kırık geldi",
+            "\u200E[08.10.2026 14:31:30] Ayşe: \u200E<attached: 00000012-PHOTO-2026-10-08-14-31-30.jpg>",
+            "[08.10.2026 14:32:00] Ayşe: \u200EThis message was deleted.",
+            "[08.10.2026 14:33:00] Mağaza Destek: Fotoğrafı aldık, değişim başlattık.",
+        ]);
+        Assert.Equal(
+            [("Ayşe", "Merhaba, ürün kırık geldi"), ("Mağaza Destek", "Fotoğrafı aldık, değişim başlattık.")],
+            Assert.Single(ios.Conversations).Messages.Select(m => (m.Speaker, m.Text)));
+
+        // Android names an attached file on a line of its own; its caption is kept.
+        var android = TranscriptReader.Read(
+        [
+            "08.10.2026 14:31 - Ayşe: Merhaba, ürün kırık geldi",
+            "08.10.2026 14:31 - Ayşe: IMG-20261008-WA0001.jpg (dosya ekli)",
+            "08.10.2026 14:32 - Ayşe: IMG-20261008-WA0002.jpg (file attached)",
+            "Burada görülüyor",
+            "08.10.2026 14:35 - Mağaza Destek: Değişim başlattık.",
+        ]);
+        Assert.Equal(
+            ["Merhaba, ürün kırık geldi", "Burada görülüyor", "Değişim başlattık."],
+            Assert.Single(android.Conversations).Messages.Select(m => m.Text));
+    }
+
+    [Fact]
     public void A_transcript_is_split_at_separators_and_headings_and_messages_go_on_over_lines()
     {
         var log = TranscriptReader.Read("""

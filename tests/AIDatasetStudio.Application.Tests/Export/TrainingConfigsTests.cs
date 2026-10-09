@@ -124,19 +124,23 @@ public sealed class TrainingConfigsTests
     [Fact]
     public void LLaMA_Factory_reads_openai_messages_and_alpaca_columns()
     {
-        var info = (string format) => JsonNode.Parse(TrainingConfigs.Render(
+        var info = (string format, bool system) => JsonNode.Parse(TrainingConfigs.Render(
             new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen3-8B"),
-            new TrainingTarget("SSS", DatasetType.Instruction, Enum.Parse<ExportFormat>(format), 4096, [(null, "sss.jsonl")], 42))[0].Content)!["sss_train"]!;
+            new TrainingTarget("SSS", DatasetType.Chat, Enum.Parse<ExportFormat>(format), 4096, [(null, "sss.jsonl")], 42, system))[0].Content)!["sss_train"]!;
 
-        var openAI = info("OpenAi");
+        var openAI = info("OpenAi", false);
         Assert.Equal(("sss.jsonl", "sharegpt", "messages"), ((string?)openAI["file_name"], (string?)openAI["formatting"], (string?)openAI["columns"]!["messages"]));
         Assert.Equal(("role", "content", "user", "assistant", "system"), (
             (string?)openAI["tags"]!["role_tag"], (string?)openAI["tags"]!["content_tag"], (string?)openAI["tags"]!["user_tag"],
             (string?)openAI["tags"]!["assistant_tag"], (string?)openAI["tags"]!["system_tag"]));
 
-        var alpaca = info("Alpaca");
+        var alpaca = info("Alpaca", false);
         Assert.Equal(("alpaca", "instruction", "input", "output"), (
             (string?)alpaca["formatting"], (string?)alpaca["columns"]!["prompt"], (string?)alpaca["columns"]!["query"], (string?)alpaca["columns"]!["response"]));
+        Assert.Null(alpaca["columns"]!["system"]);
+
+        // System prompts are read only when their column is named, and only named when some record has one.
+        Assert.Equal("system", (string?)info("Alpaca", true)["columns"]!["system"]);
     }
 
     [Fact]

@@ -268,7 +268,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 pipeline.OverLimit,
                 pipeline.Duplicates,
                 pipeline.Masked,
-                options.Training is { } training ? WriteTrainingFiles(training, source, options, files) : null,
+                options.Training is { } training ? WriteTrainingFiles(training, source, options, files, pipeline.WithSystemPrompt > 0) : null,
                 pipeline.LowJudgeScore);
             // The files are in place: record them even if cancellation comes now.
             await RememberAsync(source, options, result, CancellationToken.None);
@@ -292,12 +292,13 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     /// The fine-tuning configuration, next to the data files and naming them by file name, so the
     /// folder can be moved to a training machine as it is (M20).
     /// </summary>
-    private static List<string> WriteTrainingFiles(TrainingOptions training, Source source, ExportOptions options, List<PartFile> files)
+    /// <param name="hasSystemPrompts">Some written record has a system prompt of its own.</param>
+    private static List<string> WriteTrainingFiles(TrainingOptions training, Source source, ExportOptions options, List<PartFile> files, bool hasSystemPrompts)
     {
         var folder = Path.GetDirectoryName(files[0].Path)!;
         var target = new TrainingTarget(
             source.Name, source.Type, options.Format, source.ContextLength,
-            [.. files.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed);
+            [.. files.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed, hasSystemPrompts);
         var written = new List<string>();
         foreach (var config in TrainingConfigs.Render(training, target))
         {
@@ -669,6 +670,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
         public long LowJudgeScore { get; private set; }
 
+        /// <summary>
+        /// Written records with a system prompt of their own.
+        /// </summary>
+        public long WithSystemPrompt { get; private set; }
+
         public long Duplicates { get; private set; }
 
         public long Masked { get; private set; }
@@ -704,6 +710,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             }
 
             Exported++;
+            if (payload is ChatPayload { SystemPrompt: not null })
+            {
+                WithSystemPrompt++;
+            }
+
             return new ExportLine(part, ExportRenderer.Render(options.Format, payload));
         }
 
