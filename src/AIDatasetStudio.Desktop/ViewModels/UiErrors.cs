@@ -32,6 +32,7 @@ internal static class UiErrors
         WorkspaceFileError.CreatedByNewerVersion => "Error_CreatedByNewerVersion",
         WorkspaceFileError.Corrupted => "Error_WorkspaceCorrupted",
         WorkspaceFileError.Unavailable => "Error_WorkspaceUnavailable",
+        WorkspaceFileError.AlreadyOpen => "Error_WorkspaceAlreadyOpen",
         _ => throw new ArgumentOutOfRangeException(nameof(error), error, null),
     };
 }

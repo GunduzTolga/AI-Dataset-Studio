@@ -78,6 +78,9 @@
   <data name="Dialog_OpenWorkspaceTitle" xml:space="preserve">
     <value>Open Workspace</value>
   </data>
+  <data name="Error_WorkspaceAlreadyOpen" xml:space="preserve">
+    <value>'{0}' is the workspace already open.</value>
+  </data>
   <data name="Dialog_NewWorkspaceTitle" xml:space="preserve">
     <value>New Workspace</value>
   </data>
@@ -2539,9 +2542,6 @@
   </data>
   <data name="Merge_NoDatasets" xml:space="preserve">
     <value>There are no datasets here.</value>
-  </data>
-  <data name="Merge_SameFile" xml:space="preserve">
-    <value>The file you chose is the open workspace.</value>
   </data>
   <data name="Merge_SectionTarget" xml:space="preserve">
     <value>NEW DATASET</value>

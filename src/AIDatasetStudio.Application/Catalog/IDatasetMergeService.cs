@@ -62,7 +62,9 @@ public interface IDatasetMergeService
     /// <summary>
     /// Opens another workspace file to merge its datasets into this workspace (M23).
     /// </summary>
-    /// <exception cref="Workspaces.WorkspaceFileException">The file is missing, not a workspace, made by a newer version, or cannot be read.</exception>
-    /// <exception cref="ArgumentException">The file is the open workspace itself.</exception>
+    /// <exception cref="Workspaces.WorkspaceFileException">
+    /// The file is missing, not a workspace, made by a newer version, cannot be read, or is the open
+    /// workspace itself (<see cref="Workspaces.WorkspaceFileError.AlreadyOpen"/>).
+    /// </exception>
     Task<IMergeSource> OpenWorkspaceAsync(string path, CancellationToken cancellationToken = default);
 }

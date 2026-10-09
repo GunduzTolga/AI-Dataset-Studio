@@ -45,10 +45,12 @@ internal sealed class DatasetMergeService(
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (workspaces.Current is { } current && SamePath(current.FilePath, path))
         {
-            throw new ArgumentException("This is the open workspace; its datasets are merged without opening it again.", nameof(path));
+            throw new WorkspaceFileException(
+                WorkspaceFileError.AlreadyOpen, current.FilePath, "This is the open workspace; its datasets are merged without opening it again.");
         }
 
-        return await OtherWorkspace.OpenAsync(path, timeProvider, tokenizers, cancellationToken);
+        // Copying, upgrading the copy and repairing its search index can take a while: off the UI thread.
+        return await Task.Run(async () => await OtherWorkspace.OpenAsync(path, timeProvider, tokenizers, cancellationToken), cancellationToken);
     }
 
     private static bool SamePath(string a, string b) => string.Equals(
@@ -226,7 +228,7 @@ internal sealed class DatasetMergeService(
                         continue;
                     }
 
-                    _ours ??= (await tags.ListAsync(cancellationToken: cancellationToken)).ToDictionary(t => Tag.FoldName(t.Name), t => t.Id, StringComparer.Ordinal);
+                    _ours ??= await OursAsync(cancellationToken);
                     if (!_ours.TryGetValue(Tag.FoldName(tag.Name), out mine))
                     {
                         var added = await tags.CreateAsync(tag.Name, cancellationToken);
@@ -242,6 +244,18 @@ internal sealed class DatasetMergeService(
             }
 
             return mapped;
+        }
+
+        // Files made before tag names were folded may hold "İade" and "iade"; the first one wins.
+        private async Task<Dictionary<string, Guid>> OursAsync(CancellationToken cancellationToken)
+        {
+            var ours = new Dictionary<string, Guid>(StringComparer.Ordinal);
+            foreach (var tag in await tags.ListAsync(cancellationToken: cancellationToken))
+            {
+                ours.TryAdd(Tag.FoldName(tag.Name), tag.Id);
+            }
+
+            return ours;
         }
     }
 }

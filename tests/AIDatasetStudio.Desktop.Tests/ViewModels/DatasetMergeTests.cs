@@ -103,7 +103,7 @@ public sealed class DatasetMergeTests
             // The open workspace itself, and a file that is not a workspace, are refused.
             host.Files.OpenPath = host.PathFor("Test");
             await merge.ChooseFileCommand.ExecuteAsync(null);
-            Assert.Equal(("The file you chose is the open workspace.", false), (merge.ErrorMessage, merge.IsFromOtherFile));
+            Assert.Equal(("'Test.adstudio' is the workspace already open.", false), (merge.ErrorMessage, merge.IsFromOtherFile));
             host.Files.OpenPath = notes;
             await merge.ChooseFileCommand.ExecuteAsync(null);
             Assert.Equal("'notes.adstudio' is not an AI Dataset Studio workspace.", merge.ErrorMessage);
@@ -138,6 +138,11 @@ public sealed class DatasetMergeTests
         var added = Assert.Single(await host.Get<ITagService>().ListAsync());
         Assert.Equal(("iade", "#E11D48", (int?)null), (added.Name, added.ColorHex, added.Shortcut));
         Assert.Equal([added.Id], (await host.Get<IRecordQueryService>().GetAsync(copies.Items[0].Id))!.TagIds);
+
+        // The added tag is known to the app: offered in the filter and shown on the copied record.
+        Assert.Equal(["iade"], host.Main.Tags.Tags.Select(t => t.Name));
+        await host.Main.Records.ReloadAsync();
+        Assert.Equal(["iade"], host.Main.Records.Items.Single(r => r.Id == copies.Items[0].Id).Tags.Select(t => t.Name));
 
         // The other file is as it was.
         Assert.Equal(2, other.Main.Explorer.FindDataset(theirs.Id)!.RecordCount);

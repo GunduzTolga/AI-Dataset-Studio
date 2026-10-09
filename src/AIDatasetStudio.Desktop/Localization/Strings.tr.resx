@@ -63,6 +63,9 @@
   <data name="Error_WorkspaceUnavailable" xml:space="preserve">
     <value>'{0}' kullanılamadı: {1}</value>
   </data>
+  <data name="Error_WorkspaceAlreadyOpen" xml:space="preserve">
+    <value>'{0}' zaten açık olan çalışma alanı.</value>
+  </data>
   <data name="Error_FileAccess" xml:space="preserve">
     <value>Dosyaya erişilemedi: {0}</value>
   </data>
@@ -2477,9 +2480,6 @@
   </data>
   <data name="Merge_NoDatasets" xml:space="preserve">
     <value>Burada veri seti yok.</value>
-  </data>
-  <data name="Merge_SameFile" xml:space="preserve">
-    <value>Seçtiğiniz dosya zaten açık olan çalışma alanı.</value>
   </data>
   <data name="Merge_SectionTarget" xml:space="preserve">
     <value>YENİ VERİ SETİ</value>

@@ -16,15 +16,18 @@ public sealed partial class ExplorerViewModel : ViewModelBase
     private readonly IDatasetMergeService _merge;
     private readonly IDialogService _dialogs;
     private readonly IFileDialogService _files;
+    private readonly Tags.TagCatalog _tags;
     private readonly StatusBarViewModel _status;
     private readonly Localizer _localizer;
 
-    public ExplorerViewModel(ICatalogService catalog, IDatasetMergeService merge, IDialogService dialogs, IFileDialogService files, StatusBarViewModel status, Localizer localizer)
+    public ExplorerViewModel(
+        ICatalogService catalog, IDatasetMergeService merge, IDialogService dialogs, IFileDialogService files, Tags.TagCatalog tags, StatusBarViewModel status, Localizer localizer)
     {
         _catalog = catalog;
         _merge = merge;
         _dialogs = dialogs;
         _files = files;
+        _tags = tags;
         _status = status;
         _localizer = localizer;
         _localizer.CultureChanged += (_, _) =>
@@ -99,6 +102,8 @@ public sealed partial class ExplorerViewModel : ViewModelBase
             await _dialogs.ShowDatasetMergeAsync(merge);
             if (merge.Result is { } result)
             {
+                // A merge from another file may have added tags: known before the new dataset's rows show.
+                await _tags.ReloadAsync();
                 await ReloadAsync();
                 SelectedNode = FindNode(result.DatasetId);
                 _status.Set("Status_Merged", merge.Name.Trim(), result.Copied);

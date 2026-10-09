@@ -72,7 +72,7 @@ public sealed class MergeFromAnotherFileTests
     }
 
     [Fact]
-    public async Task The_file_is_never_written_and_its_copy_is_removed_once_done()
+    public async Task A_read_only_file_is_never_written_and_its_copy_is_removed_once_done()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
         var project = await ws.Catalog.CreateProjectAsync("Destek", cancellationToken: Ct);
@@ -81,12 +81,16 @@ public sealed class MergeFromAnotherFileTests
         await Add(other, dataset, "Soru", "Cevap");
         var path = other.FilePath;
         await other.Workspace.CloseAsync(Ct);
+        File.SetAttributes(path, FileAttributes.ReadOnly);
         var before = SHA256.HashData(await File.ReadAllBytesAsync(path, Ct));
 
         string folder;
         await using (var source = await ws.Merge.OpenWorkspaceAsync(path, Ct))
         {
-            folder = Path.GetDirectoryName(((OtherWorkspace)source).CopyPath)!;
+            // The copy is written (upgraded, its index repaired) even though the file cannot be.
+            var copy = ((OtherWorkspace)source).CopyPath;
+            Assert.False(File.GetAttributes(copy).HasFlag(FileAttributes.ReadOnly));
+            folder = Path.GetDirectoryName(copy)!;
             await ws.Merge.MergeAsync(new DatasetMergeRequest([dataset], project, "Kopya", From: source), cancellationToken: Ct);
             Assert.True(Directory.Exists(folder));
         }
@@ -94,6 +98,7 @@ public sealed class MergeFromAnotherFileTests
         Assert.False(Directory.Exists(folder));
         Assert.Equal(before, SHA256.HashData(await File.ReadAllBytesAsync(path, Ct)));
         Assert.False(File.Exists(path + "-wal"));
+        File.SetAttributes(path, FileAttributes.Normal);
         await other.DisposeAsync();
     }
 
@@ -135,10 +140,11 @@ public sealed class MergeFromAnotherFileTests
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => ws.Merge.OpenWorkspaceAsync(ws.FilePath, Ct));
+        var error = await Assert.ThrowsAsync<WorkspaceFileException>(() => ws.Merge.OpenWorkspaceAsync(ws.FilePath, Ct));
+        Assert.Equal((WorkspaceFileError.AlreadyOpen, ws.FilePath), (error.Error, error.FilePath));
 
         var missing = Path.Combine(ws.Directory, "yok.adstudio");
-        var error = await Assert.ThrowsAsync<WorkspaceFileException>(() => ws.Merge.OpenWorkspaceAsync(missing, Ct));
+        error = await Assert.ThrowsAsync<WorkspaceFileException>(() => ws.Merge.OpenWorkspaceAsync(missing, Ct));
         Assert.Equal((WorkspaceFileError.NotFound, missing), (error.Error, error.FilePath));
 
         var text = ws.WriteFile("notlar.adstudio", new string('x', 4096));

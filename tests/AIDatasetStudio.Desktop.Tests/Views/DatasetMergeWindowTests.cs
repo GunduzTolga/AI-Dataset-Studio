@@ -78,6 +78,15 @@ public sealed class DatasetMergeWindowTests
         Assert.True(Find<Button>(window, "ThisWorkspaceButton").IsVisible);
         Assert.Contains(window.GetVisualDescendants().OfType<CheckBox>(), c => c.IsEffectivelyVisible && c.DataContext is MergeSourceItem { Type: DatasetType.Chat });
         window.Close();
+
+        // Closed while a file is read: the file read is let go, not listed.
+        await using var closed = new DatasetMergeViewModel(host.Get<IDatasetMergeService>(), host.Files, host.Get<Localizer>(), await host.Get<ICatalogService>().GetProjectsAsync());
+        var opening = closed.ChooseFileCommand.ExecuteAsync(null);
+        Assert.True(closed.IsOpeningFile);
+        await closed.DisposeAsync();
+        await opening;
+        Assert.False(closed.IsFromOtherFile);
+        Assert.Equal(["Project"], closed.Groups.Select(g => g.Name));
     });
 
     private static T Find<T>(Window window, string name)

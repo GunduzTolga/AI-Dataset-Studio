@@ -69,6 +69,7 @@ public sealed partial class DatasetMergeViewModel : ViewModelBase, IAsyncDisposa
     private string _suggestedName = string.Empty;
     private CancellationTokenSource? _work;
     private IMergeSource? _source;
+    private bool _picking;
     private bool _disposed;
 
     public DatasetMergeViewModel(IDatasetMergeService merge, IFileDialogService files, Localizer localizer, IReadOnlyList<ProjectSummary> projects, Guid? preselected = null)
@@ -223,7 +224,8 @@ public sealed partial class DatasetMergeViewModel : ViewModelBase, IAsyncDisposa
 
     // From another file one dataset is enough: it is brought over.
     private bool CanMerge() =>
-        _chosen.Count >= (IsFromOtherFile ? 1 : 2) && !string.IsNullOrWhiteSpace(Name) && SelectedTarget is not null && !IsMerging && !IsOpeningFile && Result is null;
+        _chosen.Count >= (IsFromOtherFile ? 1 : 2) && !string.IsNullOrWhiteSpace(Name) && SelectedTarget is not null
+        && !IsMerging && !_picking && !IsOpeningFile && Result is null;
 
     private bool CanChangeSource() => !IsMerging && Result is null;
 
@@ -234,7 +236,19 @@ public sealed partial class DatasetMergeViewModel : ViewModelBase, IAsyncDisposa
     [RelayCommand(CanExecute = nameof(CanChangeSource))]
     private async Task ChooseFileAsync()
     {
-        if (await _files.PickWorkspaceToOpenAsync() is not { } path)
+        // No merge starts while the picker is open: it would read the datasets being replaced.
+        string? path;
+        SetPicking(true);
+        try
+        {
+            path = await _files.PickWorkspaceToOpenAsync();
+        }
+        finally
+        {
+            SetPicking(false);
+        }
+
+        if (path is null || IsMerging || _disposed)
         {
             return;
         }
@@ -252,10 +266,6 @@ public sealed partial class DatasetMergeViewModel : ViewModelBase, IAsyncDisposa
 
             await UseSourceAsync(source);
         }
-        catch (ArgumentException)
-        {
-            ErrorMessage = _localizer["Merge_SameFile"];
-        }
         catch (Exception ex) when (UiErrors.TryDescribe(ex) is { } error)
         {
             ErrorMessage = _localizer.Format(error.Key, error.Args);
@@ -264,6 +274,13 @@ public sealed partial class DatasetMergeViewModel : ViewModelBase, IAsyncDisposa
         {
             IsOpeningFile = false;
         }
+    }
+
+    private void SetPicking(bool picking)
+    {
+        _picking = picking;
+        MergeCommand.NotifyCanExecuteChanged();
+        UseThisWorkspaceCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -276,7 +293,7 @@ public sealed partial class DatasetMergeViewModel : ViewModelBase, IAsyncDisposa
         return UseSourceAsync(null);
     }
 
-    private bool CanUseThisWorkspace() => IsFromOtherFile && !IsOpeningFile && CanChangeSource();
+    private bool CanUseThisWorkspace() => IsFromOtherFile && !_picking && !IsOpeningFile && CanChangeSource();
 
     public async ValueTask DisposeAsync()
     {
