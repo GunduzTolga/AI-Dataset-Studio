@@ -5,6 +5,15 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Merging datasets
+- **Tools › Merge Datasets…** (also in the project tree's context menu) combines datasets of one
+  type, from any projects, into a new dataset. The datasets you choose are left as they are.
+- Records are copied whole: content, status, source, tags, metadata and dates. Variations keep
+  their family. The new dataset takes the first chosen dataset's tokenizer, context length and AI
+  instructions.
+- Exact copies are left out by default, archived records only when you ask, and every record can
+  be taken as a draft to review again. Stopping the merge leaves no half-made dataset.
+
 ### Training configurations
 - The export wizard's new **Training configuration** writes a ready-to-run LoRA fine-tuning setup
   next to the exported files: `axolotl.yaml` for Axolotl, or `dataset_info.json` and
