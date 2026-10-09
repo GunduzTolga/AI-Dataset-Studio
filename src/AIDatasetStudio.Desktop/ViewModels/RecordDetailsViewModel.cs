@@ -1,10 +1,15 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
+using AIDatasetStudio.Application.Documents;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,8 +19,8 @@ namespace AIDatasetStudio.Desktop.ViewModels;
 
 /// <summary>
 /// The inspector: edits the selected record with fields that match its type (SDD §6.1), offers
-/// the review actions its status allows, and turns into a batch panel when several records are
-/// selected. Edits are saved explicitly or automatically when another record is shown.
+/// the review actions its status allows and its tags, and turns into a batch panel when several
+/// records are selected. Edits are saved explicitly or automatically when another record is shown.
 /// </summary>
 public sealed partial class RecordDetailsViewModel : ViewModelBase
 {
@@ -26,6 +31,9 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private readonly Localizer _localizer;
     private readonly IRecordAnalysisService _analysis;
     private readonly ITokenizerProvider _tokenizers;
+    private readonly TagCatalog _tags;
+    private readonly AIAssistant _ai;
+    private readonly RecordJudge _judge;
     private PiiScanner _scanner = new();
     private IReadOnlyList<QualityIssue> _crossIssues = [];
     private PiiMaskResult? _mask;
@@ -41,7 +49,10 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         ITokenizerProvider tokenizers,
         IDialogService dialogs,
         StatusBarViewModel status,
-        Localizer localizer)
+        Localizer localizer,
+        TagCatalog tags,
+        AIAssistant ai,
+        RecordJudge judge)
     {
         _queries = queries;
         _analysis = analysis;
@@ -50,17 +61,27 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         _dialogs = dialogs;
         _status = status;
         _localizer = localizer;
+        _tags = tags;
+        _ai = ai;
+        _judge = judge;
+        _ai.ConnectionChanged += (_, _) => OnPropertyChanged(nameof(WritingText));
+        TagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
+        BatchTagPicker = new TagPickerViewModel(tags, localizer, status, tag => SetTagAsync(tag, present: true));
+        _tags.Changed += (_, _) => RefreshTags();
         _localizer.CultureChanged += (_, _) => Refresh();
     }
 
     // ===== Single record =====
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info))]
+    [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info), nameof(IsJudgmentOutdated))]
     [NotifyPropertyChangedFor(nameof(IsChat), nameof(ShowChatEditor), nameof(IsArchived), nameof(IsEditable))]
+    [NotifyPropertyChangedFor(nameof(IsPreference), nameof(ShowPreferenceCompare))]
     [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand), nameof(TogglePreferenceCompareCommand))]
+    [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand), nameof(JudgeCommand))]
     public partial RecordDetails? Record { get; private set; }
 
     /// <summary>
@@ -84,6 +105,21 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public string StatusLabel => Record is { } record ? Labels.For(_localizer, record.Status) : string.Empty;
 
     public IReadOnlyList<InfoItem> Info => Record is { } record ? BuildInfo(record) : [];
+
+    /// <summary>
+    /// The passage of a document the record was written from, so its answer can be checked against it.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSource))]
+    public partial PassageSource? Source { get; private set; }
+
+    public bool HasSource => Source is not null;
+
+    /// <summary>
+    /// The passage is shown under the record's information; it stays open from record to record.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsSourceShown { get; set; }
 
     /// <summary>
     /// Text fields of the record; for chats only the system prompt (turns are in <see cref="Messages"/>).
@@ -116,6 +152,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// The dataset of the shown records, for its tokenizer and context length.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanVary), nameof(CanJudgeRecords))]
+    [NotifyCanExecuteChangedFor(nameof(JudgeCommand))]
     public partial DatasetNodeViewModel? Dataset { get; set; }
 
     /// <summary>
@@ -192,7 +230,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// Shows the record with personal data masked instead of the editor (Mod+Shift+M).
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor))]
+    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor), nameof(ShowPreferenceCompare))]
     [NotifyCanExecuteChangedFor(nameof(ApplyMaskCommand))]
     public partial bool IsPiiPreview { get; private set; }
 
@@ -216,11 +254,43 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// </summary>
     public bool ShowChatEditor => IsChat && IsEditing;
 
+    // ===== Preference pairs: chosen against rejected (SDD §6.1) =====
+
+    public bool IsPreference => Record?.Payload is PreferencePayload;
+
+    /// <summary>
+    /// Shows below the answers what differs between them. Stays on from record to record.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowPreferenceCompare))]
+    public partial bool IsPreferenceCompare { get; private set; }
+
+    public bool ShowPreferenceCompare => IsPreference && IsPreferenceCompare && IsEditing;
+
+    /// <summary>
+    /// The rejected answer with what only it says marked (red).
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<DiffSegment> RejectedSegments { get; private set; } = [];
+
+    /// <summary>
+    /// The chosen answer with what only it says marked (green).
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<DiffSegment> ChosenSegments { get; private set; } = [];
+
+    /// <summary>
+    /// "12 words only in the chosen answer · 3 only in the rejected one".
+    /// </summary>
+    [ObservableProperty]
+    public partial string PreferenceCompareSummary { get; private set; } = string.Empty;
+
     // ===== Several records =====
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBatch), nameof(IsEmpty), nameof(BatchTitle), nameof(BatchCounts))]
     [NotifyPropertyChangedFor(nameof(ShowBatchApprove), nameof(ShowBatchSendToReview), nameof(ShowBatchArchive), nameof(ShowBatchRestore))]
+    [NotifyCanExecuteChangedFor(nameof(OpenBatchTagPickerCommand))]
     public partial IReadOnlyList<RecordRowViewModel> BatchRows { get; private set; } = [];
 
     public bool IsBatch => BatchRows.Count > 1;
@@ -238,12 +308,41 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     public bool ShowBatchRestore => BatchRows.Any(r => r.Status == RecordStatus.Archived);
 
+    // ===== Tags (SDD §6.2) =====
+
+    /// <summary>
+    /// The tags of the shown record, by name.
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<TagViewModel> RecordTags { get; private set; } = [];
+
+    /// <summary>
+    /// "Add tag" for the shown record.
+    /// </summary>
+    public TagPickerViewModel TagPicker { get; }
+
+    /// <summary>
+    /// "Add tag" for all selected records.
+    /// </summary>
+    public TagPickerViewModel BatchTagPicker { get; }
+
+    /// <summary>
+    /// The tags of the selected records, with how many of them carry each.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBatchTags))]
+    public partial IReadOnlyList<TagCountItem> BatchTags { get; private set; } = [];
+
+    public bool HasBatchTags => BatchTags.Count > 0;
+
     /// <summary>
     /// Shows one record (or nothing), saving unsaved edits of the previous one first.
     /// </summary>
     public async Task ShowAsync(Guid? recordId)
     {
         var generation = ++_generation;
+        await StopWritingAsync();
+        await StopJudgingAsync();
         await SaveIfDirtyAsync();
         BatchRows = [];
         if (recordId is null)
@@ -264,6 +363,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             {
                 SetRecord(record);
                 await LoadCrossIssuesAsync(generation);
+                await LoadJudgmentAsync(generation);
             }
         }
         catch (Exception ex) when (_status.TryReport(ex))
@@ -277,6 +377,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     public async Task ShowBatchAsync(Guid datasetId, IReadOnlyList<RecordRowViewModel> rows)
     {
         ++_generation;
+        await StopWritingAsync();
+        await StopJudgingAsync();
         await SaveIfDirtyAsync();
         SetRecord(null);
         _batchDatasetId = datasetId;
@@ -294,12 +396,14 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
 
         var generation = ++_generation;
+        await StopWritingAsync();
         try
         {
             var fresh = await _queries.GetAsync(record.Id);
             if (generation == _generation)
             {
                 SetRecord(fresh);
+                await LoadJudgmentAsync(generation);
             }
         }
         catch (Exception ex) when (_status.TryReport(ex))
@@ -313,18 +417,22 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// <returns><c>false</c> if saving failed.</returns>
     public async Task<bool> SaveIfDirtyAsync()
     {
+        // A model still writing is stopped: what it wrote so far is saved.
+        await StopWritingAsync();
         if (!IsDirty || Record is not { } before || IsArchived)
         {
             return true;
         }
 
         var payload = BuildPayload(before.Payload);
+        var writtenBy = _writtenBy;
         // Clean from now on, so a second call while this save runs does not save again.
         _cleanHash = payload.ComputeContentHash();
         IsDirty = false;
+        _writtenBy = null;
         try
         {
-            if (await _operations.SaveAsync(before, payload))
+            if (await _operations.SaveAsync(before, payload, writtenBy))
             {
                 _status.Set("Status_RecordSaved", before.Ordinal);
                 if (Record?.Id == before.Id && await _queries.GetAsync(before.Id) is { } fresh && Record?.Id == before.Id)
@@ -339,6 +447,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         catch (Exception ex) when (_status.TryReport(ex))
         {
             _cleanHash = before.ContentHash;
+            _writtenBy = writtenBy;
             OnEdited();
             return false;
         }
@@ -444,7 +553,99 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
-    private bool CanSave() => IsDirty && IsEditable;
+    [RelayCommand(CanExecute = nameof(HasRecord))]
+    private void OpenTagPicker() => TagPicker.Open(() => Record?.TagIds ?? []);
+
+    [RelayCommand(CanExecute = nameof(IsBatch))]
+    private void OpenBatchTagPicker() => BatchTagPicker.Open(TagsOnEveryRow);
+
+    /// <summary>
+    /// Takes a tag off the shown record, or off all selected records.
+    /// </summary>
+    [RelayCommand]
+    private Task RemoveTagAsync(TagViewModel? tag) => tag is null ? Task.CompletedTask : SetTagAsync(tag, present: false);
+
+    /// <summary>
+    /// Mod+1…5: adds the tag, or removes it when the record (every selected record) already has it.
+    /// </summary>
+    public Task ToggleTagAsync(TagViewModel tag)
+    {
+        ArgumentNullException.ThrowIfNull(tag);
+        if (IsBatch)
+        {
+            return SetTagAsync(tag, present: !TagsOnEveryRow().Contains(tag.Id));
+        }
+
+        return Record is { } record ? SetTagAsync(tag, present: !record.TagIds.Contains(tag.Id)) : Task.CompletedTask;
+    }
+
+    private async Task SetTagAsync(TagViewModel tag, bool present)
+    {
+        try
+        {
+            if (IsBatch)
+            {
+                var changed = await _operations.SetTagAsync(_batchDatasetId, BatchRows.Select(r => r.Id).ToList(), tag.Id, tag.Name, present);
+                _status.Set(present ? "Status_TagAddedMany" : "Status_TagRemovedMany", changed.Count, tag.Name);
+                RefreshTags(); // the rows were updated by the list
+            }
+            else if (Record is { } record)
+            {
+                var changed = await _operations.SetTagAsync(record.DatasetId, [record.Id], tag.Id, tag.Name, present, record.Ordinal);
+                if (changed.Count > 0 && Record is { } shown && shown.Id == record.Id)
+                {
+                    Record = shown with { TagIds = present ? [.. shown.TagIds, tag.Id] : [.. shown.TagIds.Where(id => id != tag.Id)] };
+                }
+
+                _status.Set(present ? "Status_TagAdded" : "Status_TagRemoved", record.Ordinal, tag.Name);
+            }
+        }
+        catch (Exception ex) when (_status.TryReport(ex))
+        {
+        }
+    }
+
+    // The tags all selected records have: "add" leaves them out, toggling removes them.
+    private HashSet<Guid> TagsOnEveryRow()
+    {
+        var rows = BatchRows;
+        var common = rows.Count == 0 ? [] : rows[0].TagIds.ToHashSet();
+        foreach (var row in rows.Skip(1))
+        {
+            common.IntersectWith(row.TagIds);
+        }
+
+        return common;
+    }
+
+    partial void OnRecordChanged(RecordDetails? value)
+    {
+        RecordTags = value is null ? [] : _tags.Resolve(value.TagIds);
+        Source = value is null ? null : PassageSource.FromMetadata(value.MetadataJson);
+    }
+
+    // Back from the masked preview the comparison is shown again.
+    partial void OnIsPiiPreviewChanged(bool value)
+    {
+        UpdatePreferenceCompare();
+        WriteCommand.NotifyCanExecuteChanged();
+        WriteMainCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnBatchRowsChanged(IReadOnlyList<RecordRowViewModel> value) => RefreshBatchTags();
+
+    // Tags were added, renamed, recolored or deleted.
+    private void RefreshTags()
+    {
+        RecordTags = Record is { } record ? _tags.Resolve(record.TagIds) : [];
+        RefreshBatchTags();
+    }
+
+    private void RefreshBatchTags() =>
+        BatchTags = [.. _tags.Resolve(BatchRows.SelectMany(r => r.TagIds).Distinct())
+            .Select(tag => new TagCountItem(tag, BatchRows.Count(r => r.TagIds.Contains(tag.Id))))];
+
+    private bool CanSave() => IsDirty && IsEditable && !IsWriting;
 
     private bool CanAddMessage() => IsChat && IsEditable;
 
@@ -513,6 +714,34 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand(CanExecute = nameof(IsPreference))]
+    private void TogglePreferenceCompare()
+    {
+        IsPreferenceCompare = !IsPreferenceCompare;
+        UpdatePreferenceCompare();
+    }
+
+    // Word-level, as the versions window compares (TextDiff); follows every keystroke while shown.
+    private void UpdatePreferenceCompare()
+    {
+        if (!ShowPreferenceCompare || Fields.Count < 3)
+        {
+            (RejectedSegments, ChosenSegments, PreferenceCompareSummary) = ([], [], string.Empty);
+            return;
+        }
+
+        var (chosen, rejected) = (Fields[1].Text, Fields[2].Text);
+        var diff = TextDiff.Compute(rejected, chosen);
+        RejectedSegments = Versions.VersionText.OrEmpty(_localizer, diff.OldSide);
+        ChosenSegments = Versions.VersionText.OrEmpty(_localizer, diff.NewSide);
+        PreferenceCompareSummary = diff.HasChanges
+            ? _localizer.Format("Editor_PreferenceCompareSummary", Words(DiffKind.Inserted), Words(DiffKind.Deleted))
+            : _localizer["Editor_PreferenceCompareSame"];
+
+        int Words(DiffKind kind) => diff.Segments.Where(segment => segment.Kind == kind)
+            .Sum(segment => TextDiff.Tokenize(segment.Text).Count(token => token.Any(char.IsLetterOrDigit)));
+    }
+
     [RelayCommand(CanExecute = nameof(HasRecord))]
     private void TogglePiiPreview()
     {
@@ -579,6 +808,11 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Reads again the issues that compare the shown record with others (after a regrouping).
+    /// </summary>
+    public Task RefreshQualityAsync() => HasRecord ? LoadCrossIssuesAsync(_generation) : Task.CompletedTask;
+
     private async Task LoadCrossIssuesAsync(int generation)
     {
         if (Record is not { } record)
@@ -592,7 +826,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             var quality = await _analysis.GetRecordQualityAsync(record.Id);
             if (generation == _generation && Record?.Id == record.Id)
             {
-                _crossIssues = quality?.Issues.Where(i => i.Rule is QualityRule.Duplicate or QualityRule.ConflictingAnswer).ToList() ?? [];
+                _crossIssues = quality?.Issues.Where(i => i.Rule is QualityRule.Duplicate or QualityRule.ConflictingAnswer or QualityRule.NearDuplicate).ToList() ?? [];
                 Reanalyze();
             }
         }
@@ -675,6 +909,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     {
         Record = record;
         _crossIssues = [];
+        Judgment = JudgmentDetails.None;
         IsPiiPreview = false;
         UpdatePiiPreview();
         if (record is null)
@@ -684,6 +919,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
             _cleanHash = string.Empty;
             IsDirty = false;
             Reanalyze();
+            UpdatePreferenceCompare();
         }
         else
         {
@@ -693,6 +929,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private void LoadEditor(RecordDetails record)
     {
+        ResetWriting();
         _loadingEditor = true;
         try
         {
@@ -703,7 +940,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                 case InstructionPayload p:
                     Fields.Add(CreateField("Field_Instruction", p.Instruction));
                     Fields.Add(CreateField("Field_Input", p.Input));
-                    Fields.Add(CreateField("Field_Output", p.Output));
+                    Fields.Add(CreateField("Field_Output", p.Output, writeTarget: AIWriteTarget.Answer));
                     break;
                 case ChatPayload p:
                     Fields.Add(CreateField("Field_SystemPrompt", p.SystemPrompt ?? string.Empty, FieldTone.System));
@@ -715,8 +952,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                     break;
                 case PreferencePayload p:
                     Fields.Add(CreateField("Field_Prompt", p.Prompt));
-                    Fields.Add(CreateField("Field_Chosen", p.Chosen, FieldTone.Positive));
-                    Fields.Add(CreateField("Field_Rejected", p.Rejected, FieldTone.Negative));
+                    Fields.Add(CreateField("Field_Chosen", p.Chosen, FieldTone.Positive, AIWriteTarget.Chosen));
+                    Fields.Add(CreateField("Field_Rejected", p.Rejected, FieldTone.Negative, AIWriteTarget.Rejected));
                     break;
             }
 
@@ -729,6 +966,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
 
         Reanalyze();
+        UpdatePreferenceCompare();
     }
 
     private RecordPayload BuildPayload(RecordPayload original) => original switch
@@ -745,11 +983,12 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
             IsDirty = BuildPayload(record.Payload).ComputeContentHash() != _cleanHash;
             Reanalyze();
+            UpdatePreferenceCompare();
         }
     }
 
-    private EditorField CreateField(string labelKey, string text, FieldTone tone = FieldTone.Neutral) =>
-        new(labelKey, text, tone, _localizer, OnEdited);
+    private EditorField CreateField(string labelKey, string text, FieldTone tone = FieldTone.Neutral, AIWriteTarget? writeTarget = null) =>
+        new(labelKey, text, tone, _localizer, OnEdited, writeTarget);
 
     private EditorMessage CreateMessage(ChatRole role, string text) =>
         new(role, text, _localizer, OnEdited, message =>
@@ -760,10 +999,20 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private List<InfoItem> BuildInfo(RecordDetails record)
     {
+        // A variation names the record it varies; its reference is that record's number.
+        var reference = VariantOf.FromMetadata(record.MetadataJson) is { } family
+            ? _localizer.Format("Meta_VariationOf", family.Ordinal)
+            : record.Lineage.SourceReference;
         var items = new List<InfoItem>
         {
-            new(_localizer["Meta_Source"], Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(record.Lineage.SourceReference)),
+            new(_localizer["Meta_Source"], Labels.For(_localizer, record.Lineage.SourceKind) + Suffix(reference)),
         };
+        if (Source is { } source)
+        {
+            var place = SourceText.Location(_localizer, source.Unit, source.First, source.Last);
+            items.Add(new InfoItem(_localizer["Meta_Section"], source.Section.Length > 0 ? $"{source.Section} · {place}" : place));
+        }
+
         if (record.Lineage.GeneratedByModel is { } model)
         {
             items.Add(new InfoItem(_localizer["Meta_GeneratedBy"], model));
@@ -780,7 +1029,9 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     private void Refresh()
     {
         Reanalyze();
+        RefreshJudgmentTexts();
         UpdatePiiPreview();
+        UpdatePreferenceCompare();
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(Info));

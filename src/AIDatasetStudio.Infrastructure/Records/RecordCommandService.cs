@@ -34,11 +34,27 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return record.Id;
     }
 
-    public async Task<int> AddRangeAsync(
+    public Task<int> AddRangeAsync(
         Guid datasetId,
         IEnumerable<NewRecord> records,
         IProgress<int>? progress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        InsertAsync(datasetId, records, progress, ids: null, cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> AddManyAsync(Guid datasetId, IReadOnlyCollection<NewRecord> records, CancellationToken cancellationToken = default)
+    {
+        var ids = new List<Guid>(records.Count);
+        await InsertAsync(datasetId, records, progress: null, ids, cancellationToken);
+        return ids;
+    }
+
+    /// <param name="ids">Receives the ids of the new records, in order; <c>null</c> when not needed.</param>
+    private async Task<int> InsertAsync(
+        Guid datasetId,
+        IEnumerable<NewRecord> records,
+        IProgress<int>? progress,
+        List<Guid>? ids,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(records);
 
@@ -63,10 +79,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             foreach (var item in records)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var record = DatasetRecord.Create(dataset, item.Payload, item.Lineage, ++ordinal, now);
+                var record = DatasetRecord.Create(dataset, item.Payload, item.Lineage, ++ordinal, now, item.MetadataJson);
                 BindInsert(insert, record);
                 await insert.ExecuteNonQueryAsync(cancellationToken);
                 await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
+                ids?.Add(record.Id);
 
                 if (++count % ProgressInterval == 0)
                 {
@@ -80,7 +97,10 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return count;
     }
 
-    public async Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, CancellationToken cancellationToken = default)
+    public Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, CancellationToken cancellationToken = default) =>
+        UpdatePayloadAsync(recordId, payload, generatedByModel: null, cancellationToken);
+
+    public async Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, string? generatedByModel, CancellationToken cancellationToken = default)
     {
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
@@ -90,6 +110,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         if (!record.UpdatePayload(payload, timeProvider.GetUtcNow()))
         {
             return false;
+        }
+
+        if (generatedByModel is not null)
+        {
+            record.MarkGeneratedBy(generatedByModel);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -125,6 +150,29 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
         return new StatusChangeResult(changes, ids.Count - changes.Count);
     }
 
+    public async Task<IReadOnlyList<Guid>> SetTagAsync(IReadOnlyCollection<Guid> recordIds, Guid tagId, bool present, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(recordIds);
+        if (recordIds.Count == 0)
+        {
+            return [];
+        }
+
+        await using var context = database.CreateDbContext();
+        var tag = await context.Tags.SingleOrDefaultAsync(t => t.Id == tagId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Tag), tagId);
+        var ids = recordIds.Distinct().ToList();
+        var records = await context.Records.Include(r => r.Tags).Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow();
+        var changed = records
+            .Where(record => present ? record.AddTag(tag, now) : record.RemoveTag(tagId, now))
+            .OrderBy(record => record.Ordinal)
+            .Select(record => record.Id)
+            .ToList();
+        await context.SaveChangesAsync(cancellationToken);
+        return changed;
+    }
+
     public async Task<int> DeleteAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(recordIds);
@@ -147,32 +195,11 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             return 0;
         }
 
-        // The last state given for a record wins.
-        var byId = new Dictionary<Guid, RecordState>();
-        foreach (var state in states)
-        {
-            byId[state.RecordId] = state;
-        }
-
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        var ids = byId.Keys.ToList();
-        var records = await context.Records.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
-        var now = timeProvider.GetUtcNow();
-        var reindex = records.Where(record => record.RestoreState(byId[record.Id].Status, byId[record.Id].Payload, now)).ToList();
-
-        await context.SaveChangesAsync(cancellationToken);
-        if (reindex.Count > 0)
-        {
-            await using var index = Writer(context, transaction);
-            foreach (var record in reindex)
-            {
-                await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
-            }
-        }
-
+        var before = await ApplyStatesAsync(context, transaction, states, timeProvider.GetUtcNow(), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return records.Count;
+        return before.Count;
     }
 
     public async Task<int> RestoreAsync(IReadOnlyCollection<RecordSnapshot> snapshots, CancellationToken cancellationToken = default)
@@ -185,6 +212,90 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
 
         await using var context = database.CreateDbContext();
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        var restored = await RecreateAsync(context, transaction, snapshots, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return restored.Count;
+    }
+
+    /// <summary>
+    /// Puts records into earlier states inside the caller's transaction, bypassing the lifecycle
+    /// rules; records that no longer exist are skipped. The last state given for a record wins.
+    /// </summary>
+    /// <returns>The state each record found had before: its status, and its content where that changed.</returns>
+    internal static async Task<IReadOnlyList<RecordState>> ApplyStatesAsync(
+        WorkspaceDbContext context,
+        IDbContextTransaction transaction,
+        IReadOnlyCollection<RecordState> states,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var byId = new Dictionary<Guid, RecordState>();
+        foreach (var state in states)
+        {
+            byId[state.RecordId] = state;
+        }
+
+        var ids = byId.Keys.ToList();
+        var withTags = byId.Values.Any(state => state.TagIds is not null);
+        IQueryable<DatasetRecord> query = withTags ? context.Records.Include(r => r.Tags) : context.Records;
+        var records = await query.Where(r => ids.Contains(r.Id)).ToListAsync(cancellationToken);
+        var tagIds = byId.Values.SelectMany(state => state.TagIds ?? []).Distinct().ToList();
+        var tags = tagIds.Count == 0
+            ? new Dictionary<Guid, Tag>()
+            : await context.Tags.Where(t => tagIds.Contains(t.Id)).ToDictionaryAsync(t => t.Id, cancellationToken);
+        var before = new List<RecordState>(records.Count);
+        var reindex = new List<DatasetRecord>();
+        foreach (var record in records)
+        {
+            var target = byId[record.Id];
+            var previousPayload = record.Payload;
+            var previousStatus = record.Status;
+            var previousTags = record.Tags.Select(t => t.Id).ToList();
+            var previousLineage = record.Lineage;
+            var contentChanged = record.RestoreState(target.Status, target.Payload, now, target.Lineage);
+            var tagsChanged = target.TagIds is { } wanted
+                && record.SetTags([.. wanted.Where(tags.ContainsKey).Select(id => tags[id])], now);
+            before.Add(new RecordState(
+                record.Id,
+                previousStatus,
+                contentChanged ? previousPayload : null,
+                tagsChanged ? previousTags : null,
+                target.Lineage is null ? null : previousLineage));
+            if (contentChanged)
+            {
+                reindex.Add(record);
+            }
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        if (reindex.Count > 0)
+        {
+            await using var index = Writer(context, transaction);
+            foreach (var record in reindex)
+            {
+                await index.UpsertAsync(record.Id, SearchText.ForPayload(record.Payload), cancellationToken);
+            }
+        }
+
+        return before;
+    }
+
+    /// <summary>
+    /// Re-creates deleted records inside the caller's transaction; records that exist are skipped
+    /// and tags that no longer exist are left out.
+    /// </summary>
+    /// <returns>The records re-created.</returns>
+    /// <exception cref="NotFoundException">A record's dataset does not exist.</exception>
+    internal static async Task<IReadOnlyList<DatasetRecord>> RecreateAsync(
+        WorkspaceDbContext context,
+        IDbContextTransaction transaction,
+        IReadOnlyCollection<RecordSnapshot> snapshots,
+        CancellationToken cancellationToken)
+    {
+        if (snapshots.Count == 0)
+        {
+            return [];
+        }
 
         var datasetIds = snapshots.Select(s => s.DatasetId).Distinct().ToList();
         var datasets = await context.Datasets.Where(d => datasetIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, cancellationToken);
@@ -232,8 +343,7 @@ internal sealed class RecordCommandService(IWorkspaceDatabase database, TimeProv
             }
         }
 
-        await transaction.CommitAsync(cancellationToken);
-        return restored.Count;
+        return restored;
     }
 
     private static async Task<long> NextOrdinalAsync(WorkspaceDbContext context, Guid datasetId, CancellationToken cancellationToken) =>

@@ -1,0 +1,251 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Versions"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.VersionsWindow"
+        x:DataType="vm:VersionsViewModel"
+        Title="{l:Tr Versions_Title}"
+        Width="1220" Height="760"
+        MinWidth="980" MinHeight="600"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="History" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Versions_Title}" />
+          <TextBlock Classes="small muted" Text="{Binding TargetText}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer: what is happening, and close -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <ProgressBar IsIndeterminate="True" Width="72" VerticalAlignment="Center" IsVisible="{Binding IsBusy}" />
+          <TextBlock Classes="small secondary" Text="{Binding BusyText}" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasNotice}">
+            <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="15" Foreground="{DynamicResource PositiveBrush}" />
+            <TextBlock Classes="small" Text="{Binding Notice}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+        <Button Grid.Column="1" Classes="accent" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsCancel="True"
+                MinWidth="88" HorizontalContentAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <Grid ColumnDefinitions="270,*">
+      <!-- Working copy and versions, newest first -->
+      <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+        <ListBox x:Name="VersionList" Classes="records" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" SelectionMode="AlwaysSelected">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:VersionItemViewModel">
+              <Panel>
+                <Border Classes="row" Padding="16,10,16,10">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <Panel Margin="0,1,10,0" VerticalAlignment="Top">
+                      <ic:SymbolIcon Symbol="Edit" FontSize="16" Foreground="{DynamicResource AccentTextBrush}" IsVisible="{Binding IsWorkingCopy}" />
+                      <ic:SymbolIcon Symbol="Tag" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsVersion}" />
+                    </Panel>
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <TextBlock Classes="strong" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="small muted" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="small muted" Text="{Binding CountsText}" IsVisible="{Binding HasCounts}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="caption secondary" Text="{Binding Description}" IsVisible="{Binding HasDescription}"
+                                 TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Margin="0,3,0,0" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+                <Border Classes="row-indicator" />
+              </Panel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Border>
+
+      <DockPanel Grid.Column="1">
+        <!-- The selected item: what it is, what can be done with it, what it is compared with -->
+        <StackPanel DockPanel.Dock="Top" Margin="24,18,24,12" Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+              <TextBlock Classes="subtitle" Text="{Binding SelectedItem.Title, FallbackValue=''}" />
+              <TextBlock Classes="small muted" Text="{Binding SelectedVersionText}" TextWrapping="Wrap" />
+              <TextBlock Classes="small secondary content" Text="{Binding SelectedItem.Description, FallbackValue=''}"
+                         IsVisible="{Binding SelectedItem.HasDescription, FallbackValue=False}" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="16,0,0,0">
+              <Button x:Name="CreateVersionButton" Classes="accent" Command="{Binding CreateVersionCommand}" IsVisible="{Binding IsWorkingCopySelected}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="BookmarkAdd" />
+                  <TextBlock Text="{l:Tr Versions_Create}" />
+                </StackPanel>
+              </Button>
+              <Button Classes="subtle" Command="{Binding ExportVersionCommand}" IsVisible="{Binding IsVersionSelected}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="ArrowExport" />
+                  <TextBlock Text="{l:Tr Action_Export}" />
+                </StackPanel>
+              </Button>
+              <Button x:Name="RollbackButton" Classes="subtle" Command="{Binding RollbackCommand}" IsVisible="{Binding IsVersionSelected}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="ArrowRotateCounterclockwise" />
+                  <TextBlock Text="{l:Tr Versions_Rollback}" />
+                </StackPanel>
+              </Button>
+              <Button Classes="danger-subtle" Command="{Binding DeleteVersionCommand}" IsVisible="{Binding IsVersionSelected}"
+                      ToolTip.Tip="{l:Tr Versions_Delete}">
+                <ic:SymbolIcon Symbol="Delete" />
+              </Button>
+            </StackPanel>
+          </Grid>
+
+          <Border Classes="callout danger" IsVisible="{Binding HasError}">
+            <DockPanel>
+              <ic:SymbolIcon Symbol="ErrorCircle" />
+              <TextBlock Text="{Binding ErrorMessage}" />
+            </DockPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="Auto,240,*" IsVisible="{Binding !HasNoVersions}">
+            <TextBlock Classes="small secondary" Text="{l:Tr Versions_CompareWith}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox x:Name="CompareBox" Grid.Column="1" ItemsSource="{Binding CompareOptions}" SelectedItem="{Binding CompareWith}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:VersionItemViewModel">
+                  <TextBlock Text="{Binding Title}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <StackPanel Grid.Column="2" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="1">
+              <TextBlock Classes="small strong" Text="{Binding ComparisonTitle}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="small muted" Text="{Binding SummaryText}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+
+        <Panel>
+          <!-- No versions yet -->
+          <StackPanel Classes="empty" IsVisible="{Binding HasNoVersions}">
+            <Border Classes="empty-icon">
+              <ic:SymbolIcon Symbol="History" />
+            </Border>
+            <TextBlock Classes="subtitle" Text="{l:Tr Versions_EmptyTitle}" />
+            <TextBlock Classes="muted" Text="{l:Tr Versions_EmptyHint}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="460" />
+          </StackPanel>
+
+          <!-- Differences | the selected record, side by side -->
+          <Grid ColumnDefinitions="340,Auto,*" IsVisible="{Binding !HasNoVersions}" Margin="0,0,0,0">
+            <DockPanel>
+              <ListBox DockPanel.Dock="Top" Classes="chips" Margin="24,0,12,10" ItemsSource="{Binding KindFilters}" SelectedItem="{Binding SelectedKindFilter}"
+                       SelectionMode="AlwaysSelected" IsVisible="{Binding HasDifferences}">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:KindFilterOption">
+                    <Border Classes="chip">
+                      <TextBlock Classes="small strong" Text="{Binding Label}" />
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Panel>
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+                  <ListBox x:Name="ChangeList" Classes="records" ItemsSource="{Binding Changes}" SelectedItem="{Binding SelectedChange}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ChangeItemViewModel">
+                        <Panel>
+                          <Border Classes="row" Padding="24,8,12,8">
+                            <StackPanel Spacing="3">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Classes="small muted numeric" Text="{Binding OrdinalText}" VerticalAlignment="Center" />
+                                <Border Classes="kind" Classes.added="{Binding IsAdded}" Classes.removed="{Binding IsRemoved}" Classes.modified="{Binding IsModified}">
+                                  <TextBlock Text="{Binding KindText}" />
+                                </Border>
+                                <TextBlock Classes="small secondary" Text="{Binding StatusText}" IsVisible="{Binding HasStatusText}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                              <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </Border>
+                          <Border Classes="row-indicator" />
+                        </Panel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Border>
+                <StackPanel Classes="empty" IsVisible="{Binding IsIdentical}">
+                  <Border Classes="empty-icon">
+                    <ic:SymbolIcon Symbol="CheckmarkCircle" />
+                  </Border>
+                  <TextBlock Classes="subtitle" Text="{l:Tr Versions_IdenticalTitle}" />
+                  <TextBlock Classes="muted" Text="{l:Tr Versions_IdenticalHint}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="280" />
+                </StackPanel>
+              </Panel>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Width="5" ResizeDirection="Columns" />
+
+            <Border Grid.Column="2" Background="{DynamicResource InspectorBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1,1,0,0">
+              <Panel>
+                <ScrollViewer IsVisible="{Binding HasSelectedChange}">
+                  <StackPanel Margin="20,16,24,20" Spacing="12">
+                    <TextBlock Classes="strong" Text="{Binding SelectedChangeTitle}" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="*,12,*">
+                      <TextBlock Classes="overline" Text="{Binding OlderTitle}" />
+                      <TextBlock Grid.Column="2" Classes="overline" Text="{Binding NewerTitle}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Fields}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Spacing="10" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FieldDiffViewModel">
+                          <Border Classes="card" Padding="12,10">
+                            <StackPanel Spacing="6">
+                              <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Classes="label" Text="{Binding Label}" Margin="0" VerticalAlignment="Center" />
+                                <Border Classes="kind modified" IsVisible="{Binding HasBadge}">
+                                  <TextBlock Text="{Binding Badge}" />
+                                </Border>
+                              </StackPanel>
+                              <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowBoth}">
+                                <controls:DiffTextBlock Classes="content" Segments="{Binding OldSegments}" TextWrapping="Wrap" />
+                                <controls:DiffTextBlock Grid.Column="2" Classes="content" Segments="{Binding NewSegments}" TextWrapping="Wrap" />
+                              </Grid>
+                              <controls:DiffTextBlock Classes="content" Classes.secondary="{Binding !IsChanged}" Segments="{Binding SingleSegments}"
+                                                      TextWrapping="Wrap" IsVisible="{Binding ShowSingle}" />
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </ScrollViewer>
+                <StackPanel Classes="empty" IsVisible="{Binding !HasSelectedChange}">
+                  <Border Classes="empty-icon">
+                    <ic:SymbolIcon Symbol="BranchCompare" />
+                  </Border>
+                  <TextBlock Classes="muted" Text="{l:Tr Versions_SelectRecord}" />
+                </StackPanel>
+              </Panel>
+            </Border>
+          </Grid>
+        </Panel>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>

@@ -20,7 +20,13 @@ public sealed class WorkspaceDbContext(DbContextOptions<WorkspaceDbContext> opti
 
     public DbSet<Tag> Tags => Set<Tag>();
 
+    public DbSet<DatasetVersion> Versions => Set<DatasetVersion>();
+
     internal DbSet<RecordAnalysisRow> Analyses => Set<RecordAnalysisRow>();
+
+    internal DbSet<RecordJudgmentRow> Judgments => Set<RecordJudgmentRow>();
+
+    internal DbSet<RecordConflictRow> Conflicts => Set<RecordConflictRow>();
 
     internal DbSet<WorkspaceSetting> Settings => Set<WorkspaceSetting>();
 

@@ -9,6 +9,30 @@ public enum ImportFileError
 
     /// <summary>A JSON array file is malformed, so its items cannot be told apart.</summary>
     InvalidJson,
+
+    /// <summary>An Excel 97–2003 (.xls) or password-protected workbook, which cannot be read.</summary>
+    LegacyWorkbook,
+
+    /// <summary>The file is not a readable .xlsx workbook (damaged, or not a workbook at all).</summary>
+    InvalidWorkbook,
+
+    /// <summary>The chosen sheet is not in the workbook (any more).</summary>
+    SheetNotFound,
+
+    /// <summary>A Word 97–2003 (.doc) or password-protected Word document, which cannot be read.</summary>
+    LegacyDocument,
+
+    /// <summary>The file is not a readable .docx or PDF document (damaged, or something else).</summary>
+    InvalidDocument,
+
+    /// <summary>A PDF that needs a password to be opened.</summary>
+    ProtectedPdf,
+
+    /// <summary>A PDF without text, such as scanned pages; its text would have to be recognised (OCR) first.</summary>
+    NoText,
+
+    /// <summary>A ZIP without HTML, Markdown or text pages that have text.</summary>
+    EmptyArchive,
 }
 
 /// <summary>

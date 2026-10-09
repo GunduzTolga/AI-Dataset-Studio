@@ -63,9 +63,49 @@ public sealed class ImportLayoutsTests
     [InlineData(SourceLayout.OpenAiPreference, DatasetType.Preference, true)]
     [InlineData(SourceLayout.OpenAiPreference, DatasetType.Chat, false)]
     [InlineData(SourceLayout.Custom, DatasetType.Preference, true)]
+    [InlineData(SourceLayout.Sections, DatasetType.Chat, true)]
+    [InlineData(SourceLayout.Paragraphs, DatasetType.Preference, true)]
     public void Knows_which_layouts_fit_which_dataset_types(SourceLayout layout, DatasetType type, bool expected)
     {
         Assert.Equal(expected, ImportLayouts.Supports(layout, type));
+    }
+
+    [Fact]
+    public void Text_layouts_map_the_heading_or_first_line_to_the_question()
+    {
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.Instruction] = TextColumns.Heading, [TargetField.Output] = TextColumns.Content },
+            ImportLayouts.SuggestTextMapping(SourceLayout.Sections, DatasetType.Instruction));
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = TextColumns.FirstLine, [TargetField.Assistant] = TextColumns.Rest },
+            ImportLayouts.SuggestTextMapping(SourceLayout.Paragraphs, DatasetType.Chat));
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.Prompt] = TextColumns.Heading, [TargetField.Chosen] = TextColumns.Content },
+            ImportLayouts.SuggestTextMapping(SourceLayout.Sections, DatasetType.Preference));
+        Assert.True(ImportLayouts.IsColumnBased(SourceLayout.Sections));
+        Assert.Null(ImportLayouts.NaturalType(SourceLayout.Paragraphs));
+    }
+
+    [Fact]
+    public void Speakers_of_a_log_are_told_apart_by_name_or_by_who_opens()
+    {
+        // "Müşteri Hizmetleri" is customer service: the agent, not the customer.
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = "Müşteri", [TargetField.Assistant] = "Müşteri Hizmetleri" },
+            ImportLayouts.SuggestSpeakers(["Müşteri Hizmetleri", "Müşteri"], new Dictionary<string, int> { ["Müşteri Hizmetleri"] = 3 }));
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = "Zeynep", [TargetField.Assistant] = "Mehmet" },
+            ImportLayouts.SuggestSpeakers(["Mehmet", "Zeynep"], new Dictionary<string, int> { ["Zeynep"] = 4, ["Mehmet"] = 1 }));
+
+        // Two agents and no telling names: everyone but the customer answers.
+        Assert.Equal(
+            new Dictionary<TargetField, string> { [TargetField.User] = "Ali" },
+            ImportLayouts.SuggestSpeakers(["Ali", "Veli", "Ayşe"], new Dictionary<string, int> { ["Ali"] = 2 }));
+        Assert.Equal(
+            [new TargetFieldInfo(TargetField.User, true), new TargetFieldInfo(TargetField.Assistant, false)],
+            ImportLayouts.FieldsFor(DatasetType.Chat, SourceLayout.Transcript));
+        Assert.Empty(ImportLayouts.FieldsFor(DatasetType.Preference, SourceLayout.Transcript));
+        Assert.Equal(DatasetType.Chat, ImportLayouts.NaturalType(SourceLayout.Transcript));
     }
 
     [Theory]

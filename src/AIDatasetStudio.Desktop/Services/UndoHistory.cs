@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.Common;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
@@ -173,6 +174,78 @@ public sealed record DeleteAction(Guid DatasetId, IReadOnlyList<RecordSnapshot> 
     public Task<int> UndoAsync(IRecordCommandService commands) => commands.RestoreAsync(Snapshots);
 
     public Task<int> RedoAsync(IRecordCommandService commands) => commands.DeleteAsync(RecordIds);
+}
+
+/// <summary>
+/// Records were added (written from a document); undo deletes them, redo brings them back.
+/// </summary>
+/// <param name="Source">Where they came from, e.g. the document's file name, for the description.</param>
+public sealed record AddAction(Guid DatasetId, IReadOnlyList<RecordSnapshot> Snapshots, string Source) : IUndoableAction
+{
+    public IReadOnlyList<Guid> RecordIds => Snapshots.Select(s => s.Id).ToList();
+
+    public string Describe(Localizer localizer) =>
+        localizer.Format("History_Add", HistoryText.Subject(localizer, Snapshots.Count == 1 ? Snapshots[0].Ordinal : null, Snapshots.Count), Source);
+
+    public Task<int> UndoAsync(IRecordCommandService commands) => commands.DeleteAsync(RecordIds);
+
+    public Task<int> RedoAsync(IRecordCommandService commands) => commands.RestoreAsync(Snapshots);
+}
+
+/// <summary>
+/// A tag was added to or removed from records; undo does the opposite on the same records.
+/// </summary>
+/// <param name="TagName">The tag's name when the change was made, for the description.</param>
+/// <param name="Changed">The records that changed (those that already were as asked are not included).</param>
+/// <param name="Ordinal">The record number when a single record changed, for the description.</param>
+public sealed record TagAction(Guid DatasetId, Guid TagId, string TagName, bool Added, IReadOnlyList<Guid> Changed, long? Ordinal) : IUndoableAction
+{
+    public IReadOnlyList<Guid> RecordIds => Changed;
+
+    public string Describe(Localizer localizer) =>
+        localizer.Format(Added ? "History_AddTag" : "History_RemoveTag", TagName, HistoryText.Subject(localizer, Ordinal, Changed.Count));
+
+    public Task<int> UndoAsync(IRecordCommandService commands) => SetAsync(commands, !Added);
+
+    public Task<int> RedoAsync(IRecordCommandService commands) => SetAsync(commands, Added);
+
+    // A tag deleted since (Tools › Tags) leaves nothing to undo; the step is dropped.
+    private async Task<int> SetAsync(IRecordCommandService commands, bool present)
+    {
+        try
+        {
+            return (await commands.SetTagAsync(Changed, TagId, present)).Count;
+        }
+        catch (NotFoundException)
+        {
+            return 0;
+        }
+    }
+}
+
+/// <summary>
+/// The working copy went back to a version; undo restores what was there before, redo goes back again.
+/// </summary>
+/// <param name="Number">The version, e.g. "1.2.0".</param>
+/// <param name="Before">Earlier states of the records that changed.</param>
+/// <param name="After">Their states as in the version.</param>
+/// <param name="Recreated">Deleted records the version brought back.</param>
+public sealed record RollbackAction(
+    Guid DatasetId,
+    string Number,
+    IReadOnlyList<RecordState> Before,
+    IReadOnlyList<RecordState> After,
+    IReadOnlyList<RecordSnapshot> Recreated) : IUndoableAction
+{
+    public IReadOnlyList<Guid> RecordIds => [.. Before.Select(s => s.RecordId), .. Recreated.Select(s => s.Id)];
+
+    public string Describe(Localizer localizer) => localizer.Format("History_Rollback", Number);
+
+    public async Task<int> UndoAsync(IRecordCommandService commands) =>
+        await commands.RestoreStatesAsync(Before) + await commands.DeleteAsync([.. Recreated.Select(s => s.Id)]);
+
+    public async Task<int> RedoAsync(IRecordCommandService commands) =>
+        await commands.RestoreAsync(Recreated) + await commands.RestoreStatesAsync(After);
 }
 
 internal static class HistoryText

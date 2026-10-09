@@ -8,12 +8,16 @@ namespace AIDatasetStudio.Infrastructure.Import;
 /// One row read from a source file: a row to convert, or the reason it could not be read.
 /// <see cref="Row"/> is only valid until the reader moves to the next item.
 /// </summary>
-internal readonly record struct SourceItem(long Number, ISourceRow? Row, ImportRowError? Error)
+/// <param name="Sheet">The workbook sheet the row is on; <c>null</c> for other formats.</param>
+internal readonly record struct SourceItem(long Number, ISourceRow? Row, ImportRowError? Error, string? Sheet = null)
 {
     public static SourceItem Failed(long number, ImportErrorCode code) => new(number, null, new ImportRowError(number, code));
 
-    public ImportRowResult Convert(ImportPlan plan) =>
-        Row is null ? new ImportRowResult(Number, null, Error) : ImportConverter.Convert(Row, plan);
+    public ImportRowResult Convert(ImportPlan plan)
+    {
+        var result = Row is null ? new ImportRowResult(Number, null, Error) : ImportConverter.Convert(Row, plan);
+        return Sheet is null ? result : result with { Sheet = Sheet, Error = result.Error is { } error ? error with { Sheet = Sheet } : null };
+    }
 }
 
 internal sealed class JsonSourceRow(long number, JsonElement root) : ISourceRow
@@ -27,7 +31,10 @@ internal sealed class JsonSourceRow(long number, JsonElement root) : ISourceRow
     public string? GetText(string column) => ImportConverter.ExtractText(GetElement(column));
 }
 
-internal sealed class CsvSourceRow(long number, string[] fields, CsvColumns columns) : ISourceRow
+/// <summary>
+/// A row of positional fields (CSV, Excel) read through its file's column names.
+/// </summary>
+internal sealed class FieldSourceRow(long number, string?[] fields, SourceColumns columns) : ISourceRow
 {
     public long Number => number;
 
@@ -37,34 +44,77 @@ internal sealed class CsvSourceRow(long number, string[] fields, CsvColumns colu
 
     public JsonElement? GetElement(string column) => null;
 
-    public string? GetText(string column) => columns.IndexOf(column) is var index && index >= 0 && index < fields.Length ? fields[index] : null;
+    public string? GetText(string column) => columns.IndexOf(column) is var index && index >= 0 && index < fields.Length ? fields[index] ?? string.Empty : null;
 }
 
 /// <summary>
-/// Column names of a CSV file: its header, made unique, or "#1", "#2"… without one.
+/// A section or paragraph of a text document.
 /// </summary>
-internal sealed class CsvColumns
+internal sealed class TextSourceRow(TextRow row) : ISourceRow
+{
+    public long Number => row.Line;
+
+    public JsonElement? Json => null;
+
+    public JsonElement? GetElement(string column) => null;
+
+    public string? GetText(string column) => row.Values.GetValueOrDefault(column);
+}
+
+/// <summary>
+/// A conversation of a log; its messages are converted as a whole (<see cref="SourceLayout.Transcript"/>).
+/// </summary>
+internal sealed class TranscriptSourceRow(TranscriptReader.Conversation conversation) : ITranscriptRow
+{
+    public long Number => conversation.Line;
+
+    public JsonElement? Json => null;
+
+    public IReadOnlyList<TranscriptMessage> Messages => conversation.Messages;
+
+    public JsonElement? GetElement(string column) => null;
+
+    public string? GetText(string column) => null;
+}
+
+/// <summary>
+/// Column names of a CSV file or a sheet: its header, made unique, or generated names without
+/// one — "#1", "#2"… for CSV and the column letters for Excel.
+/// </summary>
+internal sealed class SourceColumns
 {
     private const string GeneratedPrefix = "#";
 
     private readonly Dictionary<string, int>? _index;
+    private readonly bool _lettered;
 
-    private CsvColumns(Dictionary<string, int>? index) => _index = index;
+    private SourceColumns(Dictionary<string, int>? index, bool lettered = false)
+    {
+        _index = index;
+        _lettered = lettered;
+    }
 
     /// <summary>
     /// Columns are numbered; any "#N" resolves to the N-th field.
     /// </summary>
-    public static CsvColumns Numbered { get; } = new(null);
+    public static SourceColumns Numbered { get; } = new(null);
 
-    public static CsvColumns FromHeader(string[] header)
+    /// <summary>
+    /// Columns are named by letter as in Excel; "A" resolves to the first field.
+    /// </summary>
+    public static SourceColumns Lettered { get; } = new(null, lettered: true);
+
+    /// <param name="header">The first row; empty cells are named by <paramref name="generatedName"/>.</param>
+    /// <param name="generatedName">Names a column by its index; "#N" when not given.</param>
+    public static SourceColumns FromHeader(IReadOnlyList<string?> header, Func<int, string>? generatedName = null)
     {
         var index = new Dictionary<string, int>(StringComparer.Ordinal);
-        for (var i = 0; i < header.Length; i++)
+        for (var i = 0; i < header.Count; i++)
         {
-            var name = header[i].Trim();
+            var name = header[i]?.Trim() ?? string.Empty;
             if (name.Length == 0)
             {
-                name = GeneratedName(i);
+                name = (generatedName ?? GeneratedName)(i);
             }
 
             var unique = name;
@@ -76,7 +126,7 @@ internal sealed class CsvColumns
             index[unique] = i;
         }
 
-        return new CsvColumns(index);
+        return new SourceColumns(index);
     }
 
     public static string GeneratedName(int index) => GeneratedPrefix + (index + 1).ToString(CultureInfo.InvariantCulture);
@@ -93,6 +143,11 @@ internal sealed class CsvColumns
         if (_index is not null)
         {
             return _index.TryGetValue(column, out var index) ? index : -1;
+        }
+
+        if (_lettered)
+        {
+            return column.Length is > 0 and <= 3 && column.All(char.IsAsciiLetterUpper) ? XlsxWorkbook.ColumnIndex(column) ?? -1 : -1;
         }
 
         return column.StartsWith(GeneratedPrefix, StringComparison.Ordinal)

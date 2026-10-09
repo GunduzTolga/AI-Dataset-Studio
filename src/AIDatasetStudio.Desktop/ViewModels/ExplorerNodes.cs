@@ -58,9 +58,22 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
     [ObservableProperty]
     public partial int ContextLength { get; set; } = Domain.Entities.Dataset.DefaultContextLength;
 
+    /// <summary>
+    /// What a model should keep in mind when writing into the records; <c>null</c> when not set.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? AIGuidance { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CountText), nameof(Subtitle))]
     public partial long RecordCount { get; set; }
+
+    /// <summary>
+    /// The newest version, e.g. "1.2.0"; <c>null</c> while the dataset has none.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Subtitle))]
+    public partial string? LatestVersion { get; set; }
 
     public string TypeLabel => Labels.For(_localizer, Type);
 
@@ -70,9 +83,11 @@ public sealed partial class DatasetNodeViewModel : ExplorerNodeViewModel
     public string CountText => RecordCount.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
 
     /// <summary>
-    /// "Project · 1,234 records" under the dataset title.
+    /// "Project · 1,234 records · v1.2.0" under the dataset title.
     /// </summary>
-    public string Subtitle => $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)}";
+    public string Subtitle => LatestVersion is null
+        ? $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)}"
+        : $"{ProjectName} · {_localizer.Format("Common_RecordCount", RecordCount)} · v{LatestVersion}";
 
     public void RefreshLabels()
     {

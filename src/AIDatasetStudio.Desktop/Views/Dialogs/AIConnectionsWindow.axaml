@@ -1,0 +1,221 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.AI"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.AIConnectionsWindow"
+        x:DataType="vm:AIConnectionsViewModel"
+        Title="{l:Tr AI_Title}"
+        Width="820" Height="640"
+        MinWidth="680" MinHeight="520"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="Sparkle" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr AI_Title}" />
+          <TextBlock Classes="small muted" Text="{l:Tr AI_Subtitle}" TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Classes="small muted" Text="{l:Tr AI_SavedHint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="1" Classes="accent" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsCancel="True"
+                MinWidth="88" HorizontalContentAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <Grid ColumnDefinitions="250,*">
+      <!-- Connections -->
+      <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+        <DockPanel Margin="12,14,12,12">
+          <Button DockPanel.Dock="Bottom" Classes="subtle" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Add" />
+              <TextBlock Text="{l:Tr AI_Add}" />
+            </StackPanel>
+            <Button.Flyout>
+              <MenuFlyout Placement="TopEdgeAlignedLeft" ItemsSource="{Binding ProviderOptions}">
+                <MenuFlyout.ItemContainerTheme>
+                  <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vm:ProviderOption">
+                    <Setter Property="Header" Value="{Binding Label}" />
+                    <Setter Property="Command" Value="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).AddCommand}" />
+                    <Setter Property="CommandParameter" Value="{Binding}" />
+                  </ControlTheme>
+                </MenuFlyout.ItemContainerTheme>
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+          <TextBlock DockPanel.Dock="Top" Classes="overline" Text="{l:Tr AI_SectionConnections}" Margin="4,0,0,8" />
+          <Panel>
+            <TextBlock Classes="small muted" Text="{l:Tr AI_Empty}" TextWrapping="Wrap" Margin="4,0" IsVisible="{Binding IsEmpty}" />
+            <ListBox x:Name="ConnectionList" Classes="records" ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection}"
+                     Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:AIConnectionItemViewModel">
+                  <Grid ColumnDefinitions="Auto,*" Margin="2,4">
+                    <Panel VerticalAlignment="Top" Margin="0,1,0,0">
+                      <ic:SymbolIcon Symbol="Server" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding !IsCloud}" />
+                      <ic:SymbolIcon Symbol="Cloud" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsCloud}" />
+                    </Panel>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="1">
+                      <TextBlock Classes="strong" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="small muted" Text="{Binding SelectedProvider.Label}" TextTrimming="CharacterEllipsis" />
+                        <Border Classes="tag" IsVisible="{Binding IsDefault}">
+                          <TextBlock Text="{l:Tr AI_Default}" />
+                        </Border>
+                      </StackPanel>
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Panel>
+        </DockPanel>
+      </Border>
+
+      <!-- The selected connection -->
+      <Panel Grid.Column="1">
+        <StackPanel Classes="empty" IsVisible="{Binding !HasSelection}">
+          <Border Classes="empty-icon">
+            <ic:SymbolIcon Symbol="Sparkle" />
+          </Border>
+          <TextBlock Classes="subtitle" Text="{l:Tr AI_EmptyTitle}" HorizontalAlignment="Center" />
+          <TextBlock Classes="muted" Text="{l:Tr AI_EmptyHint}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
+        </StackPanel>
+        <ScrollViewer IsVisible="{Binding HasSelection}">
+          <StackPanel Margin="24,18,24,20" Spacing="14" DataContext="{Binding SelectedConnection}" x:DataType="vm:AIConnectionItemViewModel">
+            <Grid ColumnDefinitions="*,12,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="{l:Tr AI_Server}" />
+                <ComboBox x:Name="ProviderBox" HorizontalAlignment="Stretch" SelectedItem="{Binding SelectedProvider}"
+                          ItemsSource="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).ProviderOptions}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProviderOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="{l:Tr AI_Name}" />
+                <TextBox Text="{Binding Name}" MaxLength="100" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="{l:Tr AI_Address}" />
+              <TextBox x:Name="AddressBox" FontFamily="{StaticResource MonoFontFamily}" Text="{Binding BaseUrl}" PlaceholderText="http://localhost:11434/v1" />
+              <TextBlock Classes="small error" Text="{l:Tr AI_AddressInvalid}" Margin="0,4,0,0" IsVisible="{Binding IsUrlInvalid}" />
+              <TextBlock Classes="small muted" Text="{l:Tr AI_AzureAddressHint}" TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding IsAzure}" />
+            </StackPanel>
+
+            <Border Classes="callout warning" IsVisible="{Binding IsRemote}">
+              <StackPanel Spacing="8">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="Globe" />
+                  <TextBlock x:Name="RemoteWarningText" Text="{Binding RemoteWarning}" />
+                </DockPanel>
+                <CheckBox x:Name="ConsentBox" IsChecked="{Binding AllowRemote}" Content="{l:Tr AI_AllowRemote}" Margin="26,0,0,0" />
+              </StackPanel>
+            </Border>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="{l:Tr AI_Model}" />
+              <Grid ColumnDefinitions="*,Auto">
+                <ComboBox x:Name="ModelBox" IsEditable="True" HorizontalAlignment="Stretch" ItemsSource="{Binding Models}"
+                          Text="{Binding Model, Mode=TwoWay}" PlaceholderText="{l:Tr AI_ModelWatermark}" />
+                <Button Grid.Column="1" Classes="subtle icon" Margin="6,0,0,0" ToolTip.Tip="{l:Tr AI_RefreshModels}"
+                        Command="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).RefreshModelsCommand}">
+                  <ic:SymbolIcon Symbol="ArrowSync" />
+                </Button>
+              </Grid>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding OffersEmbeddings}">
+              <TextBlock Classes="label" Text="{l:Tr AI_EmbeddingModel}" />
+              <ComboBox x:Name="EmbeddingModelBox" IsEditable="True" HorizontalAlignment="Stretch" ItemsSource="{Binding Models}"
+                        Text="{Binding EmbeddingModel, Mode=TwoWay}" PlaceholderText="{l:Tr AI_EmbeddingModelWatermark}" />
+              <TextBlock Classes="small muted" Text="{Binding EmbeddingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="*,12,*">
+              <StackPanel>
+                <TextBlock Classes="label" Text="{l:Tr AI_Temperature}" />
+                <NumericUpDown Value="{Binding Temperature}" Minimum="0" Maximum="2" Increment="0.1" FormatString="0.0" HorizontalAlignment="Stretch" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Classes="label" Text="{l:Tr AI_MaxTokens}" />
+                <NumericUpDown Value="{Binding MaxTokens}" Minimum="16" Maximum="131072" Increment="256" FormatString="0"
+                               PlaceholderText="{l:Tr AI_MaxTokensWatermark}" HorizontalAlignment="Stretch" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel>
+              <TextBlock Classes="label" Text="{l:Tr AI_ApiKey}" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox x:Name="ApiKeyBox" Text="{Binding ApiKey}" PasswordChar="•" PlaceholderText="{Binding KeyPlaceholder}" />
+                <Button Grid.Column="1" Classes="subtle icon" Margin="6,0,0,0" ToolTip.Tip="{l:Tr AI_RemoveKey}"
+                        Command="{Binding RemoveKeyCommand}" IsVisible="{Binding HasStoredKey}">
+                  <ic:SymbolIcon Symbol="KeyReset" />
+                </Button>
+              </Grid>
+              <TextBlock x:Name="KeyNoteText" Classes="small muted" Classes.warning="{Binding IsKeyStoreMissing}" Text="{Binding KeyNote}"
+                         TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+
+            <!-- Actions and the outcome of the last one -->
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4,0,0">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="TestButton" Classes="accent" Command="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).TestCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ic:SymbolIcon Symbol="PlugConnected" />
+                    <TextBlock Text="{l:Tr AI_Test}" />
+                  </StackPanel>
+                </Button>
+                <Button Classes="subtle" Command="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).MakeDefaultCommand}" IsVisible="{Binding !IsDefault}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ic:SymbolIcon Symbol="Star" />
+                    <TextBlock Text="{l:Tr AI_MakeDefault}" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+              <Button Grid.Column="2" Classes="danger-subtle" Command="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).DeleteCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="Delete" />
+                  <TextBlock Text="{l:Tr AI_Delete}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).IsBusy}">
+              <ProgressBar IsIndeterminate="True" Width="72" VerticalAlignment="Center" />
+              <TextBlock Classes="small muted" Text="{l:Tr AI_Testing}" VerticalAlignment="Center" />
+            </StackPanel>
+            <Border Classes="callout" Classes.danger="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).IsResultError}"
+                    IsVisible="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).HasResult}">
+              <DockPanel>
+                <Panel>
+                  <ic:SymbolIcon Symbol="CheckmarkCircle" IsVisible="{Binding !$parent[Window].((vm:AIConnectionsViewModel)DataContext).IsResultError}" />
+                  <ic:SymbolIcon Symbol="ErrorCircle" IsVisible="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).IsResultError}" />
+                </Panel>
+                <TextBlock Text="{Binding $parent[Window].((vm:AIConnectionsViewModel)DataContext).Result}" />
+              </DockPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Panel>
+    </Grid>
+  </DockPanel>
+</Window>

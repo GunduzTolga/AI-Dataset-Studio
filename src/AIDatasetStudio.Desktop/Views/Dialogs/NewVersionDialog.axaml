@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Versions"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.NewVersionDialog"
+        x:DataType="vm:NewVersionViewModel"
+        Title="{l:Tr NewVersion_Title}"
+        SizeToContent="Height"
+        Width="480"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <StackPanel Margin="24,22,24,20" Spacing="14">
+    <Grid ColumnDefinitions="Auto,*">
+      <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource AccentSubtleBrush}">
+        <ic:SymbolIcon Symbol="BookmarkAdd" FontSize="20" Foreground="{DynamicResource AccentTextBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+      <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+        <TextBlock Classes="subtitle" Text="{l:Tr NewVersion_Title}" />
+        <TextBlock Classes="small muted" Text="{Binding DatasetName}" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </Grid>
+
+    <StackPanel>
+      <TextBlock Classes="label" Text="{l:Tr NewVersion_Number}" />
+      <TextBox x:Name="NumberBox" Text="{Binding Number}" MaxLength="32">
+        <TextBox.InnerLeftContent>
+          <TextBlock Classes="muted mono" Text="v" Margin="10,0,0,0" VerticalAlignment="Center" />
+        </TextBox.InnerLeftContent>
+      </TextBox>
+      <ItemsControl ItemsSource="{Binding Suggestions}" Margin="0,8,0,0" IsVisible="{Binding HasSuggestions}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:VersionSuggestion">
+            <Button Classes="subtle" Content="{Binding Label}" Margin="0,0,6,0"
+                    Command="{Binding $parent[Window].((vm:NewVersionViewModel)DataContext).UseSuggestionCommand}"
+                    CommandParameter="{Binding Number}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,6,0,0" IsVisible="{Binding HasError}">
+        <ic:SymbolIcon Symbol="Warning" FontSize="13" Foreground="{DynamicResource WarningTextBrush}" />
+        <TextBlock Classes="caption" Foreground="{DynamicResource WarningTextBrush}" Text="{Binding ErrorText}" TextWrapping="Wrap" />
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel>
+      <TextBlock Classes="label" Text="{l:Tr NewVersion_Description}" />
+      <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" Height="88"
+               MaxLength="{Binding MaxDescriptionLength}" PlaceholderText="{l:Tr NewVersion_DescriptionWatermark}" />
+    </StackPanel>
+
+    <Border Classes="callout">
+      <DockPanel>
+        <ic:SymbolIcon Symbol="LockClosed" />
+        <TextBlock Text="{Binding SummaryText}" />
+      </DockPanel>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,6,0,0">
+      <Button Classes="subtle" Content="{l:Tr Dialog_Cancel}" IsCancel="True" Command="{Binding CancelCommand}"
+              MinWidth="88" HorizontalContentAlignment="Center" />
+      <Button x:Name="CreateButton" Classes="accent" Content="{l:Tr NewVersion_Create}" IsDefault="True"
+              Command="{Binding ConfirmCommand}" MinWidth="88" HorizontalContentAlignment="Center" />
+    </StackPanel>
+  </StackPanel>
+</Window>

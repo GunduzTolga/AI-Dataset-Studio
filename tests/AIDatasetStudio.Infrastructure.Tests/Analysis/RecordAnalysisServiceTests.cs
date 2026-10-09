@@ -96,7 +96,7 @@ public sealed class RecordAnalysisServiceTests
         Assert.Equal(0, await Count(QualityFilter.Duplicates));
         Assert.Equal(1, await Count(QualityFilter.PersonalData));
         Assert.Equal(0, await Count(QualityFilter.OverContextLimit));
-        var byStatus = await ws.Queries.CountByStatusAsync(datasetId, searchText: null, QualityFilter.Issues, Ct);
+        var byStatus = await ws.Queries.CountByStatusAsync(datasetId, new RecordFilter(Quality: QualityFilter.Issues), Ct);
         Assert.Equal((1L, 1L), (byStatus[RecordStatus.Draft], byStatus[RecordStatus.Approved]));
         var page = await ws.Queries.GetPageAsync(datasetId, new RecordFilter(Quality: QualityFilter.Errors), after: null, pageSize: 10, Ct);
         Assert.Equal([ids[3]], page.Items.Select(r => r.Id));
@@ -218,8 +218,10 @@ public sealed class RecordAnalysisServiceTests
         TestContext.Current.TestOutputHelper?.WriteLine($"analyze {analyzeTime.TotalMilliseconds:F0} ms, summary+page {(stopwatch.Elapsed - analyzeTime).TotalMilliseconds:F0} ms");
         Assert.Equal(10_000, analyzed);
         Assert.Equal(10_000, summary.AnalyzedCount);
-        Assert.Equal(100, summary.Score);
-        Assert.Empty(page.Items);
+        // The questions differ only in their number: near-duplicates, and nothing else is wrong.
+        Assert.Equal(90, summary.Score);
+        Assert.Equal(new Dictionary<QualityRule, long> { [QualityRule.NearDuplicate] = 10_000 }, summary.IssueCounts);
+        Assert.Equal(200, page.Items.Count);
     }
 
     private static async Task<List<Guid>> AddAsync(TestWorkspace ws, Guid datasetId, params RecordPayload[] payloads)

@@ -25,8 +25,64 @@ public static class ImportConverter
             SourceLayout.OpenAiMessages => FromConversation(row, row.Json?.GetPropertyOrNull("messages"), plan.TargetType),
             SourceLayout.ShareGpt => FromConversation(row, row.Json?.GetPropertyOrNull("conversations"), plan.TargetType),
             SourceLayout.OpenAiPreference => FromOpenAiPreference(row),
+            SourceLayout.Transcript => FromTranscript(row, plan),
             _ => FromColumns(row, plan),
         };
+    }
+
+    /// <summary>
+    /// A conversation of a log: the customer's messages are user turns, the agent's (or, without
+    /// an agent, everyone else's) assistant turns. Messages in a row from one side are one turn;
+    /// the conversation starts with the customer and ends with an answer.
+    /// </summary>
+    private static ImportRowResult FromTranscript(ISourceRow row, ImportPlan plan)
+    {
+        if (row is not ITranscriptRow transcript || !plan.Mapping.TryGetValue(TargetField.User, out var customer))
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        plan.Mapping.TryGetValue(TargetField.Assistant, out var agent);
+        var turns = new List<(ChatRole Role, StringBuilder Text)>();
+        foreach (var message in transcript.Messages)
+        {
+            ChatRole? role = message.Speaker == customer ? ChatRole.User
+                : agent is null || message.Speaker == agent ? ChatRole.Assistant
+                : null;
+            if (role is not { } side || string.IsNullOrWhiteSpace(message.Text))
+            {
+                continue;
+            }
+
+            if (turns.Count > 0 && turns[^1].Role == side)
+            {
+                turns[^1].Text.Append('\n').Append(message.Text.Trim());
+            }
+            else if (turns.Count > 0 || side == ChatRole.User)
+            {
+                turns.Add((side, new StringBuilder(message.Text.Trim())));
+            }
+        }
+
+        if (turns.Count > 0 && turns[^1].Role == ChatRole.User)
+        {
+            turns.RemoveAt(turns.Count - 1);
+        }
+
+        if (turns.Count < 2)
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        var messages = turns.Select(t => new ChatMessage(t.Role, t.Text.ToString())).ToList();
+        if (plan.TargetType == DatasetType.Chat)
+        {
+            return new ImportRowResult(row.Number, new ChatPayload(null, messages), null);
+        }
+
+        return messages.Count == 2
+            ? new ImportRowResult(row.Number, new InstructionPayload(messages[0].Content, string.Empty, messages[1].Content), null)
+            : Fail(row, ImportErrorCode.MultiTurnNotSupported);
     }
 
     private static ImportRowResult FromColumns(ISourceRow row, ImportPlan plan)

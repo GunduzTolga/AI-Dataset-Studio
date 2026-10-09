@@ -18,6 +18,8 @@
         <ColorPaletteResources x:Key="Dark" Accent="#6366F1" RegionColor="#18181B" ErrorText="#FCA5A5" />
       </FluentTheme.Palettes>
     </FluentTheme>
+    <!-- The record editor's highlighting text fields (AvaloniaEdit), restyled in Controls.axaml. -->
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     <StyleInclude Source="avares://AIDatasetStudio/Themes/Controls.axaml" />
   </Application.Styles>
 </Application>

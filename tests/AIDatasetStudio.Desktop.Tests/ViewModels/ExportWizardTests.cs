@@ -1,4 +1,6 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Tests.Support;
@@ -131,6 +133,37 @@ public sealed class ExportWizardTests
     });
 
     [Fact]
+    public Task Records_the_model_scored_low_can_be_left_out() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction, Samples);
+        var queries = host.Get<IRecordQueryService>();
+        foreach (var row in host.Main.Records.Items)
+        {
+            if (await queries.GetAsync(row.Id) is { Payload: InstructionPayload { Instruction: "İade süresi?" } } record)
+            {
+                await host.Get<IJudgmentService>().SaveAsync(new RecordJudgment(record.Id, record.ContentHash, 1, "Eksik.", JudgeFlags.None, "qwen2.5:7b", DateTimeOffset.UtcNow));
+            }
+        }
+
+        var wizard = CreateWizard(host, dataset.Id);
+        await wizard.InitializeAsync();
+        wizard.IncludeDraft = true;
+        await wizard.PendingWork;
+
+        // Off by default.
+        Assert.True(wizard.CanSkipLowJudgeScore);
+        Assert.False(wizard.SkipLowJudgeScore);
+        Assert.Equal(4, wizard.Preview!.Exported);
+
+        wizard.SkipLowJudgeScore = true;
+        await wizard.PendingWork;
+        Assert.Equal(3, wizard.Preview!.Exported);
+        Assert.Contains(wizard.SkipItems, s => s.Text == "Left out: the model scored them low" && s.CountText == "1");
+        Assert.True(wizard.Options!.SkipLowJudgeScore);
+    });
+
+    [Fact]
     public Task The_last_settings_are_restored() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();
@@ -157,6 +190,54 @@ public sealed class ExportWizardTests
         Assert.Equal(7, second.Seed);
         Assert.StartsWith("Last export: ", second.LastExportText, StringComparison.Ordinal);
         Assert.EndsWith(" · ShareGPT · 5 records", second.LastExportText, StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task A_training_configuration_is_written_with_the_files_and_its_model_follows_the_format() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction, Samples);
+        var wizard = CreateWizard(host, dataset.Id);
+        await wizard.InitializeAsync();
+        wizard.IncludeDraft = true;
+        wizard.SelectedSplitMode = wizard.SplitModes.Single(m => m.Mode == SplitMode.TrainValidation);
+        Assert.Equal(["None", "Axolotl", "LLaMA-Factory"], wizard.TrainingChoices.Select(c => c.Label));
+        Assert.False(wizard.IsTraining);
+
+        // The suggested model follows the format's chat template until the user types one.
+        wizard.SelectedTraining = wizard.TrainingChoices.Single(c => c.Framework == TrainingFramework.LlamaFactory);
+        Assert.Equal("Qwen/Qwen2.5-7B-Instruct", wizard.BaseModel);
+        wizard.SelectedFormat = wizard.Formats.Single(f => f.Format == ExportFormat.Llama3);
+        Assert.Equal("meta-llama/Llama-3.1-8B-Instruct", wizard.BaseModel);
+        await wizard.PendingWork;
+        Assert.Null(wizard.Options);
+        Assert.Equal("LLaMA-Factory cannot read Llama 3 text files; choose another format.", wizard.ProblemText);
+
+        wizard.SelectedFormat = wizard.Formats.Single(f => f.Format == ExportFormat.ShareGpt);
+        wizard.BaseModel = "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1";
+        await wizard.PendingWork;
+        Assert.StartsWith("dataset_info.json and llamafactory.yaml are written next to the files", wizard.TrainingHint, StringComparison.Ordinal);
+        var folder = Path.Combine(host.Directory, "egitim");
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, "llamafactory.yaml"), "eski\n", TestContext.Current.CancellationToken);
+        host.Files.ExportFolder = folder;
+
+        // An earlier configuration is not replaced without asking.
+        await wizard.ExportCommand.ExecuteAsync(null);
+        Assert.True(wizard.IsConfirmingOverwrite);
+        await wizard.ConfirmOverwriteCommand.ExecuteAsync(null);
+
+        Assert.Equal(["train.jsonl", "val.jsonl", "dataset_info.json", "llamafactory.yaml"], wizard.WrittenFiles.Select(f => f.Name));
+        Assert.Equal(["training configuration", "training configuration"], wizard.WrittenFiles.Skip(2).Select(f => f.CountText));
+        var yaml = await File.ReadAllTextAsync(Path.Combine(folder, "llamafactory.yaml"), TestContext.Current.CancellationToken);
+        Assert.Contains("model_name_or_path: \"ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1\"\n", yaml, StringComparison.Ordinal);
+        // A model whose name does not tell its family leaves the template to the user.
+        Assert.Contains("template: default  # set your model's template\n", yaml, StringComparison.Ordinal);
+
+        // The tool and the model are remembered with the dataset's other settings.
+        var again = CreateWizard(host, dataset.Id);
+        await again.InitializeAsync();
+        Assert.Equal((TrainingFramework.LlamaFactory, "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1"), (again.SelectedTraining!.Framework, again.BaseModel));
     });
 
     [Fact]

@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels"
+             xmlns:tags="using:AIDatasetStudio.Desktop.ViewModels.Tags"
              xmlns:l="using:AIDatasetStudio.Desktop.Localization"
              xmlns:ic="using:FluentIcons.Avalonia"
              xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
@@ -58,16 +59,37 @@
                 <TextBlock Text="{l:Tr Action_Export}" />
               </StackPanel>
             </Button>
+            <Button x:Name="VersionsButton" Classes="subtle" ToolTip.Tip="{l:Tr Action_VersionsTip}"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).VersionsCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="History" />
+                <TextBlock Text="{l:Tr Action_Versions}" />
+              </StackPanel>
+            </Button>
           </StackPanel>
         </Grid>
 
-        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsEmptyDataset}">
+        <Grid ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding !IsEmptyDataset}">
           <TextBox x:Name="SearchBox" Classes="search clearButton" Text="{Binding SearchText}" PlaceholderText="{l:Tr Records_SearchWatermark}">
             <TextBox.InnerLeftContent>
               <ic:SymbolIcon Symbol="Search" FontSize="16" Margin="10,0,4,0" Foreground="{DynamicResource TextMutedBrush}" />
             </TextBox.InnerLeftContent>
           </TextBox>
-          <ComboBox Grid.Column="1" Margin="8,0,0,0" MinWidth="190" VerticalAlignment="Stretch"
+          <ComboBox x:Name="TagFilterBox" Grid.Column="1" Margin="8,0,0,0" MinWidth="150" MaxWidth="220" VerticalAlignment="Stretch"
+                    ItemsSource="{Binding TagFilters}" SelectedItem="{Binding SelectedTagFilter}" ToolTip.Tip="{l:Tr Records_TagFilter}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:TagFilterOption">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Panel Width="14" VerticalAlignment="Center">
+                    <ic:SymbolIcon Symbol="Tag" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding !HasTag}" />
+                    <Ellipse Width="9" Height="9" Fill="{Binding Tag.Color, FallbackValue={x:Null}}" IsVisible="{Binding HasTag}" />
+                  </Panel>
+                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <ComboBox Grid.Column="2" Margin="8,0,0,0" MinWidth="190" VerticalAlignment="Stretch"
                     ItemsSource="{Binding QualityFilters}" SelectedItem="{Binding SelectedQualityFilter}" ToolTip.Tip="{l:Tr Records_QualityFilter}">
             <ComboBox.ItemTemplate>
               <DataTemplate x:DataType="vm:QualityFilterOption">
@@ -118,7 +140,41 @@
                   <Grid ColumnDefinitions="64,116,*,76,64">
                     <TextBlock Classes="small muted numeric" Text="{Binding OrdinalText}" VerticalAlignment="Center" />
                     <controls:StatusBadge Grid.Column="1" Status="{Binding Status}" Text="{Binding StatusLabel}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Preview}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <!-- Content, then its tags -->
+                    <DockPanel Grid.Column="2" Margin="0,0,8,0">
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" IsVisible="{Binding HasTags}" ToolTip.Tip="{Binding TagsTip}">
+                        <ItemsControl ItemsSource="{Binding VisibleTags}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="tags:TagViewModel">
+                              <Border Classes="tag-pill">
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                  <Ellipse Width="7" Height="7" Fill="{Binding Color}" VerticalAlignment="Center" />
+                                  <TextBlock Text="{Binding Name}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                          <Border Classes="tag-pill" IsVisible="{Binding HasMoreTags}">
+                          <TextBlock Classes="numeric" Text="{Binding MoreTagsText}" />
+                        </Border>
+                      </StackPanel>
+                      <!-- A model's score 1–5 (M15) -->
+                      <Border DockPanel.Dock="Right" Classes="score" Classes.good="{Binding IsJudgeGood}" Classes.fair="{Binding IsJudgeFair}"
+                              Classes.poor="{Binding IsJudgePoor}" VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding IsJudged}"
+                              ToolTip.Tip="{Binding JudgeTip}">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                          <ic:SymbolIcon Symbol="Gavel" FontSize="11" />
+                          <TextBlock Classes="numeric" Text="{Binding JudgeScoreText}" />
+                        </StackPanel>
+                      </Border>
+                      <TextBlock Text="{Binding Preview}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
                     <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center">
                       <ic:SymbolIcon Symbol="Flag" FontSize="12" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsOverContextLimit}"
                                      ToolTip.Tip="{l:Tr Records_OverContextLimit}" />

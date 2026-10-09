@@ -25,6 +25,7 @@ internal sealed class ExportHistoryConfiguration : IEntityTypeConfiguration<Expo
         builder.HasKey(h => h.Id);
         builder.Property(h => h.Settings).IsRequired();
         builder.Property(h => h.Files).IsRequired();
+        builder.Property(h => h.VersionNumber).HasMaxLength(32);
         builder.HasOne<Dataset>().WithMany().HasForeignKey(h => h.DatasetId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(h => new { h.DatasetId, h.ExportedAt });
     }

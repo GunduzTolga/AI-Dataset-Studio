@@ -74,6 +74,19 @@
         <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
           <ScrollViewer>
             <StackPanel Margin="20,18,20,20" Spacing="20" IsEnabled="{Binding IsSetup}">
+              <!-- Source: the current records or a frozen version -->
+              <StackPanel Spacing="8" IsVisible="{Binding HasVersions}">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionSource}" />
+                <ComboBox x:Name="SourceBox" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SourceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Classes="caption muted" Text="{Binding SourceHint}" IsVisible="{Binding HasSourceHint}" TextWrapping="Wrap" />
+              </StackPanel>
+
               <!-- Format -->
               <StackPanel Spacing="8">
                 <TextBlock Classes="overline" Text="{l:Tr Export_SectionFormat}" />
@@ -108,6 +121,8 @@
                 </StackPanel>
                 <CheckBox IsChecked="{Binding SkipOverContextLimit}" Content="{l:Tr Export_SkipOverLimitOption}" />
                 <CheckBox IsChecked="{Binding SkipDuplicates}" Content="{l:Tr Export_SkipDuplicatesOption}" />
+                <CheckBox x:Name="SkipLowScoreBox" IsChecked="{Binding SkipLowJudgeScore}" Content="{l:Tr Export_SkipLowJudgeScoreOption}"
+                          IsVisible="{Binding CanSkipLowJudgeScore}" ToolTip.Tip="{l:Tr Export_SkipLowJudgeScoreHint}" />
                 <CheckBox IsChecked="{Binding MaskPersonalData}" Content="{l:Tr Export_MaskOption}" />
               </StackPanel>
 
@@ -135,10 +150,39 @@
                     <NumericUpDown Value="{Binding TestPercent}" Minimum="0" Maximum="99" Increment="5" />
                   </StackPanel>
                 </Grid>
+                <!-- Exact shares within each tag or tag group (stratified) -->
+                <StackPanel IsVisible="{Binding IsSplit}">
+                  <TextBlock Classes="label" Text="{l:Tr Export_Stratify}" />
+                  <ComboBox x:Name="StratifyBox" ItemsSource="{Binding StratifyOptions}" SelectedItem="{Binding SelectedStratify}"
+                            HorizontalAlignment="Stretch" IsEnabled="{Binding CanStratify}" ToolTip.Tip="{l:Tr Export_StratifyTip}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:StratifyOption">
+                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
                 <StackPanel IsVisible="{Binding IsSplit}">
                   <TextBlock Classes="label" Text="{l:Tr Export_Seed}" />
                   <NumericUpDown Value="{Binding Seed}" Minimum="0" Maximum="2147483647" Increment="1" />
-                  <TextBlock Classes="caption muted" Text="{l:Tr Export_SplitHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <TextBlock Classes="caption muted" Text="{Binding SplitHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                </StackPanel>
+              </StackPanel>
+
+              <!-- A fine-tuning configuration next to the files (M20) -->
+              <StackPanel Spacing="10">
+                <TextBlock Classes="overline" Text="{l:Tr Export_SectionTraining}" />
+                <ComboBox x:Name="TrainingBox" ItemsSource="{Binding TrainingChoices}" SelectedItem="{Binding SelectedTraining}" HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TrainingChoice">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <StackPanel IsVisible="{Binding IsTraining}">
+                  <TextBlock Classes="label" Text="{l:Tr Export_BaseModel}" />
+                  <TextBox x:Name="BaseModelBox" Text="{Binding BaseModel}" FontFamily="{StaticResource MonoFontFamily}" PlaceholderText="Qwen/Qwen2.5-7B-Instruct" />
+                  <TextBlock Classes="caption muted" Text="{Binding TrainingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
                 </StackPanel>
               </StackPanel>
             </StackPanel>

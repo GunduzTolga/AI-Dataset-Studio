@@ -71,8 +71,8 @@ public sealed class RecordQueryServiceTests
         var ids = await AddAsync(ws, datasetId, ["izin a", "izin b", "şifre c", "izin d"]);
         await ws.Commands.SetStatusAsync([ids[0], ids[2]], RecordStatus.Approved, Ct);
 
-        var all = await ws.Queries.CountByStatusAsync(datasetId, searchText: null, cancellationToken: Ct);
-        var izin = await ws.Queries.CountByStatusAsync(datasetId, "izin", cancellationToken: Ct);
+        var all = await ws.Queries.CountByStatusAsync(datasetId, RecordFilter.None, Ct);
+        var izin = await ws.Queries.CountByStatusAsync(datasetId, new RecordFilter(SearchText: "izin"), Ct);
 
         Assert.Equal(2, all[RecordStatus.Draft]);
         Assert.Equal(2, all[RecordStatus.Approved]);
@@ -171,7 +171,7 @@ public sealed class RecordQueryServiceTests
         Assert.NotNull(details);
         Assert.Equal(payload, details.Payload);
         Assert.Equal("llama3", details.Lineage.GeneratedByModel);
-        Assert.Empty(details.Tags);
+        Assert.Empty(details.TagIds);
         Assert.Equal(datasetId, details.DatasetId);
         Assert.Null(await ws.Queries.GetAsync(Guid.NewGuid(), Ct));
     }

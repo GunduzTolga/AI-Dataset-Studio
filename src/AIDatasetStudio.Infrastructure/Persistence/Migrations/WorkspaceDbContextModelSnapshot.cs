@@ -24,6 +24,10 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AIGuidance")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ContextLength")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
@@ -133,6 +137,49 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.ToTable("DatasetRecords", (string)null);
                 });
 
+            modelBuilder.Entity("AIDatasetStudio.Domain.Entities.DatasetVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ApprovedCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ContextLength")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RecordCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Tokenizer")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("DatasetVersions", (string)null);
+                });
+
             modelBuilder.Entity("AIDatasetStudio.Domain.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -177,10 +224,17 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("Shortcut")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NameKey")
                         .IsUnique();
+
+                    b.HasIndex("Shortcut")
+                        .IsUnique()
+                        .HasFilter("Shortcut IS NOT NULL");
 
                     b.ToTable("Tags", (string)null);
                 });
@@ -232,6 +286,13 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("TargetFormat")
                         .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("VersionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("VersionNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -286,6 +347,9 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("NearGroup")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("OutputTokens")
                         .HasColumnType("INTEGER");
 
@@ -299,6 +363,10 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.Property<int>("Score")
                         .HasColumnType("INTEGER");
 
+                    b.Property<byte[]>("Signature")
+                        .HasMaxLength(128)
+                        .HasColumnType("BLOB");
+
                     b.Property<string>("Tokenizer")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -309,9 +377,97 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
 
                     b.HasKey("RecordId");
 
+                    b.HasIndex("DatasetId", "NearGroup")
+                        .HasFilter("NearGroup IS NOT NULL");
+
                     b.HasIndex("DatasetId", "QuestionKey");
 
                     b.ToTable("RecordAnalyses", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordConflictRow", b =>
+                {
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OtherId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CheckedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Contradicts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OtherHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecordHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("RecordId", "OtherId");
+
+                    b.HasIndex("DatasetId");
+
+                    b.HasIndex("OtherId");
+
+                    b.ToTable("RecordConflicts", (string)null);
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordJudgmentRow", b =>
+                {
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DatasetId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Flags")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("JudgedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("RecordId");
+
+                    b.HasIndex("DatasetId", "Score");
+
+                    b.ToTable("RecordJudgments", (string)null);
                 });
 
             modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.WorkspaceSetting", b =>
@@ -362,6 +518,15 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AIDatasetStudio.Domain.Entities.DatasetVersion", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.ExportHistoryRow", b =>
                 {
                     b.HasOne("AIDatasetStudio.Domain.Entities.Dataset", null)
@@ -385,6 +550,30 @@ namespace AIDatasetStudio.Infrastructure.Persistence.Migrations
                     b.HasOne("AIDatasetStudio.Domain.Entities.DatasetRecord", null)
                         .WithOne()
                         .HasForeignKey("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordAnalysisRow", "RecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordConflictRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.DatasetRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OtherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AIDatasetStudio.Domain.Entities.DatasetRecord", null)
+                        .WithMany()
+                        .HasForeignKey("RecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordJudgmentRow", b =>
+                {
+                    b.HasOne("AIDatasetStudio.Domain.Entities.DatasetRecord", null)
+                        .WithOne()
+                        .HasForeignKey("AIDatasetStudio.Infrastructure.Persistence.Entities.RecordJudgmentRow", "RecordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

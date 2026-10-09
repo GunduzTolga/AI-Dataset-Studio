@@ -2,11 +2,15 @@ using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Infrastructure.Analysis;
 using AIDatasetStudio.Infrastructure.Catalog;
+using AIDatasetStudio.Infrastructure.Documents;
+using AIDatasetStudio.Infrastructure.Evaluation;
 using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Import;
+using AIDatasetStudio.Infrastructure.Judgments;
 using AIDatasetStudio.Infrastructure.Records;
+using AIDatasetStudio.Infrastructure.Tags;
+using AIDatasetStudio.Infrastructure.Versions;
 using AIDatasetStudio.Infrastructure.Workspaces;
-using Microsoft.Data.Sqlite;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Support;
 
@@ -25,9 +29,15 @@ internal sealed class TestWorkspace : IAsyncDisposable
         Catalog = new CatalogService(Workspace, Clock, Tokenizers);
         Commands = new RecordCommandService(Workspace, Clock);
         Queries = new RecordQueryService(Workspace);
-        Import = new ImportService(Commands);
+        Import = new ImportService(Commands, Documents);
         Analysis = new RecordAnalysisService(Workspace, Tokenizers, Clock);
         Export = new ExportService(Workspace, Analysis, Clock);
+        Versions = new VersionService(Workspace, Analysis, Clock);
+        Tags = new TagService(Workspace, Clock);
+        Judgments = new JudgmentService(Workspace);
+        Merge = new DatasetMergeService(Catalog, Queries, Commands, Workspace, Tags, Tokenizers, Clock);
+        Evaluations = new EvaluationRunService(Workspace, Clock);
+        Semantic = new SemanticIndex(Workspace);
     }
 
     /// <summary>
@@ -35,9 +45,19 @@ internal sealed class TestWorkspace : IAsyncDisposable
     /// </summary>
     public static TiktokenProvider Tokenizers { get; } = new();
 
+    public DocumentReader Documents { get; } = new();
+
     public RecordAnalysisService Analysis { get; }
 
     public ExportService Export { get; }
+
+    public VersionService Versions { get; }
+
+    public TagService Tags { get; }
+
+    public JudgmentService Judgments { get; }
+
+    public SemanticIndex Semantic { get; }
 
     public string Directory { get; }
 
@@ -48,6 +68,10 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public WorkspaceService Workspace { get; }
 
     public CatalogService Catalog { get; }
+
+    public DatasetMergeService Merge { get; }
+
+    public EvaluationRunService Evaluations { get; }
 
     public RecordCommandService Commands { get; }
 
@@ -91,7 +115,6 @@ internal sealed class TestWorkspace : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Workspace.DisposeAsync();
-        SqliteConnection.ClearAllPools();
         try
         {
             System.IO.Directory.Delete(Directory, recursive: true);

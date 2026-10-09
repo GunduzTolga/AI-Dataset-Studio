@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- JavaScript and TypeScript. -->
+<SyntaxDefinition name="JavaScript" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" fontStyle="italic" />
+  <Color name="String" />
+  <Color name="Keyword" />
+  <Color name="Literal" />
+  <Color name="Number" />
+  <Color name="Function" />
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" begin="&quot;" end="&quot;">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String" begin="'" end="'">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String" multiline="true" begin="`" end="`">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Keywords color="Keyword">
+      <Word>abstract</Word><Word>as</Word><Word>async</Word><Word>await</Word><Word>break</Word><Word>case</Word>
+      <Word>catch</Word><Word>class</Word><Word>const</Word><Word>continue</Word><Word>debugger</Word><Word>declare</Word>
+      <Word>default</Word><Word>delete</Word><Word>do</Word><Word>else</Word><Word>enum</Word><Word>export</Word>
+      <Word>extends</Word><Word>finally</Word><Word>for</Word><Word>from</Word><Word>function</Word><Word>if</Word>
+      <Word>implements</Word><Word>import</Word><Word>in</Word><Word>instanceof</Word><Word>interface</Word><Word>let</Word>
+      <Word>namespace</Word><Word>new</Word><Word>of</Word><Word>private</Word><Word>protected</Word><Word>public</Word>
+      <Word>readonly</Word><Word>return</Word><Word>static</Word><Word>super</Word><Word>switch</Word><Word>this</Word>
+      <Word>throw</Word><Word>try</Word><Word>type</Word><Word>typeof</Word><Word>var</Word><Word>void</Word>
+      <Word>while</Word><Word>with</Word><Word>yield</Word>
+    </Keywords>
+    <Keywords color="Literal">
+      <Word>true</Word><Word>false</Word><Word>null</Word><Word>undefined</Word><Word>NaN</Word><Word>Infinity</Word>
+    </Keywords>
+    <Rule color="Function">\b[A-Za-z_$][\w$]*(?=[ \t]*\()</Rule>
+    <Rule color="Number">\b0[xXoObB][0-9a-fA-F_]+n?\b|\b\d[\d_]*(?:\.\d+)?(?:[eE][+-]?\d+)?n?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

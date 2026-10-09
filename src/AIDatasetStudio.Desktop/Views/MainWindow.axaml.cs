@@ -22,7 +22,8 @@ public sealed partial class MainWindow : Window
     /// <param name="Command">The command it runs.</param>
     /// <param name="InTextBox">Whether it also works while typing (otherwise the text box keeps the key, e.g. its own undo).</param>
     /// <param name="When">An extra condition, e.g. the record list has focus.</param>
-    private sealed record Shortcut(KeyGesture Gesture, Func<MainWindowViewModel, ICommand> Command, bool InTextBox, Func<bool>? When = null);
+    /// <param name="Parameter">The command parameter, e.g. the tag slot of Mod+1…5.</param>
+    private sealed record Shortcut(KeyGesture Gesture, Func<MainWindowViewModel, ICommand> Command, bool InTextBox, Func<bool>? When = null, object? Parameter = null);
 
     // Mod is Ctrl on Windows/Linux and Cmd on macOS (SDD §6.2).
     private void ConfigureHotKeys()
@@ -41,8 +42,18 @@ public sealed partial class MainWindow : Window
         Add(NextMenuItem, new KeyGesture(Key.F8), vm => vm.NextRecordCommand, inTextBox: true);
         Add(PreviousMenuItem, new KeyGesture(Key.F8, KeyModifiers.Shift), vm => vm.PreviousRecordCommand, inTextBox: true);
         Add(PiiPreviewMenuItem, new KeyGesture(Key.M, mod | KeyModifiers.Shift), vm => vm.Details.TogglePiiPreviewCommand, inTextBox: true);
+        Add(WriteMenuItem, new KeyGesture(Key.G, mod), vm => vm.Details.WriteMainCommand, inTextBox: true);
+        Add(VariationsMenuItem, new KeyGesture(Key.G, mod | KeyModifiers.Shift), vm => vm.GenerateVariationsCommand, inTextBox: true);
+        Add(JudgeMenuItem, new KeyGesture(Key.J, mod), vm => vm.JudgeCommand, inTextBox: true);
         Add(DeleteMenuItem, new KeyGesture(Key.Delete), vm => vm.DeleteSelectionCommand, inTextBox: false, () => RecordListView.IsListFocused);
         FindMenuItem.InputGesture = new KeyGesture(Key.F, mod);
+
+        // Mod+1…5 toggle the tags with those shortcuts, also while typing (the digits stay text without Mod).
+        for (var slot = 1; slot <= Domain.Entities.Tag.MaxShortcut; slot++)
+        {
+            _shortcuts.Add(new Shortcut(new KeyGesture(Key.D0 + slot, mod), vm => vm.ToggleTagSlotCommand, InTextBox: true, Parameter: slot));
+            _shortcuts.Add(new Shortcut(new KeyGesture(Key.NumPad0 + slot, mod), vm => vm.ToggleTagSlotCommand, InTextBox: true, Parameter: slot));
+        }
     }
 
     private void Add(MenuItem menuItem, KeyGesture gesture, Func<MainWindowViewModel, ICommand> command, bool inTextBox, Func<bool>? when = null)
@@ -66,7 +77,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var inTextBox = FocusManager?.GetFocusedElement() is TextBox;
+        // Editor fields (CodeEditor) take the focus in their TextArea.
+        var inTextBox = FocusManager?.GetFocusedElement() is TextBox or AvaloniaEdit.Editing.TextArea;
         foreach (var shortcut in _shortcuts)
         {
             if (!shortcut.Gesture.Matches(e) || (inTextBox && !shortcut.InTextBox) || shortcut.When?.Invoke() == false)
@@ -75,9 +87,9 @@ public sealed partial class MainWindow : Window
             }
 
             var command = shortcut.Command(viewModel);
-            if (command.CanExecute(null))
+            if (command.CanExecute(shortcut.Parameter))
             {
-                command.Execute(null);
+                command.Execute(shortcut.Parameter);
             }
 
             e.Handled = true;

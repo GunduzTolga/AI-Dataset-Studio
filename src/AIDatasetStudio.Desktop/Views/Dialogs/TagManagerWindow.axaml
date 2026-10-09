@@ -1,0 +1,141 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Tags"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.TagManagerWindow"
+        x:DataType="vm:TagManagerViewModel"
+        Title="{l:Tr Tags_Title}"
+        Width="680" Height="580"
+        MinWidth="560" MinHeight="420"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Spacing="14">
+        <Grid ColumnDefinitions="Auto,*">
+          <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+            <ic:SymbolIcon Symbol="TagMultiple" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+            <TextBlock Classes="title" Text="{l:Tr Tags_Title}" />
+            <TextBlock Classes="small muted" Text="{l:Tr Tags_Subtitle}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+        <!-- New tag -->
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox x:Name="NewNameBox" Text="{Binding NewName}" PlaceholderText="{l:Tr Tags_NewWatermark}" MaxLength="100">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding AddCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <Button Grid.Column="1" Classes="accent" Margin="8,0,0,0" Command="{Binding AddCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Add" />
+              <TextBlock Text="{l:Tr Tags_Add}" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- Footer: what happened, and close -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasNotice}">
+            <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="15" Foreground="{DynamicResource PositiveBrush}" />
+            <TextBlock Classes="small" Text="{Binding Notice}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasError}">
+            <ic:SymbolIcon Symbol="ErrorCircle" FontSize="15" Foreground="{DynamicResource DangerTextBrush}" />
+            <TextBlock Classes="small" Foreground="{DynamicResource DangerTextBrush}" Text="{Binding ErrorMessage}"
+                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </StackPanel>
+        </StackPanel>
+        <Button Grid.Column="1" Classes="accent" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsCancel="True"
+                MinWidth="88" HorizontalContentAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <Panel>
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Items}" Margin="12,8">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TagRowViewModel">
+              <Border Classes="row" Padding="12,8">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                  <!-- Color: a palette -->
+                  <Button Classes="subtle icon" VerticalAlignment="Center" ToolTip.Tip="{l:Tr Tags_Color}">
+                    <Ellipse Width="14" Height="14" Fill="{Binding Color}" />
+                    <Button.Flyout>
+                      <Flyout Placement="BottomEdgeAlignedLeft">
+                        <ItemsControl ItemsSource="{Binding Colors}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <UniformGrid Columns="4" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ColorOption">
+                              <Button Classes="subtle icon" Margin="2" Command="{Binding Command}" CommandParameter="{Binding Hex}" ToolTip.Tip="{Binding Hex}">
+                                <Ellipse Width="18" Height="18" Fill="{Binding Brush}" />
+                              </Button>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Flyout>
+                    </Button.Flyout>
+                  </Button>
+                  <StackPanel Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Classes="strong" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Classes="small muted numeric" Text="{Binding CountText}" />
+                      <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding HasGroup}">
+                        <ic:SymbolIcon Symbol="Folder" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+                        <TextBlock Classes="small muted" Text="{Binding Group}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </StackPanel>
+                  <ComboBox Grid.Column="2" MinWidth="112" VerticalAlignment="Center" ToolTip.Tip="{l:Tr Tags_Shortcut}"
+                            ItemsSource="{Binding $parent[Window].((vm:TagManagerViewModel)DataContext).ShortcutOptions}"
+                            SelectedItem="{Binding SelectedShortcut}">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ShortcutOption">
+                        <TextBlock Text="{Binding Label}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <Button Classes="subtle icon" Command="{Binding ShowRecordsCommand}" ToolTip.Tip="{l:Tr Tags_ShowRecords}">
+                      <ic:SymbolIcon Symbol="Filter" />
+                    </Button>
+                    <Button Classes="subtle icon" Command="{Binding RenameCommand}" ToolTip.Tip="{l:Tr Tags_Rename}">
+                      <ic:SymbolIcon Symbol="Rename" />
+                    </Button>
+                    <Button Classes="danger-subtle icon" Command="{Binding DeleteCommand}" ToolTip.Tip="{l:Tr Action_Delete}">
+                      <ic:SymbolIcon Symbol="Delete" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+
+      <!-- No tags yet -->
+      <StackPanel Classes="empty" IsVisible="{Binding IsEmpty}">
+        <Border Classes="empty-icon">
+          <ic:SymbolIcon Symbol="Tag" />
+        </Border>
+        <TextBlock Classes="subtitle" Text="{l:Tr Tags_EmptyTitle}" />
+        <TextBlock Classes="muted" Text="{l:Tr Tags_EmptyHint}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
+      </StackPanel>
+    </Panel>
+  </DockPanel>
+</Window>

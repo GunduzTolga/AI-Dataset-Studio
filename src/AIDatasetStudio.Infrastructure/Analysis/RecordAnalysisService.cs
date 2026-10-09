@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using AIDatasetStudio.Application.Analysis;
@@ -12,6 +14,8 @@ namespace AIDatasetStudio.Infrastructure.Analysis;
 /// <summary>
 /// Computes and stores token counts and single-record rule results in batches; cross-record
 /// rules and the context-length check are evaluated in SQL when read (see <see cref="AnalysisSql"/>).
+/// Near-duplicate questions need the whole dataset: after analysis a grouping pass stores each
+/// record's group (<see cref="UpdateNearGroupsAsync"/>), and SQL checks status and freshness when read.
 /// </summary>
 internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokenizerProvider tokenizers, TimeProvider timeProvider)
     : IRecordAnalysisService
@@ -43,8 +47,20 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
     public Task AnalyzeRecordsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(recordIds);
-        return recordIds.Count == 0 ? Task.CompletedTask : Task.Run(() => AnalyzeRecordsCoreAsync(recordIds, cancellationToken), cancellationToken);
+        return recordIds.Count == 0
+            ? Task.CompletedTask
+            : Task.Run(() => AnalyzeRecordsCoreAsync(recordIds, cancellationToken), cancellationToken);
     }
+
+    public Task<bool> GroupNearDuplicatesAsync(Guid datasetId, CancellationToken cancellationToken = default) =>
+        // Comparing questions is CPU work too.
+        Task.Run(
+            async () =>
+            {
+                await using var connection = await database.OpenConnectionAsync(cancellationToken);
+                return await UpdateNearGroupsAsync(connection, datasetId, cancellationToken);
+            },
+            cancellationToken);
 
     public async Task<DatasetQualitySummary> GetSummaryAsync(Guid datasetId, CancellationToken cancellationToken = default)
     {
@@ -62,21 +78,22 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         await using var connection = await database.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            WITH scored AS (
+            WITH scored AS MATERIALIZED (
                 SELECT r.Status, a.TotalTokens, a.IssueFlags, a.Score,
                        {AnalysisSql.IsDuplicate} AS IsDup,
                        {AnalysisSql.IsConflicting} AS IsConflict,
-                       {AnalysisSql.IsOverLimit} AS IsOver,
-                       {AnalysisSql.Score} AS Effective
+                       {AnalysisSql.IsNearDuplicate} AS IsNear,
+                       {AnalysisSql.IsOverLimit} AS IsOver
                 FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
                 WHERE r.DatasetId = $ds AND a.RecordId IS NOT NULL AND r.Status <> {AnalysisSql.Archived})
             SELECT (SELECT COUNT(*) FROM DatasetRecords WHERE DatasetId = $ds),
                    (SELECT COUNT(*) FROM Datasets WHERE Id = $ds),
                    (SELECT COUNT(*) FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
                     WHERE r.DatasetId = $ds AND a.RecordId IS NOT NULL),
-                   AVG(Effective),
+                   -- The score of AnalysisSql.Score, from the flags already computed.
+                   AVG(MAX(0, Score - (IsDup + IsConflict + IsNear) * {QualityRules.WarningPenalty} - IsOver * {QualityRules.ErrorPenalty})),
                    COALESCE(SUM(TotalTokens), 0), COALESCE(MAX(TotalTokens), 0), COALESCE(SUM(IsOver), 0),
-                   COALESCE(SUM(IsDup), 0), COALESCE(SUM(IsConflict), 0){ruleSums}{buckets}
+                   COALESCE(SUM(IsDup), 0), COALESCE(SUM(IsConflict), 0), COALESCE(SUM(IsNear), 0){ruleSums}{buckets}
             FROM scored;
             """;
         command.Parameters.AddWithValue("$ds", SqliteValues.Guid(datasetId));
@@ -100,6 +117,7 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         var column = 7;
         AddCount(QualityRule.Duplicate, reader.GetInt64(column++));
         AddCount(QualityRule.ConflictingAnswer, reader.GetInt64(column++));
+        AddCount(QualityRule.NearDuplicate, reader.GetInt64(column++));
         foreach (var rule in QualityRules.RecordRules)
         {
             AddCount(rule, reader.GetInt64(column++));
@@ -133,7 +151,8 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             {
                 command.CommandText = $"""
                     SELECT a.RecordId IS NOT NULL, a.InputTokens, a.OutputTokens, a.Issues,
-                           {AnalysisSql.IsDuplicate}, {AnalysisSql.IsConflicting}, {AnalysisSql.IsOverLimit}, {AnalysisSql.Score}
+                           {AnalysisSql.IsDuplicate}, {AnalysisSql.IsConflicting}, {AnalysisSql.IsOverLimit}, {AnalysisSql.Score},
+                           {AnalysisSql.NearDuplicateOf}
                     FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
                     WHERE r.Id = $id;
                     """;
@@ -155,6 +174,11 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
                     if (!reader.IsDBNull(5) && reader.GetBoolean(5))
                     {
                         issues.Add(Issue(QualityRule.ConflictingAnswer));
+                    }
+
+                    if (!reader.IsDBNull(8))
+                    {
+                        issues.Add(Issue(QualityRule.NearDuplicate, reader.GetInt64(8).ToString(System.Globalization.CultureInfo.InvariantCulture)));
                     }
 
                     if (reader.GetBoolean(6))
@@ -182,6 +206,12 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
                 "EXISTS (SELECT 1 FROM DatasetRecords o WHERE o.DatasetId = r.DatasetId AND o.ContentHash = r.ContentHash " +
                 $"AND o.Status <> {AnalysisSql.Archived} AND (o.Ordinal < r.Ordinal OR (o.Ordinal = r.Ordinal AND o.Id < r.Id)))",
             QualityRule.ConflictingAnswer => $"a.RecordId IS NOT NULL AND {AnalysisSql.IsConflicting}",
+            // Keep the first record of each group of near-duplicate questions, with its variations.
+            QualityRule.NearDuplicate =>
+                $"a.RecordId IS NOT NULL AND {AnalysisSql.IsNearDuplicate} AND {AnalysisSql.Family("r")} IS NOT (SELECT {AnalysisSql.Family("r4")} " +
+                "FROM RecordAnalyses a4 JOIN DatasetRecords r4 ON r4.Id = a4.RecordId AND a4.ContentHash = r4.ContentHash " +
+                $"WHERE a4.DatasetId = r.DatasetId AND a4.NearGroup = a.NearGroup AND a4.Tokenizer = a.Tokenizer AND a4.RulesVersion = {QualityRules.Version} " +
+                $"AND r4.Status <> {AnalysisSql.Archived} ORDER BY r4.Ordinal, r4.Id LIMIT 1)",
             QualityRule.OverContextLimit => $"a.RecordId IS NOT NULL AND {AnalysisSql.IsOverLimit}",
             _ => $"a.RecordId IS NOT NULL AND (a.IssueFlags & {AnalysisSql.Bit(rule)}) <> 0",
         };
@@ -265,6 +295,7 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             after = (batch[^1].Ordinal, batch[^1].Id);
         }
 
+        await UpdateNearGroupsAsync(connection, datasetId, cancellationToken);
         return done;
     }
 
@@ -294,6 +325,219 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             var analyzer = new RecordAnalyzer(tokenizers.Get(group.Key), scanner);
             await WriteAsync(connection, Analyze(analyzer, group.Select(r => r.Record).ToList()), group.Key, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Groups the near-duplicate questions of a dataset again (SDD §8.2) when a question changed
+    /// since the last time. Records with an up-to-date analysis take part, archived ones too, so
+    /// archiving or restoring needs no new pass. Each record stores the first record of its group,
+    /// or nothing when every record of its group asks exactly the same question.
+    /// </summary>
+    /// <returns><c>true</c> if any record's group changed.</returns>
+    private static async Task<bool> UpdateNearGroupsAsync(SqliteConnection connection, Guid datasetId, CancellationToken cancellationToken)
+    {
+        var ds = SqliteValues.Guid(datasetId);
+
+        // Which contents are there: one light read decides whether anything has to be done.
+        var records = new List<(string Id, string ContentHash, string? QuestionKey, string? NearGroup, string Family)>();
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = $"""
+                SELECT r.Id, r.ContentHash, a.QuestionKey, a.NearGroup, {AnalysisSql.Family("r")}
+                FROM DatasetRecords r JOIN Datasets d ON d.Id = r.DatasetId {AnalysisSql.FreshJoin}
+                WHERE r.DatasetId = $ds AND a.Signature IS NOT NULL
+                ORDER BY r.Ordinal, r.Id;
+                """;
+            command.Parameters.AddWithValue("$ds", ds);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                records.Add((
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetString(2),
+                    reader.IsDBNull(3) ? null : reader.GetString(3),
+                    reader.GetString(4)));
+            }
+        }
+
+        // How the dataset compares by meaning, if it does (M16), and which questions have vectors.
+        string? stored = null;
+        (string Model, double Threshold)? semantic = null;
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT Stamp, SemanticModel, SemanticThreshold FROM DatasetSimilarity WHERE DatasetId = $ds;";
+            command.Parameters.AddWithValue("$ds", ds);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                stored = reader.GetString(0);
+                if (!reader.IsDBNull(1))
+                {
+                    semantic = (reader.GetString(1), reader.IsDBNull(2) ? SemanticQuestions.DefaultThreshold : reader.GetDouble(2));
+                }
+            }
+        }
+
+        var embedded = semantic is { } current
+            ? await SemanticIndex.ReadSignaturesAsync(connection, ds, current.Model, cancellationToken)
+            : [];
+
+        // Metadata is not part of the content hash, so the families are part of the stamp; so are
+        // the choice of comparing by meaning and which questions have vectors.
+        var stamp = Stamp(
+            records.Select(r => (
+                r.Id,
+                (r.Family == r.Id ? r.ContentHash : r.ContentHash + ":" + r.Family) + (r.QuestionKey is { } key && embedded.ContainsKey(key) ? ":v" : string.Empty))),
+            semantic is { } choice ? $"semantic:{choice.Model}:{choice.Threshold.ToString("R", CultureInfo.InvariantCulture)}" : null);
+        if (stored == stamp)
+        {
+            return false;
+        }
+
+        var keys = records.Select(r => r.QuestionKey).ToList();
+        var candidates = NearDuplicates.Candidates(await ReadSignaturesAsync(connection, [.. records.Select(r => r.Id)], cancellationToken), keys);
+
+        // The exact check needs the questions of the candidates only.
+        var involved = candidates.SelectMany(p => new[] { p.A, p.B }).Distinct().ToDictionary(i => records[i].Id, i => i, StringComparer.Ordinal);
+        var shingles = await ReadShinglesAsync(connection, involved, cancellationToken);
+
+        // Questions alike in meaning: candidates from the signatures, then the vectors of those only.
+        var alike = new List<(int A, int B)>();
+        var vectors = new QuestionVector?[records.Count];
+        var threshold = semantic?.Threshold ?? SemanticQuestions.DefaultThreshold;
+        if (semantic is { } meaning && embedded.Count > 0)
+        {
+            alike.AddRange(SemanticQuestions.Candidates([.. keys.Select(k => k is not null && embedded.TryGetValue(k, out var signature) ? signature : null)], keys, threshold));
+            var needed = alike.SelectMany(p => new[] { keys[p.A]!, keys[p.B]! }).Distinct(StringComparer.Ordinal);
+            var storedVectors = await SemanticIndex.ReadVectorsAsync(connection, ds, meaning.Model, needed, cancellationToken);
+            for (var i = 0; i < records.Count; i++)
+            {
+                vectors[i] = keys[i] is { } key && storedVectors.TryGetValue(key, out var vector) ? vector : null;
+            }
+        }
+
+        // A record and its variations ask the same thing on purpose: they are a family, not near duplicates.
+        var roots = NearDuplicates.Group(
+            records.Count,
+            keys,
+            candidates.Concat(alike),
+            (a, b) => !string.Equals(records[a].Family, records[b].Family, StringComparison.Ordinal) && (Near(a, b) || Alike(a, b)));
+
+        bool Near(int a, int b) =>
+            shingles.TryGetValue(a, out var first) && shingles.TryGetValue(b, out var second) && NearDuplicates.Jaccard(first, second) >= NearDuplicates.Threshold;
+
+        bool Alike(int a, int b) =>
+            vectors[a] is { } first && vectors[b] is { } second && SemanticQuestions.Cosine(first.Values, first.Scale, second.Values, second.Scale) >= threshold;
+
+        // A group whose records all ask exactly the same question has no near-duplicate in it.
+        var mixed = roots.Select((root, i) => (root, key: keys[i])).GroupBy(x => x.root)
+            .Where(g => g.Select(x => x.key).Distinct(StringComparer.Ordinal).Skip(1).Any())
+            .Select(g => g.Key)
+            .ToHashSet();
+
+        var changed = false;
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            // Only while the content is still the one compared; a record edited meanwhile waits for the next pass.
+            command.CommandText = "UPDATE RecordAnalyses SET NearGroup = $group WHERE RecordId = $id AND ContentHash = $hash;";
+            var group = command.Parameters.Add(new SqliteParameter { ParameterName = "$group" });
+            var id = command.Parameters.Add(new SqliteParameter { ParameterName = "$id" });
+            var hash = command.Parameters.Add(new SqliteParameter { ParameterName = "$hash" });
+            command.Prepare();
+            for (var i = 0; i < records.Count; i++)
+            {
+                var near = mixed.Contains(roots[i]) ? records[roots[i]].Id : null;
+                if (near != records[i].NearGroup)
+                {
+                    group.Value = SqliteValues.NullableText(near);
+                    id.Value = records[i].Id;
+                    hash.Value = records[i].ContentHash;
+                    changed |= await command.ExecuteNonQueryAsync(cancellationToken) > 0;
+                }
+            }
+        }
+
+        await using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "INSERT INTO DatasetSimilarity (DatasetId, Stamp) VALUES ($ds, $stamp) ON CONFLICT(DatasetId) DO UPDATE SET Stamp = excluded.Stamp;";
+            command.Parameters.AddWithValue("$ds", ds);
+            command.Parameters.AddWithValue("$stamp", stamp);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
+        return changed;
+    }
+
+    // What the groups were made from. The rules version is part of it: new rules may compare differently.
+    private static string Stamp(IEnumerable<(string Id, string ContentHash)> records, string? semantic)
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(Encoding.UTF8.GetBytes($"rules:{QualityRules.Version}\n"));
+        if (semantic is not null)
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(semantic + "\n"));
+        }
+
+        foreach (var (id, contentHash) in records)
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes($"{id}:{contentHash}\n"));
+        }
+
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
+    private static async Task<List<byte[]?>> ReadSignaturesAsync(SqliteConnection connection, IReadOnlyList<string> ids, CancellationToken cancellationToken)
+    {
+        var byId = new Dictionary<string, byte[]>(ids.Count, StringComparer.Ordinal);
+        foreach (var chunk in ids.Chunk(BatchSize * 10))
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT RecordId, Signature FROM RecordAnalyses WHERE RecordId IN (SELECT value FROM json_each($ids));";
+            command.Parameters.AddWithValue("$ids", JsonSerializer.Serialize(chunk));
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (!reader.IsDBNull(1))
+                {
+                    byId[reader.GetString(0)] = (byte[])reader.GetValue(1);
+                }
+            }
+        }
+
+        // A signature of another length (a damaged row) takes no part.
+        return [.. ids.Select(id => byId.TryGetValue(id, out var signature) && signature.Length == NearDuplicates.SignatureBytes ? signature : null)];
+    }
+
+    // The 5-grams of the candidates' questions, by record index.
+    private static async Task<Dictionary<int, HashSet<ulong>>> ReadShinglesAsync(
+        SqliteConnection connection, IReadOnlyDictionary<string, int> indexes, CancellationToken cancellationToken)
+    {
+        var shingles = new Dictionary<int, HashSet<ulong>>(indexes.Count);
+        foreach (var chunk in indexes.Keys.Chunk(BatchSize))
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, DataPayload FROM DatasetRecords WHERE Id IN (SELECT value FROM json_each($ids));";
+            command.Parameters.AddWithValue("$ids", JsonSerializer.Serialize(chunk));
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var question = RecordAnalyzer.QuestionText(PayloadJson.Deserialize(reader.GetString(1))) ?? string.Empty;
+                shingles[indexes[reader.GetString(0)]] = NearDuplicates.Shingles(RecordAnalyzer.Normalize(question));
+            }
+        }
+
+        // A record deleted meanwhile compares as empty.
+        foreach (var index in indexes.Values)
+        {
+            shingles.TryAdd(index, []);
+        }
+
+        return shingles;
     }
 
     // Batches are analysed in parallel; tokenizers and the scanner are thread-safe.
@@ -350,16 +594,18 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
         // Records deleted since they were read are skipped instead of failing the batch.
         command.CommandText = """
             INSERT INTO RecordAnalyses (RecordId, DatasetId, ContentHash, Tokenizer, RulesVersion, InputTokens, OutputTokens,
-                                        TotalTokens, QuestionKey, Score, IssueFlags, Issues, AnalyzedAt)
-            SELECT $id, $ds, $hash, $tokenizer, $rules, $input, $output, $total, $question, $score, $flags, $issues, $at
+                                        TotalTokens, QuestionKey, Signature, Score, IssueFlags, Issues, AnalyzedAt)
+            SELECT $id, $ds, $hash, $tokenizer, $rules, $input, $output, $total, $question, $signature, $score, $flags, $issues, $at
             WHERE EXISTS (SELECT 1 FROM DatasetRecords WHERE Id = $id)
             ON CONFLICT(RecordId) DO UPDATE SET
                 DatasetId = excluded.DatasetId, ContentHash = excluded.ContentHash, Tokenizer = excluded.Tokenizer,
                 RulesVersion = excluded.RulesVersion, InputTokens = excluded.InputTokens, OutputTokens = excluded.OutputTokens,
-                TotalTokens = excluded.TotalTokens, QuestionKey = excluded.QuestionKey, Score = excluded.Score,
-                IssueFlags = excluded.IssueFlags, Issues = excluded.Issues, AnalyzedAt = excluded.AnalyzedAt;
+                TotalTokens = excluded.TotalTokens, QuestionKey = excluded.QuestionKey, Signature = excluded.Signature,
+                NearGroup = CASE WHEN RecordAnalyses.ContentHash = excluded.ContentHash THEN RecordAnalyses.NearGroup END,
+                Score = excluded.Score, IssueFlags = excluded.IssueFlags, Issues = excluded.Issues, AnalyzedAt = excluded.AnalyzedAt;
             """;
-        foreach (var name in new[] { "$id", "$ds", "$hash", "$tokenizer", "$rules", "$input", "$output", "$total", "$question", "$score", "$flags", "$issues", "$at" })
+        // The near-duplicate group stays while the content does; otherwise the next grouping pass decides.
+        foreach (var name in new[] { "$id", "$ds", "$hash", "$tokenizer", "$rules", "$input", "$output", "$total", "$question", "$signature", "$score", "$flags", "$issues", "$at" })
         {
             command.Parameters.Add(new SqliteParameter { ParameterName = name });
         }
@@ -378,6 +624,7 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
             p["$output"].Value = result.Tokens.Output;
             p["$total"].Value = result.Tokens.Total;
             p["$question"].Value = SqliteValues.NullableText(result.QuestionKey);
+            p["$signature"].Value = result.Signature is { } signature ? signature : DBNull.Value;
             p["$score"].Value = result.Score;
             p["$flags"].Value = result.Issues.Aggregate(0, (flags, issue) => flags | AnalysisSql.Bit(issue.Rule));
             p["$issues"].Value = JsonSerializer.Serialize(result.Issues, IssueJson);
@@ -408,7 +655,7 @@ internal sealed class RecordAnalysisService(IWorkspaceDatabase database, ITokeni
 
     private static List<QualityIssue> ReadIssues(string json) => JsonSerializer.Deserialize<List<QualityIssue>>(json, IssueJson) ?? [];
 
-    private static QualityIssue Issue(QualityRule rule) => new(rule, QualityRules.SeverityOf(rule));
+    private static QualityIssue Issue(QualityRule rule, string? detail = null) => new(rule, QualityRules.SeverityOf(rule), detail);
 
     /// <summary>
     /// A record to analyse, with ids as stored (upper-case text).

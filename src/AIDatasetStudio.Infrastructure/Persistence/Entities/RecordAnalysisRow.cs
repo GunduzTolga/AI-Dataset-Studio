@@ -33,6 +33,17 @@ internal sealed class RecordAnalysisRow
     public string? QuestionKey { get; set; }
 
     /// <summary>
+    /// MinHash signature of the normalized question (<see cref="Application.Analysis.NearDuplicates"/>).
+    /// </summary>
+    public byte[]? Signature { get; set; }
+
+    /// <summary>
+    /// The first record of this record's group of near-duplicate questions; <c>null</c> when it has
+    /// none. Set by the grouping pass after analysis, from the questions of the whole dataset.
+    /// </summary>
+    public Guid? NearGroup { get; set; }
+
+    /// <summary>
     /// Score from the single-record rules; cross-record and context-length penalties are applied when queried.
     /// </summary>
     public int Score { get; set; }

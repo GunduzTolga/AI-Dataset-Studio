@@ -29,15 +29,37 @@ public interface IRecordCommandService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Appends draft records in a single transaction (all or nothing), for a few hundred records
+    /// whose ids are needed (to undo the addition).
+    /// </summary>
+    /// <returns>The ids of the new records, in order.</returns>
+    Task<IReadOnlyList<Guid>> AddManyAsync(Guid datasetId, IReadOnlyCollection<NewRecord> records, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Replaces a record's content; a changed record goes back to review.
     /// </summary>
     /// <returns><c>true</c> if the content changed.</returns>
     Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Replaces a record's content that a model helped write; the model is noted in the lineage
+    /// when the content changed.
+    /// </summary>
+    /// <param name="generatedByModel">The model that wrote part of the content, or <c>null</c>.</param>
+    /// <returns><c>true</c> if the content changed.</returns>
+    Task<bool> UpdatePayloadAsync(Guid recordId, RecordPayload payload, string? generatedByModel, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Moves records to <paramref name="status"/> where the lifecycle allows it.
     /// </summary>
     Task<StatusChangeResult> SetStatusAsync(IReadOnlyCollection<Guid> recordIds, RecordStatus status, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds a tag to records or removes it; records that already are as asked are left alone.
+    /// The content and status do not change.
+    /// </summary>
+    /// <returns>The records that changed, for undo.</returns>
+    Task<IReadOnlyList<Guid>> SetTagAsync(IReadOnlyCollection<Guid> recordIds, Guid tagId, bool present, CancellationToken cancellationToken = default);
 
     /// <returns>The number of records deleted.</returns>
     Task<int> DeleteAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken = default);

@@ -6,6 +6,8 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="using:AIDatasetStudio.Desktop.Controls"
+        xmlns:ae="using:AvaloniaEdit"
+        xmlns:editing="using:AvaloniaEdit.Editing"
         xmlns:ic="using:FluentIcons.Avalonia">
 
   <!-- ===== Base ===== -->
@@ -124,6 +126,25 @@
   <Style Selector="Button.subtle:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+  </Style>
+
+  <!-- Quiet switch, e.g. showing a record's source passage: like a subtle button, tinted while on -->
+  <Style Selector="ToggleButton.subtle">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.subtle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.subtle:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.subtle:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
   </Style>
 
   <!-- Destructive -->
@@ -454,6 +475,92 @@
     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
   </Style>
 
+  <!-- A record's tag: colored dot, name and, in the editor, a remove button -->
+  <Style Selector="Border.tag-chip">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="Padding" Value="9,2,3,2" />
+    <Setter Property="MinHeight" Value="26" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+  </Style>
+  <!-- Tags in a list row: dot and name, smaller and without a border -->
+  <Style Selector="Border.tag-pill">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="Padding" Value="7,1" />
+    <Setter Property="Margin" Value="4,0,0,0" />
+    <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.tag-pill TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+
+  <!-- A floating panel (tag picker) -->
+  <Style Selector="Border.popup">
+    <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusLarge}" />
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Margin" Value="0,4,12,12" />
+    <Setter Property="BoxShadow" Value="0 6 18 0 #33000000" />
+  </Style>
+  <!-- A full-width choice in a floating panel -->
+  <Style Selector="Button.menu-item">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.menu-item:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+  </Style>
+  <!-- A compact quiet button next to chips -->
+  <Style Selector="Button.small">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="MinHeight" Value="26" />
+  </Style>
+  <Style Selector="ToggleButton.small">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="MinHeight" Value="26" />
+  </Style>
+
+  <!-- How a record differs between two versions: .added, .removed, .modified or .status -->
+  <Style Selector="Border.kind">
+    <Setter Property="CornerRadius" Value="{StaticResource RadiusPill}" />
+    <Setter Property="Padding" Value="7,1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Background" Value="{DynamicResource StatusDraftBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind > TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource StatusDraftForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.added">
+    <Setter Property="Background" Value="{DynamicResource StatusApprovedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.added > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusApprovedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.removed">
+    <Setter Property="Background" Value="{DynamicResource StatusArchivedBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.removed > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusArchivedForegroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.modified">
+    <Setter Property="Background" Value="{DynamicResource StatusReviewBackgroundBrush}" />
+  </Style>
+  <Style Selector="Border.kind.modified > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StatusReviewForegroundBrush}" />
+  </Style>
+
   <!-- Callout: an inline message with an icon. Info by default; .warning and .danger for problems. -->
   <Style Selector="Border.callout">
     <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
@@ -626,6 +733,9 @@
   <Style Selector="TextBlock.error">
     <Setter Property="Foreground" Value="{DynamicResource DangerTextBrush}" />
   </Style>
+  <Style Selector="TextBlock.warning">
+    <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
   <!-- Histogram bar in its track -->
   <Style Selector="Border.bar-track">
     <Setter Property="Height" Value="10" />
@@ -644,24 +754,27 @@
 
   <!-- ===== Record editor ===== -->
   <!-- Inline field: text inside a card or bubble without a box of its own; the container shows focus. -->
-  <Style Selector="TextBox.field">
+  <!-- Editor fields are CodeEditors (AvaloniaEdit), styled by the TextEditor theme: borderless
+       text in the card's font, with Markdown, code and JSON coloured by the Syntax* tokens. -->
+  <Style Selector="ae|TextEditor.field">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />
     <Setter Property="MinHeight" Value="20" />
-    <Setter Property="AcceptsReturn" Value="True" />
-    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="FontSize" Value="{DynamicResource ControlContentThemeFontSize}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
-  <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+  <Style Selector="ae|TextEditor.field.json">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
   </Style>
-  <Style Selector="TextBox.field:focus /template/ Border#PART_BorderElement">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderThickness" Value="0" />
+  <Style Selector="ae|TextEditor.field editing|TextArea">
+    <Setter Property="SelectionBrush" Value="{DynamicResource AccentSubtleHoverBrush}" />
+    <Setter Property="SelectionForeground" Value="{x:Null}" />
+    <Setter Property="SelectionBorder" Value="{x:Null}" />
   </Style>
-  <Style Selector="TextBox.field:disabled /template/ Border#PART_BorderElement">
-    <Setter Property="Background" Value="Transparent" />
+  <Style Selector="ae|TextEditor.field editing|TextArea /template/ TextBlock#PART_Watermark">
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="Opacity" Value="1" />
   </Style>
   <!-- A focus ring around the edited card or bubble, keeping its tone border. -->
   <Style Selector="Border.card:focus-within">

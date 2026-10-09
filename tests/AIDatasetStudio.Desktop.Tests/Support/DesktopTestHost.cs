@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
@@ -5,15 +6,18 @@ using AIDatasetStudio.Application.Settings;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Documents;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
 using AIDatasetStudio.Infrastructure;
 using Avalonia.Threading;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AIDatasetStudio.Desktop.Tests.Support;
@@ -37,6 +41,10 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             .AddSingleton<IFileDialogService>(Files)
             .AddSingleton<IUpdateService>(Updates)
             .AddSingleton<IShellService>(Shell)
+            .AddSingleton<IAIProviderFactory>(AI)
+
+            // Never the developer's own keychain.
+            .AddSingleton<ISecretStore>(Secrets)
             .BuildServiceProvider();
     }
 
@@ -49,6 +57,21 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeUpdates Updates { get; } = new();
 
     public FakeShell Shell { get; } = new();
+
+    public FakeAIProviders AI { get; } = new();
+
+    public FakeSecretStore Secrets { get; } = new();
+
+    /// <summary>
+    /// Sets up a local Ollama connection with the model "qwen2.5:7b" as the default.
+    /// </summary>
+    public AIConnection AddAIConnection(string? embeddingModel = null)
+    {
+        var connection = new AIConnection(
+            Guid.CreateVersion7(), "Ollama", AIProviderKind.Ollama, AIProviders.DefaultUrl(AIProviderKind.Ollama), "qwen2.5:7b", EmbeddingModel: embeddingModel);
+        Get<IAIConnectionStore>().Save(connection);
+        return connection;
+    }
 
     public MainWindowViewModel Main => Get<MainWindowViewModel>();
 
@@ -144,7 +167,6 @@ internal sealed class DesktopTestHost : IAsyncDisposable
         await Main.Overview.StopAsync();
         await Get<IWorkspaceService>().CloseAsync();
         await _services.DisposeAsync();
-        SqliteConnection.ClearAllPools();
         try
         {
             System.IO.Directory.Delete(Directory, recursive: true);
@@ -233,6 +255,124 @@ internal sealed class FakeDialogs : IDialogService
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// What the user enters for a new version; by default the suggested number without a note.
+    /// <c>null</c> cancels.
+    /// </summary>
+    public Func<NewVersionViewModel, bool>? NewVersionScript { get; set; } = _ => true;
+
+    public NewVersionViewModel? LastNewVersion { get; private set; }
+
+    public Task<bool> PromptNewVersionAsync(NewVersionViewModel prompt)
+    {
+        LastNewVersion = prompt;
+        return Task.FromResult(NewVersionScript?.Invoke(prompt) == true && !prompt.HasError);
+    }
+
+    /// <summary>
+    /// What the user does in the versions window; by default opens it and waits for the comparison.
+    /// </summary>
+    public Func<VersionsViewModel, Task> VersionsScript { get; set; } = versions => versions.InitializeAsync();
+
+    public VersionsViewModel? LastVersions { get; private set; }
+
+    public async Task ShowVersionsAsync(VersionsViewModel versions)
+    {
+        LastVersions = versions;
+        await VersionsScript(versions);
+    }
+
+    /// <summary>
+    /// What the user does in Tools › Tags; by default opens it.
+    /// </summary>
+    public Func<TagManagerViewModel, Task> TagManagerScript { get; set; } = tags => tags.InitializeAsync();
+
+    public TagManagerViewModel? LastTagManager { get; private set; }
+
+    public async Task ShowTagManagerAsync(TagManagerViewModel tags)
+    {
+        LastTagManager = tags;
+        await TagManagerScript(tags);
+    }
+
+    /// <summary>
+    /// What the user does in Tools › Merge Datasets; by default nothing.
+    /// </summary>
+    public Func<Desktop.ViewModels.Catalog.DatasetMergeViewModel, Task> MergeScript { get; set; } = _ => Task.CompletedTask;
+
+    public Desktop.ViewModels.Catalog.DatasetMergeViewModel? LastMerge { get; private set; }
+
+    public async Task ShowDatasetMergeAsync(Desktop.ViewModels.Catalog.DatasetMergeViewModel merge)
+    {
+        LastMerge = merge;
+        await MergeScript(merge);
+    }
+
+    /// <summary>
+    /// What the user does in Tools › Evaluate a Model; by default nothing.
+    /// </summary>
+    public Func<ModelEvaluationViewModel, Task> EvaluationScript { get; set; } = _ => Task.CompletedTask;
+
+    public ModelEvaluationViewModel? LastEvaluation { get; private set; }
+
+    public async Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation)
+    {
+        LastEvaluation = evaluation;
+        await EvaluationScript(evaluation);
+    }
+
+    /// <summary>
+    /// What the user does in Tools › AI Connections; by default nothing.
+    /// </summary>
+    public Func<AIConnectionsViewModel, Task> AIConnectionsScript { get; set; } = _ => Task.CompletedTask;
+
+    public AIConnectionsViewModel? LastAIConnections { get; private set; }
+
+    public async Task ShowAIConnectionsAsync(AIConnectionsViewModel connections)
+    {
+        LastAIConnections = connections;
+        await AIConnectionsScript(connections);
+    }
+
+    /// <summary>
+    /// What the user does in Q&amp;A extraction; by default opens it and waits for the document.
+    /// </summary>
+    public Func<QAExtractionViewModel, Task> QAExtractionScript { get; set; } = extraction => extraction.InitializeAsync();
+
+    public QAExtractionViewModel? LastQAExtraction { get; private set; }
+
+    public async Task ShowQAExtractionAsync(QAExtractionViewModel extraction)
+    {
+        LastQAExtraction = extraction;
+        await QAExtractionScript(extraction);
+    }
+
+    /// <summary>
+    /// What the user does in Generate Variations; by default closes it.
+    /// </summary>
+    public Func<VariationsViewModel, Task> VariationsScript { get; set; } = _ => Task.CompletedTask;
+
+    public VariationsViewModel? LastVariations { get; private set; }
+
+    public async Task ShowVariationsAsync(VariationsViewModel variations)
+    {
+        LastVariations = variations;
+        await VariationsScript(variations);
+    }
+
+    /// <summary>
+    /// What the user does in the judge window; by default closes it.
+    /// </summary>
+    public Func<JudgeViewModel, Task> JudgeScript { get; set; } = _ => Task.CompletedTask;
+
+    public JudgeViewModel? LastJudge { get; private set; }
+
+    public async Task ShowJudgeAsync(JudgeViewModel judge)
+    {
+        LastJudge = judge;
+        await JudgeScript(judge);
+    }
+
     public async Task<ImportResult?> ShowImportWizardAsync(ImportWizardViewModel wizard)
     {
         LastImportWizard = wizard;
@@ -259,6 +399,16 @@ internal sealed class FakeFileDialogs : IFileDialogService
     {
         ImportExtensions = extensions;
         return Task.FromResult(ImportPath);
+    }
+
+    public string? DocumentPath { get; set; }
+
+    public IReadOnlyList<string>? DocumentExtensions { get; private set; }
+
+    public Task<string?> PickDocumentAsync(IReadOnlyList<string> extensions)
+    {
+        DocumentExtensions = extensions;
+        return Task.FromResult(DocumentPath);
     }
 
     public string? ExportPath { get; set; }

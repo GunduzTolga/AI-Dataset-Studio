@@ -15,5 +15,7 @@ internal sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
         builder.Property(t => t.NameKey).HasMaxLength(Tag.MaxNameLength).IsRequired();
         builder.Property(t => t.ColorHex).HasMaxLength(7).IsRequired();
         builder.HasIndex(t => t.NameKey).IsUnique();
+        // At most one tag per Mod+1..5 shortcut.
+        builder.HasIndex(t => t.Shortcut).IsUnique().HasFilter("Shortcut IS NOT NULL");
     }
 }

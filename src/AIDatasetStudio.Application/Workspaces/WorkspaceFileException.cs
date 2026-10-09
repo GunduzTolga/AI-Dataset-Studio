@@ -10,6 +10,9 @@ public enum WorkspaceFileError
 
     /// <summary>The file exists but could not be read or written (locked, read-only, I/O error).</summary>
     Unavailable,
+
+    /// <summary>The file is the workspace already open, chosen where another file is wanted.</summary>
+    AlreadyOpen,
 }
 
 /// <summary>

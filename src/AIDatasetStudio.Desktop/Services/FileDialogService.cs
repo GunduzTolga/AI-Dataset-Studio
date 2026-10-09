@@ -50,6 +50,22 @@ internal sealed class FileDialogService(Func<TopLevel?> topLevel, Localizer loca
         return files.Count == 1 ? files[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> PickDocumentAsync(IReadOnlyList<string> extensions)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = localizer["Dialog_DocumentTitle"],
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType(localizer["Dialog_DocumentType"]) { Patterns = extensions.Select(e => "*" + e).ToList() },
+                FilePickerFileTypes.All,
+            ],
+        });
+
+        return files.Count == 1 ? files[0].TryGetLocalPath() : null;
+    }
+
     public async Task<string?> PickExportFileAsync(string suggestedName)
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions

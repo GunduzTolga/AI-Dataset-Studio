@@ -39,6 +39,21 @@ public sealed partial class QualityFilterOption(QualityFilter filter) : ViewMode
 }
 
 /// <summary>
+/// An entry of the tag filter: all records, those without tags, or those with one tag.
+/// </summary>
+public sealed partial class TagFilterOption(Tags.TagViewModel? tag, bool untagged = false) : ViewModelBase
+{
+    public Tags.TagViewModel? Tag { get; } = tag;
+
+    public bool IsUntagged { get; } = untagged;
+
+    public bool HasTag => Tag is not null;
+
+    [ObservableProperty]
+    public partial string Label { get; set; } = tag?.Name ?? string.Empty;
+}
+
+/// <summary>
 /// The records of the selected dataset, loaded page by page as the list scrolls (data
 /// virtualization on top of the list control's UI virtualization).
 /// </summary>
@@ -49,15 +64,18 @@ public sealed partial class RecordListViewModel : ViewModelBase
     private readonly IRecordQueryService _queries;
     private readonly StatusBarViewModel _status;
     private readonly Localizer _localizer;
+    private readonly Tags.TagCatalog _tags;
+    private bool _rebuildingTagFilters;
     private RecordCursor? _next;
     private int _generation;
     private CancellationTokenSource? _searchDelay;
 
-    public RecordListViewModel(IRecordQueryService queries, StatusBarViewModel status, Localizer localizer)
+    public RecordListViewModel(IRecordQueryService queries, StatusBarViewModel status, Localizer localizer, Tags.TagCatalog tags)
     {
         _queries = queries;
         _status = status;
         _localizer = localizer;
+        _tags = tags;
         // First: choosing the default filters below reloads the (empty) list, which clears the selection.
         Selection = new SelectionModel<RecordRowViewModel>(Items) { SingleSelect = false };
         Selection.SelectionChanged += (_, _) => OnSelectionChanged();
@@ -67,6 +85,8 @@ public sealed partial class RecordListViewModel : ViewModelBase
         QualityFilters = Enum.GetValues<QualityFilter>().Select(filter => new QualityFilterOption(filter)).ToList();
         RefreshQualityLabels();
         SelectedQualityFilter = QualityFilters[0];
+        RebuildTagFilters();
+        _tags.Changed += (_, _) => OnTagsChanged();
         _localizer.CultureChanged += (_, _) => OnLanguageChanged();
     }
 
@@ -127,6 +147,17 @@ public sealed partial class RecordListViewModel : ViewModelBase
     [ObservableProperty]
     public partial QualityFilterOption? SelectedQualityFilter { get; set; }
 
+    /// <summary>
+    /// All records, records without tags, then one entry per tag.
+    /// </summary>
+    public ObservableCollection<TagFilterOption> TagFilters { get; } = [];
+
+    /// <summary>
+    /// Narrows the list by tag; <c>null</c> is treated as "all records".
+    /// </summary>
+    [ObservableProperty]
+    public partial TagFilterOption? SelectedTagFilter { get; set; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDataset), nameof(IsEmptyDataset), nameof(IsNoMatches))]
     public partial DatasetNodeViewModel? Dataset { get; private set; }
@@ -170,14 +201,18 @@ public sealed partial class RecordListViewModel : ViewModelBase
     /// </summary>
     public bool IsNoMatches => Dataset is not null && Items.Count == 0 && !IsLoading && IsFiltered;
 
-    private bool IsFiltered => !string.IsNullOrWhiteSpace(SearchText) || SelectedStatusFilter?.Status is not null || Quality != QualityFilter.None;
+    private bool IsFiltered =>
+        !string.IsNullOrWhiteSpace(SearchText) || SelectedStatusFilter?.Status is not null || Quality != QualityFilter.None
+        || SelectedTagFilter is { HasTag: true } or { IsUntagged: true };
 
     private QualityFilter Quality => SelectedQualityFilter?.Filter ?? QualityFilter.None;
 
     private RecordFilter Filter => new(
         SelectedStatusFilter?.Status is { } status ? new HashSet<RecordStatus> { status } : null,
         SearchText,
-        Quality);
+        Quality,
+        SelectedTagFilter?.Tag?.Id,
+        SelectedTagFilter?.IsUntagged == true);
 
     public async Task ShowDatasetAsync(DatasetNodeViewModel? dataset)
     {
@@ -289,6 +324,30 @@ public sealed partial class RecordListViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Shows records with a tag (from the tag manager or a tag in the editor).
+    /// </summary>
+    public void ShowTag(Guid tagId)
+    {
+        if (TagFilters.FirstOrDefault(option => option.Tag?.Id == tagId) is { } option)
+        {
+            SelectedTagFilter = option;
+        }
+    }
+
+    /// <summary>
+    /// Reflects a tag added or removed elsewhere. The rows stay until the next reload, even if they
+    /// no longer match the tag filter, so the selection does not jump.
+    /// </summary>
+    public void UpdateTag(IReadOnlyCollection<Guid> recordIds, Guid tagId, bool added)
+    {
+        foreach (var row in Items.Where(row => recordIds.Contains(row.Id)))
+        {
+            var ids = added ? row.TagIds.Append(tagId).Distinct() : row.TagIds.Where(id => id != tagId);
+            row.SetTags([.. ids], _tags);
+        }
+    }
+
+    /// <summary>
     /// Reflects edited content made elsewhere.
     /// </summary>
     public void UpdateRow(Guid recordId, string preview, RecordStatus status)
@@ -324,7 +383,7 @@ public sealed partial class RecordListViewModel : ViewModelBase
         IsLoading = true;
         try
         {
-            var counts = await _queries.CountByStatusAsync(dataset.Id, SearchText, Quality);
+            var counts = await _queries.CountByStatusAsync(dataset.Id, Filter);
             var page = await _queries.GetPageAsync(dataset.Id, Filter, after: null, PageSize);
             if (generation != _generation)
             {
@@ -338,7 +397,7 @@ public sealed partial class RecordListViewModel : ViewModelBase
 
             UpdateTotal();
             Append(page);
-            if (string.IsNullOrWhiteSpace(SearchText) && Quality == QualityFilter.None)
+            if (string.IsNullOrWhiteSpace(SearchText) && Quality == QualityFilter.None && SelectedTagFilter is not ({ HasTag: true } or { IsUntagged: true }))
             {
                 dataset.RecordCount = counts.Values.Sum();
             }
@@ -446,6 +505,58 @@ public sealed partial class RecordListViewModel : ViewModelBase
 
     partial void OnSelectedQualityFilterChanged(QualityFilterOption? value) => _ = ReloadAsync();
 
+    partial void OnSelectedTagFilterChanged(TagFilterOption? value)
+    {
+        if (!_rebuildingTagFilters)
+        {
+            _ = ReloadAsync();
+        }
+    }
+
+    // Tags were created, renamed, recolored or deleted: new filter entries and row labels.
+    private void OnTagsChanged()
+    {
+        var selected = SelectedTagFilter;
+        RebuildTagFilters();
+        foreach (var row in Items)
+        {
+            row.SetTags(row.TagIds, _tags);
+        }
+
+        // A deleted tag can no longer filter the list.
+        if (selected is { HasTag: true } && SelectedTagFilter?.Tag?.Id != selected.Tag!.Id)
+        {
+            _ = ReloadAsync();
+        }
+    }
+
+    private void RebuildTagFilters()
+    {
+        var selected = SelectedTagFilter;
+        _rebuildingTagFilters = true;
+        try
+        {
+            TagFilters.Clear();
+            TagFilters.Add(new TagFilterOption(null) { Label = _localizer["TagFilter_All"] });
+            TagFilters.Add(new TagFilterOption(null, untagged: true) { Label = _localizer["TagFilter_Untagged"] });
+            foreach (var tag in _tags.Tags)
+            {
+                TagFilters.Add(new TagFilterOption(tag));
+            }
+
+            SelectedTagFilter = selected switch
+            {
+                { IsUntagged: true } => TagFilters[1],
+                { Tag: { } tag } => TagFilters.FirstOrDefault(option => option.Tag?.Id == tag.Id) ?? TagFilters[0],
+                _ => TagFilters[0],
+            };
+        }
+        finally
+        {
+            _rebuildingTagFilters = false;
+        }
+    }
+
     private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
     {
         try
@@ -464,7 +575,9 @@ public sealed partial class RecordListViewModel : ViewModelBase
     {
         foreach (var summary in page.Items)
         {
-            Items.Add(new RecordRowViewModel(summary, _localizer));
+            var row = new RecordRowViewModel(summary, _localizer);
+            row.SetTags(summary.Tags, _tags);
+            Items.Add(row);
         }
 
         _next = page.Next;
@@ -498,6 +611,8 @@ public sealed partial class RecordListViewModel : ViewModelBase
     {
         RefreshFilterLabels();
         RefreshQualityLabels();
+        TagFilters[0].Label = _localizer["TagFilter_All"];
+        TagFilters[1].Label = _localizer["TagFilter_Untagged"];
         foreach (var row in Items)
         {
             row.RefreshLabels();

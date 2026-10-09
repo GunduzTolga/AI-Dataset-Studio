@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <!-- Source-generated P/Invoke into the operating systems' key stores (Settings/Secrets). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AIDatasetStudio.Application\AIDatasetStudio.Application.csproj" />
   </ItemGroup>
@@ -13,6 +18,7 @@
     <PackageReference Include="Microsoft.ML.Tokenizers.Data.O200kBase" />
     <!-- Overrides the vulnerable version the tokenizer package depends on (see Directory.Packages.props). -->
     <PackageReference Include="Microsoft.Bcl.Memory" />
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 
   <ItemGroup>

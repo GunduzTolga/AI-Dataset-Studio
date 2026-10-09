@@ -63,6 +63,9 @@
   <data name="Error_WorkspaceUnavailable" xml:space="preserve">
     <value>'{0}' kullanılamadı: {1}</value>
   </data>
+  <data name="Error_WorkspaceAlreadyOpen" xml:space="preserve">
+    <value>'{0}' zaten açık olan çalışma alanı.</value>
+  </data>
   <data name="Error_FileAccess" xml:space="preserve">
     <value>Dosyaya erişilemedi: {0}</value>
   </data>
@@ -168,6 +171,12 @@
   <data name="Field_Assistant" xml:space="preserve">
     <value>Asistan</value>
   </data>
+  <data name="TranscriptField_User" xml:space="preserve">
+    <value>Müşteri (kullanıcı turları)</value>
+  </data>
+  <data name="TranscriptField_Assistant" xml:space="preserve">
+    <value>Temsilci (asistan turları)</value>
+  </data>
   <data name="Field_System" xml:space="preserve">
     <value>Sistem</value>
   </data>
@@ -189,6 +198,33 @@
   <data name="Meta_GeneratedBy" xml:space="preserve">
     <value>Üreten model</value>
   </data>
+  <data name="Meta_VariationOf" xml:space="preserve">
+    <value>#{0} kaydının varyantı</value>
+  </data>
+  <data name="Meta_Section" xml:space="preserve">
+    <value>Bölüm</value>
+  </data>
+  <data name="Location_Page" xml:space="preserve">
+    <value>sayfa {0}</value>
+  </data>
+  <data name="Location_Pages" xml:space="preserve">
+    <value>sayfa {0}–{1}</value>
+  </data>
+  <data name="Location_Paragraph" xml:space="preserve">
+    <value>paragraf {0}</value>
+  </data>
+  <data name="Location_Paragraphs" xml:space="preserve">
+    <value>paragraf {0}–{1}</value>
+  </data>
+  <data name="Location_Line" xml:space="preserve">
+    <value>satır {0}</value>
+  </data>
+  <data name="Location_Lines" xml:space="preserve">
+    <value>satır {0}–{1}</value>
+  </data>
+  <data name="Editor_SourcePassage" xml:space="preserve">
+    <value>Kaynak metin</value>
+  </data>
   <data name="Meta_Created" xml:space="preserve">
     <value>Oluşturulma</value>
   </data>
@@ -208,7 +244,7 @@
     <value>Sentetik</value>
   </data>
   <data name="Source_DocumentChunk" xml:space="preserve">
-    <value>Belge parçası</value>
+    <value>Belgeden çıkarıldı</value>
   </data>
   <data name="Dialog_OK" xml:space="preserve">
     <value>Tamam</value>
@@ -375,6 +411,9 @@
   <data name="Menu_Import" xml:space="preserve">
     <value>Dosyadan _İçe Aktar…</value>
   </data>
+  <data name="Menu_ExtractQuestions" xml:space="preserve">
+    <value>Belgeden Soru-Cevap Çıkar…</value>
+  </data>
   <data name="Action_Import" xml:space="preserve">
     <value>İçe aktar</value>
   </data>
@@ -385,7 +424,13 @@
     <value>İçe aktarılacak dosyayı seçin</value>
   </data>
   <data name="Dialog_ImportFileType" xml:space="preserve">
-    <value>Veri setleri (JSONL, JSON, CSV)</value>
+    <value>Veri setleri ve belgeler (JSONL, JSON, CSV, Excel, Markdown, metin, WhatsApp sohbetleri, PDF, Word, HTML, sayfa arşivi)</value>
+  </data>
+  <data name="Dialog_DocumentTitle" xml:space="preserve">
+    <value>Soru-cevap çıkarılacak belge</value>
+  </data>
+  <data name="Dialog_DocumentType" xml:space="preserve">
+    <value>Belgeler (PDF, Word, Markdown, metin, HTML, Notion ya da Confluence ZIP'i)</value>
   </data>
   <data name="Import_Title" xml:space="preserve">
     <value>Dosyadan içe aktar</value>
@@ -399,6 +444,9 @@
   <data name="Import_RowCount" xml:space="preserve">
     <value>{0:N0} satır</value>
   </data>
+  <data name="Import_ConversationCount" xml:space="preserve">
+    <value>{0:N0} konuşma</value>
+  </data>
   <data name="Import_SectionSource" xml:space="preserve">
     <value>KAYNAK</value>
   </data>
@@ -407,6 +455,9 @@
   </data>
   <data name="Import_SectionMapping" xml:space="preserve">
     <value>SÜTUN EŞLEME</value>
+  </data>
+  <data name="Import_SectionSpeakers" xml:space="preserve">
+    <value>KONUŞMACILAR</value>
   </data>
   <data name="Import_SectionPreview" xml:space="preserve">
     <value>ÖNİZLEME</value>
@@ -419,6 +470,42 @@
   </data>
   <data name="Import_HasHeader" xml:space="preserve">
     <value>İlk satır sütun adlarını içeriyor</value>
+  </data>
+  <data name="Import_ReadAs" xml:space="preserve">
+    <value>Okuma biçimi</value>
+  </data>
+  <data name="Import_SectionWorkbook" xml:space="preserve">
+    <value>ÇALIŞMA KİTABI</value>
+  </data>
+  <data name="Import_Sheet" xml:space="preserve">
+    <value>Sayfa</value>
+  </data>
+  <data name="Import_AllSheets" xml:space="preserve">
+    <value>Tüm sayfalar ({0:N0})</value>
+  </data>
+  <data name="Import_AllSheetsHint" xml:space="preserve">
+    <value>Her sayfa kendi ilk satırı sütun adı olarak okunur; aynı adlı sütunlar birlikte eşlenir.</value>
+  </data>
+  <data name="Import_SectionsHint" xml:space="preserve">
+    <value>Altında metin olan her başlık bir kayıt olur: başlık soruyu, altındaki metin yanıtı verir. İlk başlıktan önceki metin alınmaz.</value>
+  </data>
+  <data name="Import_ArchiveSectionsHint" xml:space="preserve">
+    <value>Her sayfa sırayla, başlığının altında okunur; altında metin olan her başlık bir kayıt olur: başlık soruyu, altındaki metin yanıtı verir. Sayfalar yollarının sırasıyla numaralanır.</value>
+  </data>
+  <data name="Import_TranscriptHint" xml:space="preserve">
+    <value>Her konuşma bir kayıt olur. WhatsApp sohbetinde 6 saatlik bir aradan sonra yeni konuşma başlar; dökümde --- gibi satırlarda ya da başlıklarda, bunlar yoksa boş satırlarda. Müşterinin mesajları kullanıcı, temsilcinin mesajları asistan turu olur (temsilci seçilmezse herkesinki); bir tarafın art arda mesajları tek tur sayılır. Konuşma müşteriyle başlar ve bir yanıtla biter; medya ve silinen mesajlar alınmaz.</value>
+  </data>
+  <data name="Import_ParagraphsHint" xml:space="preserve">
+    <value>Her paragraf (boş satırlar arasındaki satırlar) bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
+  </data>
+  <data name="Import_DocumentParagraphsHint" xml:space="preserve">
+    <value>Belgede başlık yok; her paragraf bir kayıt olur: ilk satırı soruyu, sonraki satırları yanıtı verir.</value>
+  </data>
+  <data name="Import_ExtractQuestionsHint" xml:space="preserve">
+    <value>Bu belgeden yapay zekâyla soru-cevap da çıkarabilirsiniz: model her bölümün yanıtladığı soruları yazar.</value>
+  </data>
+  <data name="Import_ExtractQuestions" xml:space="preserve">
+    <value>Soru-cevap çıkar…</value>
   </data>
   <data name="Import_NotMapped" xml:space="preserve">
     <value>— Eşlenmedi —</value>
@@ -438,14 +525,23 @@
   <data name="Import_PreviewSummary" xml:space="preserve">
     <value>İlk {0:N0} satır: {1:N0} hazır, {2:N0} atlanacak</value>
   </data>
+  <data name="Import_PreviewSummaryConversations" xml:space="preserve">
+    <value>İlk {0:N0} konuşma: {1:N0} hazır, {2:N0} atlanacak</value>
+  </data>
   <data name="Import_EmptyFile" xml:space="preserve">
     <value>Bu dosyada satır bulunamadı.</value>
   </data>
   <data name="Import_Start" xml:space="preserve">
     <value>{0:N0} satırı içe aktar</value>
   </data>
+  <data name="Import_StartConversations" xml:space="preserve">
+    <value>{0:N0} konuşmayı içe aktar</value>
+  </data>
   <data name="Import_Progress" xml:space="preserve">
     <value>{1:N0} satırın {0:N0} tanesi okundu · {2:N0} kayıt eklendi</value>
+  </data>
+  <data name="Import_ProgressConversations" xml:space="preserve">
+    <value>{1:N0} konuşmanın {0:N0} tanesi okundu · {2:N0} kayıt eklendi</value>
   </data>
   <data name="Import_Importing" xml:space="preserve">
     <value>İçe aktarılıyor…</value>
@@ -465,8 +561,14 @@
   <data name="Import_DoneSkipped" xml:space="preserve">
     <value>Atlanan satırlar ({0:N0})</value>
   </data>
+  <data name="Import_DoneSkippedConversations" xml:space="preserve">
+    <value>Atlanan konuşmalar ({0:N0})</value>
+  </data>
   <data name="Import_MoreSkipped" xml:space="preserve">
     <value>…ve {0:N0} satır daha</value>
+  </data>
+  <data name="Import_MoreSkippedConversations" xml:space="preserve">
+    <value>…ve {0:N0} konuşma daha</value>
   </data>
   <data name="Import_NothingSkipped" xml:space="preserve">
     <value>Tüm satırlar içe aktarıldı.</value>
@@ -485,6 +587,30 @@
   </data>
   <data name="ImportFormat_Csv" xml:space="preserve">
     <value>CSV</value>
+  </data>
+  <data name="ImportFormat_Excel" xml:space="preserve">
+    <value>Excel çalışma kitabı</value>
+  </data>
+  <data name="ImportFormat_Markdown" xml:space="preserve">
+    <value>Markdown</value>
+  </data>
+  <data name="ImportFormat_PlainText" xml:space="preserve">
+    <value>Düz metin</value>
+  </data>
+  <data name="ImportFormat_Pdf" xml:space="preserve">
+    <value>PDF belgesi</value>
+  </data>
+  <data name="ImportFormat_Word" xml:space="preserve">
+    <value>Word belgesi</value>
+  </data>
+  <data name="ImportFormat_Html" xml:space="preserve">
+    <value>HTML sayfası</value>
+  </data>
+  <data name="ImportFormat_Archive" xml:space="preserve">
+    <value>Sayfa arşivi (Notion, Confluence)</value>
+  </data>
+  <data name="ImportFormat_Transcript" xml:space="preserve">
+    <value>Konuşma kaydı (WhatsApp, döküm)</value>
   </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Özel sütunlar</value>
@@ -506,6 +632,36 @@
   </data>
   <data name="Layout_OpenAiPreference" xml:space="preserve">
     <value>OpenAI tercih</value>
+  </data>
+  <data name="Layout_Sections" xml:space="preserve">
+    <value>Başlığa göre bölümler</value>
+  </data>
+  <data name="Layout_Paragraphs" xml:space="preserve">
+    <value>Paragraflar</value>
+  </data>
+  <data name="Layout_Transcript" xml:space="preserve">
+    <value>Konuşmacıya göre konuşmalar</value>
+  </data>
+  <data name="ImportColumn_heading" xml:space="preserve">
+    <value>Başlık</value>
+  </data>
+  <data name="ImportColumn_heading_path" xml:space="preserve">
+    <value>Üst başlıklarıyla başlık</value>
+  </data>
+  <data name="ImportColumn_parent_headings" xml:space="preserve">
+    <value>Üst başlıklar</value>
+  </data>
+  <data name="ImportColumn_content" xml:space="preserve">
+    <value>Başlığın altındaki metin</value>
+  </data>
+  <data name="ImportColumn_first_line" xml:space="preserve">
+    <value>İlk satır</value>
+  </data>
+  <data name="ImportColumn_rest" xml:space="preserve">
+    <value>İlk satırdan sonrakiler</value>
+  </data>
+  <data name="ImportColumn_paragraph" xml:space="preserve">
+    <value>Paragrafın tamamı</value>
   </data>
   <data name="Delimiter_Comma" xml:space="preserve">
     <value>Virgül ( , )</value>
@@ -570,8 +726,98 @@
   <data name="Error_ImportInvalidJson" xml:space="preserve">
     <value>“{0}” geçerli bir JSON dizisi değil ({1}. satır).</value>
   </data>
+  <data name="Error_ImportLegacyWorkbook" xml:space="preserve">
+    <value>“{0}” bir Excel 97–2003 ya da parolalı çalışma kitabı. Excel'de parolasız .xlsx olarak kaydedip yeniden deneyin.</value>
+  </data>
+  <data name="Error_ImportInvalidWorkbook" xml:space="preserve">
+    <value>“{0}” okunabilir bir Excel çalışma kitabı değil; dosya bozuk olabilir.</value>
+  </data>
+  <data name="Error_ImportSheetNotFound" xml:space="preserve">
+    <value>“{0}” çalışma kitabında bu sayfa artık yok. Başka bir sayfa seçin.</value>
+  </data>
+  <data name="Error_ImportLegacyDocument" xml:space="preserve">
+    <value>“{0}” bir Word 97–2003 ya da parolalı belge. Word'de açıp parolasız .docx olarak kaydedin.</value>
+  </data>
+  <data name="Error_ImportInvalidDocument" xml:space="preserve">
+    <value>“{0}” belge olarak okunamıyor; bozuk olabilir.</value>
+  </data>
+  <data name="Error_ImportProtectedPdf" xml:space="preserve">
+    <value>“{0}” parolayla korunuyor. Parolasız bir kopyasını kaydedip onu seçin.</value>
+  </data>
+  <data name="Error_ImportNoText" xml:space="preserve">
+    <value>“{0}” içinde okunacak metin yok; sayfaları taranmış görüntü olabilir. Önce metni tanıtın (OCR), örneğin aranabilir PDF olarak kaydedin.</value>
+  </data>
+  <data name="Error_ImportEmptyArchive" xml:space="preserve">
+    <value>“{0}” içinde metni olan bir HTML, Markdown ya da metin sayfası yok. Notion sayfalarını Markdown ya da HTML, Confluence alanını HTML olarak dışa aktarın.</value>
+  </data>
+  <data name="AIError_InvalidUrl" xml:space="preserve">
+    <value>“{0}” geçerli bir adres değil. http://localhost:11434/v1 gibi olmalı.</value>
+  </data>
+  <data name="AIError_RemoteNotAllowed" xml:space="preserve">
+    <value>Bu sunucu bilgisayarınızın dışında. Önce Yapay Zekâ Bağlantıları'nda kayıt gönderilmesine izin verin.</value>
+  </data>
+  <data name="AIError_Unreachable" xml:space="preserve">
+    <value>{0} adresinde yanıt veren yok. {1} çalışıyor mu?</value>
+  </data>
+  <data name="AIError_Timeout" xml:space="preserve">
+    <value>{0} yanıt vermeyi bıraktı.</value>
+  </data>
+  <data name="AIError_Unauthorized" xml:space="preserve">
+    <value>Sunucu API anahtarını kabul etmedi.</value>
+  </data>
+  <data name="AIError_ModelNotFound" xml:space="preserve">
+    <value>Sunucuda “{0}” modeli yok. Yapay Zekâ Bağlantıları'ndan başka bir model seçin ya da sunucuya indirin (ör. ollama pull {0}).</value>
+  </data>
+  <data name="AIError_NoEmbeddingModel" xml:space="preserve">
+    <value>{0} için bir embedding modeli seçilmedi. Yapay Zekâ Bağlantıları'ndan bir model seçin (ör. nomic-embed-text ya da bge-m3).</value>
+  </data>
+  <data name="AIError_EmbeddingModelNotFound" xml:space="preserve">
+    <value>Sunucuda “{0}” embedding modeli yok. Yapay Zekâ Bağlantıları'ndan başka bir model seçin ya da sunucuya indirin (ör. ollama pull {0}).</value>
+  </data>
+  <data name="AIError_NotAnApi" xml:space="preserve">
+    <value>{0} adresinde OpenAI uyumlu bir API yok. Çoğu sunucu bunu /v1 altında sunar.</value>
+  </data>
+  <data name="AIError_Rejected" xml:space="preserve">
+    <value>Sunucu isteği reddetti: {0}</value>
+  </data>
+  <data name="AIError_NoApiKey" xml:space="preserve">
+    <value>{0} bir API anahtarı istiyor. Anahtarı Yapay Zekâ Bağlantıları'nda girin ya da {1} ortam değişkenini ayarlayın.</value>
+  </data>
+  <data name="AIError_ApiKeyUnreadable" xml:space="preserve">
+    <value>API anahtarı anahtar deposundan okunamadı; depo kilitli olabilir. Kilidini açın ya da anahtarı Yapay Zekâ Bağlantıları'nda yeniden girin.</value>
+  </data>
+  <data name="AIError_ServerError" xml:space="preserve">
+    <value>Sunucu yanıt verirken hata verdi.</value>
+  </data>
+  <data name="AIError_ServerErrorDetail" xml:space="preserve">
+    <value>Sunucu yanıt verirken hata verdi: {0}</value>
+  </data>
   <data name="Status_Imported" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı</value>
+  </data>
+  <data name="Status_QAAdded" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} soru-cevap taslak olarak eklendi; gözden geçirin</value>
+  </data>
+  <data name="Status_VariationsAdded" xml:space="preserve">
+    <value>“{1}” veri setine {0:N0} varyant taslak olarak eklendi; gözden geçirin</value>
+  </data>
+  <data name="Status_Judged" xml:space="preserve">
+    <value>#{0} kaydı {1} ile değerlendirildi: {2}</value>
+  </data>
+  <data name="Status_JudgingStopped" xml:space="preserve">
+    <value>Değerlendirme durduruldu; yapılanlar kaydedildi</value>
+  </data>
+  <data name="Status_JudgedMany" xml:space="preserve">
+    <value>“{1}” veri setinde {0:N0} kayıt değerlendirildi</value>
+  </data>
+  <data name="Status_SemanticDone" xml:space="preserve">
+    <value>{0:N0} soru {1} ile vektöre çevrildi</value>
+  </data>
+  <data name="Status_SemanticStopped" xml:space="preserve">
+    <value>Durduruldu; oluşturulan {0:N0} vektör saklandı</value>
+  </data>
+  <data name="Status_SemanticOff" xml:space="preserve">
+    <value>“{0}” soruları artık yalnızca ifadesiyle karşılaştırıyor</value>
   </data>
   <data name="Status_ImportedWithSkipped" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} kayıt aktarıldı; {2:N0} satır atlandı</value>
@@ -636,6 +882,9 @@
   <data name="History_Delete" xml:space="preserve">
     <value>{0} silme</value>
   </data>
+  <data name="History_Add" xml:space="preserve">
+    <value>{0} ekleme ({1})</value>
+  </data>
   <data name="History_One" xml:space="preserve">
     <value>#{0}</value>
   </data>
@@ -649,7 +898,7 @@
     <value>Yinelendi: {0}</value>
   </data>
   <data name="Status_UndoNothing" xml:space="preserve">
-    <value>O adımın kayıtları artık yok; adım geçmişten kaldırıldı.</value>
+    <value>O adımın kayıtları ya da etiketi artık yok; adım geçmişten kaldırıldı.</value>
   </data>
   <data name="Status_RecordSaved" xml:space="preserve">
     <value>#{0} numaralı kayıt kaydedildi ve incelemeye alındı.</value>
@@ -668,6 +917,42 @@
   </data>
   <data name="Editor_Placeholder" xml:space="preserve">
     <value>Boş</value>
+  </data>
+  <data name="Editor_Writing" xml:space="preserve">
+    <value>{0} ile yazılıyor…</value>
+  </data>
+  <data name="Editor_Write" xml:space="preserve">
+    <value>Yapay zekâyla yaz</value>
+  </data>
+  <data name="Editor_WriteReply" xml:space="preserve">
+    <value>Yanıtı yaz</value>
+  </data>
+  <data name="Editor_StopWriting" xml:space="preserve">
+    <value>Durdur</value>
+  </data>
+  <data name="Editor_NoAIConnection" xml:space="preserve">
+    <value>Bir modelle yazmak için yapay zekâ bağlantısı kurun: bu bilgisayardaki Ollama ya da LM Studio yeterli.</value>
+  </data>
+  <data name="Editor_WriteNeedsQuestion" xml:space="preserve">
+    <value>Önce soruyu yazın; model onu yanıtlar.</value>
+  </data>
+  <data name="Editor_WriteNeedsUserTurn" xml:space="preserve">
+    <value>Önce bir kullanıcı mesajı ekleyin; model ona yanıt verir.</value>
+  </data>
+  <data name="Editor_AIConnections" xml:space="preserve">
+    <value>Yapay zekâ bağlantıları…</value>
+  </data>
+  <data name="Editor_Cut" xml:space="preserve">
+    <value>Kes</value>
+  </data>
+  <data name="Editor_Copy" xml:space="preserve">
+    <value>Kopyala</value>
+  </data>
+  <data name="Editor_Paste" xml:space="preserve">
+    <value>Yapıştır</value>
+  </data>
+  <data name="Editor_SelectAll" xml:space="preserve">
+    <value>Tümünü seç</value>
   </data>
   <data name="Editor_SwitchRole" xml:space="preserve">
     <value>Kullanıcı / asistan arasında değiştir</value>
@@ -688,7 +973,7 @@
     <value>{0:N0} kayıt seçili</value>
   </data>
   <data name="Batch_Hint" xml:space="preserve">
-    <value>Aksiyonlar, durumu uygun olan tüm seçili kayıtlara uygulanır; diğerleri atlanır. Düzen › Geri Al toplu işlemi tek adımda geri alır.</value>
+    <value>Aksiyonlar, durumu uygun olan tüm seçili kayıtlara uygulanır; diğerleri atlanır. Etiketler (Mod+1…5 dahil) hepsine eklenir ya da hepsinden kaldırılır. Düzen › Geri Al toplu işlemi tek adımda geri alır.</value>
   </data>
   <data name="Dialog_DeleteRecordsTitle" xml:space="preserve">
     <value>Kayıtları Sil</value>
@@ -870,6 +1155,27 @@
   <data name="Overview_Analyzing" xml:space="preserve">
     <value>Analiz ediliyor {0:N0} / {1:N0}…</value>
   </data>
+  <data name="Overview_SectionAI" xml:space="preserve">
+    <value>YAPAY ZEKÂ</value>
+  </data>
+  <data name="Overview_NoAIConnection" xml:space="preserve">
+    <value>Yapay zekâ bağlantısı yok</value>
+  </data>
+  <data name="Overview_AIConnections" xml:space="preserve">
+    <value>Bağlantılar…</value>
+  </data>
+  <data name="Overview_AIGuidance" xml:space="preserve">
+    <value>Bu veri setine özel talimatlar</value>
+  </data>
+  <data name="Overview_AIGuidanceWatermark" xml:space="preserve">
+    <value>ör. İki üç cümleyle, kibar ve resmî bir Türkçeyle yanıtla.</value>
+  </data>
+  <data name="Overview_AIGuidanceHint" xml:space="preserve">
+    <value>Yapay zekâ bu veri setine yazarken her istekle gönderilir.</value>
+  </data>
+  <data name="Overview_ExtractQuestionsHint" xml:space="preserve">
+    <value>Bir PDF, Word, Markdown ya da metin belgesinden modele bu veri seti için soru-cevap yazdırın.</value>
+  </data>
   <data name="Overview_Tokens" xml:space="preserve">
     <value>TOKENLAR</value>
   </data>
@@ -907,7 +1213,7 @@
     <value>Göster</value>
   </data>
   <data name="Overview_ArchiveHint" xml:space="preserve">
-    <value>Bu kayıtları arşivle (kopyalarda ilki hariç). Düzen › Geri Al ile geri alınabilir.</value>
+    <value>Bu kayıtları arşivle (kopyalarda ve benzer sorularda her grubun ilki hariç). Düzen › Geri Al ile geri alınabilir.</value>
   </data>
   <data name="Dialog_ArchiveIssuesTitle" xml:space="preserve">
     <value>Kayıtları Arşivle</value>
@@ -932,6 +1238,15 @@
   </data>
   <data name="Status_TokenSettingsChanged" xml:space="preserve">
     <value>{0} token ayarları: {1}, {2}.</value>
+  </data>
+  <data name="Status_AIGuidanceSaved" xml:space="preserve">
+    <value>“{0}” için yapay zekâ talimatları kaydedildi</value>
+  </data>
+  <data name="Status_Written" xml:space="preserve">
+    <value>Yanıtı {0} yazdı; onaylamadan önce gözden geçirin</value>
+  </data>
+  <data name="Status_WritingStopped" xml:space="preserve">
+    <value>Yazma durduruldu; o ana kadar yazılan metin duruyor</value>
   </data>
   <data name="Details_QualityScore" xml:space="preserve">
     <value>Kalite skoru</value>
@@ -972,6 +1287,12 @@
   <data name="Export_SkipDuplicatesOption" xml:space="preserve">
     <value>Birebir kopyaları dışarıda bırak (ilki kalır)</value>
   </data>
+  <data name="Export_SkipLowJudgeScoreOption" xml:space="preserve">
+    <value>Modelin düşük puan verdiği kayıtları dışarıda bırak (1–2)</value>
+  </data>
+  <data name="Export_SkipLowJudgeScoreHint" xml:space="preserve">
+    <value>Şimdiki içeriği Modelle Değerlendir'de 1 ya da 2 puan almış kayıtlar. Değerlendirilmemiş ya da o zamandan beri değişmiş kayıtlar yazılır.</value>
+  </data>
   <data name="Export_MaskOption" xml:space="preserve">
     <value>Kişisel verileri maskele (e-posta, telefon, kimlik, anahtar…)</value>
   </data>
@@ -991,7 +1312,34 @@
     <value>Tohum (seed)</value>
   </data>
   <data name="Export_SplitHint" xml:space="preserve">
-    <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
+    <value>Her kaydın dosyası tohumdan ve sorusundan hesaplanır: aynı tohum aynı dosyaları verir, yeni kayıtlar mevcutları yerinden oynatmaz ve aynı ya da neredeyse aynı soruyu soran kayıtlar hep aynı dosyada kalır.</value>
+  </data>
+  <data name="Export_SectionTraining" xml:space="preserve">
+    <value>EĞİTİM YAPILANDIRMASI</value>
+  </data>
+  <data name="Export_TrainingNone" xml:space="preserve">
+    <value>Yok</value>
+  </data>
+  <data name="Export_TrainingAxolotl" xml:space="preserve">
+    <value>Axolotl</value>
+  </data>
+  <data name="Export_TrainingLlamaFactory" xml:space="preserve">
+    <value>LLaMA-Factory</value>
+  </data>
+  <data name="Export_BaseModel" xml:space="preserve">
+    <value>Temel model (Hugging Face kimliği)</value>
+  </data>
+  <data name="Export_TrainingAxolotlHint" xml:space="preserve">
+    <value>Bu modeli LoRA ile eğitmek için dosyaların yanına axolotl.yaml yazılır. O klasörde çalıştırın: axolotl train axolotl.yaml</value>
+  </data>
+  <data name="Export_TrainingLlamaFactoryHint" xml:space="preserve">
+    <value>Bu modeli LoRA ile eğitmek için dosyaların yanına dataset_info.json ve llamafactory.yaml yazılır. O klasörde çalıştırın: llamafactory-cli train llamafactory.yaml</value>
+  </data>
+  <data name="Export_TrainingUnsupported" xml:space="preserve">
+    <value>{0} bu biçimdeki ({1}) dosyaları okuyamaz; başka bir biçim seçin.</value>
+  </data>
+  <data name="Export_TrainingFile" xml:space="preserve">
+    <value>eğitim yapılandırması</value>
   </data>
   <data name="SplitPart_Train" xml:space="preserve">
     <value>eğitim</value>
@@ -1058,6 +1406,9 @@
   </data>
   <data name="Export_SkipOverLimit" xml:space="preserve">
     <value>Dışarıda: bağlam uzunluğunu aşıyor</value>
+  </data>
+  <data name="Export_SkipLowJudgeScore" xml:space="preserve">
+    <value>Dışarıda: model düşük puan verdi</value>
   </data>
   <data name="Export_SkipDuplicates" xml:space="preserve">
     <value>Dışarıda: önceki bir kaydın kopyası</value>
@@ -1196,5 +1547,1184 @@
   </data>
   <data name="Error_UnexpectedNoLog" xml:space="preserve">
     <value>Beklenmeyen bir hata oluştu.</value>
+  </data>
+  <data name="Menu_CreateVersion" xml:space="preserve">
+    <value>Sürüm _Oluştur…</value>
+  </data>
+  <data name="Menu_Versions" xml:space="preserve">
+    <value>Sü_rümler…</value>
+  </data>
+  <data name="Action_Versions" xml:space="preserve">
+    <value>Sürümler</value>
+  </data>
+  <data name="Action_VersionsTip" xml:space="preserve">
+    <value>Veri setinin sürümlerini dondur, karşılaştır ve geri dön</value>
+  </data>
+  <data name="History_Rollback" xml:space="preserve">
+    <value>v{0} sürümüne dönüş</value>
+  </data>
+  <data name="Status_VersionAnalyzing" xml:space="preserve">
+    <value>Sürüm dondurulmadan önce kayıtlar analiz ediliyor… {0:N0}</value>
+  </data>
+  <data name="Status_VersionCreated" xml:space="preserve">
+    <value>v{0} sürümü {1:N0} kayıtla oluşturuldu</value>
+  </data>
+  <data name="NewVersion_Title" xml:space="preserve">
+    <value>Yeni Sürüm</value>
+  </data>
+  <data name="NewVersion_Number" xml:space="preserve">
+    <value>Sürüm numarası</value>
+  </data>
+  <data name="NewVersion_Description" xml:space="preserve">
+    <value>Not (isteğe bağlı)</value>
+  </data>
+  <data name="NewVersion_DescriptionWatermark" xml:space="preserve">
+    <value>Ne değişti ya da sürüm ne için</value>
+  </data>
+  <data name="NewVersion_Create" xml:space="preserve">
+    <value>Sürüm Oluştur</value>
+  </data>
+  <data name="NewVersion_Summary" xml:space="preserve">
+    <value>{0:N0} kayıt şu anki hâliyle dondurulur. Sonraki düzenlemeler sürümü değiştirmez; onunla karşılaştırabilir, onu dışa aktarabilir ya da istediğiniz zaman ona geri dönebilirsiniz.</value>
+  </data>
+  <data name="NewVersion_Patch" xml:space="preserve">
+    <value>Yama · v{0}</value>
+  </data>
+  <data name="NewVersion_Minor" xml:space="preserve">
+    <value>Küçük · v{0}</value>
+  </data>
+  <data name="NewVersion_Major" xml:space="preserve">
+    <value>Büyük · v{0}</value>
+  </data>
+  <data name="NewVersion_InvalidNumber" xml:space="preserve">
+    <value>1.2.0 biçimini kullanın (büyük.küçük.yama).</value>
+  </data>
+  <data name="NewVersion_TakenNumber" xml:space="preserve">
+    <value>v{0} zaten var.</value>
+  </data>
+  <data name="Versions_Title" xml:space="preserve">
+    <value>Sürümler</value>
+  </data>
+  <data name="Versions_WorkingCopy" xml:space="preserve">
+    <value>Çalışma kopyası</value>
+  </data>
+  <data name="Versions_WorkingCopySubtitle" xml:space="preserve">
+    <value>Kayıtların şu anki hâli</value>
+  </data>
+  <data name="Versions_VersionCounts" xml:space="preserve">
+    <value>{0:N0} kayıt · {1:N0} onaylı</value>
+  </data>
+  <data name="Versions_WorkingCopyDetails" xml:space="preserve">
+    <value>Veri setinin şu anki hâli. Eğitimden önce sürüm olarak dondurun; böylece aynı veri daha sonra yeniden dışa aktarılabilir.</value>
+  </data>
+  <data name="Versions_Details" xml:space="preserve">
+    <value>Oluşturulma {0} · {1:N0} kayıt ({2:N0} onaylı) · {3}, {4:N0} bağlam</value>
+  </data>
+  <data name="Versions_Create" xml:space="preserve">
+    <value>Sürüm Oluştur</value>
+  </data>
+  <data name="Versions_Rollback" xml:space="preserve">
+    <value>Bu Sürüme Dön</value>
+  </data>
+  <data name="Versions_Delete" xml:space="preserve">
+    <value>Sürümü sil</value>
+  </data>
+  <data name="Versions_CompareWith" xml:space="preserve">
+    <value>Karşılaştır</value>
+  </data>
+  <data name="Versions_EmptyTitle" xml:space="preserve">
+    <value>Henüz sürüm yok</value>
+  </data>
+  <data name="Versions_EmptyHint" xml:space="preserve">
+    <value>Sürüm; kayıtları, durumlarını ve token sayılarını dondurur. Eğitimden önce bir sürüm oluşturun; daha sonra birebir aynı veriyi dışa aktarabilirsiniz.</value>
+  </data>
+  <data name="Versions_IdenticalTitle" xml:space="preserve">
+    <value>Fark yok</value>
+  </data>
+  <data name="Versions_IdenticalHint" xml:space="preserve">
+    <value>Her kayıt ikisinde de aynı içeriğe ve duruma sahip.</value>
+  </data>
+  <data name="Versions_SelectRecord" xml:space="preserve">
+    <value>Neyin değiştiğini görmek için bir kayıt seçin</value>
+  </data>
+  <data name="Versions_CountAdded" xml:space="preserve">
+    <value>{0:N0} eklendi</value>
+  </data>
+  <data name="Versions_CountRemoved" xml:space="preserve">
+    <value>{0:N0} silindi</value>
+  </data>
+  <data name="Versions_CountModified" xml:space="preserve">
+    <value>{0:N0} değişti</value>
+  </data>
+  <data name="Versions_CountStatusChanged" xml:space="preserve">
+    <value>{0:N0} durum değişikliği</value>
+  </data>
+  <data name="Versions_CountUnchanged" xml:space="preserve">
+    <value>{0:N0} aynı</value>
+  </data>
+  <data name="Versions_FilterAll" xml:space="preserve">
+    <value>Tümü · {0:N0}</value>
+  </data>
+  <data name="Versions_Filter" xml:space="preserve">
+    <value>{0} · {1:N0}</value>
+  </data>
+  <data name="Versions_FieldAdded" xml:space="preserve">
+    <value>Eklendi</value>
+  </data>
+  <data name="Versions_FieldRemoved" xml:space="preserve">
+    <value>Kaldırıldı</value>
+  </data>
+  <data name="Versions_FieldChanged" xml:space="preserve">
+    <value>Değişti</value>
+  </data>
+  <data name="Versions_Creating" xml:space="preserve">
+    <value>Sürüm oluşturuluyor…</value>
+  </data>
+  <data name="Versions_Analyzing" xml:space="preserve">
+    <value>Önce kayıtlar analiz ediliyor… {0:N0}</value>
+  </data>
+  <data name="Versions_Created" xml:space="preserve">
+    <value>v{0}, {1:N0} kayıtla oluşturuldu.</value>
+  </data>
+  <data name="Versions_Comparing" xml:space="preserve">
+    <value>Karşılaştırılıyor…</value>
+  </data>
+  <data name="Versions_AlreadyAt" xml:space="preserve">
+    <value>Kayıtlar zaten v{0} ile aynı.</value>
+  </data>
+  <data name="Versions_RollingBack" xml:space="preserve">
+    <value>v{0} sürümüne dönülüyor…</value>
+  </data>
+  <data name="Versions_RolledBack" xml:space="preserve">
+    <value>v{0} sürümüne dönüldü: {1:N0} kayıt değişti. Düzen › Geri Al ile geri alabilirsiniz.</value>
+  </data>
+  <data name="Versions_Deleted" xml:space="preserve">
+    <value>v{0} silindi.</value>
+  </data>
+  <data name="Difference_Added" xml:space="preserve">
+    <value>Eklendi</value>
+  </data>
+  <data name="Difference_Removed" xml:space="preserve">
+    <value>Silindi</value>
+  </data>
+  <data name="Difference_Modified" xml:space="preserve">
+    <value>Değişti</value>
+  </data>
+  <data name="Difference_StatusChanged" xml:space="preserve">
+    <value>Durum</value>
+  </data>
+  <data name="Dialog_RollbackTitle" xml:space="preserve">
+    <value>Sürüme Dön</value>
+  </data>
+  <data name="Dialog_RollbackMessage" xml:space="preserve">
+    <value>Kayıtlar v{0} ile aynı hâle getirilsin mi? {1:N0} içerik ve {2:N0} durum ya da etiket kümesi geri döner, {3:N0} silinmiş kayıt geri gelir ve sonradan eklenen {4:N0} kayıt arşivlenir (silinmez). Düzen › Geri Al ile geri alabilirsiniz.</value>
+  </data>
+  <data name="Dialog_RollbackConfirm" xml:space="preserve">
+    <value>Geri Dön</value>
+  </data>
+  <data name="Dialog_DeleteVersionTitle" xml:space="preserve">
+    <value>Sürümü Sil</value>
+  </data>
+  <data name="Dialog_DeleteVersionMessage" xml:space="preserve">
+    <value>v{0} silinsin mi? Başka bir sürümde olmayan içerikler dosyadan silinir. Bu işlem geri alınamaz; kayıtların kendisi değişmez.</value>
+  </data>
+  <data name="Export_SectionSource" xml:space="preserve">
+    <value>KAYNAK</value>
+  </data>
+  <data name="Export_SourceCurrent" xml:space="preserve">
+    <value>Güncel kayıtlar</value>
+  </data>
+  <data name="Export_SourceVersion" xml:space="preserve">
+    <value>v{0} sürümü · {1}</value>
+  </data>
+  <data name="Export_SourceVersionHint" xml:space="preserve">
+    <value>v{0} dondurulduğu hâliyle yazılır: durumları, içerikleri ve token sayıları, sürümün bağlam uzunluğuna göre denetlenir ({1}, {2:N0}).</value>
+  </data>
+  <data name="Export_LastExportVersion" xml:space="preserve">
+    <value>Son dışa aktarım: {0} · v{3} · {1} · {2:N0} kayıt</value>
+  </data>
+  <data name="Difference_TagsChanged" xml:space="preserve">
+    <value>Etiketler</value>
+  </data>
+  <data name="Versions_CountTagsChanged" xml:space="preserve">
+    <value>{0:N0} etiket değişikliği</value>
+  </data>
+  <data name="Field_Tags" xml:space="preserve">
+    <value>Etiketler</value>
+  </data>
+  <data name="TagFilter_All" xml:space="preserve">
+    <value>Tüm etiketler</value>
+  </data>
+  <data name="TagFilter_Untagged" xml:space="preserve">
+    <value>Etiketsiz</value>
+  </data>
+  <data name="Records_TagFilter" xml:space="preserve">
+    <value>Bir etiketi olan kayıtları göster</value>
+  </data>
+  <data name="History_AddTag" xml:space="preserve">
+    <value>“{0}” etiketini ekleme ({1})</value>
+  </data>
+  <data name="History_RemoveTag" xml:space="preserve">
+    <value>“{0}” etiketini kaldırma ({1})</value>
+  </data>
+  <data name="Status_TagAdded" xml:space="preserve">
+    <value>#{0} numaralı kayıt: “{1}” etiketi eklendi.</value>
+  </data>
+  <data name="Status_TagRemoved" xml:space="preserve">
+    <value>#{0} numaralı kayıt: “{1}” etiketi kaldırıldı.</value>
+  </data>
+  <data name="Status_TagAddedMany" xml:space="preserve">
+    <value>“{1}” etiketi {0:N0} kayda eklendi.</value>
+  </data>
+  <data name="Status_TagRemovedMany" xml:space="preserve">
+    <value>“{1}” etiketi {0:N0} kayıttan kaldırıldı.</value>
+  </data>
+  <data name="Status_NoTagShortcut" xml:space="preserve">
+    <value>{0} kısayolu bir etikete atanmamış. Kısayolları Araçlar › Etiketler'den atayabilirsiniz.</value>
+  </data>
+  <data name="Status_Merged" xml:space="preserve">
+    <value>'{0}' veri setinde birleştirildi: {1:N0} kayıt</value>
+  </data>
+  <data name="Editor_AddTag" xml:space="preserve">
+    <value>Etiket ekle</value>
+  </data>
+  <data name="Editor_RemoveTag" xml:space="preserve">
+    <value>Etiketi kaldır</value>
+  </data>
+  <data name="TagPicker_Watermark" xml:space="preserve">
+    <value>Etiket bul ya da oluştur</value>
+  </data>
+  <data name="TagPicker_Create" xml:space="preserve">
+    <value>“{0}” etiketini oluştur</value>
+  </data>
+  <data name="TagPicker_Empty" xml:space="preserve">
+    <value>Henüz etiket yok: oluşturmak için bir ad yazın.</value>
+  </data>
+  <data name="TagPicker_Hint" xml:space="preserve">
+    <value>Önek bir grup oluşturur (kategori:hukuk); dışa aktarım bu gruba göre bölünebilir.</value>
+  </data>
+  <data name="Batch_Tags" xml:space="preserve">
+    <value>ETİKETLER</value>
+  </data>
+  <data name="Batch_AddTag" xml:space="preserve">
+    <value>Hepsine etiket ekle</value>
+  </data>
+  <data name="Batch_RemoveTag" xml:space="preserve">
+    <value>Seçili kayıtlardan kaldır</value>
+  </data>
+  <data name="Menu_TagRecord" xml:space="preserve">
+    <value>_Etiketle</value>
+  </data>
+  <data name="Menu_Tags" xml:space="preserve">
+    <value>_Etiketler…</value>
+  </data>
+  <data name="Menu_MergeDatasets" xml:space="preserve">
+    <value>Veri Setlerini Birleştir…</value>
+  </data>
+  <data name="Menu_AIConnections" xml:space="preserve">
+    <value>Yapay Zekâ Bağlantıları…</value>
+  </data>
+  <data name="Menu_EvaluateModel" xml:space="preserve">
+    <value>Modeli Değerlendir…</value>
+  </data>
+  <data name="AI_Title" xml:space="preserve">
+    <value>Yapay zekâ bağlantıları</value>
+  </data>
+  <data name="AI_Subtitle" xml:space="preserve">
+    <value>Bu bilgisayardaki ya da ağdaki model sunucuları ve yanıt yazmaya yardım eden bulut hizmetleri. Kayıtlar yalnızca onunla yazdığınız yere gönderilir.</value>
+  </data>
+  <data name="AI_SavedHint" xml:space="preserve">
+    <value>Değişiklikler hemen kaydedilir. Bağlantılar bu bilgisayarda kalır, çalışma alanı dosyalarına girmez.</value>
+  </data>
+  <data name="AI_Add" xml:space="preserve">
+    <value>Bağlantı ekle</value>
+  </data>
+  <data name="AI_SectionConnections" xml:space="preserve">
+    <value>BAĞLANTILAR</value>
+  </data>
+  <data name="AI_Empty" xml:space="preserve">
+    <value>Henüz bağlantı yok.</value>
+  </data>
+  <data name="AI_EmptyTitle" xml:space="preserve">
+    <value>Bir model bağlayın</value>
+  </data>
+  <data name="AI_EmptyHint" xml:space="preserve">
+    <value>Ollama ya da LM Studio'yu kurup bir model indirin ya da API anahtarınızla OpenAI, Anthropic gibi bir bulut hizmeti kullanın; ardından buradan bağlantı ekleyin. Siz eklemeden hiçbir yere bir şey gönderilmez.</value>
+  </data>
+  <data name="AI_Default" xml:space="preserve">
+    <value>Varsayılan</value>
+  </data>
+  <data name="AI_Server" xml:space="preserve">
+    <value>Sunucu</value>
+  </data>
+  <data name="AI_Name" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="AI_Address" xml:space="preserve">
+    <value>Adres</value>
+  </data>
+  <data name="AI_AddressInvalid" xml:space="preserve">
+    <value>http:// ya da https:// ile başlayan bir adres girin, ör. http://localhost:11434/v1.</value>
+  </data>
+  <data name="AI_RemoteWarning" xml:space="preserve">
+    <value>Bu sunucu bu bilgisayarın ve yerel ağın dışında. Onunla yazdığınız kayıtlar oraya gönderilir.</value>
+  </data>
+  <data name="AI_CloudWarning" xml:space="preserve">
+    <value>Bu bağlantıyla yazdığınız kayıtlar internet üzerinden {0} hizmetine gönderilir; hizmetin kullanım ve gizlilik koşulları geçerlidir.</value>
+  </data>
+  <data name="AI_AllowRemote" xml:space="preserve">
+    <value>Kayıtların bu sunucuya gönderilmesine izin ver</value>
+  </data>
+  <data name="AI_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="AI_ModelWatermark" xml:space="preserve">
+    <value>Bir model seçin ya da adını yazın</value>
+  </data>
+  <data name="AI_RefreshModels" xml:space="preserve">
+    <value>Sunucudaki modelleri getir</value>
+  </data>
+  <data name="AI_Temperature" xml:space="preserve">
+    <value>Sıcaklık</value>
+  </data>
+  <data name="AI_MaxTokens" xml:space="preserve">
+    <value>En uzun yanıt (token)</value>
+  </data>
+  <data name="AI_MaxTokensWatermark" xml:space="preserve">
+    <value>Sunucu varsayılanı</value>
+  </data>
+  <data name="AI_ApiKey" xml:space="preserve">
+    <value>API anahtarı</value>
+  </data>
+  <data name="AI_ApiKeyWatermark" xml:space="preserve">
+    <value>Çoğu yerel sunucu gerektirmez</value>
+  </data>
+  <data name="AI_ApiKeyRequired" xml:space="preserve">
+    <value>Bu hizmet için gerekli</value>
+  </data>
+  <data name="AI_ApiKeyStored" xml:space="preserve">
+    <value>{0} içinde kayıtlı; değiştirmek için yazın</value>
+  </data>
+  <data name="AI_ApiKeyKeptIn" xml:space="preserve">
+    <value>Anahtarlar uygulamanın dosyalarında değil, {0} içinde saklanır.</value>
+  </data>
+  <data name="AI_ApiKeyNoKeyStore" xml:space="preserve">
+    <value>Bu bilgisayarda uygulamanın kullanabileceği bir anahtar deposu yok: anahtarlar şifrelenmeden, yalnızca sizin okuyabildiğiniz ayar dosyasında saklanır.</value>
+  </data>
+  <data name="AI_ApiKeyVariable" xml:space="preserve">
+    <value>Boş bırakılırsa {0} ortam değişkeni kullanılır.</value>
+  </data>
+  <data name="AI_RemoveKey" xml:space="preserve">
+    <value>Anahtarı sil</value>
+  </data>
+  <data name="AI_AzureAddressHint" xml:space="preserve">
+    <value>Kaynağınızın adını yazın: https://AD.openai.azure.com/openai/v1. Model, dağıtımınızın adıdır.</value>
+  </data>
+  <data name="AI_EmbeddingModel" xml:space="preserve">
+    <value>Embedding modeli (isteğe bağlı)</value>
+  </data>
+  <data name="AI_EmbeddingModelWatermark" xml:space="preserve">
+    <value>ör. bge-m3 ya da nomic-embed-text</value>
+  </data>
+  <data name="AI_EmbeddingModelHint" xml:space="preserve">
+    <value>Soruları vektöre çevirip başka sözlerle sorulanları bulur (veri seti özeti › Anlamca benzer sorular). Önce sunucuya indirin, ör. ollama pull bge-m3.</value>
+  </data>
+  <data name="AI_EmbeddingModelHintCloud" xml:space="preserve">
+    <value>Soruları vektöre çevirip başka sözlerle sorulanları bulur (veri seti özeti › Anlamca benzer sorular), ör. text-embedding-3-small.</value>
+  </data>
+  <data name="AI_Test" xml:space="preserve">
+    <value>Dene</value>
+  </data>
+  <data name="AI_MakeDefault" xml:space="preserve">
+    <value>Varsayılan yap</value>
+  </data>
+  <data name="AI_Delete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="AI_Testing" xml:space="preserve">
+    <value>Sunucuyla konuşuluyor…</value>
+  </data>
+  <data name="AI_Deleted" xml:space="preserve">
+    <value>{0} silindi.</value>
+  </data>
+  <data name="AI_NoModels" xml:space="preserve">
+    <value>Sunucuda model yok. Önce sunucuya bir model indirin (ör. ollama pull qwen2.5:7b).</value>
+  </data>
+  <data name="AI_ModelsFound" xml:space="preserve">
+    <value>{1} {0:N0} model sunuyor.</value>
+  </data>
+  <data name="AI_ChooseModel" xml:space="preserve">
+    <value>Önce bir model seçin.</value>
+  </data>
+  <data name="AI_TestPassed" xml:space="preserve">
+    <value>Çalışıyor: {0}, {1} sn'de yanıt verdi — “{2}”</value>
+  </data>
+  <data name="AI_EmbeddingTestPassed" xml:space="preserve">
+    <value>{0} bir metni {1:N0} sayıya çeviriyor.</value>
+  </data>
+  <data name="QA_Title" xml:space="preserve">
+    <value>Belgeden Soru-Cevap Çıkar</value>
+  </data>
+  <data name="QA_Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="QA_ChunkSize" xml:space="preserve">
+    <value>Parça uzunluğu</value>
+  </data>
+  <data name="QA_ChunkSizeHint" xml:space="preserve">
+    <value>Belge en çok bu uzunlukta parçalara bölünür; başlıklar mümkünse yeni bir parça başlatır. Model parçaları okuduktan sonra değiştirilemez. Modelin bağlam penceresi küçükse (Ollama'da çoğu zaman öyledir) kısa tutun.</value>
+  </data>
+  <data name="QA_Tokens" xml:space="preserve">
+    <value>token</value>
+  </data>
+  <data name="QA_QuestionsPerChunk" xml:space="preserve">
+    <value>Parça başına en çok</value>
+  </data>
+  <data name="QA_Questions" xml:space="preserve">
+    <value>soru</value>
+  </data>
+  <data name="QA_Start" xml:space="preserve">
+    <value>Soruları çıkar</value>
+  </data>
+  <data name="QA_Unsupported" xml:space="preserve">
+    <value>Soru-cevaplar yalnızca Talimat, Sohbet ve Tercih veri setlerine eklenebilir.</value>
+  </data>
+  <data name="QA_PreferenceHint" xml:space="preserve">
+    <value>Her yanıt bir tercih çiftinin tercih edilen yanıtı olur; reddedilen yanıtları sonra editörde yazdırın (Reddedilen alanında ✨).</value>
+  </data>
+  <data name="QA_Reading" xml:space="preserve">
+    <value>Belge okunuyor…</value>
+  </data>
+  <data name="QA_EmptyDocument" xml:space="preserve">
+    <value>Bu belgede soru çıkarılacak metin yok.</value>
+  </data>
+  <data name="QA_Passages" xml:space="preserve">
+    <value>PARÇALAR</value>
+  </data>
+  <data name="QA_All" xml:space="preserve">
+    <value>Tümü</value>
+  </data>
+  <data name="QA_Include" xml:space="preserve">
+    <value>Bu parçadan soru çıkarılsın</value>
+  </data>
+  <data name="QA_Rewrite" xml:space="preserve">
+    <value>Yeniden yaz</value>
+  </data>
+  <data name="QA_RewriteHint" xml:space="preserve">
+    <value>Bu parçanın sorularını modele yeniden yazdırır; mevcutların yerini alır.</value>
+  </data>
+  <data name="QA_Passage" xml:space="preserve">
+    <value>KAYNAK METİN</value>
+  </data>
+  <data name="QA_UnreadableHint" xml:space="preserve">
+    <value>Modelin yanıtında soru-cevap bulunamadı. Yeniden yazdırın ya da başka bir model deneyin. Modelin yazdığı:</value>
+  </data>
+  <data name="QA_Pairs" xml:space="preserve">
+    <value>SORU-CEVAPLAR</value>
+  </data>
+  <data name="QA_NoPairs" xml:space="preserve">
+    <value>Bu parçadan henüz soru çıkarılmadı.</value>
+  </data>
+  <data name="QA_Keep" xml:space="preserve">
+    <value>Veri setine ekle</value>
+  </data>
+  <data name="QA_Question" xml:space="preserve">
+    <value>Soru</value>
+  </data>
+  <data name="QA_Answer" xml:space="preserve">
+    <value>Yanıt</value>
+  </data>
+  <data name="QA_RemovePair" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="QA_DocumentPages" xml:space="preserve">
+    <value>· {0:N0} sayfa · {1:N0} parça</value>
+  </data>
+  <data name="QA_DocumentPassages" xml:space="preserve">
+    <value>· {0:N0} parça</value>
+  </data>
+  <data name="QA_ChunkDetail" xml:space="preserve">
+    <value>#{0} · {1} · {2:N0} token</value>
+  </data>
+  <data name="QA_StateWriting" xml:space="preserve">
+    <value>Yazılıyor…</value>
+  </data>
+  <data name="QA_StatePairs" xml:space="preserve">
+    <value>{0} soru</value>
+  </data>
+  <data name="QA_StateEmpty" xml:space="preserve">
+    <value>Soru yok</value>
+  </data>
+  <data name="QA_StateUnreadable" xml:space="preserve">
+    <value>Okunamadı</value>
+  </data>
+  <data name="QA_Add" xml:space="preserve">
+    <value>{0:N0} kaydı ekle</value>
+  </data>
+  <data name="QA_NoPairsYet" xml:space="preserve">
+    <value>Parçaları seçip Soruları çıkar'a basın: model her parçanın yanıtladığı soruları yazar.</value>
+  </data>
+  <data name="QA_Summary" xml:space="preserve">
+    <value>{1:N0} sorudan {0:N0} tanesi taslak kayıt olarak eklenecek</value>
+  </data>
+  <data name="QA_DiscardTitle" xml:space="preserve">
+    <value>Sorular eklenmedi</value>
+  </data>
+  <data name="QA_DiscardMessage" xml:space="preserve">
+    <value>{0:N0} soru-cevap henüz veri setine eklenmedi. Atılsın mı?</value>
+  </data>
+  <data name="QA_Discard" xml:space="preserve">
+    <value>At</value>
+  </data>
+  <data name="QA_Progress" xml:space="preserve">
+    <value>{2} ile {0}/{1}. parça yazılıyor…</value>
+  </data>
+  <data name="QA_Finished" xml:space="preserve">
+    <value>{0:N0} soru yazıldı; gözden geçirip ekleyin.</value>
+  </data>
+  <data name="QA_Stopped" xml:space="preserve">
+    <value>Durduruldu; yazılanlar duruyor.</value>
+  </data>
+  <data name="Action_GenerateVariations" xml:space="preserve">
+    <value>Varyant üret</value>
+  </data>
+  <data name="Editor_GenerateVariations" xml:space="preserve">
+    <value>Varyant üret: aynı soru başka sözlerle</value>
+  </data>
+  <data name="Variations_Title" xml:space="preserve">
+    <value>Varyant Üret</value>
+  </data>
+  <data name="Variations_OneRecord" xml:space="preserve">
+    <value>#{0} kaydı</value>
+  </data>
+  <data name="Variations_Records" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Variations_PerRecord" xml:space="preserve">
+    <value>Kayıt başına varyant</value>
+  </data>
+  <data name="Variations_Reword" xml:space="preserve">
+    <value>Değişecek</value>
+  </data>
+  <data name="Variations_ModeQuestions" xml:space="preserve">
+    <value>Yalnızca soru</value>
+  </data>
+  <data name="Variations_ModeAnswers" xml:space="preserve">
+    <value>Soru ve yanıt</value>
+  </data>
+  <data name="Variations_ModeHint" xml:space="preserve">
+    <value>Yanıtın da yeniden yazılması öğrenmek için daha çeşitli yanıtlar verir. Eklemeden önce okuyun: model yeniden yazarken bir bilgiyi değiştirebilir.</value>
+  </data>
+  <data name="Variations_Casual" xml:space="preserve">
+    <value>Günlük dil, yazım hataları</value>
+  </data>
+  <data name="Variations_CasualHint" xml:space="preserve">
+    <value>Bazı sorular insanların sohbette yazdığı gibi yazılır: kısa, noktalamasız, sık yapılan yazım hatalarıyla.</value>
+  </data>
+  <data name="Variations_Start" xml:space="preserve">
+    <value>Varyant üret</value>
+  </data>
+  <data name="Variations_Unsupported" xml:space="preserve">
+    <value>Varyantlar yalnızca Talimat, Sohbet ve Tercih kayıtları için üretilebilir.</value>
+  </data>
+  <data name="Variations_Skipped" xml:space="preserve">
+    <value>Seçilen kayıtlardan {0:N0} tanesinin henüz sorusu yok; bunlar atlandı.</value>
+  </data>
+  <data name="Variations_NoQuestions" xml:space="preserve">
+    <value>Bu kayıtların hiçbirinde başka sözlerle sorulacak bir soru yok.</value>
+  </data>
+  <data name="Variations_RecordList" xml:space="preserve">
+    <value>KAYITLAR</value>
+  </data>
+  <data name="Variations_Include" xml:space="preserve">
+    <value>Bu kaydın varyantları üretilsin</value>
+  </data>
+  <data name="Variations_RewriteHint" xml:space="preserve">
+    <value>Bu kaydın varyantlarını modele yeniden yazdırır; mevcutların yerini alır.</value>
+  </data>
+  <data name="Variations_Original" xml:space="preserve">
+    <value>ASIL KAYIT</value>
+  </data>
+  <data name="Variations_Input" xml:space="preserve">
+    <value>Girdi</value>
+  </data>
+  <data name="Variations_Items" xml:space="preserve">
+    <value>VARYANTLAR</value>
+  </data>
+  <data name="Variations_None" xml:space="preserve">
+    <value>Bu kaydın henüz varyantı yok.</value>
+  </data>
+  <data name="Variations_UnreadableHint" xml:space="preserve">
+    <value>Modelin yanıtında soru bulunamadı. Yeniden yazdırın ya da başka bir model deneyin. Modelin yazdığı:</value>
+  </data>
+  <data name="Variations_KeptAnswer" xml:space="preserve">
+    <value>Her varyant asıl yanıtı korur.</value>
+  </data>
+  <data name="Variations_TooSimilar" xml:space="preserve">
+    <value>Asıl soruya çok yakın</value>
+  </data>
+  <data name="Variations_TooSimilarHint" xml:space="preserve">
+    <value>Bu varyant pek az şey değiştiriyor; işaretlemezseniz eklenmez.</value>
+  </data>
+  <data name="Variations_Same" xml:space="preserve">
+    <value>Asıl soruyla aynı</value>
+  </data>
+  <data name="Variations_StateCount" xml:space="preserve">
+    <value>{0} varyant</value>
+  </data>
+  <data name="Variations_StateEmpty" xml:space="preserve">
+    <value>Varyant yok</value>
+  </data>
+  <data name="Variations_NoneYet" xml:space="preserve">
+    <value>Kayıtları seçip Varyant üret'e basın: model her soruyu başka sözlerle sorar.</value>
+  </data>
+  <data name="Variations_Summary" xml:space="preserve">
+    <value>{1:N0} varyanttan {0:N0} tanesi taslak kayıt olarak eklenecek</value>
+  </data>
+  <data name="Variations_DiscardTitle" xml:space="preserve">
+    <value>Varyantlar eklenmedi</value>
+  </data>
+  <data name="Variations_DiscardMessage" xml:space="preserve">
+    <value>{0:N0} varyant henüz veri setine eklenmedi. Atılsın mı?</value>
+  </data>
+  <data name="Variations_Progress" xml:space="preserve">
+    <value>{2} ile {0}/{1}. kaydın varyantları yazılıyor…</value>
+  </data>
+  <data name="Variations_Finished" xml:space="preserve">
+    <value>{0:N0} varyant yazıldı; gözden geçirip ekleyin.</value>
+  </data>
+  <data name="Variations_History" xml:space="preserve">
+    <value>varyantlar</value>
+  </data>
+  <data name="Action_Judge" xml:space="preserve">
+    <value>Değerlendir</value>
+  </data>
+  <data name="Judge_Title" xml:space="preserve">
+    <value>Modelle Değerlendir</value>
+  </data>
+  <data name="Judge_Section" xml:space="preserve">
+    <value>MODEL DEĞERLENDİRMESİ</value>
+  </data>
+  <data name="Judge_None" xml:space="preserve">
+    <value>Henüz değerlendirilmedi. Model kaydı 1–5 arası puanlar ve nedenini yazar.</value>
+  </data>
+  <data name="Judge_Judge" xml:space="preserve">
+    <value>Modelle değerlendir</value>
+  </data>
+  <data name="Judge_Again" xml:space="preserve">
+    <value>Yeniden değerlendir</value>
+  </data>
+  <data name="Judge_Info" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Judge_Judging" xml:space="preserve">
+    <value>{0} ile değerlendiriliyor…</value>
+  </data>
+  <data name="Judge_Comparing" xml:space="preserve">
+    <value>#{0} ile karşılaştırılıyor…</value>
+  </data>
+  <data name="Judge_Unreadable" xml:space="preserve">
+    <value>Modelin yanıtında 1–5 arası bir puan yoktu. Yeniden değerlendirin ya da başka bir model deneyin.</value>
+  </data>
+  <data name="Judge_NothingToJudge" xml:space="preserve">
+    <value>Değerlendirilecek bir şey yok: soru ya da yanıt boş.</value>
+  </data>
+  <data name="Judge_Outdated" xml:space="preserve">
+    <value>Kayıt değerlendirildikten sonra değişti.</value>
+  </data>
+  <data name="Judge_Ungrounded" xml:space="preserve">
+    <value>Kaynak metinde olmayan bilgi içeriyor.</value>
+  </data>
+  <data name="Judge_RejectedBetter" xml:space="preserve">
+    <value>Reddedilen yanıt, tercih edilenden daha iyi görünüyor.</value>
+  </data>
+  <data name="Judge_NoPreference" xml:space="preserve">
+    <value>İki yanıttan biri ötekinden belirgin şekilde iyi değil.</value>
+  </data>
+  <data name="Judge_Contradicts" xml:space="preserve">
+    <value>#{0} ile çelişiyor: {1}</value>
+  </data>
+  <data name="Judge_ScoreTip" xml:space="preserve">
+    <value>Model puanı: {0}</value>
+  </data>
+  <data name="Judge_Compare" xml:space="preserve">
+    <value>Aynı şeyi soran kayıtlarla karşılaştır</value>
+  </data>
+  <data name="Judge_CompareHint" xml:space="preserve">
+    <value>Her yanıt, aynı ya da neredeyse aynı soruyu soran veya varyantı olan en çok 3 kayıtla da karşılaştırılır; böylece birbiriyle çelişen yanıtlar bulunur. Şu anki hâlleriyle karşılaştırılmış çiftler yeniden sorulmaz.</value>
+  </data>
+  <data name="Judge_Start" xml:space="preserve">
+    <value>Değerlendir</value>
+  </data>
+  <data name="Judge_Unsupported" xml:space="preserve">
+    <value>Talimat, Sohbet ve Tercih kayıtları değerlendirilebilir.</value>
+  </data>
+  <data name="Judge_NoRecords" xml:space="preserve">
+    <value>Değerlendirilecek kayıt yok.</value>
+  </data>
+  <data name="Judge_Include" xml:space="preserve">
+    <value>Bu kayıt değerlendirilsin</value>
+  </data>
+  <data name="Judge_RewriteHint" xml:space="preserve">
+    <value>Bu kaydı modele yeniden değerlendirtir; değerlendirme yenisiyle değişir.</value>
+  </data>
+  <data name="Judge_Record" xml:space="preserve">
+    <value>KAYIT</value>
+  </data>
+  <data name="Judge_Verdict" xml:space="preserve">
+    <value>DEĞERLENDİRME</value>
+  </data>
+  <data name="Judge_NotJudged" xml:space="preserve">
+    <value>Henüz değerlendirilmedi.</value>
+  </data>
+  <data name="Judge_UnreadableHint" xml:space="preserve">
+    <value>Modelin yanıtında 1–5 arası bir puan yoktu. Yeniden değerlendirin ya da başka bir model deneyin. Modelin yazdığı:</value>
+  </data>
+  <data name="Judge_StateJudging" xml:space="preserve">
+    <value>Değerlendiriliyor…</value>
+  </data>
+  <data name="Judge_StateSkipped" xml:space="preserve">
+    <value>Boş</value>
+  </data>
+  <data name="Judge_NoneYet" xml:space="preserve">
+    <value>Kayıtları seçip Değerlendir'e basın: model her birini 1–5 arası puanlar ve nedenini yazar.</value>
+  </data>
+  <data name="Judge_Summary" xml:space="preserve">
+    <value>{1:N0} kayıttan {0:N0} tanesi değerlendirildi · ortalama {2} · {3:N0} düşük puan</value>
+  </data>
+  <data name="Judge_Progress" xml:space="preserve">
+    <value>{2} ile {0}/{1}. kayıt değerlendiriliyor…</value>
+  </data>
+  <data name="Judge_Finished" xml:space="preserve">
+    <value>{0:N0} kayıt değerlendirildi.</value>
+  </data>
+  <data name="Judge_Stopped" xml:space="preserve">
+    <value>Durduruldu; yapılanlar kaydedildi.</value>
+  </data>
+  <data name="Judge_Saved" xml:space="preserve">
+    <value>Değerlendirmeler geldikçe kaydedilir.</value>
+  </data>
+  <data name="Overview_JudgeEmpty" xml:space="preserve">
+    <value>Kayıtları bir modele gerekçesiyle 1–5 arası puanlatın. Ardından düşük puanlılar, kaynağın desteklemediği bilgiler ve birbiriyle çelişen yanıtlar listelenebilir.</value>
+  </data>
+  <data name="Overview_JudgeAverage" xml:space="preserve">
+    <value>Ortalama puan</value>
+  </data>
+  <data name="Overview_Judged" xml:space="preserve">
+    <value>{1:N0} kayıttan {0:N0} tanesi değerlendirildi</value>
+  </data>
+  <data name="Overview_JudgeOutdated" xml:space="preserve">
+    <value>{0:N0} kayıt değerlendirildikten sonra değişti</value>
+  </data>
+  <data name="Overview_JudgeRest" xml:space="preserve">
+    <value>{0:N0} kaydı değerlendir…</value>
+  </data>
+  <data name="Overview_JudgeHint" xml:space="preserve">
+    <value>Şu anki hâliyle değerlendirilmemiş kayıtlarla değerlendirme penceresini açar.</value>
+  </data>
+  <data name="Overview_SemanticSection" xml:space="preserve">
+    <value>ANLAMCA BENZER SORULAR</value>
+  </data>
+  <data name="Overview_SemanticOff" xml:space="preserve">
+    <value>Sorular ifadelerine göre karşılaştırılıyor. AI bağlantınızdaki bir embedding modeli başka sözlerle sorulanları da bulur; vektörler yalnızca siz başlattığınızda oluşturulur ve çalışma alanında saklanır.</value>
+  </data>
+  <data name="Overview_SemanticAll" xml:space="preserve">
+    <value>{0:N0} sorunun tümü anlamca karşılaştırılıyor.</value>
+  </data>
+  <data name="Overview_SemanticSome" xml:space="preserve">
+    <value>{1:N0} sorudan {0:N0} tanesi anlamca karşılaştırılıyor; yeni ve değişen sorular vektörü olana dek ifadesiyle karşılaştırılır.</value>
+  </data>
+  <data name="Overview_SemanticRun" xml:space="preserve">
+    <value>Anlamca karşılaştır</value>
+  </data>
+  <data name="Overview_SemanticRest" xml:space="preserve">
+    <value>{0:N0} soruyu daha karşılaştır</value>
+  </data>
+  <data name="Overview_SemanticSwitch" xml:space="preserve">
+    <value>Bunun yerine {0} ile karşılaştır</value>
+  </data>
+  <data name="Overview_SemanticHint" xml:space="preserve">
+    <value>Veri setindeki soruları AI bağlantınızdaki embedding modeline gönderir.</value>
+  </data>
+  <data name="Overview_SemanticNoConnection" xml:space="preserve">
+    <value>Önce embedding modeli olan bir AI bağlantısı kurun: bu bilgisayardaki Ollama ya da LM Studio yeterli.</value>
+  </data>
+  <data name="Overview_SemanticProgress" xml:space="preserve">
+    <value>Sorular {2} ile vektöre çevriliyor: {1:N0} sorudan {0:N0}…</value>
+  </data>
+  <data name="Overview_SemanticModel" xml:space="preserve">
+    <value>Model: {0}</value>
+  </data>
+  <data name="Overview_SemanticThreshold" xml:space="preserve">
+    <value>Benzerlik eşiği (kosinüs)</value>
+  </data>
+  <data name="Overview_SemanticThresholdHint" xml:space="preserve">
+    <value>Değer yükseldikçe seçicilik artar. Çoğu model için 0,90 uygundur; başka sözlerle sorulanlar kaçıyorsa düşürün.</value>
+  </data>
+  <data name="Overview_SemanticTurnOff" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
+  <data name="AIProvider_Ollama" xml:space="preserve">
+    <value>Ollama</value>
+  </data>
+  <data name="AIProvider_LMStudio" xml:space="preserve">
+    <value>LM Studio</value>
+  </data>
+  <data name="AIProvider_Vllm" xml:space="preserve">
+    <value>vLLM</value>
+  </data>
+  <data name="AIProvider_LocalAI" xml:space="preserve">
+    <value>LocalAI</value>
+  </data>
+  <data name="AIProvider_OpenAICompatible" xml:space="preserve">
+    <value>Diğer OpenAI uyumlu sunucu</value>
+  </data>
+  <data name="AIProvider_OpenAI" xml:space="preserve">
+    <value>OpenAI</value>
+  </data>
+  <data name="AIProvider_Anthropic" xml:space="preserve">
+    <value>Anthropic</value>
+  </data>
+  <data name="AIProvider_AzureOpenAI" xml:space="preserve">
+    <value>Azure OpenAI</value>
+  </data>
+  <data name="AIProvider_OpenRouter" xml:space="preserve">
+    <value>OpenRouter</value>
+  </data>
+  <data name="AIProvider_Groq" xml:space="preserve">
+    <value>Groq</value>
+  </data>
+  <data name="AIProvider_DeepSeek" xml:space="preserve">
+    <value>DeepSeek</value>
+  </data>
+  <data name="KeyStore_WindowsCredentialManager" xml:space="preserve">
+    <value>Windows Kimlik Bilgisi Yöneticisi</value>
+  </data>
+  <data name="KeyStore_MacKeychain" xml:space="preserve">
+    <value>macOS Anahtar Zinciri</value>
+  </data>
+  <data name="KeyStore_SecretService" xml:space="preserve">
+    <value>Secret Service (GNOME Anahtarlık, KWallet)</value>
+  </data>
+  <data name="Menu_WriteWithAI" xml:space="preserve">
+    <value>Yapay zekâyla yaz</value>
+  </data>
+  <data name="Menu_GenerateVariations" xml:space="preserve">
+    <value>Varyant Üret…</value>
+  </data>
+  <data name="Menu_Judge" xml:space="preserve">
+    <value>Modelle Değerlendir</value>
+  </data>
+  <data name="Tags_Title" xml:space="preserve">
+    <value>Etiketler</value>
+  </data>
+  <data name="Tags_Subtitle" xml:space="preserve">
+    <value>Çalışma alanındaki tüm veri setlerinde ortaktır. Kısayolu olan etiketler Mod+1…5 ile eklenip kaldırılır; kategori: gibi bir önek etiketleri dışa aktarımda bölmek için gruplar.</value>
+  </data>
+  <data name="Tags_NewWatermark" xml:space="preserve">
+    <value>Yeni etiket, ör. kategori:hukuk</value>
+  </data>
+  <data name="Tags_Add" xml:space="preserve">
+    <value>Ekle</value>
+  </data>
+  <data name="Tags_Color" xml:space="preserve">
+    <value>Renk</value>
+  </data>
+  <data name="Tags_Shortcut" xml:space="preserve">
+    <value>Kısayol</value>
+  </data>
+  <data name="Tags_NoShortcut" xml:space="preserve">
+    <value>Kısayol yok</value>
+  </data>
+  <data name="Tags_ShowRecords" xml:space="preserve">
+    <value>Kayıtlarını göster</value>
+  </data>
+  <data name="Tags_Rename" xml:space="preserve">
+    <value>Yeniden adlandır</value>
+  </data>
+  <data name="Tags_EmptyTitle" xml:space="preserve">
+    <value>Henüz etiket yok</value>
+  </data>
+  <data name="Tags_EmptyHint" xml:space="preserve">
+    <value>Yukarıdan ya da kayıt editöründeki “Etiket ekle” ile oluşturabilirsiniz.</value>
+  </data>
+  <data name="Tags_RecordCount" xml:space="preserve">
+    <value>{0:N0} kayıt</value>
+  </data>
+  <data name="Merge_Title" xml:space="preserve">
+    <value>Veri setlerini birleştir</value>
+  </data>
+  <data name="Merge_Subtitle" xml:space="preserve">
+    <value>Bu çalışma alanının ya da başka bir çalışma alanı dosyasının herhangi projelerindeki aynı türden veri setleri yeni bir veri setinde birleştirilir. Seçtiğiniz veri setleri olduğu gibi kalır.</value>
+  </data>
+  <data name="Merge_SectionSources" xml:space="preserve">
+    <value>BİRLEŞTİRİLECEK VERİ SETLERİ</value>
+  </data>
+  <data name="Merge_FromThisWorkspace" xml:space="preserve">
+    <value>Bu çalışma alanından</value>
+  </data>
+  <data name="Merge_FromOtherFile" xml:space="preserve">
+    <value>{0} dosyasından</value>
+  </data>
+  <data name="Merge_ChooseFile" xml:space="preserve">
+    <value>Başka bir dosyadan…</value>
+  </data>
+  <data name="Merge_UseThisWorkspace" xml:space="preserve">
+    <value>Bu çalışma alanı</value>
+  </data>
+  <data name="Merge_OpeningFile" xml:space="preserve">
+    <value>Dosya okunuyor…</value>
+  </data>
+  <data name="Merge_OtherFileHint" xml:space="preserve">
+    <value>Dosya bir kopyasından okunur, kendisi hiç değiştirilmez. Etiketler adlarıyla eşleştirilir; bu çalışma alanında olmayanlar renkleriyle eklenir.</value>
+  </data>
+  <data name="Merge_NoDatasets" xml:space="preserve">
+    <value>Burada veri seti yok.</value>
+  </data>
+  <data name="Merge_SectionTarget" xml:space="preserve">
+    <value>YENİ VERİ SETİ</value>
+  </data>
+  <data name="Merge_Name" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="Merge_Project" xml:space="preserve">
+    <value>Proje</value>
+  </data>
+  <data name="Merge_SkipDuplicates" xml:space="preserve">
+    <value>Birebir kopyaları dışarıda bırak (ilki kalır)</value>
+  </data>
+  <data name="Merge_IncludeArchived" xml:space="preserve">
+    <value>Arşivlenmiş kayıtları da al</value>
+  </data>
+  <data name="Merge_AsDrafts" xml:space="preserve">
+    <value>Bütün kayıtları yeniden incelemek için taslak olarak al</value>
+  </data>
+  <data name="Merge_Hint" xml:space="preserve">
+    <value>Kayıtlar içerikleri, durumları, kaynakları, etiketleri ve tarihleriyle, varyantlar aileleriyle kopyalanır. Yeni veri seti ilk seçilen veri setinin tokenizer'ını, bağlam uzunluğunu ve yapay zekâ talimatlarını alır. Model değerlendirmeleri kopyalanmaz.</value>
+  </data>
+  <data name="Merge_ChooseDatasets" xml:space="preserve">
+    <value>Aynı türden en az iki veri seti seçin.</value>
+  </data>
+  <data name="Merge_ChooseAnother" xml:space="preserve">
+    <value>Birleştirmek için bir {0} veri seti daha seçin.</value>
+  </data>
+  <data name="Merge_ChooseFromFile" xml:space="preserve">
+    <value>Getirilecek veri setlerini seçin.</value>
+  </data>
+  <data name="Merge_Summary" xml:space="preserve">
+    <value>{0} veri seti · {1:N0} kayıt · {2}</value>
+  </data>
+  <data name="Merge_SummaryOne" xml:space="preserve">
+    <value>1 veri seti · {0:N0} kayıt · {1}</value>
+  </data>
+  <data name="Merge_Start" xml:space="preserve">
+    <value>Birleştir</value>
+  </data>
+  <data name="Merge_Progress" xml:space="preserve">
+    <value>{1:N0} kaydın {0:N0} tanesi kopyalandı</value>
+  </data>
+  <data name="Merge_Cancelled" xml:space="preserve">
+    <value>Birleştirme durduruldu; veri seti oluşturulmadı.</value>
+  </data>
+  <data name="Merge_DoneTitle" xml:space="preserve">
+    <value>Veri setleri birleştirildi</value>
+  </data>
+  <data name="Merge_Done" xml:space="preserve">
+    <value>'{0}' {1:N0} kayıtla oluşturuldu.</value>
+  </data>
+  <data name="Merge_DoneDuplicates" xml:space="preserve">
+    <value>Dışarıda bırakılan birebir kopya: {0:N0}.</value>
+  </data>
+  <data name="Merge_DoneArchived" xml:space="preserve">
+    <value>Dışarıda bırakılan arşivlenmiş kayıt: {0:N0}.</value>
+  </data>
+  <data name="Evaluate_Title" xml:space="preserve">
+    <value>Modeli değerlendir</value>
+  </data>
+  <data name="Evaluate_Model" xml:space="preserve">
+    <value>Değerlendirilecek model</value>
+  </data>
+  <data name="Evaluate_Judge" xml:space="preserve">
+    <value>Puanlayan model</value>
+  </data>
+  <data name="Evaluate_SampleSize" xml:space="preserve">
+    <value>Soru sayısı</value>
+  </data>
+  <data name="Evaluate_IncludeUnapproved" xml:space="preserve">
+    <value>Onaylanmamış kayıtları da sor</value>
+  </data>
+  <data name="Evaluate_Source" xml:space="preserve">
+    <value>Sorular</value>
+  </data>
+  <data name="Evaluate_SourceTest" xml:space="preserve">
+    <value>Son dışa aktarımın test bölümü (%{0}, tohum {1})</value>
+  </data>
+  <data name="Evaluate_SourceValidation" xml:space="preserve">
+    <value>Son dışa aktarımın doğrulama bölümü (%{0}, tohum {1})</value>
+  </data>
+  <data name="Evaluate_SourceAll" xml:space="preserve">
+    <value>Bütün kayıtlar</value>
+  </data>
+  <data name="Evaluate_SourceTestHint" xml:space="preserve">
+    <value>Modelin eğitimde görmediği sorular: son dışa aktarımın test.jsonl dosyasına koyduğu kayıtlar, veri setinin şimdiki hâliyle.</value>
+  </data>
+  <data name="Evaluate_SourceValidationHint" xml:space="preserve">
+    <value>Son dışa aktarımın val.jsonl dosyasına koyduğu kayıtlar: model bunlarla eğitilmedi, ama eğitim ilerlemesini bunlarla ölçtü.</value>
+  </data>
+  <data name="Evaluate_SourceAllHint" xml:space="preserve">
+    <value>Bu veri setiyle eğitilmiş bir model bu soruların çoğunu gördü; puanı olduğundan iyi görünür. Görmediği sorularla ölçmek için test bölümlü dışa aktarın.</value>
+  </data>
+  <data name="Evaluate_Hint" xml:space="preserve">
+    <value>Model, veri setinden seçilen soruları onunla eğitilmiş bir modelin göreceği gibi, sıcaklık 0'da yanıtlar; puanlayan model her yanıtı veri setinin yanıtıyla 1–5 arası karşılaştırır. Kelime örtüşmesi (F1) de hesaplanır. Aynı tohum aynı soruları sorar. Veri setine hiçbir şey yazılmaz.</value>
+  </data>
+  <data name="Evaluate_NoModels" xml:space="preserve">
+    <value>Önce Yapay Zekâ Bağlantıları'nda bir model ekleyin.</value>
+  </data>
+  <data name="Evaluate_Run" xml:space="preserve">
+    <value>Değerlendir</value>
+  </data>
+  <data name="Evaluate_Export" xml:space="preserve">
+    <value>Raporu kaydet…</value>
+  </data>
+  <data name="Evaluate_Question" xml:space="preserve">
+    <value>SORU</value>
+  </data>
+  <data name="Evaluate_Reference" xml:space="preserve">
+    <value>VERİ SETİNİN YANITI</value>
+  </data>
+  <data name="Evaluate_Answer" xml:space="preserve">
+    <value>MODELİN YANITI</value>
+  </data>
+  <data name="Evaluate_Empty" xml:space="preserve">
+    <value>Modeli ve puanlayanı seçip Değerlendir'e basın. Yanıtlar geldikçe burada görünür.</value>
+  </data>
+  <data name="Evaluate_History" xml:space="preserve">
+    <value>Önceki değerlendirmeler ({0:N0})</value>
+  </data>
+  <data name="Evaluate_HistoryHint" xml:space="preserve">
+    <value>Biten her değerlendirme veri setiyle saklanır. Modelleri karşılaştırırken aynı soruları soran değerlendirmelere bakın: aynı bölüm ve tohum.</value>
+  </data>
+  <data name="Evaluate_NoHistory" xml:space="preserve">
+    <value>Bu veri seti henüz değerlendirilmedi. Biten değerlendirmeler burada saklanır, böylece modeller karşılaştırılabilir: örneğin temel model ile bu veri setiyle eğitilen model.</value>
+  </data>
+  <data name="Evaluate_RunDetail" xml:space="preserve">
+    <value>puanlayan {0} · {1} · {2:N0} soru · {3}</value>
+  </data>
+  <data name="Evaluate_RunTest" xml:space="preserve">
+    <value>test bölümü, tohum {0}</value>
+  </data>
+  <data name="Evaluate_RunValidation" xml:space="preserve">
+    <value>doğrulama bölümü, tohum {0}</value>
+  </data>
+  <data name="Evaluate_RunAll" xml:space="preserve">
+    <value>bütün kayıtlar, tohum {0}</value>
+  </data>
+  <data name="Evaluate_DeleteRunTitle" xml:space="preserve">
+    <value>Değerlendirmeyi sil</value>
+  </data>
+  <data name="Evaluate_DeleteRunMessage" xml:space="preserve">
+    <value>{0} modelinin {1} tarihli değerlendirmesi silinsin mi? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Evaluate_Sampling" xml:space="preserve">
+    <value>Sorular seçiliyor…</value>
+  </data>
+  <data name="Evaluate_Progress" xml:space="preserve">
+    <value>{1:N0} sorudan {0:N0}. soru: {2} yanıtlıyor…</value>
+  </data>
+  <data name="Evaluate_Answering" xml:space="preserve">
+    <value>Yanıtlıyor…</value>
+  </data>
+  <data name="Evaluate_Grading" xml:space="preserve">
+    <value>Puanlanıyor…</value>
+  </data>
+  <data name="Evaluate_Unreadable" xml:space="preserve">
+    <value>Puanlayanın kararı okunamadı.</value>
+  </data>
+  <data name="Evaluate_Summary" xml:space="preserve">
+    <value>Ortalama {0} / 5 · kelime örtüşmesi {1} · {3:N0} yanıttan {2:N0} tanesi puanlandı</value>
+  </data>
+  <data name="Evaluate_Done" xml:space="preserve">
+    <value>{0:N0} soru değerlendirildi.</value>
+  </data>
+  <data name="Evaluate_NothingToAsk" xml:space="preserve">
+    <value>Hiçbir kayıtta karşılaştırılacak bir soru ve yanıt yok.</value>
+  </data>
+  <data name="Evaluate_Stopped" xml:space="preserve">
+    <value>{0:N0} sorudan sonra durduruldu.</value>
+  </data>
+  <data name="Evaluate_Saved" xml:space="preserve">
+    <value>Rapor kaydedildi: {0}</value>
+  </data>
+  <data name="Evaluate_SaveFailed" xml:space="preserve">
+    <value>Rapor kaydedilemedi: {0}</value>
+  </data>
+  <data name="Tags_Created" xml:space="preserve">
+    <value>“{0}” oluşturuldu.</value>
+  </data>
+  <data name="Tags_Deleted" xml:space="preserve">
+    <value>“{0}” silindi ve {1:N0} kayıttan kaldırıldı.</value>
+  </data>
+  <data name="Dialog_RenameTagTitle" xml:space="preserve">
+    <value>Etiketi Yeniden Adlandır</value>
+  </data>
+  <data name="Dialog_RenameTagMessage" xml:space="preserve">
+    <value>“{0}” için yeni ad:</value>
+  </data>
+  <data name="Dialog_DeleteTagTitle" xml:space="preserve">
+    <value>Etiketi Sil</value>
+  </data>
+  <data name="Dialog_DeleteTagMessage" xml:space="preserve">
+    <value>“{0}” silinsin mi? {1:N0} kayıttan, sürümlerdeki hâlleri dahil, kaldırılır. Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Export_Stratify" xml:space="preserve">
+    <value>Tabakalara göre böl</value>
+  </data>
+  <data name="Export_StratifyTip" xml:space="preserve">
+    <value>Her etikete (ya da bir grubun her etiketine) tam olarak bu oranları verir</value>
+  </data>
+  <data name="Export_StratifyNone" xml:space="preserve">
+    <value>Tabaka yok</value>
+  </data>
+  <data name="Export_StratifyAnyTag" xml:space="preserve">
+    <value>Her etiket (kaydın ilk etiketi)</value>
+  </data>
+  <data name="Export_StratifyGroup" xml:space="preserve">
+    <value>“{0}” grubu</value>
+  </data>
+  <data name="Export_StratifyHint" xml:space="preserve">
+    <value>Her etiketin içinde kayıtlar tohuma göre sıralanır ve tam bu oranlarda kesilir; aynı ya da neredeyse aynı soruyu soran kayıtlar birlikte kalır. Yeni kayıtlar kesim noktasındaki birkaç kaydı yer değiştirebilir.</value>
+  </data>
+  <data name="Rule_NearDuplicate" xml:space="preserve">
+    <value>Benzer sorular</value>
+  </data>
+  <data name="Issue_NearDuplicate" xml:space="preserve">
+    <value>#{0} numaralı kayıtla neredeyse aynı soru (ifade ya da anlam olarak).</value>
+  </data>
+  <data name="QualityFilter_NearDuplicates" xml:space="preserve">
+    <value>Benzer sorular</value>
+  </data>
+  <data name="QualityFilter_LowJudgeScore" xml:space="preserve">
+    <value>Model: düşük puan (1–2)</value>
+  </data>
+  <data name="QualityFilter_NotJudged" xml:space="preserve">
+    <value>Model: değerlendirilmemiş</value>
+  </data>
+  <data name="QualityFilter_Ungrounded" xml:space="preserve">
+    <value>Model: kaynakta olmayan bilgi</value>
+  </data>
+  <data name="QualityFilter_PreferenceDoubts" xml:space="preserve">
+    <value>Model: şüpheli tercih</value>
+  </data>
+  <data name="QualityFilter_Contradictions" xml:space="preserve">
+    <value>Model: çelişen yanıtlar</value>
+  </data>
+  <data name="Editor_PreferenceCompare" xml:space="preserve">
+    <value>Yanıtları karşılaştır</value>
+  </data>
+  <data name="Editor_PreferenceCompareSummary" xml:space="preserve">
+    <value>{0:N0} kelime yalnızca tercih edilende · {1:N0} yalnızca reddedilende</value>
+  </data>
+  <data name="Editor_PreferenceCompareSame" xml:space="preserve">
+    <value>İki yanıt aynı şeyi söylüyor.</value>
   </data>
 </root>

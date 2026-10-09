@@ -24,6 +24,15 @@ public static class ImportLayouts
         [TargetField.Rejected] = ["rejected", "dispreferred", "nonpreferred", "reddedilen"],
     };
 
+    // Normalized parts of speaker names (see Normalize); "Müşteri Hizmetleri" is an agent.
+    private static readonly string[] CustomerNames = ["musteri", "customer", "client", "kullanici", "user", "alici", "buyer", "ziyaretci", "visitor", "human"];
+
+    private static readonly string[] AgentNames =
+    [
+        "temsilci", "destek", "agent", "support", "asistan", "assistant", "operator", "satici", "seller", "magaza", "store", "bot",
+        "yetkili", "danisman", "advisor", "hizmet", "service", "helpdesk",
+    ];
+
     /// <summary>
     /// The mappable fields of a dataset type, in display order.
     /// </summary>
@@ -50,8 +59,22 @@ public static class ImportLayouts
         _ => [],
     };
 
+    /// <summary>
+    /// The mappable fields for rows of <paramref name="layout"/>: for a conversation log, the
+    /// customer (whose messages are user turns) and the agent (assistant turns; when unmapped,
+    /// every other speaker).
+    /// </summary>
+    public static IReadOnlyList<TargetFieldInfo> FieldsFor(DatasetType type, SourceLayout layout) =>
+        layout == SourceLayout.Transcript
+            ? Supports(layout, type) ? [new(TargetField.User, IsRequired: true), new(TargetField.Assistant, IsRequired: false)] : []
+            : FieldsFor(type);
+
+    /// <summary>
+    /// Whether the user maps columns (or a log's speakers) to fields.
+    /// </summary>
     public static bool IsColumnBased(SourceLayout layout) =>
-        layout is SourceLayout.Custom or SourceLayout.Alpaca or SourceLayout.PromptCompletion or SourceLayout.HuggingFaceDpo;
+        layout is SourceLayout.Custom or SourceLayout.Alpaca or SourceLayout.PromptCompletion or SourceLayout.HuggingFaceDpo
+            or SourceLayout.Sections or SourceLayout.Paragraphs or SourceLayout.Transcript;
 
     /// <summary>
     /// Whether rows of <paramref name="layout"/> can become records of <paramref name="type"/>.
@@ -59,6 +82,7 @@ public static class ImportLayouts
     /// </summary>
     public static bool Supports(SourceLayout layout, DatasetType type) => layout switch
     {
+        SourceLayout.Transcript => type is DatasetType.Chat or DatasetType.Instruction,
         _ when IsColumnBased(layout) => FieldsFor(type).Count > 0,
         SourceLayout.OpenAiMessages or SourceLayout.ShareGpt => type is DatasetType.Chat or DatasetType.Instruction,
         SourceLayout.OpenAiPreference => type is DatasetType.Preference,
@@ -71,7 +95,7 @@ public static class ImportLayouts
     public static DatasetType? NaturalType(SourceLayout layout) => layout switch
     {
         SourceLayout.Alpaca or SourceLayout.PromptCompletion => DatasetType.Instruction,
-        SourceLayout.OpenAiMessages or SourceLayout.ShareGpt => DatasetType.Chat,
+        SourceLayout.OpenAiMessages or SourceLayout.ShareGpt or SourceLayout.Transcript => DatasetType.Chat,
         SourceLayout.HuggingFaceDpo or SourceLayout.OpenAiPreference => DatasetType.Preference,
         _ => null,
     };
@@ -176,6 +200,63 @@ public static class ImportLayouts
                     break;
                 }
             }
+        }
+
+        return mapping;
+    }
+
+    /// <summary>
+    /// Which speaker of a log is the customer and which the agent: by their names ("Müşteri",
+    /// "Temsilci", "Customer", "Support"…), otherwise the one who writes first in most
+    /// conversations is the customer and the other one the agent. With more speakers and no
+    /// telling name, the agent stays unmapped: everyone but the customer answers.
+    /// </summary>
+    /// <param name="speakers">The speakers, most messages first.</param>
+    /// <param name="openers">How many conversations each speaker opens.</param>
+    public static IReadOnlyDictionary<TargetField, string> SuggestSpeakers(IReadOnlyList<string> speakers, IReadOnlyDictionary<string, int> openers)
+    {
+        ArgumentNullException.ThrowIfNull(speakers);
+        ArgumentNullException.ThrowIfNull(openers);
+        var mapping = new Dictionary<TargetField, string>();
+        bool IsAgent(string speaker) => AgentNames.Any(Normalize(speaker).Contains);
+        var customer = speakers.FirstOrDefault(s => !IsAgent(s) && CustomerNames.Any(Normalize(s).Contains))
+            ?? speakers.Where(s => !IsAgent(s)).OrderByDescending(s => openers.GetValueOrDefault(s)).FirstOrDefault();
+        if (customer is null)
+        {
+            return mapping;
+        }
+
+        mapping[TargetField.User] = customer;
+        var others = speakers.Where(s => s != customer).ToList();
+        var agents = others.Where(IsAgent).ToList();
+        var agent = agents.Count == 1 ? agents[0] : agents.Count == 0 && others.Count == 1 ? others[0] : null;
+        if (agent is not null)
+        {
+            mapping[TargetField.Assistant] = agent;
+        }
+
+        return mapping;
+    }
+
+    /// <summary>
+    /// For Markdown sections and paragraphs of text: the heading or first line asks, the text
+    /// under it answers. Optional fields (input, system prompt) and the rejected answer stay
+    /// unmapped.
+    /// </summary>
+    public static IReadOnlyDictionary<TargetField, string> SuggestTextMapping(SourceLayout layout, DatasetType type)
+    {
+        var (question, answer) = layout switch
+        {
+            SourceLayout.Sections => (TextColumns.Heading, TextColumns.Content),
+            SourceLayout.Paragraphs => (TextColumns.FirstLine, TextColumns.Rest),
+            _ => throw new ArgumentOutOfRangeException(nameof(layout), layout, "Not a text layout."),
+        };
+        var required = FieldsFor(type).Where(f => f.IsRequired).Select(f => f.Field).ToList();
+        var mapping = new Dictionary<TargetField, string>();
+        if (required.Count >= 2)
+        {
+            mapping[required[0]] = question;
+            mapping[required[1]] = answer;
         }
 
         return mapping;

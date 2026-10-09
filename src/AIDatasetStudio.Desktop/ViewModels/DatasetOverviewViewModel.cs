@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using AIDatasetStudio.Application.Analysis;
 using AIDatasetStudio.Application.Catalog;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Domain.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -46,8 +48,9 @@ public sealed partial class ContextLengthOption(int value, string label) : Obser
 
 /// <summary>
 /// The inspector when no record is selected: the dataset's quality score, token statistics and
-/// issues with clean-up actions, and its tokenizer settings. Also runs the background analysis
-/// that keeps token counts and rule results up to date (SDD §7, §8).
+/// issues with clean-up actions, its tokenizer settings and what the AI should keep in mind for
+/// it. Also runs the background analysis that keeps token counts and rule results up to date
+/// (SDD §7, §8, §17).
 /// </summary>
 public sealed partial class DatasetOverviewViewModel : ViewModelBase
 {
@@ -56,7 +59,11 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     private readonly RecordOperations _operations;
     private readonly IDialogService _dialogs;
     private readonly StatusBarViewModel _status;
+    private readonly AIAssistant _ai;
+    private readonly IJudgmentService _judgments;
+    private readonly ISemanticIndex _semantic;
     private readonly Localizer _localizer;
+    private CancellationTokenSource? _guidanceDelay;
     private CancellationTokenSource? _running;
     private Task _runningTask = Task.CompletedTask;
     private bool _applyingSettings;
@@ -68,6 +75,9 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         RecordOperations operations,
         IDialogService dialogs,
         StatusBarViewModel status,
+        AIAssistant ai,
+        IJudgmentService judgments,
+        ISemanticIndex semantic,
         Localizer localizer)
     {
         _analysis = analysis;
@@ -75,7 +85,16 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         _operations = operations;
         _dialogs = dialogs;
         _status = status;
+        _ai = ai;
+        _judgments = judgments;
+        _semantic = semantic;
         _localizer = localizer;
+        _ai.ConnectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(AIConnectionText));
+            OnPropertyChanged(nameof(HasAIConnection));
+            RefreshSemanticTexts();
+        };
         TokenizerOptions = tokenizers.Available.Select(id => new TokenizerOption(id, TokenizerLabel(id))).ToList();
         ContextOptions = Tokenizers.ContextLengths.Select(n => new ContextLengthOption(n, ContextLabel(n))).ToList();
         _localizer.CultureChanged += (_, _) => Refresh();
@@ -87,9 +106,30 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     public event EventHandler<Guid>? AnalysisCompleted;
 
     /// <summary>
+    /// Raised when only the groups of near-duplicate questions changed (after an edit): scores of
+    /// the shown records may differ, but the list should not reload under the user.
+    /// </summary>
+    public event EventHandler<Guid>? NearGroupsChanged;
+
+    /// <summary>
     /// Raised when the user asks to see the records with an issue.
     /// </summary>
     public event EventHandler<QualityFilter>? ShowRecordsRequested;
+
+    /// <summary>
+    /// Raised when the user wants to set up or change the AI connection.
+    /// </summary>
+    public event EventHandler? AIConnectionsRequested;
+
+    /// <summary>
+    /// Raised when the user wants the model to write questions from a document into this dataset.
+    /// </summary>
+    public event EventHandler? ExtractQuestionsRequested;
+
+    /// <summary>
+    /// How long typing pauses before the AI instructions are saved.
+    /// </summary>
+    public static TimeSpan GuidanceSaveDelay { get; set; } = TimeSpan.FromMilliseconds(700);
 
     public IReadOnlyList<TokenizerOption> TokenizerOptions { get; }
 
@@ -114,6 +154,24 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial ContextLengthOption? SelectedContextLength { get; set; }
+
+    /// <summary>
+    /// What the AI should keep in mind for this dataset; saved shortly after typing stops.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? AIGuidance { get; set; }
+
+    /// <summary>
+    /// The pending save of <see cref="AIGuidance"/>; awaited by tests.
+    /// </summary>
+    public Task GuidanceSaving { get; private set; } = Task.CompletedTask;
+
+    /// <summary>
+    /// "qwen2.5:7b · Ollama", or that no connection is set up.
+    /// </summary>
+    public string AIConnectionText => _ai.Connection is { } connection ? AIText.Describe(connection) : _localizer["Overview_NoAIConnection"];
+
+    public bool HasAIConnection => _ai.Connection is not null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ProgressText))]
@@ -167,8 +225,15 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     public async Task ShowAsync(DatasetNodeViewModel? dataset)
     {
         await StopAsync();
+        await StopEmbeddingAsync();
+        await FlushGuidanceAsync();
         Dataset = dataset;
         Summary = null;
+        ApplyJudgments(null);
+        ApplySemantic(null);
+        SemanticError = null;
+        OnPropertyChanged(nameof(CanJudgeRecords));
+        OnPropertyChanged(nameof(CanCompareMeaning));
         Histogram.Clear();
         Issues.Clear();
         OnPropertyChanged(nameof(HasIssues));
@@ -177,6 +242,9 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         SelectedTokenizer = dataset is null ? null : TokenizerOptions.FirstOrDefault(o => o.Id == dataset.Tokenizer);
         SelectedContextLength = dataset is null ? null : ContextOptions.FirstOrDefault(o => o.Value == dataset.ContextLength)
             ?? new ContextLengthOption(dataset.ContextLength, ContextLabel(dataset.ContextLength));
+        AIGuidance = dataset?.AIGuidance;
+        OnPropertyChanged(nameof(AIConnectionText));
+        OnPropertyChanged(nameof(HasAIConnection));
         _applyingSettings = false;
         if (dataset is null)
         {
@@ -231,6 +299,9 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
             {
                 Apply(summary);
             }
+
+            await LoadJudgmentsAsync(dataset);
+            await LoadSemanticAsync(dataset);
         }
         catch (Exception ex) when (_status.TryReport(ex))
         {
@@ -247,7 +318,8 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Archives the records with an issue (for copies, all but the first of each group). Undoable.
+    /// Archives the records with an issue (for copies and near-duplicate questions, all but the
+    /// first of each group). Undoable.
     /// </summary>
     [RelayCommand]
     private async Task ArchiveAsync(IssueSummaryItem? item)
@@ -272,6 +344,79 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
             var result = await _operations.SetStatusAsync(dataset.Id, ids, RecordStatus.Archived);
             _status.Set("Status_RecordsArchivedByRule", result.Changed, item.Label);
             await RefreshAsync();
+        }
+        catch (Exception ex) when (_status.TryReport(ex))
+        {
+        }
+    }
+
+    [RelayCommand]
+    private void OpenAIConnections() => AIConnectionsRequested?.Invoke(this, EventArgs.Empty);
+
+    [RelayCommand]
+    private void ExtractQuestions() => ExtractQuestionsRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
+    /// Saves the AI instructions now instead of after the typing pause (switching datasets, closing).
+    /// </summary>
+    public async Task FlushGuidanceAsync()
+    {
+        if (_guidanceDelay is { } delay)
+        {
+            _guidanceDelay = null;
+            await delay.CancelAsync();
+            if (Dataset is { } dataset)
+            {
+                await SaveGuidanceAsync(dataset, AIGuidance);
+            }
+        }
+
+        await GuidanceSaving;
+    }
+
+    partial void OnAIGuidanceChanged(string? value)
+    {
+        if (_applyingSettings || Dataset is not { } dataset)
+        {
+            return;
+        }
+
+        _guidanceDelay?.Cancel();
+        var delay = _guidanceDelay = new CancellationTokenSource();
+        GuidanceSaving = SaveLaterAsync();
+
+        async Task SaveLaterAsync()
+        {
+            try
+            {
+                await Task.Delay(GuidanceSaveDelay, delay.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (_guidanceDelay == delay)
+            {
+                _guidanceDelay = null;
+                await SaveGuidanceAsync(dataset, value);
+            }
+        }
+    }
+
+    private async Task SaveGuidanceAsync(DatasetNodeViewModel dataset, string? guidance)
+    {
+        guidance = string.IsNullOrWhiteSpace(guidance) ? null : guidance.Trim();
+        if (guidance == dataset.AIGuidance)
+        {
+            return;
+        }
+
+        try
+        {
+            await _catalog.SetAIGuidanceAsync(dataset.Id, guidance);
+            dataset.AIGuidance = guidance;
+            _status.Set("Status_AIGuidanceSaved", dataset.Name);
         }
         catch (Exception ex) when (_status.TryReport(ex))
         {
@@ -320,8 +465,15 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
             var pending = await _analysis.CountPendingAsync(dataset.Id, cancellation.Token);
             if (pending == 0)
             {
-                // Nothing to analyse, but statuses may have changed (undo, redo).
+                // Nothing to analyse, but statuses may have changed (undo, redo), and an edited
+                // record, analysed on its own, may have joined or left a group of near-duplicates.
+                var regrouped = await _analysis.GroupNearDuplicatesAsync(dataset.Id, cancellation.Token);
                 await RefreshAsync();
+                if (regrouped && _running == cancellation)
+                {
+                    NearGroupsChanged?.Invoke(this, dataset.Id);
+                }
+
                 return;
             }
 
@@ -386,7 +538,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
                 IssueText.RuleName(_localizer, rule),
                 count,
                 FilterFor(rule),
-                CanArchive: rule is QualityRule.Duplicate or QualityRule.EmptyContent or QualityRule.IdenticalAnswers));
+                CanArchive: rule is QualityRule.Duplicate or QualityRule.NearDuplicate or QualityRule.EmptyContent or QualityRule.IdenticalAnswers));
         }
 
         OnPropertyChanged(nameof(HasIssues));
@@ -396,6 +548,7 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
     private static QualityFilter FilterFor(QualityRule rule) => rule switch
     {
         QualityRule.Duplicate => QualityFilter.Duplicates,
+        QualityRule.NearDuplicate => QualityFilter.NearDuplicates,
         QualityRule.PersonalData => QualityFilter.PersonalData,
         QualityRule.OverContextLimit => QualityFilter.OverContextLimit,
         _ when QualityRules.SeverityOf(rule) == IssueSeverity.Error => QualityFilter.Errors,
@@ -424,5 +577,11 @@ public sealed partial class DatasetOverviewViewModel : ViewModelBase
         {
             Apply(summary);
         }
+
+        ApplyJudgments(Judgments);
+        RefreshSemanticTexts();
+        OnPropertyChanged(nameof(JudgedText));
+        OnPropertyChanged(nameof(OutdatedText));
+        OnPropertyChanged(nameof(JudgeRestText));
     }
 }

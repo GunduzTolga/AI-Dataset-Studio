@@ -20,6 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Writes .xlsx workbooks for the import wizard tests; shared with the infrastructure tests. -->
+    <Compile Include="..\AIDatasetStudio.Infrastructure.Tests\Support\XlsxFile.cs" Link="Support\XlsxFile.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The XAML sources are scanned for localization keys; copy them next to the tests so the
          check does not depend on source paths (CI builds map them to "/_/"). A custom item type
          is used because Avalonia's build targets remove *.axaml from None items. -->

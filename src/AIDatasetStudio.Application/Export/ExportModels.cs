@@ -43,9 +43,20 @@ public enum SplitPart
 /// <param name="ValidationPercent">Share of the validation file, 0–99.</param>
 /// <param name="TestPercent">Share of the test file, 0–99. The three add up to 100.</param>
 /// <param name="Seed">The same seed always puts the same records in the same files.</param>
-public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int TestPercent, int Seed = SplitOptions.DefaultSeed)
+/// <param name="StratifyBy">
+/// Splits each tag stratum on its own with exact shares (SDD §10.1): <c>null</c> for no strata,
+/// <see cref="AnyTag"/> for the record's first tag, or a tag group such as "kategori".
+/// </param>
+public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int TestPercent, int Seed = SplitOptions.DefaultSeed, string? StratifyBy = null)
 {
     public const int DefaultSeed = 42;
+
+    /// <summary>
+    /// <see cref="StratifyBy"/> value for "by tag": a record's stratum is its first tag by name.
+    /// </summary>
+    public const string AnyTag = "";
+
+    public bool IsStratified => StratifyBy is not null;
 
     /// <summary>80 / 10 / 10, the usual choice.</summary>
     public static SplitOptions Standard { get; } = new(80, 10, 10);
@@ -78,13 +89,20 @@ public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int T
 /// <param name="SkipDuplicates">Export only the first of records with exactly the same content.</param>
 /// <param name="MaskPersonalData">Replace personal data with placeholders such as <c>[EMAIL_1]</c> (SDD §9).</param>
 /// <param name="Split">Write train / validation / test files; <c>null</c> for a single file.</param>
+/// <param name="Training">Also write a fine-tuning configuration for the files (M20); <c>null</c> for none.</param>
+/// <param name="SkipLowJudgeScore">
+/// Leave out records the model scored 1–2 (SDD §17.7), by a judgment of their content as it is;
+/// an outdated judgment does not count.
+/// </param>
 public sealed record ExportOptions(
     ExportFormat Format,
     IReadOnlyList<RecordStatus> Statuses,
     bool SkipOverContextLimit = true,
     bool SkipDuplicates = true,
     bool MaskPersonalData = true,
-    SplitOptions? Split = null)
+    SplitOptions? Split = null,
+    TrainingOptions? Training = null,
+    bool SkipLowJudgeScore = false)
 {
     /// <summary>
     /// Approved records only, the safe default (SDD §13.2).
@@ -99,7 +117,9 @@ public sealed record ExportOptions(
         && SkipOverContextLimit == other.SkipOverContextLimit
         && SkipDuplicates == other.SkipDuplicates
         && MaskPersonalData == other.MaskPersonalData
-        && Split == other.Split;
+        && Split == other.Split
+        && Training == other.Training
+        && SkipLowJudgeScore == other.SkipLowJudgeScore;
 
     public override int GetHashCode()
     {
@@ -114,6 +134,8 @@ public sealed record ExportOptions(
         hash.Add(SkipDuplicates);
         hash.Add(MaskPersonalData);
         hash.Add(Split);
+        hash.Add(Training);
+        hash.Add(SkipLowJudgeScore);
         return hash.ToHashCode();
     }
 }
@@ -127,15 +149,17 @@ public sealed record ExportOptions(
 /// <param name="Duplicates">Later copies left out.</param>
 /// <param name="NotAnalyzed">Records whose length is not known yet; they are checked when exporting.</param>
 /// <param name="SampleLines">The first lines of the file, exactly as they will be written.</param>
+/// <param name="LowJudgeScore">Records left out for the model's low score.</param>
 public sealed record ExportPreview(
     long Selected,
     long Unsupported,
     long OverContextLimit,
     long Duplicates,
     long NotAnalyzed,
-    IReadOnlyList<string> SampleLines)
+    IReadOnlyList<string> SampleLines,
+    long LowJudgeScore = 0)
 {
-    public long Exported => Selected - Unsupported - OverContextLimit - Duplicates;
+    public long Exported => Selected - Unsupported - OverContextLimit - LowJudgeScore - Duplicates;
 }
 
 public sealed record ExportedFile(SplitPart? Part, string Path, long Count);
@@ -144,13 +168,17 @@ public sealed record ExportedFile(SplitPart? Part, string Path, long Count);
 /// A finished export.
 /// </summary>
 /// <param name="Masked">Records in which personal data was replaced.</param>
+/// <param name="TrainingFiles">The fine-tuning configuration written next to the data, if one was asked for.</param>
+/// <param name="LowJudgeScore">Records left out for the model's low score.</param>
 public sealed record ExportResult(
     IReadOnlyList<ExportedFile> Files,
     long Exported,
     long Unsupported,
     long OverContextLimit,
     long Duplicates,
-    long Masked);
+    long Masked,
+    IReadOnlyList<string>? TrainingFiles = null,
+    long LowJudgeScore = 0);
 
 /// <param name="Processed">Records read so far.</param>
 /// <param name="Total">Records with a chosen status.</param>
@@ -159,4 +187,5 @@ public readonly record struct ExportProgress(long Processed, long Total);
 /// <summary>
 /// An earlier export of a dataset (SDD §18 ExportHistories).
 /// </summary>
-public sealed record ExportHistoryEntry(ExportFormat Format, long RecordCount, IReadOnlyList<string> Files, DateTimeOffset ExportedAt);
+/// <param name="VersionNumber">"1.2.0" when a version was exported; <c>null</c> for the dataset as it was.</param>
+public sealed record ExportHistoryEntry(ExportFormat Format, long RecordCount, IReadOnlyList<string> Files, DateTimeOffset ExportedAt, string? VersionNumber = null);

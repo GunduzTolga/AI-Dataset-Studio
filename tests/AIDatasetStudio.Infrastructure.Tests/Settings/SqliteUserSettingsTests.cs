@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Infrastructure.Settings;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Settings;
@@ -29,6 +30,34 @@ public sealed class SqliteUserSettingsTests : IDisposable
 
         reloaded.SetUiLanguage(null);
         Assert.Null(new SqliteUserSettings(_directory, _clock).UiLanguage);
+    }
+
+    [Fact]
+    public void AI_connections_survive_a_restart_and_the_first_is_the_default()
+    {
+        var settings = new SqliteUserSettings(_directory, _clock);
+        var changes = 0;
+        settings.Changed += (_, _) => changes++;
+        var ollama = new AIConnection(Guid.CreateVersion7(), "Ollama", AIProviderKind.Ollama, "http://localhost:11434/v1", "qwen2.5:7b");
+        var studio = new AIConnection(Guid.CreateVersion7(), "LM Studio", AIProviderKind.LMStudio, "http://localhost:1234/v1", "gemma-3-4b", ApiKey: "yerel", Temperature: 0.3, MaxTokens: null);
+
+        Assert.Null(settings.DefaultConnection);
+        settings.Save(ollama);
+        settings.Save(studio);
+        settings.Save(ollama with { Model = "llama3.2" });
+
+        var reloaded = new SqliteUserSettings(_directory, _clock);
+        Assert.Equal([ollama with { Model = "llama3.2" }, studio], reloaded.Connections);
+        Assert.Equal(ollama.Id, reloaded.DefaultConnection!.Id);
+        Assert.Equal(3, changes);
+
+        reloaded.SetDefault(studio.Id);
+        Assert.Equal(studio, new SqliteUserSettings(_directory, _clock).DefaultConnection);
+
+        reloaded.Remove(studio.Id);
+        Assert.Equal(ollama.Id, new SqliteUserSettings(_directory, _clock).DefaultConnection!.Id);
+        reloaded.Remove(ollama.Id);
+        Assert.Null(new SqliteUserSettings(_directory, _clock).DefaultConnection);
     }
 
     [Fact]

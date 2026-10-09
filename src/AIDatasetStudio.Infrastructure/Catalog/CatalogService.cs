@@ -25,6 +25,12 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
             .GroupBy(r => r.DatasetId)
             .Select(g => new { DatasetId = g.Key, Count = g.LongCount() })
             .ToDictionaryAsync(x => x.DatasetId, x => x.Count, cancellationToken);
+        // Versions are few; the newest of each dataset is picked here.
+        var latest = (await context.Versions.AsNoTracking()
+                .Select(v => new { v.DatasetId, v.Number, v.CreatedAt, v.Id })
+                .ToListAsync(cancellationToken))
+            .GroupBy(v => v.DatasetId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id).First().Number);
 
         var datasetsByProject = datasets.ToLookup(d => d.ProjectId);
         return projects
@@ -33,7 +39,8 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
                 p.Name,
                 p.Description,
                 datasetsByProject[p.Id]
-                    .Select(d => new DatasetSummary(d.Id, d.ProjectId, d.Name, d.Type, counts.GetValueOrDefault(d.Id), d.DefaultTokenizer, d.ContextLength))
+                    .Select(d => new DatasetSummary(
+                        d.Id, d.ProjectId, d.Name, d.Type, counts.GetValueOrDefault(d.Id), d.DefaultTokenizer, d.ContextLength, latest.GetValueOrDefault(d.Id), d.AIGuidance))
                     .ToList()))
             .ToList();
     }
@@ -102,6 +109,15 @@ internal sealed class CatalogService(IWorkspaceDatabase database, TimeProvider t
 
         // Results computed with another tokenizer no longer match the dataset and are recomputed.
         dataset.ChangeTokenSettings(tokenizer, contextLength);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetAIGuidanceAsync(Guid datasetId, string? guidance, CancellationToken cancellationToken = default)
+    {
+        await using var context = database.CreateDbContext();
+        var dataset = await context.Datasets.FindAsync([datasetId], cancellationToken)
+            ?? throw new NotFoundException(nameof(Dataset), datasetId);
+        dataset.ChangeAIGuidance(guidance);
         await context.SaveChangesAsync(cancellationToken);
     }
 

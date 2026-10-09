@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using System.Text.Json.Nodes;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Judgments;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -29,7 +32,7 @@ public sealed class ExportServiceTests
         var options = ExportOptions.DefaultFor(ExportFormat.Alpaca);
         var path = Path.Combine(ws.Directory, "faq.jsonl");
 
-        var preview = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 5, Ct);
+        var preview = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 5, cancellationToken: Ct);
         var result = await ws.Export.ExportAsync(datasetId, options, path, cancellationToken: Ct);
 
         string[] expected =
@@ -68,7 +71,7 @@ public sealed class ExportServiceTests
 
         Assert.Equal(3, result.Exported);
         Assert.Contains("0532 123 45 67", await File.ReadAllTextAsync(path, Ct), StringComparison.Ordinal);
-        Assert.Equal(0, (await ws.Export.PreviewAsync(datasetId, options, 0, Ct)).Duplicates);
+        Assert.Equal(0, (await ws.Export.PreviewAsync(datasetId, options, 0, cancellationToken: Ct)).Duplicates);
     }
 
     [Fact]
@@ -111,6 +114,41 @@ public sealed class ExportServiceTests
     }
 
     [Fact]
+    public async Task A_training_configuration_is_written_next_to_the_files_and_remembered()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        await AddAsync(ws, datasetId, [.. Enumerable.Range(0, 40).Select(i => (RecordPayload)new InstructionPayload($"Soru {i}", "", $"Cevap {i}"))]);
+        var training = new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct");
+        var options = new ExportOptions(ExportFormat.ShareGpt, [RecordStatus.Draft], Split: SplitOptions.Standard, Training: training);
+        var folder = Path.Combine(ws.Directory, "egitim");
+
+        var result = await ws.Export.ExportAsync(datasetId, options, folder, cancellationToken: Ct);
+
+        Assert.Equal(
+            ["dataset_info.json", "llamafactory.yaml", "test.jsonl", "train.jsonl", "val.jsonl"],
+            Directory.EnumerateFiles(folder).Select(Path.GetFileName).Order(StringComparer.Ordinal));
+        Assert.Equal([Path.Combine(folder, "dataset_info.json"), Path.Combine(folder, "llamafactory.yaml")], result.TrainingFiles);
+        var yaml = await File.ReadAllTextAsync(Path.Combine(folder, "llamafactory.yaml"), Ct);
+        Assert.Contains("# Fine-tuning \"Dataset\" with LoRA", yaml, StringComparison.Ordinal);
+        Assert.Contains("cutoff_len: 4096\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("\"file_name\": \"val.jsonl\"", await File.ReadAllTextAsync(Path.Combine(folder, "dataset_info.json"), Ct), StringComparison.Ordinal);
+        Assert.Equal(training, (await ws.Export.GetLastOptionsAsync(datasetId, Ct))!.Training);
+
+        // A single file gets its configuration in the same folder.
+        var single = Path.Combine(ws.Directory, "tek", "sss.jsonl");
+        Directory.CreateDirectory(Path.GetDirectoryName(single)!);
+        var alone = await ws.Export.ExportAsync(datasetId, options with { Split = null, Training = training with { Framework = TrainingFramework.Axolotl } }, single, cancellationToken: Ct);
+        Assert.Equal([Path.Combine(ws.Directory, "tek", "axolotl.yaml")], alone.TrainingFiles);
+        Assert.Contains("  - path: \"sss.jsonl\"\n", await File.ReadAllTextAsync(alone.TrainingFiles![0], Ct), StringComparison.Ordinal);
+
+        // A tool that cannot read the format is refused before anything is written.
+        await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.ExportAsync(
+            datasetId, options with { Format = ExportFormat.ChatMl }, Path.Combine(ws.Directory, "chatml"), cancellationToken: Ct));
+        Assert.False(Directory.Exists(Path.Combine(ws.Directory, "chatml")));
+    }
+
+    [Fact]
     public async Task Alpaca_leaves_out_longer_chats_and_says_so()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
@@ -124,7 +162,7 @@ public sealed class ExportServiceTests
             ]));
         var options = ExportOptions.DefaultFor(ExportFormat.Alpaca) with { Statuses = [RecordStatus.Draft] };
 
-        var preview = await ws.Export.PreviewAsync(datasetId, options, 5, Ct);
+        var preview = await ws.Export.PreviewAsync(datasetId, options, 5, cancellationToken: Ct);
         var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "chat.jsonl"), cancellationToken: Ct);
 
         Assert.Equal((2L, 1L, 1L), (preview.Selected, preview.Unsupported, preview.Exported));
@@ -143,7 +181,7 @@ public sealed class ExportServiceTests
             new InstructionPayload("Kısa", "", "Cevap"));
         var options = ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Draft] };
 
-        var preview = await ws.Export.PreviewAsync(datasetId, options, 0, Ct);
+        var preview = await ws.Export.PreviewAsync(datasetId, options, 0, cancellationToken: Ct);
         var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "x.jsonl"), cancellationToken: Ct);
 
         Assert.Equal((2L, 0L), (preview.NotAnalyzed, preview.OverContextLimit));
@@ -167,11 +205,84 @@ public sealed class ExportServiceTests
         });
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ws.Export.ExportAsync(
-            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Draft] }, path, progress, cancellation.Token));
+            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Draft] }, path, progress, cancellationToken: cancellation.Token));
 
         Assert.Equal("eski\n", await File.ReadAllTextAsync(path, Ct));
         Assert.DoesNotContain(Directory.EnumerateFiles(ws.Directory), f => f.EndsWith(".partial", StringComparison.Ordinal));
         Assert.Null(await ws.Export.GetLastExportAsync(datasetId, Ct));
+    }
+
+    [Fact]
+    public async Task Records_the_model_scored_low_can_be_left_out()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var ids = await AddAsync(ws, datasetId,
+            new InstructionPayload("a", "", "iyi"),        // scored 5
+            new InstructionPayload("b", "", "kötü"),       // scored 1
+            new InstructionPayload("c", "", "eski"),       // scored 2, then changed
+            new InstructionPayload("b", "", "kötü"),       // a copy of the low one, not judged
+            new InstructionPayload("d", "", "orta"));      // scored 3
+        foreach (var (id, score) in new[] { (ids[0], 5), (ids[1], 1), (ids[2], 2), (ids[4], 3) })
+        {
+            var hash = (await ws.Queries.GetAsync(id, Ct))!.ContentHash;
+            await ws.Judgments.SaveAsync(new RecordJudgment(id, hash, score, "", JudgeFlags.None, "qwen2.5:7b", TestWorkspace.Now), Ct);
+        }
+
+        var version = await ws.Versions.CreateAsync(datasetId, "1.0.0", null, cancellationToken: Ct);
+        await ws.Commands.UpdatePayloadAsync(ids[2], new InstructionPayload("c", "", "yeni"), Ct);
+        // An edited record goes back to review.
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft, RecordStatus.InReview], MaskPersonalData: false, SkipLowJudgeScore: true);
+        var path = Path.Combine(ws.Directory, "scored.jsonl");
+
+        var preview = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 0, cancellationToken: Ct);
+        var result = await ws.Export.ExportAsync(datasetId, options, path, cancellationToken: Ct);
+
+        // The low one is left out; its copy is written in its place, and a judgment of earlier content does not count.
+        string[] expected =
+        [
+            """{"instruction":"a","input":"","output":"iyi"}""",
+            """{"instruction":"c","input":"","output":"yeni"}""",
+            """{"instruction":"b","input":"","output":"kötü"}""",
+            """{"instruction":"d","input":"","output":"orta"}""",
+        ];
+        Assert.Equal(expected, await File.ReadAllLinesAsync(path, Ct));
+        Assert.Equal((1L, 0L, 4L), (preview.LowJudgeScore, preview.Duplicates, preview.Exported));
+        Assert.Equal((1L, 0L, 4L), (result.LowJudgeScore, result.Duplicates, result.Exported));
+        Assert.Equal(options, await ws.Export.GetLastOptionsAsync(datasetId, Ct));
+
+        // Off, the copy is left out instead.
+        var all = await ws.Export.PreviewAsync(datasetId, options with { SkipLowJudgeScore = false }, sampleLines: 0, cancellationToken: Ct);
+        Assert.Equal((0L, 1L, 4L), (all.LowJudgeScore, all.Duplicates, all.Exported));
+
+        // A version keeps a judgment while its record's content is the judged one: "c" was scored 2 as frozen.
+        var frozen = await ws.Export.PreviewAsync(datasetId, options, sampleLines: 0, version.Id, Ct);
+        Assert.Equal((2L, 3L), (frozen.LowJudgeScore, frozen.Exported));
+    }
+
+    [Fact]
+    public async Task A_split_part_holds_the_records_its_file_gets()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var payloads = Enumerable.Range(0, 120).Select(i => (RecordPayload)new InstructionPayload($"Soru {Code(i % 60)}", "", $"Cevap {i}")).ToArray();
+        var ids = await AddAsync(ws, datasetId, payloads);
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft], Split: SplitOptions.Standard);
+
+        var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "split"), cancellationToken: Ct);
+        var test = await ws.Export.GetSplitPartAsync(datasetId, options, SplitPart.Test, Ct);
+        var validation = await ws.Export.GetSplitPartAsync(datasetId, options, SplitPart.Validation, Ct);
+
+        // The test file's records, in its order: the questions a model trained on the rest has not seen.
+        var answers = File.ReadLines(result.Files.Single(f => f.Part == SplitPart.Test).Path).Select(line => (string?)JsonNode.Parse(line)!["output"]);
+        Assert.NotEmpty(test);
+        Assert.Equal(answers, test.Select(id => $"Cevap {ids.IndexOf(id)}"));
+        Assert.Equal(result.Files.Single(f => f.Part == SplitPart.Validation).Count, validation.Count);
+        Assert.Empty(test.Intersect(validation));
+
+        // No test part, no split: nothing.
+        Assert.Empty(await ws.Export.GetSplitPartAsync(datasetId, options with { Split = SplitOptions.TrainValidation }, SplitPart.Test, Ct));
+        Assert.Empty(await ws.Export.GetSplitPartAsync(datasetId, options with { Split = null }, SplitPart.Test, Ct));
     }
 
     [Fact]
@@ -183,9 +294,9 @@ public sealed class ExportServiceTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.ExportAsync(datasetId, ExportOptions.DefaultFor(ExportFormat.HuggingFaceDpo), path, cancellationToken: Ct));
         await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.PreviewAsync(
-            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Split = new SplitOptions(50, 10, 10) }, 1, Ct));
+            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Split = new SplitOptions(50, 10, 10) }, 1, cancellationToken: Ct));
         await Assert.ThrowsAsync<ArgumentException>(() => ws.Export.PreviewAsync(
-            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Archived] }, 1, Ct));
+            datasetId, ExportOptions.DefaultFor(ExportFormat.OpenAi) with { Statuses = [RecordStatus.Archived] }, 1, cancellationToken: Ct));
         Assert.False(File.Exists(path));
         Assert.Null(await ws.Export.GetLastOptionsAsync(datasetId, Ct));
     }
@@ -211,6 +322,47 @@ public sealed class ExportServiceTests
         Assert.Equal((10_000L, 10_000L), (result.Exported, result.Masked));
         Assert.Equal(10_000, result.Files.Sum(f => File.ReadLines(f.Path).LongCount()));
     }
+
+    [Fact]
+    public async Task A_stratified_split_meets_the_shares_in_every_category()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var hukuk = await ws.Tags.CreateAsync("kategori:hukuk", Ct);
+        var teknik = await ws.Tags.CreateAsync("kategori:teknik", Ct);
+        var zor = await ws.Tags.CreateAsync("zor", Ct);
+        await ws.Commands.AddRangeAsync(datasetId, Enumerable.Range(0, 70).Select(i => new NewRecord(
+            new InstructionPayload($"Hukuk sorusu {Code(i % 50)}", "", $"Yanıt {i}"), RecordLineage.Manual())), cancellationToken: Ct);
+        await ws.Commands.AddRangeAsync(datasetId, Enumerable.Range(0, 20).Select(i => new NewRecord(
+            new InstructionPayload($"Teknik soru {Code(100 + i)}", "", $"Yanıt {i}"), RecordLineage.Manual())), cancellationToken: Ct);
+        var ids = (await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, null, 100, Ct)).Items.Select(r => r.Id).ToList();
+        await ws.Commands.SetTagAsync(ids[..70], hukuk.Id, present: true, Ct);
+        await ws.Commands.SetTagAsync(ids[70..], teknik.Id, present: true, Ct);
+        await ws.Commands.SetTagAsync(ids[..10], zor.Id, present: true, Ct); // another group: ignored
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft], Split: SplitOptions.Standard with { StratifyBy = "kategori" });
+
+        var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "strata"), cancellationToken: Ct);
+
+        var lines = result.Files.ToDictionary(f => f.Part!.Value, f => File.ReadAllLines(f.Path));
+        int Count(SplitPart part, string category) => lines.GetValueOrDefault(part, []).Count(l => l.Contains(category, StringComparison.Ordinal));
+        // Teknik: 20 questions → exactly 16 / 2 / 2.
+        Assert.Equal((16, 2, 2), (Count(SplitPart.Train, "Teknik"), Count(SplitPart.Validation, "Teknik"), Count(SplitPart.Test, "Teknik")));
+        // Hukuk: 70 records but 50 questions; a question never spans two files, so the cut lands near 56 / 7 / 7.
+        Assert.Equal(70, Count(SplitPart.Train, "Hukuk") + Count(SplitPart.Validation, "Hukuk") + Count(SplitPart.Test, "Hukuk"));
+        Assert.InRange(Count(SplitPart.Train, "Hukuk"), 56, 57);
+        foreach (var question in Enumerable.Range(0, 50).Select(i => $"\"Hukuk sorusu {Code(i)}\""))
+        {
+            Assert.Single(lines, file => file.Value.Any(l => l.Contains(question, StringComparison.Ordinal)));
+        }
+
+        // The same options write the same files again.
+        var again = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, "strata-again"), cancellationToken: Ct);
+        Assert.Equal(result.Files.Select(f => f.Count), again.Files.Select(f => f.Count));
+        Assert.Equal(options, await ws.Export.GetLastOptionsAsync(datasetId, Ct));
+    }
+
+    // Distinct letters for each question, so no two are near-duplicates ("sorusu 1" and "sorusu 10" are).
+    private static string Code(int i) => new(new Random(i).GetItems("abcçdefgğhıijklmnoöprsştuüvyz".ToCharArray(), 8));
 
     private static async Task<List<Guid>> AddAsync(TestWorkspace ws, Guid datasetId, params RecordPayload[] payloads)
     {

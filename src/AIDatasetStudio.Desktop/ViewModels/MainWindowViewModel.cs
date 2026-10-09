@@ -6,11 +6,14 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
+using AIDatasetStudio.Application.Tags;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -30,11 +33,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
     private readonly IExportService _export;
+    private readonly IVersionService _versions;
     private readonly IUpdateService _updates;
     private readonly IShellService _shell;
     private readonly RecordOperations _operations;
     private readonly IRecordAnalysisService _analysis;
     private readonly IUserSettings _settings;
+    private readonly ITagService _tagService;
+    private readonly TagCatalog _tags;
+    private readonly AIAssistant _ai;
+    private readonly DocumentQuestions _questions;
+    private readonly RecordVariations _variations;
+    private readonly RecordJudge _judge;
+    private readonly ModelEvaluator _evaluator;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -45,11 +56,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordQueryService queries,
         IImportService import,
         IExportService export,
+        IVersionService versions,
         IUpdateService updates,
         IShellService shell,
         RecordOperations operations,
         IRecordAnalysisService analysis,
         IUserSettings settings,
+        ITagService tagService,
+        TagCatalog tags,
+        AIAssistant ai,
+        DocumentQuestions questions,
+        RecordVariations variations,
+        RecordJudge judge,
+        ModelEvaluator evaluator,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -64,11 +83,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _queries = queries;
         _import = import;
         _export = export;
+        _versions = versions;
         _updates = updates;
         _shell = shell;
         _operations = operations;
         _analysis = analysis;
         _settings = settings;
+        _tagService = tagService;
+        _tags = tags;
+        _ai = ai;
+        _questions = questions;
+        _variations = variations;
+        _judge = judge;
+        _evaluator = evaluator;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -90,7 +117,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _operations.Changed += (_, change) => OnRecordsChanged(change);
         _operations.History.PropertyChanged += (_, _) => OnHistoryChanged();
         Overview.AnalysisCompleted += (_, datasetId) => _ = OnAnalysisCompletedAsync(datasetId);
+        Overview.NearGroupsChanged += (_, datasetId) => _ = OnNearGroupsChangedAsync(datasetId);
         Overview.ShowRecordsRequested += (_, filter) => Records.ShowQuality(filter);
+        Overview.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
+        Overview.ExtractQuestionsRequested += (_, _) => ExtractQuestionsCommand.Execute(null);
+        Details.AIConnectionsRequested += (_, _) => ManageAIConnectionsCommand.Execute(null);
+        Details.VariationsRequested += (_, _) => GenerateVariationsCommand.Execute(null);
+        Details.JudgeSelectionRequested += (_, _) => JudgeCommand.Execute(null);
+        Details.Judged += (_, recordId) => _ = OnJudgedAsync([recordId]);
+        Overview.JudgeRequested += (_, _) => _ = JudgeRestAsync();
         Theme = ThemeService.Parse(settings.UiTheme);
         RefreshRecentWorkspaces();
     }
@@ -113,10 +148,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
+    [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
-    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
     [NotifyCanExecuteChangedFor(nameof(ApproveAndNextCommand), nameof(ArchiveAndNextCommand), nameof(NextRecordCommand), nameof(PreviousRecordCommand), nameof(DeleteSelectionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ToggleTagCommand), nameof(ToggleTagSlotCommand))]
     public partial bool IsBusy { get; set; }
 
     public WorkspaceInfo? Workspace => _workspaces.Current;
@@ -303,6 +340,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         var wizard = new ImportWizardViewModel(_import, _localizer, path, new ImportTarget(dataset.Id, dataset.Name, dataset.Type));
         if (await _dialogs.ShowImportWizardAsync(wizard) is not { } result)
         {
+            // The wizard hands a document over to Q&A extraction.
+            if (wizard.ExtractQuestionsChosen)
+            {
+                await ExtractQuestionsAsync(dataset, path);
+            }
+
             return;
         }
 
@@ -330,7 +373,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private bool CanExport() => !IsBusy && Explorer.SelectedDataset is not null;
 
     /// <summary>
-    /// Writes the selected dataset to training files (SDD §10, §13).
+    /// Writes the selected dataset, or one of its versions, to training files (SDD §10, §13, §14).
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanExport))]
     private async Task ExportAsync()
@@ -340,7 +383,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type));
+        try
+        {
+            await ExportDatasetAsync(dataset, await _versions.ListAsync(dataset.Id), versionId: null);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+        }
+    }
+
+    private async Task ExportDatasetAsync(DatasetNodeViewModel dataset, IReadOnlyList<VersionInfo> versions, Guid? versionId)
+    {
+        var tags = await _tagService.ListAsync(dataset.Id);
+        var wizard = new ExportWizardViewModel(_export, _files, _localizer, new ExportTarget(dataset.Id, dataset.Name, dataset.Type, versions, versionId, tags));
         if (await _dialogs.ShowExportWizardAsync(wizard) is { } result)
         {
             Status.Set("Status_Exported", result.Exported, dataset.Name, string.Join(", ", result.Files.Select(f => Path.GetFileName(f.Path))));
@@ -410,7 +465,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            await ShowAffectedAsync(result.Action);
+            await ShowAffectedAsync(result.Action.DatasetId, result.Action.RecordIds);
             Status.Set(undo ? "Status_Undone" : "Status_Redone", result.Action.Describe(_localizer));
         }
         catch (Exception ex) when (Status.TryReport(ex))
@@ -422,13 +477,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // Shows the records an undo or redo changed: their dataset, reloaded, with them selected.
-    private async Task ShowAffectedAsync(IUndoableAction action)
+    // Shows the records a change touched: their dataset, reloaded, with them selected.
+    private async Task ShowAffectedAsync(Guid datasetId, IReadOnlyList<Guid> recordIds)
     {
-        Explorer.SetRecordCount(action.DatasetId, await _queries.CountAsync(action.DatasetId, RecordFilter.None));
-        if (Records.Dataset?.Id != action.DatasetId)
+        Explorer.SetRecordCount(datasetId, await _queries.CountAsync(datasetId, RecordFilter.None));
+        if (Records.Dataset?.Id != datasetId)
         {
-            if (Explorer.FindDataset(action.DatasetId) is not { } node)
+            if (Explorer.FindDataset(datasetId) is not { } node)
             {
                 return;
             }
@@ -441,7 +496,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             await Records.ReloadAsync();
         }
 
-        Records.Select(action.RecordIds);
+        Records.Select(recordIds);
         // Restored or changed records need fresh analysis results.
         Overview.StartAnalysis();
     }
@@ -475,6 +530,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    // Rows keep their place (as after a status change); their scores and the editor's issues follow.
+    private async Task OnNearGroupsChangedAsync(Guid datasetId)
+    {
+        if (Records.Dataset?.Id == datasetId)
+        {
+            await Records.RefreshAnalysisAsync([.. Records.Items.Select(row => row.Id)]);
+            await Details.RefreshQualityAsync();
+        }
+    }
+
     private async Task OnAnalysisCompletedAsync(Guid datasetId)
     {
         if (Records.Dataset?.Id == datasetId)
@@ -483,13 +548,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // An edited record is analysed right away so its row shows the new tokens and score.
+    // An edited record is analysed right away so its row shows the new tokens and score; its
+    // question may also join or leave a group of near-duplicates, which the background run regroups.
     private async Task RefreshAnalysisAsync(Guid recordId)
     {
         try
         {
             await _analysis.AnalyzeRecordsAsync([recordId]);
             await Records.RefreshAnalysisAsync([recordId]);
+            Overview.StartAnalysis();
         }
         catch (Exception ex) when (Status.TryReport(ex))
         {
@@ -537,10 +604,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
         Explorer.IsWorkspaceOpen = HasWorkspace;
         EditCustomTermsCommand.NotifyCanExecuteChanged();
+        ManageTagsCommand.NotifyCanExecuteChanged();
         if (HasWorkspace)
         {
             try
             {
+                // Tags first, so the first rows of the list already show theirs.
+                await _tags.ReloadAsync();
                 await Explorer.ReloadAsync();
                 Details.CustomTerms = await _analysis.GetCustomTermsAsync();
             }
@@ -550,6 +620,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
         else
         {
+            _tags.Clear();
             Explorer.Clear();
         }
     }
@@ -560,7 +631,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
+            ExtractQuestionsCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
+            EvaluateModelCommand.NotifyCanExecuteChanged();
+            VersionsCommand.NotifyCanExecuteChanged();
+            CreateVersionCommand.NotifyCanExecuteChanged();
             Details.Dataset = Explorer.SelectedDataset;
             _ = Details.ShowAsync(null);
             _ = Records.ShowDatasetAsync(Explorer.SelectedDataset);
@@ -570,6 +645,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     private void OnRecordSelectionChanged()
     {
+        GenerateVariationsCommand.NotifyCanExecuteChanged();
+        JudgeCommand.NotifyCanExecuteChanged();
         var rows = Records.SelectedRows;
         _ = rows.Count > 1 && Records.Dataset is { } dataset
             ? Details.ShowBatchAsync(dataset.Id, rows)
@@ -609,6 +686,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 }
 
                 break;
+            case TagsChanged tags:
+                Records.UpdateTag(tags.RecordIds, tags.TagId, tags.Added);
+                break;
         }
     }
 
@@ -619,6 +699,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         NextRecordCommand.NotifyCanExecuteChanged();
         PreviousRecordCommand.NotifyCanExecuteChanged();
         DeleteSelectionCommand.NotifyCanExecuteChanged();
+        ToggleTagCommand.NotifyCanExecuteChanged();
+        ToggleTagSlotCommand.NotifyCanExecuteChanged();
+        GenerateVariationsCommand.NotifyCanExecuteChanged();
+        JudgeCommand.NotifyCanExecuteChanged();
     }
 
     private void OnHistoryChanged()

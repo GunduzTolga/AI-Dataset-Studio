@@ -3,7 +3,7 @@ using AIDatasetStudio.Domain.Enums;
 namespace AIDatasetStudio.Application.Import;
 
 /// <summary>
-/// Reads JSONL, JSON array and CSV files into datasets (SDD §12.1).
+/// Reads JSONL, JSON array, CSV, Excel, Markdown and plain-text files into datasets (SDD §12).
 /// </summary>
 public interface IImportService
 {
@@ -13,17 +13,17 @@ public interface IImportService
     IReadOnlyList<string> SupportedExtensions { get; }
 
     /// <summary>
-    /// Detects the format, CSV settings, layout and columns, counts the rows and suggests a
-    /// mapping for <paramref name="targetType"/>.
+    /// Detects the format, its settings (CSV options, workbook sheets), layout and columns,
+    /// counts the rows and suggests a mapping for <paramref name="targetType"/>.
     /// </summary>
     /// <param name="filePath">The file to read.</param>
     /// <param name="targetType">Type of the dataset that will receive the records.</param>
-    /// <param name="csvOverride">CSV settings chosen by the user instead of the detected ones.</param>
+    /// <param name="overrides">Settings chosen by the user instead of the detected ones.</param>
     /// <param name="cancellationToken">Cancels the analysis.</param>
     Task<ImportAnalysis> AnalyzeAsync(
         string filePath,
         DatasetType targetType,
-        CsvOptions? csvOverride = null,
+        ImportOverrides? overrides = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

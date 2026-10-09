@@ -57,6 +57,24 @@
       <SolidColorBrush x:Key="NegativeBrush" Color="#E11D48" />
       <SolidColorBrush x:Key="UserBubbleBrush" Color="#EEF0FF" />
       <SolidColorBrush x:Key="AssistantBubbleBrush" Color="#FFFFFF" />
+
+      <!-- Version differences: text backgrounds behind primary text -->
+      <SolidColorBrush x:Key="DiffInsertedBrush" Color="#BBF7D0" />
+      <SolidColorBrush x:Key="DiffDeletedBrush" Color="#FECDD3" />
+
+      <!-- Syntax colours of the record editor (JSON, Markdown, code); AA on cards and bubbles -->
+      <Color x:Key="SyntaxCommentColor">#4B5563</Color>
+      <Color x:Key="SyntaxStringColor">#047857</Color>
+      <Color x:Key="SyntaxKeywordColor">#7C3AED</Color>
+      <Color x:Key="SyntaxNumberColor">#92400E</Color>
+      <Color x:Key="SyntaxLiteralColor">#C2410C</Color>
+      <Color x:Key="SyntaxPropertyColor">#1D4ED8</Color>
+      <Color x:Key="SyntaxFunctionColor">#0E7490</Color>
+      <Color x:Key="SyntaxVariableColor">#BE185D</Color>
+      <Color x:Key="SyntaxHeadingColor">#4338CA</Color>
+      <Color x:Key="SyntaxCodeColor">#BE185D</Color>
+      <Color x:Key="SyntaxLinkColor">#2563EB</Color>
+      <Color x:Key="SyntaxMarkerColor">#4F46E5</Color>
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
@@ -103,8 +121,27 @@
       <SolidColorBrush x:Key="NegativeBrush" Color="#FB7185" />
       <SolidColorBrush x:Key="UserBubbleBrush" Color="#25264A" />
       <SolidColorBrush x:Key="AssistantBubbleBrush" Color="#1D1D21" />
+
+      <SolidColorBrush x:Key="DiffInsertedBrush" Color="#1D5236" />
+      <SolidColorBrush x:Key="DiffDeletedBrush" Color="#62202E" />
+
+      <Color x:Key="SyntaxCommentColor">#9CA3AF</Color>
+      <Color x:Key="SyntaxStringColor">#6EE7B7</Color>
+      <Color x:Key="SyntaxKeywordColor">#C4B5FD</Color>
+      <Color x:Key="SyntaxNumberColor">#FCD34D</Color>
+      <Color x:Key="SyntaxLiteralColor">#FDBA74</Color>
+      <Color x:Key="SyntaxPropertyColor">#93C5FD</Color>
+      <Color x:Key="SyntaxFunctionColor">#67E8F9</Color>
+      <Color x:Key="SyntaxVariableColor">#F9A8D4</Color>
+      <Color x:Key="SyntaxHeadingColor">#A5B4FC</Color>
+      <Color x:Key="SyntaxCodeColor">#F9A8D4</Color>
+      <Color x:Key="SyntaxLinkColor">#93C5FD</Color>
+      <Color x:Key="SyntaxMarkerColor">#A5B4FC</Color>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
+
+  <!-- Code in the record editor: fenced blocks, `inline code` and JSON documents. -->
+  <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas, Menlo, SF Mono, DejaVu Sans Mono, Liberation Mono, monospace</FontFamily>
 
   <!-- Brand mark gradient (same in both themes) -->
   <LinearGradientBrush x:Key="BrandGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">

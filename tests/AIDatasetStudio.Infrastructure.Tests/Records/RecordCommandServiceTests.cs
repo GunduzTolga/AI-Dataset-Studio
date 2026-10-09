@@ -197,6 +197,27 @@ public sealed class RecordCommandServiceTests
     }
 
     [Fact]
+    public async Task An_edit_written_with_a_model_notes_it_in_the_lineage_and_undo_takes_it_back()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        var lineage = new RecordLineage(RecordSourceKind.FileImport, "sss.csv#row=2");
+        var original = new InstructionPayload("Kargo ücreti?", "", "");
+        var id = await ws.Commands.AddAsync(datasetId, original, lineage, Ct);
+
+        // Unchanged content changes nothing, not even the lineage.
+        Assert.False(await ws.Commands.UpdatePayloadAsync(id, original, "qwen2.5:7b", Ct));
+        Assert.Null((await ws.Queries.GetAsync(id, Ct))!.Lineage.GeneratedByModel);
+
+        Assert.True(await ws.Commands.UpdatePayloadAsync(id, new InstructionPayload("Kargo ücreti?", "", "500 TL üzeri ücretsiz."), "qwen2.5:7b", Ct));
+        Assert.Equal(lineage with { GeneratedByModel = "qwen2.5:7b" }, (await ws.Queries.GetAsync(id, Ct))!.Lineage);
+
+        await ws.Commands.RestoreStatesAsync([new RecordState(id, RecordStatus.Draft, original, Lineage: lineage)], Ct);
+        var details = await ws.Queries.GetAsync(id, Ct);
+        Assert.Equal((original, lineage), (details!.Payload, details.Lineage));
+    }
+
+    [Fact]
     public async Task Tag_names_are_unique_regardless_of_turkish_case()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
@@ -250,6 +271,37 @@ public sealed class RecordCommandServiceTests
     }
 
     [Fact]
+    public async Task Records_written_from_a_document_keep_their_passage_and_can_be_taken_back()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.Instruction, Ct);
+        await ws.Commands.AddAsync(datasetId, new InstructionPayload("Önceki", "", ""), RecordLineage.Manual(), Ct);
+        const string metadata = """{"source":{"file":"kılavuz.pdf","section":"Kargo","unit":"page","first":3,"last":3,"passage":"Kargo 500 TL üzeri ücretsizdir."}}""";
+        var lineage = new RecordLineage(RecordSourceKind.DocumentChunk, "kılavuz.pdf#page=3", GeneratedByModel: "qwen2.5:7b");
+
+        var ids = await ws.Commands.AddManyAsync(datasetId,
+        [
+            new NewRecord(new InstructionPayload("Kargo ücreti ne kadar?", "", "500 TL üzeri ücretsiz."), lineage, metadata),
+            new NewRecord(new InstructionPayload("Kargo ücretsiz mi?", "", "500 TL üzerinde evet."), lineage, metadata),
+        ], Ct);
+
+        Assert.Equal(2, ids.Count);
+        var first = await ws.Queries.GetAsync(ids[0], Ct);
+        Assert.Equal((2L, RecordStatus.Draft, metadata), (first!.Ordinal, first.Status, first.MetadataJson));
+        Assert.Equal(lineage, first.Lineage);
+        var earlier = (await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, after: null, pageSize: 1, Ct)).Items[0];
+        Assert.Equal("{}", (await ws.Queries.GetAsync(earlier.Id, Ct))!.MetadataJson);
+
+        // Undo deletes them; redo brings them back with their passage.
+        var snapshots = await ws.Queries.GetSnapshotsAsync(ids, Ct);
+        Assert.Equal(2, await ws.Commands.DeleteAsync(ids, Ct));
+        Assert.Equal(2, await ws.Commands.RestoreAsync(snapshots, Ct));
+        Assert.Equal(first, await ws.Queries.GetAsync(ids[0], Ct), new RecordDetailsComparer());
+        Assert.Equal(["Önceki", "Kargo ücreti ne kadar?", "Kargo ücretsiz mi?"],
+            (await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, after: null, pageSize: 10, Ct)).Items.Select(r => r.Preview));
+    }
+
+    [Fact]
     public async Task Restoring_into_a_deleted_dataset_fails()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
@@ -265,7 +317,7 @@ public sealed class RecordCommandServiceTests
     private sealed class RecordDetailsComparer : IEqualityComparer<RecordDetails?>
     {
         public bool Equals(RecordDetails? x, RecordDetails? y) =>
-            x is not null && y is not null && x with { Tags = [] } == y with { Tags = [] } && x.Tags.SequenceEqual(y.Tags);
+            x is not null && y is not null && x with { TagIds = [] } == y with { TagIds = [] } && x.TagIds.SequenceEqual(y.TagIds);
 
         public int GetHashCode(RecordDetails? obj) => obj?.Id.GetHashCode() ?? 0;
     }

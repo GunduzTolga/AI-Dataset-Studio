@@ -30,6 +30,8 @@ internal static class IssueText
     {
         QualityRule.EmptyContent or QualityRule.UnclosedCodeBlock or QualityRule.InvalidJson when issue.Detail is { } field =>
             localizer.Format($"Issue_{issue.Rule}", localizer[$"Field_{field}"]),
+        QualityRule.NearDuplicate when issue.Detail is { } ordinal =>
+            localizer.Format("Issue_NearDuplicate", long.Parse(ordinal, System.Globalization.CultureInfo.InvariantCulture)),
         QualityRule.PersonalData when issue.Detail is { } kinds =>
             localizer.Format("Issue_PersonalData", PiiKinds(localizer, kinds.Split(',').Select(Enum.Parse<PiiKind>))),
         _ => localizer[$"Issue_{issue.Rule}"],

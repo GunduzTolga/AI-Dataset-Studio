@@ -1,4 +1,5 @@
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Desktop.Controls;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.Tests.Support;
@@ -31,8 +32,8 @@ public sealed class ReviewKeyboardTests
         await SelectAsync(host, 0);
 
         var field = EditorFields(window)[0];
-        field.Focus();
-        field.CaretIndex = field.Text!.Length;
+        field.TextArea.Focus();
+        field.CaretOffset = field.Text!.Length;
         window.KeyTextInput("!");
         Press(window, Key.Enter, RawInputModifiers.Control);
         await host.WaitForDetailsAsync(records.Items[1].Id);
@@ -54,7 +55,7 @@ public sealed class ReviewKeyboardTests
         await host.Main.Details.ApproveCommand.ExecuteAsync(null);
         var step = host.Get<UndoHistory>().NextUndo;
 
-        EditorFields(window)[0].Focus();
+        EditorFields(window)[0].TextArea.Focus();
         Press(window, Key.Z, RawInputModifiers.Control);
         Assert.Same(step, host.Get<UndoHistory>().NextUndo);
         Assert.Equal(RecordStatus.Approved, records.Items[0].Status);
@@ -76,7 +77,7 @@ public sealed class ReviewKeyboardTests
         var window = Open(host);
         var records = host.Main.Records;
         await SelectAsync(host, 0);
-        EditorFields(window)[2].Focus();
+        EditorFields(window)[2].TextArea.Focus();
 
         Press(window, Key.F8, RawInputModifiers.None);
         await host.WaitForDetailsAsync(records.Items[1].Id);
@@ -96,7 +97,7 @@ public sealed class ReviewKeyboardTests
         var records = host.Main.Records;
         await SelectAsync(host, 1);
 
-        EditorFields(window)[0].Focus();
+        EditorFields(window)[0].TextArea.Focus();
         Press(window, Key.Delete, RawInputModifiers.None);
         Assert.Empty(host.Dialogs.ConfirmMessages);
 
@@ -140,7 +141,7 @@ public sealed class ReviewKeyboardTests
         Assert.False(overview.IsVisible);
         Assert.True(details.IsVisible);
 
-        EditorFields(window)[2].Focus();
+        EditorFields(window)[2].TextArea.Focus();
         Press(window, Key.M, RawInputModifiers.Control | RawInputModifiers.Shift);
         Assert.True(host.Main.Details.IsPiiPreview);
         Assert.DoesNotContain(EditorFields(window), box => box.IsEffectivelyVisible);
@@ -184,10 +185,10 @@ public sealed class ReviewKeyboardTests
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static List<TextBox> EditorFields(Window window)
+    private static List<CodeEditor> EditorFields(Window window)
     {
         window.UpdateLayout();
-        return window.GetVisualDescendants().OfType<TextBox>().Where(box => box.Classes.Contains("field")).ToList();
+        return window.GetVisualDescendants().OfType<CodeEditor>().Where(box => box.Classes.Contains("field")).ToList();
     }
 
     // Rows take keyboard focus (the list itself is not focusable), as when a row is clicked.

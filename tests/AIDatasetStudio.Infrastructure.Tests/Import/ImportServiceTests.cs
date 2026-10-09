@@ -82,7 +82,7 @@ public sealed class ImportServiceTests
         Assert.Equal(["merhaba", "dünya"], detected.Columns);
         Assert.Equal(1, detected.RowCount);
 
-        var headerless = await ws.Import.AnalyzeAsync(path, DatasetType.Instruction, detected.Csv! with { HasHeader = false }, Ct);
+        var headerless = await ws.Import.AnalyzeAsync(path, DatasetType.Instruction, new ImportOverrides(Csv: detected.Csv! with { HasHeader = false }), Ct);
 
         Assert.Equal(["#1", "#2"], headerless.Columns);
         Assert.Equal(2, headerless.RowCount);
@@ -305,7 +305,7 @@ public sealed class ImportServiceTests
     [Fact]
     public void Supported_extensions_are_lowercase_with_a_dot()
     {
-        Assert.All(new ImportService(null!).SupportedExtensions, e => Assert.Matches("^\\.[a-z]+$", e));
+        Assert.All(new ImportService(null!, null!).SupportedExtensions, e => Assert.Matches("^\\.[a-z]+$", e));
     }
 
     private static ImportPlan PlanFrom(ImportAnalysis analysis, DatasetType type) =>

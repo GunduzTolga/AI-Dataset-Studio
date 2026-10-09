@@ -28,3 +28,17 @@ public interface ISourceRow
     /// </summary>
     string? GetText(string column);
 }
+
+/// <summary>
+/// One message of a conversation log.
+/// </summary>
+/// <param name="Line">The 1-based line where the message starts.</param>
+public sealed record TranscriptMessage(string Speaker, string Text, long Line);
+
+/// <summary>
+/// A conversation read from a log (<see cref="SourceLayout.Transcript"/>).
+/// </summary>
+public interface ITranscriptRow : ISourceRow
+{
+    IReadOnlyList<TranscriptMessage> Messages { get; }
+}

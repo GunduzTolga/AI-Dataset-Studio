@@ -1,0 +1,236 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.AI"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.ModelEvaluationWindow"
+        x:DataType="vm:ModelEvaluationViewModel"
+        Title="{l:Tr Evaluate_Title}"
+        Width="1040" Height="700"
+        MinWidth="820" MinHeight="520"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="Trophy" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Evaluate_Title}" />
+          <TextBlock x:Name="TargetText" Classes="small muted" Text="{Binding TargetText}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <ToggleButton x:Name="HistoryToggle" Grid.Column="2" Classes="subtle" IsChecked="{Binding ShowHistory}" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="History" />
+            <TextBlock Text="{Binding HistoryText}" />
+          </StackPanel>
+        </ToggleButton>
+      </Grid>
+    </Border>
+
+    <!-- Settings -->
+    <Border DockPanel.Dock="Top" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="*,12,*,12,Auto,12,Auto" IsEnabled="{Binding IsIdle}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{l:Tr Evaluate_Model}" />
+            <ComboBox x:Name="ModelBox" ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:EvaluationModelOption">
+                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Classes="label" Text="{l:Tr Evaluate_Judge}" />
+            <ComboBox x:Name="JudgeBox" ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedJudge}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:EvaluationModelOption">
+                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Grid.Column="4">
+            <TextBlock Classes="label" Text="{l:Tr Evaluate_SampleSize}" />
+            <NumericUpDown Value="{Binding SampleSize}" Minimum="1" Maximum="500" Increment="10" FormatString="0" Width="110" />
+          </StackPanel>
+          <StackPanel Grid.Column="6">
+            <TextBlock Classes="label" Text="{l:Tr Export_Seed}" />
+            <NumericUpDown Value="{Binding Seed}" Minimum="0" Maximum="2147483647" Increment="1" FormatString="0" Width="110" />
+          </StackPanel>
+        </Grid>
+        <Grid ColumnDefinitions="*,12,*" IsEnabled="{Binding IsIdle}">
+          <StackPanel>
+            <TextBlock Classes="label" Text="{l:Tr Evaluate_Source}" />
+            <ComboBox x:Name="SourceBox" ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:EvaluationSourceOption">
+                  <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <CheckBox Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,0,4" IsVisible="{Binding IsAllRecords}"
+                    IsChecked="{Binding IncludeUnapproved}" Content="{l:Tr Evaluate_IncludeUnapproved}" />
+        </Grid>
+        <TextBlock x:Name="SourceHint" Classes="caption" Classes.muted="{Binding !IsAllRecords}" Classes.warning="{Binding IsAllRecords}"
+                   Text="{Binding SourceHint}" TextWrapping="Wrap" />
+        <TextBlock Classes="caption muted" Text="{l:Tr Evaluate_Hint}" TextWrapping="Wrap" />
+        <Border Classes="callout warning" IsVisible="{Binding !HasModels}">
+          <DockPanel>
+            <ic:SymbolIcon Symbol="Warning" />
+            <TextBlock Text="{l:Tr Evaluate_NoModels}" />
+          </DockPanel>
+        </Border>
+        <Border Classes="callout danger" IsVisible="{Binding HasError}">
+          <DockPanel>
+            <ic:SymbolIcon Symbol="ErrorCircle" />
+            <TextBlock Text="{Binding ErrorMessage}" />
+          </DockPanel>
+        </Border>
+        <StackPanel Orientation="Horizontal" Spacing="16" IsVisible="{Binding HasSummary}">
+          <TextBlock x:Name="SummaryText" Classes="strong" Text="{Binding SummaryText}" />
+          <TextBlock Classes="small muted" Text="{Binding DistributionText}" VerticalAlignment="Center" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ProgressBar Width="140" Value="{Binding ProgressValue}" Maximum="1" VerticalAlignment="Center" IsVisible="{Binding IsRunning}" Margin="0,0,12,0" />
+        <TextBlock Grid.Column="1" Classes="small muted" Text="{Binding ProgressText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button Classes="subtle" Command="{Binding ExportCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="ArrowExport" />
+              <TextBlock Text="{l:Tr Evaluate_Export}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="RunButton" Classes="accent" Command="{Binding RunCommand}" IsVisible="{Binding IsIdle}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Play" />
+              <TextBlock Text="{l:Tr Evaluate_Run}" />
+            </StackPanel>
+          </Button>
+          <Button Classes="danger-subtle" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
+              <TextBlock Text="{l:Tr Editor_StopWriting}" />
+            </StackPanel>
+          </Button>
+          <Button Classes="subtle" Content="{l:Tr Import_Close}" Command="{Binding CloseCommand}" IsCancel="True" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Panel>
+      <!-- Earlier evaluations -->
+      <Panel IsVisible="{Binding ShowHistory}">
+        <StackPanel Classes="empty" IsVisible="{Binding !HasHistory}">
+          <Border Classes="empty-icon">
+            <ic:SymbolIcon Symbol="History" />
+          </Border>
+          <TextBlock Classes="muted" Text="{l:Tr Evaluate_NoHistory}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="460" />
+        </StackPanel>
+        <ScrollViewer IsVisible="{Binding HasHistory}">
+          <StackPanel Margin="24,16,24,20" Spacing="10">
+            <TextBlock Classes="caption muted" Text="{l:Tr Evaluate_HistoryHint}" TextWrapping="Wrap" />
+            <ItemsControl x:Name="HistoryList" ItemsSource="{Binding History}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:EvaluationRunRow">
+                  <Border Classes="card" Padding="14,10" Margin="0,0,0,8">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                      <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Classes="strong" Text="{Binding Model}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="small muted" Text="{Binding DetailText}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Classes="small muted" Text="{Binding DistributionText}" VerticalAlignment="Center" Margin="16,0" />
+                      <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center" MinWidth="72">
+                        <Border Classes="score" Classes.poor="{Binding IsLow}" Classes.good="{Binding IsGood}" HorizontalAlignment="Right">
+                          <TextBlock Text="{Binding ScoreText}" />
+                        </Border>
+                        <TextBlock Classes="small muted" Text="{Binding F1Text}" HorizontalAlignment="Right" />
+                      </StackPanel>
+                      <Button Grid.Column="3" Classes="mini" VerticalAlignment="Center" Margin="12,0,0,0"
+                              ToolTip.Tip="{l:Tr Evaluate_DeleteRunTitle}"
+                              Command="{Binding $parent[Window].((vm:ModelEvaluationViewModel)DataContext).DeleteRunCommand}" CommandParameter="{Binding}">
+                        <ic:SymbolIcon Symbol="Delete" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Panel>
+
+      <Grid ColumnDefinitions="360,*" IsVisible="{Binding !ShowHistory}">
+        <!-- Questions -->
+        <Border Background="{DynamicResource AppBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+          <ListBox x:Name="RowList" Classes="records" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" Background="Transparent" Margin="8">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:EvaluationRow">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="2,4">
+                  <TextBlock Classes="small muted" Text="{Binding Ordinal, StringFormat='#{0}'}" VerticalAlignment="Top" Margin="0,1,8,0" />
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="{Binding Question}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                    <TextBlock Classes="small muted" Text="{Binding State}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                  </StackPanel>
+                  <Border Grid.Column="2" Classes="score" Classes.poor="{Binding IsLow}" Classes.good="{Binding IsGood}" Margin="8,0,0,0" VerticalAlignment="Top">
+                    <TextBlock Text="{Binding ScoreText}" />
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+
+        <!-- Before the first answer -->
+        <StackPanel Grid.Column="1" Classes="empty" IsVisible="{Binding !HasSelection}">
+          <Border Classes="empty-icon">
+            <ic:SymbolIcon Symbol="Trophy" />
+          </Border>
+          <TextBlock Classes="muted" Text="{l:Tr Evaluate_Empty}" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="420" />
+        </StackPanel>
+
+        <!-- The selected question -->
+        <ScrollViewer Grid.Column="1" IsVisible="{Binding HasSelection}">
+          <StackPanel Margin="24,18,24,20" Spacing="14" DataContext="{Binding SelectedRow}" x:DataType="vm:EvaluationRow">
+            <StackPanel>
+              <TextBlock Classes="overline" Text="{l:Tr Evaluate_Question}" />
+              <SelectableTextBlock Text="{Binding Question}" TextWrapping="Wrap" />
+            </StackPanel>
+            <Border Classes="card" Padding="12">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="overline" Text="{l:Tr Evaluate_Reference}" />
+                <SelectableTextBlock Text="{Binding Reference}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <Border Classes="card" Padding="12">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="overline" Text="{l:Tr Evaluate_Answer}" />
+                <SelectableTextBlock Text="{Binding Answer}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding Result, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <Border Classes="score" Classes.poor="{Binding IsLow}" Classes.good="{Binding IsGood}">
+                <TextBlock Text="{Binding ScoreText}" />
+              </Border>
+              <TextBlock Classes="small muted" Text="{Binding Result.F1, StringFormat='F1 {0:0.00}', FallbackValue=''}" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="{Binding Result.Reason, FallbackValue=''}" TextWrapping="Wrap" />
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </Panel>
+  </DockPanel>
+</Window>

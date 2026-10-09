@@ -8,9 +8,9 @@ public enum IssueSeverity
 }
 
 /// <summary>
-/// The checks of the health engine (SDD §8.2). The first group looks at one record; the last
-/// three compare records or depend on dataset settings and are evaluated when queried, so they
-/// never go stale.
+/// The checks of the health engine (SDD §8.2). <see cref="QualityRules.RecordRules"/> look at one
+/// record; the others compare records or depend on dataset settings and are evaluated when
+/// queried, so they never go stale.
 /// </summary>
 public enum QualityRule
 {
@@ -46,6 +46,12 @@ public enum QualityRule
 
     /// <summary>The record has more tokens than the dataset's context length.</summary>
     OverContextLimit,
+
+    /// <summary>
+    /// Another record asks nearly the same question (<see cref="NearDuplicates"/>). Detail: the number
+    /// of the first such record.
+    /// </summary>
+    NearDuplicate,
 }
 
 /// <param name="Detail">Rule-specific detail (a field name or a list of kinds), not localized.</param>
@@ -59,7 +65,7 @@ public static class QualityRules
     /// <summary>
     /// Bumped whenever a rule changes, so stored results are recomputed.
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     public const int ErrorPenalty = 40;
     public const int WarningPenalty = 10;
@@ -103,7 +109,8 @@ public readonly record struct TokenCounts(int Input, int Output)
 /// The stored result of analysing one record.
 /// </summary>
 /// <param name="QuestionKey">Fingerprint of the normalized question, for "same question, different answer"; <c>null</c> when the rule does not apply.</param>
-public sealed record RecordAnalysisResult(TokenCounts Tokens, IReadOnlyList<QualityIssue> Issues, string? QuestionKey)
+/// <param name="Signature">MinHash signature of the normalized question, for near-duplicate questions (<see cref="NearDuplicates"/>); <c>null</c> when the rule does not apply.</param>
+public sealed record RecordAnalysisResult(TokenCounts Tokens, IReadOnlyList<QualityIssue> Issues, string? QuestionKey, byte[]? Signature = null)
 {
     public int Score => QualityRules.Score(Issues);
 }

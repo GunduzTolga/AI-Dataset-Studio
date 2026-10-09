@@ -90,7 +90,6 @@ public sealed class WorkspaceUpgradeTests : IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        SqliteConnection.ClearAllPools();
         try
         {
             Directory.Delete(_directory, recursive: true);

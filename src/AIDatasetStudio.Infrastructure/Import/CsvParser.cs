@@ -88,7 +88,13 @@ internal sealed class CsvParser(TextReader reader, char delimiter)
     /// <param name="sample">The start of the file as text.</param>
     /// <param name="isWholeFile">Whether <paramref name="sample"/> is the entire file; if not, its last record may be cut off and is ignored.</param>
     /// <param name="fallback">The delimiter to use when no candidate splits the header.</param>
-    public static char DetectDelimiter(string sample, bool isWholeFile, char fallback)
+    public static char DetectDelimiter(string sample, bool isWholeFile, char fallback) => Score(sample, isWholeFile, fallback).Delimiter;
+
+    /// <summary>
+    /// The delimiter <see cref="DetectDelimiter"/> picks, with the number of fields in the first
+    /// record (0 when no candidate splits it) and the share of records with that many fields.
+    /// </summary>
+    public static (char Delimiter, int Fields, double Consistency) Score(string sample, bool isWholeFile, char fallback)
     {
         const int MaxRecords = 50;
 
@@ -124,7 +130,7 @@ internal sealed class CsvParser(TextReader reader, char delimiter)
             }
         }
 
-        return best;
+        return (best, bestScore.Fields, bestScore.Consistency);
     }
 
     private int Read()

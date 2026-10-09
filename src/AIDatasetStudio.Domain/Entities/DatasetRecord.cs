@@ -64,12 +64,14 @@ public sealed class DatasetRecord
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <param name="metadataJson">Free metadata as a JSON object; <c>null</c> for none.</param>
     public static DatasetRecord Create(
         Dataset dataset,
         RecordPayload payload,
         RecordLineage lineage,
         long ordinal,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        string? metadataJson = null)
     {
         ArgumentNullException.ThrowIfNull(dataset);
         ArgumentNullException.ThrowIfNull(payload);
@@ -86,6 +88,7 @@ public sealed class DatasetRecord
             Payload = payload,
             ContentHash = payload.ComputeContentHash(),
             Preview = payload.GetPreviewText(PreviewMaxLength),
+            MetadataJson = string.IsNullOrWhiteSpace(metadataJson) ? "{}" : metadataJson,
             Lineage = lineage,
             CreatedAt = now,
             UpdatedAt = now,
@@ -158,6 +161,12 @@ public sealed class DatasetRecord
         return true;
     }
 
+    /// <summary>
+    /// Notes in the lineage that a model wrote (part of) the content (SDD §2.4).
+    /// </summary>
+    public void MarkGeneratedBy(string model) =>
+        Lineage = Lineage with { GeneratedByModel = Guard.NotBlank(model, nameof(model), 200) };
+
     public void ChangeStatus(RecordStatus status, DateTimeOffset now)
     {
         if (status == Status)
@@ -182,9 +191,15 @@ public sealed class DatasetRecord
     /// <param name="status">The earlier status.</param>
     /// <param name="payload">The earlier content, or <c>null</c> to keep the current content.</param>
     /// <param name="now">The time of the change.</param>
+    /// <param name="lineage">The earlier lineage, or <c>null</c> to keep the current one.</param>
     /// <returns><c>true</c> if the content was replaced.</returns>
-    public bool RestoreState(RecordStatus status, RecordPayload? payload, DateTimeOffset now)
+    public bool RestoreState(RecordStatus status, RecordPayload? payload, DateTimeOffset now, RecordLineage? lineage = null)
     {
+        if (lineage is not null)
+        {
+            Lineage = lineage;
+        }
+
         var contentChanged = false;
         if (payload is not null)
         {
@@ -217,6 +232,25 @@ public sealed class DatasetRecord
         }
 
         _tags.Add(tag);
+        UpdatedAt = now;
+        return true;
+    }
+
+    /// <summary>
+    /// Replaces the tags (undo, redo and going back to a version).
+    /// </summary>
+    /// <returns><c>true</c> if they changed.</returns>
+    public bool SetTags(IReadOnlyCollection<Tag> tags, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(tags);
+        var wanted = tags.DistinctBy(t => t.Id).ToList();
+        if (wanted.Count == _tags.Count && wanted.All(t => _tags.Any(existing => existing.Id == t.Id)))
+        {
+            return false;
+        }
+
+        _tags.Clear();
+        _tags.AddRange(wanted);
         UpdatedAt = now;
         return true;
     }

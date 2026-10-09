@@ -8,6 +8,30 @@ public enum ImportFormat
     JsonLines,
     JsonArray,
     Csv,
+
+    /// <summary>An Excel workbook (.xlsx, .xlsm): one sheet or all of them.</summary>
+    Excel,
+
+    /// <summary>A Markdown document split into sections at its headings.</summary>
+    Markdown,
+
+    /// <summary>Plain text split into paragraphs at blank lines.</summary>
+    PlainText,
+
+    /// <summary>A PDF document, read as sections at its headings or as paragraphs.</summary>
+    Pdf,
+
+    /// <summary>A Word document (.docx), read as sections at its headings or as paragraphs.</summary>
+    Word,
+
+    /// <summary>An HTML page, read as sections at its headings or as paragraphs.</summary>
+    Html,
+
+    /// <summary>A ZIP of pages (a Notion or Confluence export), read as sections under each page's title.</summary>
+    Archive,
+
+    /// <summary>A conversation log: a WhatsApp export or a transcript with a speaker before each message.</summary>
+    Transcript,
 }
 
 /// <summary>
@@ -36,6 +60,15 @@ public enum SourceLayout
 
     /// <summary><c>input.messages</c> / <c>preferred_output</c> / <c>non_preferred_output</c> (OpenAI DPO).</summary>
     OpenAiPreference,
+
+    /// <summary>Document sections (Markdown, PDF, Word): heading, heading path, parent headings and content.</summary>
+    Sections,
+
+    /// <summary>Paragraphs of plain text or a document: first line, the rest and the whole paragraph.</summary>
+    Paragraphs,
+
+    /// <summary>Conversations of a log, message by message; its speakers are mapped to roles.</summary>
+    Transcript,
 }
 
 /// <summary>
@@ -81,6 +114,50 @@ public sealed record CsvOptions(char Delimiter, string EncodingName, bool HasHea
 }
 
 /// <summary>
+/// Which sheets of a workbook are read, and whether their first row holds column names.
+/// </summary>
+/// <param name="Sheet">A sheet name, or <c>null</c> for every sheet one after the other.</param>
+public sealed record SheetOptions(string? Sheet, bool HasHeader);
+
+/// <summary>
+/// Settings chosen by the user instead of the detected ones; <c>null</c> parts are detected.
+/// </summary>
+/// <param name="Format">How to read the file; one of <see cref="ImportAnalysis.ReadableAs"/>.</param>
+public sealed record ImportOverrides(ImportFormat? Format = null, CsvOptions? Csv = null, SheetOptions? Sheet = null);
+
+/// <summary>
+/// Column names of the rows read from Markdown and plain-text files. Interfaces show localized
+/// names for them.
+/// </summary>
+public static class TextColumns
+{
+    /// <summary>The section's heading.</summary>
+    public const string Heading = "heading";
+
+    /// <summary>The headings above the section and its own, joined with " › ".</summary>
+    public const string HeadingPath = "heading_path";
+
+    /// <summary>The headings above the section, joined with " › ".</summary>
+    public const string ParentHeadings = "parent_headings";
+
+    /// <summary>The section's text without its heading.</summary>
+    public const string Content = "content";
+
+    /// <summary>The first line of a paragraph.</summary>
+    public const string FirstLine = "first_line";
+
+    /// <summary>The lines of a paragraph after the first.</summary>
+    public const string Rest = "rest";
+
+    /// <summary>The whole paragraph.</summary>
+    public const string Paragraph = "paragraph";
+
+    public static IReadOnlyList<string> Markdown { get; } = [Heading, HeadingPath, ParentHeadings, Content];
+
+    public static IReadOnlyList<string> PlainText { get; } = [FirstLine, Rest, Paragraph];
+}
+
+/// <summary>
 /// What the file looks like, with a suggested way to read it into a dataset of the requested type.
 /// </summary>
 public sealed record ImportAnalysis(
@@ -91,7 +168,24 @@ public sealed record ImportAnalysis(
     IReadOnlyList<string> Columns,
     long RowCount,
     IReadOnlyDictionary<TargetField, string> SuggestedMapping,
-    bool SupportsTargetType);
+    bool SupportsTargetType)
+{
+    /// <summary>
+    /// The sheets read from a workbook; <c>null</c> for other formats.
+    /// </summary>
+    public SheetOptions? Sheet { get; init; }
+
+    /// <summary>
+    /// The workbook's visible sheets in tab order; empty for other formats.
+    /// </summary>
+    public IReadOnlyList<string> Sheets { get; init; } = [];
+
+    /// <summary>
+    /// The formats the user can choose between for this file; only <see cref="Format"/> when
+    /// there is no other sensible reading.
+    /// </summary>
+    public IReadOnlyList<ImportFormat> ReadableAs { get; init; } = [Format];
+}
 
 /// <summary>
 /// Everything needed to read a file into a dataset.
@@ -103,7 +197,8 @@ public sealed record ImportPlan(
     CsvOptions? Csv,
     SourceLayout Layout,
     IReadOnlyDictionary<TargetField, string> Mapping,
-    DatasetType TargetType);
+    DatasetType TargetType,
+    SheetOptions? Sheet = null);
 
 public enum ImportErrorCode
 {
@@ -132,12 +227,14 @@ public enum ImportErrorCode
     UnsupportedLayout,
 }
 
-public sealed record ImportRowError(long RowNumber, ImportErrorCode Code, string? Detail = null);
+/// <param name="Sheet">The workbook sheet of the row when several sheets are read.</param>
+public sealed record ImportRowError(long RowNumber, ImportErrorCode Code, string? Detail = null, string? Sheet = null);
 
 /// <summary>
 /// One source row converted to a payload, or the reason it cannot be.
 /// </summary>
-public sealed record ImportRowResult(long RowNumber, RecordPayload? Payload, ImportRowError? Error)
+/// <param name="Sheet">The workbook sheet of the row when several sheets are read.</param>
+public sealed record ImportRowResult(long RowNumber, RecordPayload? Payload, ImportRowError? Error, string? Sheet = null)
 {
     public bool IsValid => Payload is not null;
 }

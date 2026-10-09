@@ -1,8 +1,12 @@
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Documents;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 
 namespace AIDatasetStudio.Desktop.Services;
@@ -52,4 +56,50 @@ public interface IDialogService
     /// Shows Help › About until it is closed.
     /// </summary>
     Task ShowAboutAsync(AboutViewModel about);
+
+    /// <summary>
+    /// Asks for the number and note of a new version.
+    /// </summary>
+    /// <returns><c>true</c> to create the version as entered in <paramref name="prompt"/>.</returns>
+    Task<bool> PromptNewVersionAsync(NewVersionViewModel prompt);
+
+    /// <summary>
+    /// Shows the versions of a dataset until the window is closed.
+    /// </summary>
+    Task ShowVersionsAsync(VersionsViewModel versions);
+
+    /// <summary>
+    /// Shows Tools › Tags until the window is closed.
+    /// </summary>
+    Task ShowTagManagerAsync(TagManagerViewModel tags);
+
+    /// <summary>
+    /// Shows Tools › AI Connections until the window is closed.
+    /// </summary>
+    Task ShowAIConnectionsAsync(AIConnectionsViewModel connections);
+
+    /// <summary>
+    /// Shows Q&amp;A extraction from a document until the window is closed.
+    /// </summary>
+    Task ShowQAExtractionAsync(QAExtractionViewModel extraction);
+
+    /// <summary>
+    /// Shows variations of records until the window is closed.
+    /// </summary>
+    Task ShowVariationsAsync(VariationsViewModel variations);
+
+    /// <summary>
+    /// Shows judging records with a model until the window is closed.
+    /// </summary>
+    Task ShowJudgeAsync(JudgeViewModel judge);
+
+    /// <summary>
+    /// Shows merging datasets until the window is closed.
+    /// </summary>
+    Task ShowDatasetMergeAsync(ViewModels.Catalog.DatasetMergeViewModel merge);
+
+    /// <summary>
+    /// Shows evaluating a model until the window is closed.
+    /// </summary>
+    Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation);
 }

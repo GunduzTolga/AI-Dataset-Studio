@@ -89,6 +89,17 @@
                     </WrapPanel>
                   </StackPanel>
                 </Border>
+                <!-- A .txt file can be a table or prose, a .md file paragraphs instead of sections -->
+                <StackPanel IsVisible="{Binding HasFormatChoice}" Margin="0,4,0,0">
+                  <TextBlock Classes="label" Text="{l:Tr Import_ReadAs}" />
+                  <ComboBox x:Name="FormatBox" ItemsSource="{Binding FormatOptions}" SelectedItem="{Binding SelectedFormat}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:FormatOption">
+                        <TextBlock Text="{Binding Label}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
               </StackPanel>
 
               <Border Classes="callout danger" IsVisible="{Binding HasError}">
@@ -115,6 +126,40 @@
                   <TextBlock Text="{l:Tr Import_EmptyFile}" />
                 </DockPanel>
               </Border>
+
+              <Border Classes="callout" IsVisible="{Binding HasTextLayoutHint}">
+                <DockPanel>
+                  <ic:SymbolIcon Symbol="TextBulletListSquare" />
+                  <TextBlock Text="{Binding TextLayoutHint}" />
+                </DockPanel>
+              </Border>
+              <Border Classes="callout" IsVisible="{Binding CanExtractQuestions}">
+                <StackPanel Spacing="6">
+                  <DockPanel>
+                    <ic:SymbolIcon Symbol="ChatBubblesQuestion" />
+                    <TextBlock Text="{l:Tr Import_ExtractQuestionsHint}" />
+                  </DockPanel>
+                  <Button x:Name="ExtractQuestionsButton" Classes="accent small" HorizontalAlignment="Right"
+                          Content="{l:Tr Import_ExtractQuestions}" Command="{Binding ExtractQuestionsCommand}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Workbook: a sheet or all of them; changing either reads the file again -->
+              <StackPanel Spacing="12" IsVisible="{Binding IsExcel}">
+                <TextBlock Classes="overline" Text="{l:Tr Import_SectionWorkbook}" />
+                <StackPanel>
+                  <TextBlock Classes="label" Text="{l:Tr Import_Sheet}" />
+                  <ComboBox x:Name="SheetBox" ItemsSource="{Binding Sheets}" SelectedItem="{Binding SelectedSheet}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:SheetOption">
+                        <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+                <CheckBox IsChecked="{Binding HasHeader}" Content="{l:Tr Import_HasHeader}" />
+                <TextBlock Classes="small muted" Text="{l:Tr Import_AllSheetsHint}" TextWrapping="Wrap" IsVisible="{Binding IsAllSheets}" />
+              </StackPanel>
 
               <!-- CSV settings: changing one reads the file again -->
               <StackPanel Spacing="12" IsVisible="{Binding IsCsv}">
@@ -144,7 +189,7 @@
 
               <!-- Column mapping -->
               <StackPanel Spacing="12" IsVisible="{Binding IsColumnBased}">
-                <TextBlock Classes="overline" Text="{l:Tr Import_SectionMapping}" />
+                <TextBlock Classes="overline" Text="{Binding MappingTitle}" />
                 <ItemsControl ItemsSource="{Binding Mappings}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -204,11 +249,17 @@
               <TextBlock Classes="muted" Text="{l:Tr Import_NoPreview}" />
             </StackPanel>
             <ScrollViewer IsVisible="{Binding HasPreview}">
-              <ItemsControl Classes="lines" ItemsSource="{Binding Preview}" Margin="24,0,24,16">
+              <!-- Row numbers share one column width; with every sheet read they carry the sheet name. -->
+              <ItemsControl Classes="lines" ItemsSource="{Binding Preview}" Margin="24,0,24,16" Grid.IsSharedSizeScope="True">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ImportRowViewModel">
-                    <Grid ColumnDefinitions="52,26,*" Margin="0,9">
-                      <TextBlock Classes="small muted numeric" Text="{Binding NumberText}" Margin="0,1,0,0" />
+                    <Grid Margin="0,9">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" MinWidth="52" SharedSizeGroup="Number" />
+                        <ColumnDefinition Width="26" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Classes="small muted numeric" Text="{Binding NumberText}" Margin="0,1,10,0" MaxWidth="180" TextTrimming="CharacterEllipsis" />
                       <Panel Grid.Column="1" VerticalAlignment="Top" Margin="0,1,0,0">
                         <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="16" Foreground="{DynamicResource PositiveBrush}" IsVisible="{Binding IsValid}" />
                         <ic:SymbolIcon Symbol="ErrorCircle" FontSize="16" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsInvalid}" />
@@ -248,11 +299,15 @@
                 <ic:SymbolIcon Symbol="Warning" FontSize="16" Foreground="{DynamicResource WarningTextBrush}" />
                 <TextBlock Classes="strong" Text="{Binding SkippedText}" />
               </StackPanel>
-              <ItemsControl Classes="lines" ItemsSource="{Binding SkippedRows}">
+              <ItemsControl Classes="lines" ItemsSource="{Binding SkippedRows}" Grid.IsSharedSizeScope="True">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ImportRowViewModel">
-                    <Grid ColumnDefinitions="64,*" Margin="0,7">
-                      <TextBlock Classes="small muted numeric" Text="{Binding NumberText}" />
+                    <Grid Margin="0,7">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" MinWidth="64" SharedSizeGroup="Number" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Classes="small muted numeric" Text="{Binding NumberText}" Margin="0,0,10,0" MaxWidth="180" TextTrimming="CharacterEllipsis" />
                       <TextBlock Grid.Column="1" Classes="small" Text="{Binding Primary}" TextWrapping="Wrap" />
                     </Grid>
                   </DataTemplate>

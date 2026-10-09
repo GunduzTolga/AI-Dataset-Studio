@@ -63,6 +63,22 @@ public sealed class CatalogServiceTests
     }
 
     [Fact]
+    public async Task Datasets_keep_instructions_for_the_model()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+
+        await ws.Catalog.SetAIGuidanceAsync(datasetId, "  Kısa, resmî Türkçe yanıtlar.\n", Ct);
+        Assert.Equal("Kısa, resmî Türkçe yanıtlar.", (await ws.Catalog.GetProjectsAsync(Ct))[0].Datasets[0].AIGuidance);
+
+        await ws.Catalog.SetAIGuidanceAsync(datasetId, " ", Ct);
+        Assert.Null((await ws.Catalog.GetProjectsAsync(Ct))[0].Datasets[0].AIGuidance);
+
+        await Assert.ThrowsAsync<DomainException>(() => ws.Catalog.SetAIGuidanceAsync(datasetId, new string('a', 4_001), Ct));
+        await Assert.ThrowsAsync<NotFoundException>(() => ws.Catalog.SetAIGuidanceAsync(Guid.NewGuid(), "x", Ct));
+    }
+
+    [Fact]
     public async Task Deleting_a_dataset_removes_its_records_from_the_search_index()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

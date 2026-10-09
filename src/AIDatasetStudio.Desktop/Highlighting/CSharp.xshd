@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="CSharp" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" fontStyle="italic" />
+  <Color name="String" />
+  <Color name="Keyword" />
+  <Color name="Literal" />
+  <Color name="Number" />
+  <Color name="Function" />
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" multiline="true" begin="\$?@&quot;|@\$&quot;" end="&quot;">
+      <RuleSet>
+        <Span begin="&quot;&quot;" end="" />
+      </RuleSet>
+    </Span>
+    <Span color="String" begin="\$?&quot;" end="&quot;">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String" begin="'" end="'">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Keywords color="Keyword">
+      <Word>abstract</Word><Word>as</Word><Word>async</Word><Word>await</Word><Word>bool</Word><Word>break</Word>
+      <Word>byte</Word><Word>case</Word><Word>catch</Word><Word>char</Word><Word>class</Word><Word>const</Word>
+      <Word>continue</Word><Word>decimal</Word><Word>default</Word><Word>delegate</Word><Word>do</Word><Word>double</Word>
+      <Word>else</Word><Word>enum</Word><Word>event</Word><Word>explicit</Word><Word>extern</Word><Word>finally</Word>
+      <Word>fixed</Word><Word>float</Word><Word>for</Word><Word>foreach</Word><Word>get</Word><Word>goto</Word>
+      <Word>if</Word><Word>implicit</Word><Word>in</Word><Word>init</Word><Word>int</Word><Word>interface</Word>
+      <Word>internal</Word><Word>is</Word><Word>lock</Word><Word>long</Word><Word>namespace</Word><Word>new</Word>
+      <Word>object</Word><Word>operator</Word><Word>out</Word><Word>override</Word><Word>params</Word><Word>partial</Word>
+      <Word>private</Word><Word>protected</Word><Word>public</Word><Word>readonly</Word><Word>record</Word><Word>ref</Word>
+      <Word>required</Word><Word>return</Word><Word>sealed</Word><Word>set</Word><Word>short</Word><Word>sizeof</Word>
+      <Word>static</Word><Word>string</Word><Word>struct</Word><Word>switch</Word><Word>throw</Word><Word>try</Word>
+      <Word>typeof</Word><Word>uint</Word><Word>ulong</Word><Word>unsafe</Word><Word>using</Word><Word>var</Word>
+      <Word>virtual</Word><Word>void</Word><Word>when</Word><Word>where</Word><Word>while</Word><Word>with</Word>
+      <Word>yield</Word>
+    </Keywords>
+    <Keywords color="Literal">
+      <Word>true</Word><Word>false</Word><Word>null</Word><Word>this</Word><Word>base</Word>
+    </Keywords>
+    <Rule color="Function">\b[A-Za-z_]\w*(?=[ \t]*(?:&lt;[\w,. ]*&gt;)?[ \t]*\()</Rule>
+    <Rule color="Number">\b0[xXbB][0-9a-fA-F_]+[uUlL]*\b|\b\d[\d_]*(?:\.\d+)?(?:[eE][+-]?\d+)?[fFdDmMuUlL]*\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,8 +10,8 @@ namespace AIDatasetStudio.Desktop.ViewModels.Import;
 
 /// <summary>
 /// Reads a file into a dataset in three steps on one screen: check how the file is read (format,
-/// CSV settings, column mapping) against a live preview, import with progress, then review what
-/// was skipped (SDD §12.1).
+/// CSV settings or workbook sheet, column mapping) against a live preview, import with progress,
+/// then review what was skipped (SDD §12).
 /// </summary>
 public sealed partial class ImportWizardViewModel : ViewModelBase
 {
@@ -65,9 +66,9 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
-        nameof(HasAnalysis), nameof(IsCsv), nameof(IsColumnBased), nameof(IsConversation), nameof(IsUnsupported),
-        nameof(FormatText), nameof(LayoutText), nameof(RowCountText), nameof(ConversationText), nameof(UnsupportedText),
-        nameof(StartText), nameof(IsEmptyFile))]
+        nameof(HasAnalysis), nameof(IsCsv), nameof(IsExcel), nameof(IsAllSheets), nameof(IsColumnBased), nameof(IsConversation),
+        nameof(IsUnsupported), nameof(FormatText), nameof(LayoutText), nameof(RowCountText), nameof(ConversationText), nameof(MappingTitle),
+        nameof(UnsupportedText), nameof(StartText), nameof(IsEmptyFile), nameof(TextLayoutHint), nameof(HasTextLayoutHint), nameof(CanExtractQuestions))]
     [NotifyCanExecuteChangedFor(nameof(ImportCommand))]
     public partial ImportAnalysis? Analysis { get; private set; }
 
@@ -93,8 +94,30 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     [ObservableProperty]
     public partial EncodingOption? SelectedEncoding { get; set; }
 
+    /// <summary>
+    /// Whether the first row holds column names, for CSV files and workbooks.
+    /// </summary>
     [ObservableProperty]
     public partial bool HasHeader { get; set; } = true;
+
+    /// <summary>
+    /// The ways this file can be read; a choice is offered when there is more than one.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasFormatChoice))]
+    public partial IReadOnlyList<FormatOption> FormatOptions { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial FormatOption? SelectedFormat { get; set; }
+
+    /// <summary>
+    /// The visible sheets of a workbook, with "all sheets" when there are several.
+    /// </summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<SheetOption> Sheets { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial SheetOption? SelectedSheet { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMissingFields))]
@@ -134,11 +157,55 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     public bool IsCsv => Analysis?.Format == ImportFormat.Csv;
 
+    public bool IsExcel => Analysis?.Format == ImportFormat.Excel;
+
+    /// <summary>
+    /// Every sheet of a workbook with several is read; rows show their sheet.
+    /// </summary>
+    public bool IsAllSheets => Analysis is { Format: ImportFormat.Excel, Sheet.Sheet: null, Sheets.Count: > 1 };
+
+    public bool HasFormatChoice => FormatOptions.Count > 1;
+
+    /// <summary>
+    /// How a Markdown or plain-text file is split into records.
+    /// </summary>
+    public string? TextLayoutHint => Analysis switch
+    {
+        { Layout: SourceLayout.Sections, Format: ImportFormat.Archive } => _localizer["Import_ArchiveSectionsHint"],
+        { Layout: SourceLayout.Transcript } => _localizer["Import_TranscriptHint"],
+        { Layout: SourceLayout.Sections } => _localizer["Import_SectionsHint"],
+        { Layout: SourceLayout.Paragraphs, Format: ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Html or ImportFormat.Archive } => _localizer["Import_DocumentParagraphsHint"],
+        { Layout: SourceLayout.Paragraphs } => _localizer["Import_ParagraphsHint"],
+        _ => null,
+    };
+
+    public bool HasTextLayoutHint => TextLayoutHint is not null;
+
+    /// <summary>
+    /// A document whose questions a model can write instead (SDD §17.5).
+    /// </summary>
+    public bool CanExtractQuestions =>
+        Analysis?.Format is ImportFormat.Pdf or ImportFormat.Word or ImportFormat.Markdown or ImportFormat.PlainText or ImportFormat.Html or ImportFormat.Archive
+        && QAExtraction.Supports(Target.Type);
+
+    /// <summary>
+    /// The user chose Q&amp;A extraction for this file instead of importing it.
+    /// </summary>
+    public bool ExtractQuestionsChosen { get; private set; }
+
     public bool IsColumnBased => Analysis is { } a && ImportLayouts.IsColumnBased(a.Layout) && a.SupportsTargetType;
+
+    /// <summary>
+    /// "COLUMN MAPPING", or "SPEAKERS" for a conversation log.
+    /// </summary>
+    public string MappingTitle => _localizer[IsLog ? "Import_SectionSpeakers" : "Import_SectionMapping"];
 
     public bool IsConversation => Analysis is { } a && !ImportLayouts.IsColumnBased(a.Layout) && a.SupportsTargetType;
 
     public bool IsUnsupported => Analysis is { SupportsTargetType: false };
+
+    // A conversation log counts conversations rather than rows.
+    private bool IsLog => Analysis?.Layout == SourceLayout.Transcript;
 
     public bool IsEmptyFile => Analysis is { RowCount: 0 };
 
@@ -159,7 +226,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
     public string LayoutText => Analysis is { } a ? ImportText.Layout(_localizer, a.Layout) : string.Empty;
 
-    public string RowCountText => _localizer.Format("Import_RowCount", Analysis?.RowCount ?? 0);
+    public string RowCountText => _localizer.Format(IsLog ? "Import_ConversationCount" : "Import_RowCount", Analysis?.RowCount ?? 0);
 
     public string ConversationText => _localizer.Format("Import_ConversationLayout", LayoutText);
 
@@ -168,17 +235,17 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     /// <summary>
     /// Label of the import button, with the number of rows.
     /// </summary>
-    public string StartText => _localizer.Format("Import_Start", Analysis?.RowCount ?? 0);
+    public string StartText => _localizer.Format(IsLog ? "Import_StartConversations" : "Import_Start", Analysis?.RowCount ?? 0);
 
     public string ResultText => Result is { } r ? _localizer.Format("Import_DoneSummary", r.Imported, Target.Name) : string.Empty;
 
     public bool HasSkipped => Result is { Skipped: > 0 };
 
-    public string SkippedText => _localizer.Format("Import_DoneSkipped", Result?.Skipped ?? 0);
+    public string SkippedText => _localizer.Format(IsLog ? "Import_DoneSkippedConversations" : "Import_DoneSkipped", Result?.Skipped ?? 0);
 
     public bool HasMoreSkipped => Result is { } r && r.Skipped > r.Errors.Count;
 
-    public string MoreSkippedText => Result is { } r ? _localizer.Format("Import_MoreSkipped", r.Skipped - r.Errors.Count) : string.Empty;
+    public string MoreSkippedText => Result is { } r ? _localizer.Format(IsLog ? "Import_MoreSkippedConversations" : "Import_MoreSkipped", r.Skipped - r.Errors.Count) : string.Empty;
 
     /// <summary>
     /// The plan for the current settings; <c>null</c> before the file is analyzed.
@@ -192,13 +259,14 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
             IsColumnBased
                 ? Mappings.Where(m => m.SelectedColumn?.Column is not null).ToDictionary(m => m.Field, m => m.SelectedColumn!.Column!)
                 : new Dictionary<TargetField, string>(),
-            Target.Type)
+            Target.Type,
+            a.Sheet)
         : null;
 
     /// <summary>
     /// Reads the file with detected settings and shows the first rows.
     /// </summary>
-    public Task InitializeAsync() => Analyze(csvOverride: null);
+    public Task InitializeAsync() => Analyze(overrides: null);
 
     private bool CanImport() => IsSetup && !IsAnalyzing && Analysis is { SupportsTargetType: true, RowCount: > 0 };
 
@@ -216,12 +284,13 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
         Notice = null;
         ErrorMessage = null;
         ProgressValue = 0;
-        ProgressText = _localizer.Format("Import_Progress", 0, total, 0);
+        var progressKey = IsLog ? "Import_ProgressConversations" : "Import_Progress";
+        ProgressText = _localizer.Format(progressKey, 0, total, 0);
         IsImporting = true;
         var progress = new Progress<ImportProgress>(p =>
         {
             ProgressValue = total == 0 ? 0 : Math.Min(1, (double)p.RowsRead / total);
-            ProgressText = _localizer.Format("Import_Progress", p.RowsRead, total, p.Imported);
+            ProgressText = _localizer.Format(progressKey, p.RowsRead, total, p.Imported);
         });
 
         try
@@ -230,7 +299,7 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
             SkippedRows.Clear();
             foreach (var error in result.Errors)
             {
-                SkippedRows.Add(ImportRowViewModel.FromError(error, _localizer));
+                SkippedRows.Add(ImportRowViewModel.FromError(error, _localizer, IsAllSheets));
             }
 
             Result = result;
@@ -269,17 +338,51 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
     [RelayCommand]
     private void Close() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
-    partial void OnSelectedDelimiterChanged(DelimiterOption? value) => OnCsvOptionChanged();
-
-    partial void OnSelectedEncodingChanged(EncodingOption? value) => OnCsvOptionChanged();
-
-    partial void OnHasHeaderChanged(bool value) => OnCsvOptionChanged();
-
-    private void OnCsvOptionChanged()
+    /// <summary>
+    /// Closes the wizard and has a model write the document's questions instead.
+    /// </summary>
+    [RelayCommand]
+    private void ExtractQuestions()
     {
-        if (!_applying && SelectedDelimiter is { } delimiter && SelectedEncoding is { } encoding)
+        _work?.Cancel();
+        ExtractQuestionsChosen = true;
+        CloseRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    partial void OnSelectedDelimiterChanged(DelimiterOption? value) => OnSourceOptionChanged();
+
+    partial void OnSelectedEncodingChanged(EncodingOption? value) => OnSourceOptionChanged();
+
+    partial void OnHasHeaderChanged(bool value) => OnSourceOptionChanged();
+
+    partial void OnSelectedSheetChanged(SheetOption? value) => OnSourceOptionChanged();
+
+    // Another reading starts from detected settings.
+    partial void OnSelectedFormatChanged(FormatOption? value)
+    {
+        if (!_applying && value is not null && value.Value != Analysis?.Format)
         {
-            _ = Analyze(new CsvOptions(delimiter.Value, encoding.Name, HasHeader));
+            _ = Analyze(new ImportOverrides(value.Value));
+        }
+    }
+
+    /// <summary>
+    /// Reads the file again with the CSV settings or the sheet the user chose.
+    /// </summary>
+    private void OnSourceOptionChanged()
+    {
+        if (_applying || Analysis is not { } analysis)
+        {
+            return;
+        }
+
+        if (analysis.Format == ImportFormat.Csv && SelectedDelimiter is { } delimiter && SelectedEncoding is { } encoding)
+        {
+            _ = Analyze(new ImportOverrides(analysis.Format, Csv: new CsvOptions(delimiter.Value, encoding.Name, HasHeader)));
+        }
+        else if (analysis.Format == ImportFormat.Excel && SelectedSheet is { } sheet)
+        {
+            _ = Analyze(new ImportOverrides(analysis.Format, Sheet: new SheetOptions(sheet.Name, HasHeader)));
         }
     }
 
@@ -292,12 +395,12 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
         }
     }
 
-    private Task Analyze(CsvOptions? csvOverride) => Run(async token =>
+    private Task Analyze(ImportOverrides? overrides) => Run(async token =>
     {
         IsAnalyzing = true;
         try
         {
-            var analysis = await _import.AnalyzeAsync(FilePath, Target.Type, csvOverride, token);
+            var analysis = await _import.AnalyzeAsync(FilePath, Target.Type, overrides, token);
             token.ThrowIfCancellationRequested();
             Apply(analysis);
             await RefreshPreviewAsync(token);
@@ -349,11 +452,35 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
         {
             ErrorMessage = null;
             Analysis = analysis;
+            var formats = analysis.ReadableAs.Select(f => new FormatOption(f, ImportText.Format(_localizer, f))).ToList();
+            if (!formats.SequenceEqual(FormatOptions))
+            {
+                FormatOptions = formats;
+            }
+
+            SelectedFormat = FormatOptions.FirstOrDefault(f => f.Value == analysis.Format);
             if (analysis.Csv is { } csv)
             {
                 SelectedDelimiter = Delimiters.FirstOrDefault(d => d.Value == csv.Delimiter) ?? new DelimiterOption(csv.Delimiter, csv.Delimiter.ToString());
                 SelectedEncoding = Encodings.FirstOrDefault(e => string.Equals(e.Name, csv.EncodingName, StringComparison.OrdinalIgnoreCase));
                 HasHeader = csv.HasHeader;
+            }
+
+            if (analysis.Sheet is { } sheet)
+            {
+                var sheets = analysis.Sheets.Select(name => new SheetOption(name, name)).ToList();
+                if (sheets.Count > 1)
+                {
+                    sheets.Add(new SheetOption(null, _localizer.Format("Import_AllSheets", sheets.Count)));
+                }
+
+                if (!sheets.SequenceEqual(Sheets))
+                {
+                    Sheets = sheets;
+                }
+
+                SelectedSheet = Sheets.FirstOrDefault(s => s.Name == sheet.Sheet);
+                HasHeader = sheet.HasHeader;
             }
 
             foreach (var mapping in Mappings)
@@ -363,10 +490,12 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
 
             Mappings.Clear();
             var columns = new List<ColumnOption> { new(null, _localizer["Import_NotMapped"]) };
-            columns.AddRange(analysis.Columns.Select(c => new ColumnOption(c, c)));
-            foreach (var field in ImportLayouts.FieldsFor(Target.Type))
+            columns.AddRange(analysis.Columns.Select(c => new ColumnOption(c, ImportText.Column(_localizer, analysis.Format, c))));
+            // A log's speakers are mapped to the customer and the agent instead of columns to fields.
+            var labels = analysis.Layout == SourceLayout.Transcript ? "TranscriptField" : "Field";
+            foreach (var field in ImportLayouts.FieldsFor(Target.Type, analysis.Layout))
             {
-                var mapping = new ColumnMappingViewModel(field, _localizer[$"Field_{field.Field}"], columns);
+                var mapping = new ColumnMappingViewModel(field, _localizer[$"{labels}_{field.Field}"], columns);
                 mapping.SelectedColumn = analysis.SuggestedMapping.TryGetValue(field.Field, out var column)
                     ? columns.First(c => c.Column == column)
                     : columns[0];
@@ -395,14 +524,14 @@ public sealed partial class ImportWizardViewModel : ViewModelBase
         Preview.Clear();
         foreach (var row in preview.Rows)
         {
-            Preview.Add(ImportRowViewModel.From(row, _localizer));
+            Preview.Add(ImportRowViewModel.From(row, _localizer, IsAllSheets));
         }
 
         HasPreview = Preview.Count > 0;
         var valid = preview.Rows.Count(r => r.IsValid);
         PreviewSummary = preview.Rows.Count == 0
             ? null
-            : _localizer.Format("Import_PreviewSummary", preview.Rows.Count, valid, preview.Rows.Count - valid);
+            : _localizer.Format(IsLog ? "Import_PreviewSummaryConversations" : "Import_PreviewSummary", preview.Rows.Count, valid, preview.Rows.Count - valid);
     }
 
     private void ClearPreview()

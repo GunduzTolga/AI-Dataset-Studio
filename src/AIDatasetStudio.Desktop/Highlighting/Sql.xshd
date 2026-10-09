@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Sql" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" fontStyle="italic" />
+  <Color name="String" />
+  <Color name="Keyword" />
+  <Color name="Literal" />
+  <Color name="Number" />
+  <Color name="Function" />
+  <RuleSet ignoreCase="true">
+    <Span color="Comment" begin="--" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String" begin="'" end="'">
+      <RuleSet>
+        <Span begin="''" end="" />
+      </RuleSet>
+    </Span>
+    <Keywords color="Keyword">
+      <Word>add</Word><Word>all</Word><Word>alter</Word><Word>and</Word><Word>as</Word><Word>asc</Word>
+      <Word>between</Word><Word>by</Word><Word>case</Word><Word>check</Word><Word>column</Word><Word>constraint</Word>
+      <Word>create</Word><Word>cross</Word><Word>default</Word><Word>delete</Word><Word>desc</Word><Word>distinct</Word>
+      <Word>drop</Word><Word>else</Word><Word>end</Word><Word>exists</Word><Word>foreign</Word><Word>from</Word>
+      <Word>full</Word><Word>group</Word><Word>having</Word><Word>if</Word><Word>in</Word><Word>index</Word>
+      <Word>inner</Word><Word>insert</Word><Word>into</Word><Word>is</Word><Word>join</Word><Word>key</Word>
+      <Word>left</Word><Word>like</Word><Word>limit</Word><Word>not</Word><Word>offset</Word><Word>on</Word>
+      <Word>or</Word><Word>order</Word><Word>outer</Word><Word>over</Word><Word>partition</Word><Word>primary</Word>
+      <Word>references</Word><Word>returning</Word><Word>right</Word><Word>select</Word><Word>set</Word><Word>table</Word>
+      <Word>then</Word><Word>top</Word><Word>union</Word><Word>unique</Word><Word>update</Word><Word>values</Word>
+      <Word>view</Word><Word>when</Word><Word>where</Word><Word>with</Word>
+    </Keywords>
+    <Keywords color="Literal">
+      <Word>null</Word><Word>true</Word><Word>false</Word>
+    </Keywords>
+    <Rule color="Function">\b[A-Za-z_]\w*(?=[ \t]*\()</Rule>
+    <Rule color="Number">\b\d+(?:\.\d+)?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

@@ -1,5 +1,7 @@
 using System.Globalization;
 using AIDatasetStudio.Application.Export;
+using AIDatasetStudio.Application.Tags;
+using AIDatasetStudio.Application.Versions;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
 
@@ -8,7 +10,24 @@ namespace AIDatasetStudio.Desktop.ViewModels.Export;
 /// <summary>
 /// The dataset being exported.
 /// </summary>
-public sealed record ExportTarget(Guid DatasetId, string Name, DatasetType Type);
+/// <param name="Versions">Its frozen versions, which can be exported instead of the current records.</param>
+/// <param name="VersionId">The version to start with; <c>null</c> for the current records.</param>
+/// <param name="Tags">The workspace's tags with their counts in the dataset, for splitting by tag.</param>
+public sealed record ExportTarget(
+    Guid DatasetId,
+    string Name,
+    DatasetType Type,
+    IReadOnlyList<VersionInfo>? Versions = null,
+    Guid? VersionId = null,
+    IReadOnlyList<TagInfo>? Tags = null);
+
+/// <summary>
+/// What to export: the current records or a frozen version (SDD §14).
+/// </summary>
+public sealed record SourceOption(VersionInfo? Version, string Label)
+{
+    public Guid? VersionId => Version?.Id;
+}
 
 /// <summary>
 /// A target format with what it looks like and, when it cannot take every record of the
@@ -28,6 +47,17 @@ public enum SplitMode
 }
 
 public sealed record SplitModeOption(SplitMode Mode, string Label);
+
+/// <summary>
+/// What the split is made within: nothing, each record's first tag, or a tag group (SDD §10.1).
+/// </summary>
+/// <param name="StratifyBy">The <see cref="SplitOptions.StratifyBy"/> value.</param>
+public sealed record StratifyOption(string? StratifyBy, string Label);
+
+/// <summary>
+/// A fine-tuning tool to write a configuration for, or none (M20).
+/// </summary>
+public sealed record TrainingChoice(TrainingFramework? Framework, string Label);
 
 /// <summary>
 /// A written file on the result screen.

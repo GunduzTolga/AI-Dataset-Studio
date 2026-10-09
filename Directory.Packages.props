@@ -13,6 +13,8 @@
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="FluentIcons.Avalonia" Version="2.1.343" />
+    <!-- The record editor's text fields: JSON, Markdown and code highlighting (MIT). -->
+    <PackageVersion Include="Avalonia.AvaloniaEdit" Version="12.0.0" />
     <!-- Installers and opt-in updates; keep in step with the vpk tool in .config/dotnet-tools.json. -->
     <PackageVersion Include="Velopack" Version="1.2.158" />
   </ItemGroup>
@@ -26,6 +28,8 @@
     <PackageVersion Include="Microsoft.Bcl.Memory" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
+    <!-- Text of PDF documents for import and Q&A extraction (Apache-2.0, no dependencies). -->
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
   </ItemGroup>
 
   <ItemGroup Label="Hosting">

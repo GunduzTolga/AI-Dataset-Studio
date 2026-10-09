@@ -2,9 +2,13 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.ViewModels;
+using AIDatasetStudio.Desktop.ViewModels.AI;
 using AIDatasetStudio.Desktop.ViewModels.Dialogs;
+using AIDatasetStudio.Desktop.ViewModels.Documents;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
+using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Desktop.Views.Dialogs;
 using AIDatasetStudio.Domain.Enums;
 using Avalonia.Controls;
@@ -106,6 +110,24 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
     }
 
     public Task ShowAboutAsync(AboutViewModel about) => new AboutDialog { DataContext = about }.ShowDialog(Owner);
+
+    public Task<bool> PromptNewVersionAsync(NewVersionViewModel prompt) => new NewVersionDialog { DataContext = prompt }.ShowDialog<bool>(Owner);
+
+    public Task ShowVersionsAsync(VersionsViewModel versions) => new VersionsWindow { DataContext = versions }.ShowDialog(Owner);
+
+    public Task ShowTagManagerAsync(TagManagerViewModel tags) => new TagManagerWindow { DataContext = tags }.ShowDialog(Owner);
+
+    public Task ShowAIConnectionsAsync(AIConnectionsViewModel connections) => new AIConnectionsWindow { DataContext = connections }.ShowDialog(Owner);
+
+    public Task ShowQAExtractionAsync(QAExtractionViewModel extraction) => new QAExtractionWindow { DataContext = extraction }.ShowDialog(Owner);
+
+    public Task ShowVariationsAsync(VariationsViewModel variations) => new VariationsWindow { DataContext = variations }.ShowDialog(Owner);
+
+    public Task ShowJudgeAsync(JudgeViewModel judge) => new JudgeWindow { DataContext = judge }.ShowDialog(Owner);
+
+    public Task ShowDatasetMergeAsync(ViewModels.Catalog.DatasetMergeViewModel merge) => new DatasetMergeWindow { DataContext = merge }.ShowDialog(Owner);
+
+    public Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation) => new ModelEvaluationWindow { DataContext = evaluation }.ShowDialog(Owner);
 
     private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);
 

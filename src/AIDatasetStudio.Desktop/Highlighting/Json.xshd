@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- JSON: property names, strings, numbers and literals. Colours come from the theme (CodeHighlighting). -->
+<SyntaxDefinition name="Json" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Property" />
+  <Color name="String" />
+  <Color name="Number" />
+  <Color name="Literal" />
+  <RuleSet>
+    <!-- A string followed by ":" is a property name. Spans starting at the same place are
+         tried in order (and before rules), so this one comes first. -->
+    <Span color="Property" begin="&quot;(?=(?:[^&quot;\\]|\\.)*&quot;[ \t]*:)" end="&quot;">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String" begin="&quot;" end="&quot;">
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Rule color="Number">-?\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b</Rule>
+    <Keywords color="Literal">
+      <Word>true</Word>
+      <Word>false</Word>
+      <Word>null</Word>
+    </Keywords>
+  </RuleSet>
+</SyntaxDefinition>
