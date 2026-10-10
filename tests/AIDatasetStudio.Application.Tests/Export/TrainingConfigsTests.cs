@@ -19,6 +19,8 @@ public sealed class TrainingConfigsTests
             new TrainingTarget("Destek SSS (İade)", DatasetType.Chat, ExportFormat.OpenAi, 4096, Split, 7)));
 
         Assert.Equal(TrainingConfigs.AxolotlFile, file.FileName);
+
+        // Written with "\n" on every system; the expected text has the checkout's line endings.
         Assert.Equal("""
             # Fine-tuning "Destek SSS (İade)" with LoRA, written by AI Dataset Studio.
             # Run it from this folder: axolotl train axolotl.yaml
@@ -75,7 +77,7 @@ public sealed class TrainingConfigsTests
             seed: 7
             output_dir: "./outputs/destek-sss-iade"
 
-            """, file.Content);
+            """.ReplaceLineEndings("\n"), file.Content);
     }
 
     [Theory]
