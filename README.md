@@ -198,6 +198,8 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 
 ## 📋 Documentation
 
+**User guide (Turkish):** [docs/kullanim-kilavuzu.md](docs/kullanim-kilavuzu.md) explains every feature step by step, with the menu names as the app shows them.
+
 For detailed architectural specifications, data schemas, and the product roadmap, refer to [Plan.txt](Plan.txt).
 Review notes, open design decisions and the milestone plan are in [docs/plan-review.md](docs/plan-review.md).
 Packaging, signing and publishing are described in [docs/release.md](docs/release.md); open-source components in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
