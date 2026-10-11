@@ -1635,7 +1635,7 @@
 {1} / {2} GB in use</value>
   </data>
   <data name="Training_GpuNone" xml:space="preserve">
-    <value>GPU memory shows when nvidia-smi (NVIDIA) or rocm-smi (AMD) is installed.</value>
+    <value>GPU memory shows when Windows reports it, or when nvidia-smi (NVIDIA) or rocm-smi (AMD) is installed.</value>
   </data>
   <data name="Training_AboutTitle" xml:space="preserve">
     <value>ABOUT THIS RUN</value>

@@ -1580,7 +1580,7 @@
 {1} / {2} GB kullanımda</value>
   </data>
   <data name="Training_GpuNone" xml:space="preserve">
-    <value>Ekran kartı belleği, nvidia-smi (NVIDIA) ya da rocm-smi (AMD) kuruluysa görünür.</value>
+    <value>Ekran kartı belleği, Windows bildiriyorsa ya da nvidia-smi (NVIDIA) veya rocm-smi (AMD) kuruluysa görünür.</value>
   </data>
   <data name="Training_AboutTitle" xml:space="preserve">
     <value>BU EĞİTİM HAKKINDA</value>

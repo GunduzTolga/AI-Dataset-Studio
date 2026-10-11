@@ -53,7 +53,7 @@ public sealed class TrainingTests
         Assert.Equal("3 min 0 s elapsed · about 1 h 2 min left", training.TimeText);
         Assert.Equal((N(1.4, "0.##"), N(1.5, "0.0000"), N(1.6, "0.0000")), (training.EpochText, training.LossText, training.EvalLossText));
         Assert.Equal([new ChartPoint(0.47, 1.8123), new ChartPoint(1.4, 1.5)], training.TrainPoints);
-        Assert.Equal($"AMD Radeon RX 7800 XT\n{N(6.0, "0.0")} / {N(16.0, "0.0")} GB in use", training.GpuText);
+        Assert.Equal($"AMD Radeon RX 7800 XT\n{N(6.0, "0.0")} / {N(16.0, "0.0")} GB in use", training.GpuText?.ReplaceLineEndings("\n"));
         Assert.Equal("  Total optimization steps = 66", training.LogText);
         Assert.Equal(new TrainingRequest(TrainingFramework.LlamaFactory, folder, "/opt/venv/bin/llamafactory-cli"), Assert.Single(host.Trainer.Requests));
 
