@@ -58,9 +58,17 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             new TrainingChoice(null, localizer["Export_TrainingNone"]),
             .. Enum.GetValues<TrainingFramework>().Select(framework => new TrainingChoice(framework, localizer[$"Export_Training{framework}"])),
         ];
+        GpuChoices = [.. Enum.GetValues<GpuVendor>().Select(vendor => new GpuChoice(vendor, localizer[$"Export_Gpu{vendor}"]))];
+        GpuMemoryChoices =
+        [
+            new GpuMemoryChoice(null, localizer["Export_GpuMemoryUnknown"]),
+            .. GpuMemorySizes.Select(gb => new GpuMemoryChoice(gb, localizer.Format("Export_GpuMemoryGb", gb))),
+        ];
         SkipItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasSkips));
         _applying = true;
         SelectedTraining = TrainingChoices[0];
+        SelectedGpu = GpuChoices[0];
+        SelectedGpuMemory = GpuMemoryChoices[0];
         SelectedFormat = Formats.FirstOrDefault();
         SelectedSplitMode = SplitModes[0];
         SelectedStratify = StratifyOptions[0];
@@ -199,7 +207,83 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     /// The Hugging Face id of the model to fine-tune; follows the format until the user types one.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
     public partial string BaseModel { get; set; } = TrainingConfigs.DefaultBaseModel(ExportFormat.OpenAi);
+
+    /// <summary>
+    /// QLoRA instead of LoRA: the model is loaded in 4 bits (M26).
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
+    public partial bool UseQLoRA { get; set; }
+
+    // ===== The GPU that trains (M27) =====
+
+    /// <summary>The memory sizes offered, in GB: laptop GPUs to data-center ones.</summary>
+    public static IReadOnlyList<int> GpuMemorySizes { get; } = [4, 6, 8, 10, 12, 16, 20, 24, 32, 48, 80];
+
+    public IReadOnlyList<GpuChoice> GpuChoices { get; }
+
+    public IReadOnlyList<GpuMemoryChoice> GpuMemoryChoices { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAmd))]
+    public partial GpuChoice? SelectedGpu { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
+    public partial GpuMemoryChoice? SelectedGpuMemory { get; set; }
+
+    /// <summary>
+    /// Liger kernels and activations in the computer's memory: the same training in less GPU memory.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
+    public partial bool SaveMemory { get; set; }
+
+    public bool IsAmd => SelectedGpu?.Vendor == GpuVendor.Amd;
+
+    /// <summary>
+    /// How the run sits in the chosen GPU's memory; <c>null</c> without a GPU size or a model size.
+    /// </summary>
+    public MemoryFit? MemoryFitLevel =>
+        SelectedGpuMemory?.Gigabytes is { } memory && TrainingMemory.ParameterBillions(BaseModel) is { } size
+            ? TrainingMemory.Fit(TrainingMemory.EstimateGb(size, UseQLoRA, SaveMemory), memory)
+            : null;
+
+    public bool IsMemoryWarning => MemoryFitLevel is MemoryFit.Tight or MemoryFit.TooBig;
+
+    /// <summary>
+    /// The memory the run needs against the GPU's, and what to change when it does not fit.
+    /// </summary>
+    public string MemoryText
+    {
+        get
+        {
+            var size = TrainingMemory.ParameterBillions(BaseModel);
+            var estimate = size is { } billions ? TrainingMemory.EstimateGb(billions, UseQLoRA, SaveMemory) : (double?)null;
+            if (SelectedGpuMemory?.Gigabytes is not { } memory)
+            {
+                return estimate is { } gb ? _localizer.Format("Export_MemoryEstimate", gb, TrainingMemory.EstimatedSequenceLength) : string.Empty;
+            }
+
+            var largest = TrainingMemory.LargestFitting(memory) is { } fitting
+                ? _localizer.Format("Export_MemoryLargest", fitting)
+                : _localizer["Export_MemoryTooSmall"];
+            if (estimate is not { } needed)
+            {
+                return _localizer["Export_MemoryUnknownSize"] + " " + largest;
+            }
+
+            return TrainingMemory.Fit(needed, memory) switch
+            {
+                MemoryFit.Fits => _localizer.Format("Export_MemoryFits", needed, memory),
+                MemoryFit.Tight => _localizer.Format("Export_MemoryTight", needed, memory),
+                _ when !UseQLoRA || !SaveMemory => _localizer.Format("Export_MemoryTooBig", needed, memory) + " " + _localizer["Export_MemoryTurnOn"],
+                _ => _localizer.Format("Export_MemoryTooBig", needed, memory) + " " + largest,
+            };
+        }
+    }
 
     public bool IsTraining => SelectedTraining?.Framework is not null;
 
@@ -236,7 +320,9 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 SplitMode.Custom => new SplitOptions((int)(TrainPercent ?? 0), (int)(ValidationPercent ?? 0), (int)(TestPercent ?? 0), seed, stratifyBy),
                 _ => null,
             };
-            var training = SelectedTraining?.Framework is { } framework ? new TrainingOptions(framework, BaseModel.Trim()) : null;
+            var training = SelectedTraining?.Framework is { } framework
+                ? new TrainingOptions(framework, BaseModel.Trim(), UseQLoRA, SelectedGpu?.Vendor ?? GpuVendor.Nvidia, SelectedGpuMemory?.Gigabytes, SaveMemory)
+                : null;
             if (split is { IsValid: false } || (training is not null && !TrainingConfigs.Supports(training.Framework, format.Format, Target.Type)))
             {
                 return null;
@@ -540,6 +626,14 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     partial void OnBaseModelChanged(string value) => OnOptionChanged();
 
+    partial void OnUseQLoRAChanged(bool value) => OnOptionChanged();
+
+    partial void OnSelectedGpuChanged(GpuChoice? value) => OnOptionChanged();
+
+    partial void OnSelectedGpuMemoryChanged(GpuMemoryChoice? value) => OnOptionChanged();
+
+    partial void OnSaveMemoryChanged(bool value) => OnOptionChanged();
+
     partial void OnIncludeApprovedChanged(bool value) => OnOptionChanged();
 
     partial void OnIncludeInReviewChanged(bool value) => OnOptionChanged();
@@ -680,6 +774,10 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             SkipLowJudgeScore = options.SkipLowJudgeScore;
             MaskPersonalData = options.MaskPersonalData;
             SelectedTraining = TrainingChoices.First(c => c.Framework == options.Training?.Framework);
+            UseQLoRA = options.Training?.QLoRA == true;
+            SaveMemory = options.Training?.SaveMemory == true;
+            SelectedGpu = GpuChoices.FirstOrDefault(c => c.Vendor == options.Training?.Gpu) ?? GpuChoices[0];
+            SelectedGpuMemory = GpuMemoryChoices.FirstOrDefault(c => c.Gigabytes == options.Training?.GpuMemoryGb) ?? GpuMemoryChoices[0];
             if (options.Training is { BaseModel.Length: > 0 } training)
             {
                 BaseModel = training.BaseModel;

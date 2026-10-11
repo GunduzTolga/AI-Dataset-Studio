@@ -14,6 +14,9 @@ using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Domain.Payloads;
+using AIDatasetStudio.Domain.ValueObjects;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -32,6 +35,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordCommandService _commands;
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
+    private readonly IHuggingFaceHub _hub;
     private readonly IExportService _export;
     private readonly IVersionService _versions;
     private readonly IUpdateService _updates;
@@ -55,6 +59,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordCommandService commands,
         IRecordQueryService queries,
         IImportService import,
+        IHuggingFaceHub hub,
         IExportService export,
         IVersionService versions,
         IUpdateService updates,
@@ -82,6 +87,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _commands = commands;
         _queries = queries;
         _import = import;
+        _hub = hub;
         _export = export;
         _versions = versions;
         _updates = updates;
@@ -148,7 +154,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ImportFromHubCommand), nameof(NewRecordCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
     [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
@@ -321,6 +327,52 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private bool CanImport() => !IsBusy && Explorer.SelectedDataset is not null;
 
     /// <summary>
+    /// Raised after Record › New Record shows the new record, so the editor's first field gets the
+    /// keyboard.
+    /// </summary>
+    public event EventHandler? NewRecordShown;
+
+    /// <summary>
+    /// Record › New Record (M24): an empty draft of the dataset's type at the end of the list,
+    /// written by hand. One step in the history, like any other added records.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanImport))]
+    private async Task NewRecordAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset || !await Details.SaveIfDirtyAsync())
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var ids = await _operations.AddAsync(dataset.Id, [new NewRecord(EmptyPayload(dataset.Type), RecordLineage.Manual())], _localizer["History_NewRecordSource"]);
+            await ShowAffectedAsync(dataset.Id, ids);
+            await Details.ShowAsync(ids[0]);
+            Status.Set("Status_RecordCreated", dataset.Name);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+            return;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        NewRecordShown?.Invoke(this, EventArgs.Empty);
+    }
+
+    // A chat starts with the customer's turn and the answer to write.
+    private static RecordPayload EmptyPayload(DatasetType type) => type switch
+    {
+        DatasetType.Chat => new ChatPayload(null, [new ChatMessage(ChatRole.User, ""), new ChatMessage(ChatRole.Assistant, "")]),
+        DatasetType.Preference => new PreferencePayload("", "", ""),
+        _ => new InstructionPayload("", "", ""),
+    };
+
+    /// <summary>
     /// Picks a file and runs the import wizard for the selected dataset.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanImport))]
@@ -337,6 +389,31 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        await ImportFileAsync(dataset, path);
+    }
+
+    /// <summary>
+    /// File › Import from Hugging Face (M25): a file of a Hub dataset is downloaded, then imported
+    /// through the wizard like any file.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanImport))]
+    private async Task ImportFromHubAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset)
+        {
+            return;
+        }
+
+        var hub = new HubImportViewModel(_hub, _localizer, dataset.Name);
+        await _dialogs.ShowHubImportAsync(hub);
+        if (hub.DownloadedPath is { } path)
+        {
+            await ImportFileAsync(dataset, path);
+        }
+    }
+
+    private async Task ImportFileAsync(DatasetNodeViewModel dataset, string path)
+    {
         var wizard = new ImportWizardViewModel(_import, _localizer, path, new ImportTarget(dataset.Id, dataset.Name, dataset.Type));
         if (await _dialogs.ShowImportWizardAsync(wizard) is not { } result)
         {
@@ -631,6 +708,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
+            NewRecordCommand.NotifyCanExecuteChanged();
+            ImportFromHubCommand.NotifyCanExecuteChanged();
             ExtractQuestionsCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
             EvaluateModelCommand.NotifyCanExecuteChanged();

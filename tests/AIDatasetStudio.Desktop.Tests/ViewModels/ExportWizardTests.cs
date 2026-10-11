@@ -1,3 +1,4 @@
+using System.Globalization;
 using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Judgments;
@@ -215,6 +216,8 @@ public sealed class ExportWizardTests
 
         wizard.SelectedFormat = wizard.Formats.Single(f => f.Format == ExportFormat.ShareGpt);
         wizard.BaseModel = "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1";
+        Assert.False(wizard.UseQLoRA);
+        wizard.UseQLoRA = true;
         await wizard.PendingWork;
         Assert.StartsWith("dataset_info.json and llamafactory.yaml are written next to the files", wizard.TrainingHint, StringComparison.Ordinal);
         var folder = Path.Combine(host.Directory, "egitim");
@@ -233,11 +236,68 @@ public sealed class ExportWizardTests
         Assert.Contains("model_name_or_path: \"ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1\"\n", yaml, StringComparison.Ordinal);
         // A model whose name does not tell its family leaves the template to the user.
         Assert.Contains("template: default  # set your model's template\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("quantization_bit: 4\n", yaml, StringComparison.Ordinal);
 
         // The tool and the model are remembered with the dataset's other settings.
         var again = CreateWizard(host, dataset.Id);
         await again.InitializeAsync();
-        Assert.Equal((TrainingFramework.LlamaFactory, "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1"), (again.SelectedTraining!.Framework, again.BaseModel));
+        Assert.Equal((TrainingFramework.LlamaFactory, "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1", true), (again.SelectedTraining!.Framework, again.BaseModel, again.UseQLoRA));
+    });
+
+    [Fact]
+    public Task The_GPU_decides_the_settings_and_the_wizard_says_whether_the_model_fits() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction, Samples);
+        var wizard = CreateWizard(host, dataset.Id);
+        await wizard.InitializeAsync();
+        wizard.IncludeDraft = true;
+        wizard.SelectedSplitMode = wizard.SplitModes.Single(m => m.Mode == SplitMode.TrainValidation);
+        wizard.SelectedTraining = wizard.TrainingChoices.Single(c => c.Framework == TrainingFramework.Axolotl);
+        Assert.Equal(["NVIDIA (CUDA)", "AMD (ROCm)"], wizard.GpuChoices.Select(c => c.Label));
+        Assert.Equal("Not given", wizard.SelectedGpuMemory!.Label);
+        Assert.False(wizard.IsAmd);
+
+        // Without the GPU's memory, only the estimate.
+        string Gb(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
+        Assert.Equal($"Needs about {Gb(TrainingMemory.EstimateGb(7, false, false))} GB of GPU memory (2048-token sequences, one at a time).", wizard.MemoryText);
+        Assert.Null(wizard.MemoryFitLevel);
+
+        // A 7B model with LoRA does not fit a 16 GB GPU: the wizard says what to turn on.
+        wizard.SelectedGpu = wizard.GpuChoices.Single(c => c.Vendor == GpuVendor.Amd);
+        wizard.SelectedGpuMemory = wizard.GpuMemoryChoices.Single(c => c.Gigabytes == 16);
+        Assert.True(wizard.IsAmd);
+        Assert.Equal(MemoryFit.TooBig, wizard.MemoryFitLevel);
+        Assert.True(wizard.IsMemoryWarning);
+        Assert.EndsWith("does not fit a 16 GB GPU. Turn on QLoRA and memory saving, or choose a smaller model.", wizard.MemoryText, StringComparison.Ordinal);
+
+        wizard.UseQLoRA = true;
+        wizard.SaveMemory = true;
+        Assert.Equal(MemoryFit.Fits, wizard.MemoryFitLevel);
+        Assert.Equal($"Needs about {Gb(TrainingMemory.EstimateGb(7, true, true))} GB: fits a 16 GB GPU.", wizard.MemoryText);
+
+        // A model too big even then: the largest this GPU trains.
+        wizard.BaseModel = "Qwen/Qwen2.5-32B-Instruct";
+        Assert.EndsWith("does not fit a 16 GB GPU. This GPU trains models up to about 14B with QLoRA and memory saving.", wizard.MemoryText, StringComparison.Ordinal);
+        wizard.BaseModel = "microsoft/Phi-3.5-mini-instruct";
+        Assert.Equal("The model's size is not in its name, so its memory cannot be estimated. This GPU trains models up to about 14B with QLoRA and memory saving.", wizard.MemoryText);
+        Assert.False(wizard.IsMemoryWarning);
+        wizard.BaseModel = "Qwen/Qwen2.5-7B-Instruct";
+
+        await wizard.PendingWork;
+        Assert.Equal(new TrainingOptions(TrainingFramework.Axolotl, "Qwen/Qwen2.5-7B-Instruct", true, GpuVendor.Amd, 16, true), wizard.Options!.Training);
+        var folder = Path.Combine(host.Directory, "amd");
+        Directory.CreateDirectory(folder);
+        host.Files.ExportFolder = folder;
+        await wizard.ExportCommand.ExecuteAsync(null);
+        var yaml = await File.ReadAllTextAsync(Path.Combine(folder, "axolotl.yaml"), TestContext.Current.CancellationToken);
+        Assert.Contains("activation_offloading: true\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("optimizer: adamw_torch\n", yaml, StringComparison.Ordinal);
+
+        // The GPU is remembered with the dataset's other settings.
+        var again = CreateWizard(host, dataset.Id);
+        await again.InitializeAsync();
+        Assert.Equal((GpuVendor.Amd, (int?)16, true), (again.SelectedGpu!.Vendor, again.SelectedGpuMemory!.Gigabytes, again.SaveMemory));
     });
 
     [Fact]

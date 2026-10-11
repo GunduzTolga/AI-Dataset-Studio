@@ -19,6 +19,8 @@ public sealed class TrainingConfigsTests
             new TrainingTarget("Destek SSS (İade)", DatasetType.Chat, ExportFormat.OpenAi, 4096, Split, 7)));
 
         Assert.Equal(TrainingConfigs.AxolotlFile, file.FileName);
+
+        // Written with "\n" on every system; the expected text has the checkout's line endings.
         Assert.Equal("""
             # Fine-tuning "Destek SSS (İade)" with LoRA, written by AI Dataset Studio.
             # Run it from this folder: axolotl train axolotl.yaml
@@ -75,7 +77,7 @@ public sealed class TrainingConfigsTests
             seed: 7
             output_dir: "./outputs/destek-sss-iade"
 
-            """, file.Content);
+            """.ReplaceLineEndings("\n"), file.Content);
     }
 
     [Theory]
@@ -119,6 +121,70 @@ public sealed class TrainingConfigsTests
         {
             Assert.Contains(line + "\n", yaml, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public void QLoRA_loads_the_model_in_four_bits_in_both_tools_and_LoRA_does_not()
+    {
+        var target = new TrainingTarget("Destek", DatasetType.Instruction, ExportFormat.Alpaca, 4096, Split, 42);
+        string Axolotl(bool qlora) => TrainingConfigs.Render(new TrainingOptions(TrainingFramework.Axolotl, "", qlora), target)[0].Content;
+        string LlamaFactory(bool qlora) => TrainingConfigs.Render(new TrainingOptions(TrainingFramework.LlamaFactory, "", qlora), target)[1].Content;
+
+        Assert.All(new[] { "adapter: qlora", "load_in_4bit: true", "optimizer: paged_adamw_8bit" }, line => Assert.Contains(line + "\n", Axolotl(true), StringComparison.Ordinal));
+        Assert.All(new[] { "adapter: lora", "optimizer: adamw_torch_fused" }, line => Assert.Contains(line + "\n", Axolotl(false), StringComparison.Ordinal));
+        Assert.DoesNotContain("load_in_4bit", Axolotl(false), StringComparison.Ordinal);
+
+        Assert.All(
+            new[] { "finetuning_type: lora", "quantization_bit: 4", "quantization_method: bnb", "double_quantization: true", "output_dir: \"saves/destek/qlora/sft\"" },
+            line => Assert.Contains(line + "\n", LlamaFactory(true), StringComparison.Ordinal));
+        Assert.DoesNotContain("quantization_bit", LlamaFactory(false), StringComparison.Ordinal);
+        Assert.Contains("output_dir: \"saves/destek/lora/sft\"\n", LlamaFactory(false), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_AMD_GPU_with_little_memory_gets_settings_ROCm_runs_and_memory_saving_in_both_tools()
+    {
+        var target = new TrainingTarget("Destek", DatasetType.Instruction, ExportFormat.Alpaca, 4096, Split, 42);
+        var amd = new TrainingOptions(TrainingFramework.Axolotl, "", QLoRA: true, Gpu: GpuVendor.Amd, GpuMemoryGb: 16, SaveMemory: true);
+        var axolotl = TrainingConfigs.Render(amd, target)[0].Content;
+        var llamaFactory = TrainingConfigs.Render(amd with { Framework = TrainingFramework.LlamaFactory }, target)[1].Content;
+
+        Assert.All(
+            new[]
+            {
+                "# AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.",
+                "# Needs bitsandbytes' ROCm build; the result is a LoRA adapter.",
+                "plugins:\n  - axolotl.integrations.liger.LigerPlugin",
+                "liger_fused_linear_cross_entropy: true",
+                "activation_offloading: true",
+                "# Starting points for a 16 GB GPU: adjust to your data.\nmicro_batch_size: 2\ngradient_accumulation_steps: 4",
+                "optimizer: adamw_torch",
+            },
+            text => Assert.Contains(text + "\n", axolotl, StringComparison.Ordinal));
+        Assert.DoesNotContain("paged_adamw_8bit", axolotl, StringComparison.Ordinal);
+        Assert.All(
+            new[]
+            {
+                "# AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.",
+                "enable_liger_kernel: true\nuse_unsloth_gc: true",
+                "# method: QLoRA, the model is loaded in 4 bits and a small adapter is trained on it (needs bitsandbytes' ROCm build)",
+                "per_device_train_batch_size: 2\ngradient_accumulation_steps: 4",
+            },
+            text => Assert.Contains(text + "\n", llamaFactory, StringComparison.Ordinal));
+
+        // A 6 GB GPU takes one sequence at a time; preference pairs keep their log-probabilities.
+        var laptop = new TrainingOptions(TrainingFramework.Axolotl, "", QLoRA: true, GpuMemoryGb: 6, SaveMemory: true);
+        var dpo = TrainingConfigs.Render(laptop, target with { Type = DatasetType.Preference, Format = ExportFormat.HuggingFaceDpo })[0].Content;
+        Assert.Contains("micro_batch_size: 1\ngradient_accumulation_steps: 8\n", dpo, StringComparison.Ordinal);
+        Assert.Contains("optimizer: paged_adamw_8bit\n", dpo, StringComparison.Ordinal);
+        Assert.Contains("liger_rms_norm: true\n", dpo, StringComparison.Ordinal);
+        Assert.DoesNotContain("liger_fused_linear_cross_entropy", dpo, StringComparison.Ordinal);
+
+        // Without them nothing changes.
+        var plain = TrainingConfigs.Render(new TrainingOptions(TrainingFramework.LlamaFactory, ""), target)[1].Content;
+        Assert.DoesNotContain("liger", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ROCm", plain, StringComparison.Ordinal);
+        Assert.Contains("# train: starting points, adjust to your GPU and data\nper_device_train_batch_size: 2\n", plain, StringComparison.Ordinal);
     }
 
     [Fact]

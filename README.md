@@ -1,7 +1,146 @@
 # AI Dataset Studio 🧠📊
 
 > **The Modern, Offline-First Desktop Studio for AI Dataset Engineering & Curation.**  
-> Curate, clean, tokenize, version, and export LLM datasets (Instruction, Chat, DPO/RLHF, Tool Calling) locally on Windows, macOS, and Linux.
+> Curate, clean, tokenize, version, and export LLM datasets (Instruction, Chat, DPO/RLHF preference) locally on Windows, macOS, and Linux.
+
+> 🇹🇷 **Türkçe tanıtım hemen aşağıda.** · 🇬🇧 English description: [Overview](#-overview)
+
+---
+
+## 🇹🇷 Türkçe Tanıtım
+
+### Bu proje nedir?
+
+**AI Dataset Studio**, yapay zekâ dil modellerini (LLM) eğitmek için gereken veriyi hazırlayan bir masaüstü uygulamasıdır. Windows, macOS ve Linux'ta çalışır.
+
+Bir modeli kendi işinize göre eğitmek (ince ayar, *fine-tuning*) için yüzlerce ya da binlerce örnek gerekir. "Müşteri şunu sorarsa şöyle cevap ver" gibi soru-cevap çiftleri, örnek sohbetler, iyi ve kötü cevap karşılaştırmaları bunlara örnektir. Bu örnekler genellikle dağınık Excel dosyalarında, PDF'lerde, WhatsApp yazışmalarında ya da yarım kalmış betiklerde durur. AI Dataset Studio bu veriyi tek bir yerde toplar. İçeri alır, tek tek incelemenizi sağlar, hatalı, tekrar eden ya da kişisel bilgi içeren kayıtları bulur ve sonunda eğitim araçlarının doğrudan okuyacağı dosyalara dönüştürür.
+
+Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerekmez, verileriniz hiçbir yere gönderilmez. Bir bulut yapay zekâ servisi bağlamayı siz seçmedikçe ve açıkça izin vermedikçe hiçbir kayıt bilgisayarınızdan çıkmaz.
+
+### Ne işe yarar? Örnek kullanım senaryoları
+
+| Senaryo | AI Dataset Studio ile |
+|---|---|
+| **Müşteri destek asistanı** | Sık sorulan sorular Excel'ini ve WhatsApp destek yazışmalarını içe aktarın. Kişisel verileri maskeleyin, tekrar eden soruları ayıklayın ve modeli şirketinizin üslubuyla cevap verecek şekilde eğitmek için dışa aktarın. |
+| **Şirket içi bilgi asistanı** | Prosedür PDF'lerinden, Word belgelerinden, Notion ya da Confluence sayfalarından yapay zekâya soru-cevap çiftleri çıkartın. Her cevabın hangi paragraftan geldiği kayıtta saklanır. |
+| **Hukuk, sağlık, finans gibi hassas alanlar** | Veri bilgisayardan çıkmadan çalışın. T.C. kimlik numarası, IBAN, kart numarası, telefon ve e-posta otomatik bulunur ve maskelenebilir. |
+| **Model kalitesini iyileştirme** | Kötü cevapları yapay zekâya puanlatıp ayıklayın, aynı soruya çelişen cevapları bulun, iyi ve kötü cevap çiftleriyle tercih (DPO) verisi hazırlayın. |
+| **Eğitilen modeli ölçme** | Eğittiğiniz modele hiç görmediği test sorularını sorun ve cevaplarını veri setindeki doğru cevaplarla karşılaştırıp puanlayın. Farklı modelleri yan yana kıyaslayın. |
+| **Hazır bir veri setinden başlamak** | Hugging Face'teki bir veri setini adıyla bulup içe alın, düzenleyin, istemediğiniz kayıtları ayıklayın ve kendi kayıtlarınızı elle ya da yapay zekâyla ekleyin. |
+| **Ekip çalışması** | Herkesin hazırladığı `.adstudio` dosyalarındaki veri setlerini tek bir veri setinde birleştirin. Etiketler isimleriyle eşleşir, tekrar eden kayıtlar ayıklanır. |
+
+### Tipik iş akışı
+
+```
+ İçe aktar  →  İncele ve düzenle  →  Temizle  →  Sürüm al  →  Dışa aktar  →  Modeli eğit  →  Modeli değerlendir
+ (Excel, PDF,   (onayla, arşivle,     (kopyalar,   (v1.0.0)     (eğitim/test   (Axolotl /       (test soruları,
+  WhatsApp…)     etiketle)            kişisel veri)              dosyaları)      LLaMA-Factory)   puan ve kıyas)
+```
+
+1. **İçe aktarın:** Excel, CSV, JSON, PDF, Word, Markdown, web sayfaları, Notion/Confluence dışa aktarımları ya da WhatsApp sohbetleri. Sihirbaz dosyayı kendisi tanır, sütunları eşler ve canlı önizleme gösterir.
+2. **İnceleyin:** her kaydı ekranda görün, düzenleyin, onaylayın ya da arşivleyin. Klavye kısayollarıyla (Ctrl+Enter onayla ve sonrakine geç) binlerce kayıt hızla gözden geçirilir. Her işlem geri alınabilir.
+3. **Temizleyin:** uygulama boş, çok kısa, tekrar eden, birbirine çok benzeyen, çelişen, kişisel veri içeren ya da modelin bağlam sınırını aşan kayıtları kendisi bulur.
+4. **Sürüm alın:** eğitimden önce veri setini dondurun. Hangi veriyle eğittiğiniz hep bilinir; iki sürümü kelime kelime karşılaştırabilir ya da eskisine dönebilirsiniz.
+5. **Dışa aktarın:** OpenAI, ShareGPT, Alpaca, Hugging Face DPO, ChatML ya da Llama 3 biçiminde, eğitim/doğrulama/test olarak bölünmüş dosyalar alın. İsterseniz yanına hazır bir Axolotl ya da LLaMA-Factory eğitim yapılandırması da yazılır.
+6. **Değerlendirin:** eğittiğiniz modele test sorularını sorun, cevaplarını puanlatın ve önceki modellerle karşılaştırın.
+
+### Özellikler
+
+**Veri türleri**
+- **Talimat (SFT):** talimat, isteğe bağlı girdi ve yanıt. Klasik soru-cevap ince ayarı (LoRA, QLoRA) için.
+- **Sohbet:** sistem mesajı ve sırayla kullanıcı/asistan mesajları. Çok turlu sohbet asistanları için.
+- **Tercih (DPO):** bir istem, tercih edilen ve reddedilen yanıt. DPO ve ORPO gibi tercih eğitimleri için.
+
+**İçe aktarma**
+- JSON Lines / JSON: OpenAI, ShareGPT, Alpaca, Hugging Face DPO biçimleri kendiliğinden tanınır.
+- **Hugging Face:** Dosya › Hugging Face'ten İçe Aktar… ile bir veri setinin adını (`tatsu-lab/alpaca`) yazın, dosyalarından birini seçin; indirilip içe aktarma sihirbazında açılır. Hugging Face'in kullandığı Parquet dosyaları da doğrudan okunur.
+- CSV / TSV ve Excel: sütunlar Türkçe adlarıyla da eşlenir. Excel'in Türkçe karakterli (Windows-1254) dosyaları sorunsuz okunur; çok sayfalı çalışma kitaplarında tek sayfa ya da hepsi seçilebilir.
+- Markdown, düz metin, PDF ve Word: başlıklar, listeler ve tablolar tanınır; sayfa numaraları, üst bilgiler ve içindekiler atlanır.
+- Web sayfaları ve Notion / Confluence dışa aktarımları (ZIP): internete bağlanmadan okunur.
+- WhatsApp sohbet dışa aktarımları (Android ve iOS) ve konuşma dökümleri: her konuşma bir sohbet kaydı olur, müşteri ve temsilci rolleri eşlenir.
+
+**İnceleme ve düzenleme**
+- **Elle kayıt yazma** (Ctrl+Shift+N): veri setine boş bir taslak ekler, düzenleyicide yazarsınız.
+- Kayıt listesi, renklendirilmiş düzenleyici (Markdown, kod blokları, JSON), toplu seçim ve toplu işlemler.
+- Durumlar: Taslak → İncelemede → Onaylandı / Arşivlendi.
+- Tam geri alma ve yineleme (Ctrl+Z / Ctrl+Shift+Z).
+- Metin araması; duruma, kalite sorununa ve etikete göre süzme.
+- **Etiketler:** renkli etiketler, Ctrl+1…5 ile tek tuşla etiketleme, `kategori:hukuk` gibi etiket grupları.
+
+**Kalite ve güvenlik**
+- 12 otomatik kalite kuralı:
+  - boş alanlar;
+  - geçiştirici yanıtlar;
+  - soruyu tekrarlayan yanıtlar;
+  - dengesiz uzunluk;
+  - aynı yanıtlar;
+  - kapanmamış kod blokları;
+  - geçersiz JSON;
+  - kişisel veri;
+  - kopyalar;
+  - benzer sorular;
+  - çelişen yanıtlar;
+  - bağlam uzunluğunu aşanlar.
+- **Token sayımı:** her kaydın token sayısı gösterilir, modelin bağlam sınırını aşanlar işaretlenir.
+- **Kişisel veri tarama ve maskeleme:** T.C. kimlik no (doğrulama haneli), IBAN, kart numarası, telefon, e-posta, iç IP/URL, API anahtarları ve parolalar. Kendi hassas terimlerinizi (müşteri adları, proje kod adları) de ekleyebilirsiniz.
+- **Benzer sorular:** "Şifremi unuttum" ile "Parolamı nasıl sıfırlarım?" gibi aynı şeyi soran kayıtları bulur. Harf benzerliğiyle her zaman, bir embedding modeli bağlarsanız anlam benzerliğiyle de çalışır.
+
+**Sürümler ve dışa aktarma**
+- Numaralı sürümler, iki sürümün kelime kelime karşılaştırılması, bir sürüme geri dönme.
+- **Bölme:** tohuma bağlı, tekrarlanabilir eğitim/doğrulama/test bölmesi.
+  - İsterseniz oranlar her etiket içinde ayrı ayrı tutulur.
+  - Birbirine benzeyen sorular aynı bölümde kalır, test soruları eğitim verisine sızmaz.
+- Bağlam sınırını aşan, kopya ya da yapay zekânın düşük puan verdiği kayıtları dışarıda bırakma.
+- Axolotl ve LLaMA-Factory için çalışmaya hazır LoRA ya da **QLoRA** (model 4 bit yüklenir, çok daha az GPU belleği) eğitim yapılandırması.
+- **Ekran kartına göre ayar:** NVIDIA ya da **AMD (ROCm)** kartınızı ve belleğini seçin; uygulama modelin karta sığıp sığmadığını tahmin eder, sığmıyorsa ne yapacağınızı söyler. **Bellek tasarrufu** (Liger kernel, ara sonuçlar RAM'de) kaliteyi değiştirmeden belleği düşürür.
+
+**Yapay zekâ özellikleri** (isteğe bağlı; bağlantı olmadan uygulamanın geri kalanı tam çalışır)
+- **Yerel modeller:** Ollama, LM Studio, vLLM, LocalAI ya da OpenAI uyumlu herhangi bir sunucu. Veri bilgisayarınızdan çıkmaz.
+- **Bulut servisleri:** OpenAI, Anthropic, Azure OpenAI, OpenRouter, Groq, DeepSeek.
+  - Kayıtlar ancak siz açıkça izin verirseniz gönderilir.
+  - API anahtarları işletim sisteminin şifre deposunda saklanır (Windows Kimlik Bilgisi Yöneticisi, macOS Anahtar Zinciri, Linux Secret Service).
+- **Yapay zekâyla yazma** (Ctrl+G): modelin bir kaydın cevabını yazmasını izleyin, beğenmezseniz düzeltin.
+- **Belgeden soru-cevap çıkarma:** model bir PDF ya da Word belgesinin her bölümü için sorular yazar; siz onayladıklarınızı eklersiniz.
+- **Varyant üretme** (Ctrl+Shift+G): bir soruyu farklı biçimlerde (isterseniz günlük dille ve yazım hatalarıyla) yeniden yazdırın, veri setini zenginleştirin.
+- **Modelle değerlendirme** (Ctrl+J): model her kayda 1–5 arası puan ve gerekçe verir, çelişen cevapları bulur.
+- **Model değerlendirme (benchmark):** eğittiğiniz modelin test sorularına verdiği cevapları bir hakem model puanlar; sonuçlar saklanır, modeller karşılaştırılır.
+
+**Diğer**
+- **Veri setlerini birleştirme:** farklı projelerden ya da başka bir `.adstudio` dosyasından. Diğer dosya hiç değiştirilmez.
+- **Arayüz:** Türkçe ve İngilizce, uygulama yeniden başlatılmadan değiştirilebilir. Açık ve koyu tema var.
+- **Taşınabilir dosya:** bütün iş tek bir `.adstudio` dosyasında durur; kopyalayıp başka bilgisayarda açabilirsiniz.
+- **Otomatik güncelleme ve hata kaydı.**
+
+### Gizlilik
+
+- Uygulama telemetri göndermez. İnternete yalnızca güncelleme denetlediğinizde bağlanır.
+- Yerel bir model kullanırsanız hiçbir veri bilgisayarınızdan ya da yerel ağınızdan çıkmaz.
+- Bulut servisine ya da ağ dışındaki bir sunucuya, siz izin kutusunu işaretlemedikçe hiçbir kayıt gönderilmez.
+
+### Kurulum ve çalıştırma
+
+- **Hazır paket:** GitHub **Releases** sayfasından işletim sisteminize uygun paketi indirin. Paketler bir sürüm etiketi (ör. `v1.0.0`) atıldığında yayınlanır.
+- **Kaynaktan:** [.NET 10 SDK](https://dotnet.microsoft.com/download) kurulu olmalı.
+
+  ```bash
+  dotnet run --project src/AIDatasetStudio.Desktop
+  ```
+
+İlk açılışta **Yeni çalışma alanı** oluşturun, bir proje ve veri seti ekleyin. Hemen denemek için **Araçlar › Örnek Kayıt Üret…** seçili veri setine örnek kayıtlar ekler.
+
+### Bilinen sınırlar
+
+- Taranmış (görüntü olarak kaydedilmiş) PDF'ler için metin tanıma (OCR) yoktur.
+- Notion, Confluence ve Zendesk gibi servislere doğrudan bağlanılmaz; bu servislerden dışa aktarılmış dosyalar okunur.
+- Telegram gibi diğer sohbet uygulamalarının biçimleri ve sesli mesajlar desteklenmez.
+- Kayıt listesi aynı anda yalnızca bir etikete göre süzülebilir.
+- Uygulama eğitimin kendisini yapmaz. Veriyi ve eğitim yapılandırmasını hazırlar; eğitimi Axolotl, LLaMA-Factory ya da bir bulut servisinin ince ayar özelliğiyle siz başlatırsınız.
+
+### Daha fazlası
+
+- 📖 **Adım adım kullanım kılavuzu:** [docs/kullanim-kilavuzu.md](docs/kullanim-kilavuzu.md)
+- 🗺️ **Ayrıntılı tasarım ve yol haritası:** [Plan.txt](Plan.txt)
+- 📝 **Sürüm notları:** [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -19,7 +158,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files; Tools › Merge Datasets brings datasets over from another `.adstudio` file without changing it.
 - 🌐 **Bilingual UI:** English and Turkish, switchable at runtime (View › Language).
 - 🎨 **Light & Dark Themes:** Token-based design system with Fluent UI icons (View › Theme).
-- 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat, Preference (DPO/ORPO/RLHF), and Tool Calling formats.
+- 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat and Preference (DPO/ORPO/RLHF) datasets.
 - ⚡ **High-Performance Virtualization:** Seamlessly navigate and search 100,000+ records with zero UI lag.
 - 📐 **Token & Context Engine:** Real-time token counting (Tiktoken / BPE) to prevent Out-Of-Memory (OOM) training failures.
 - 🛡️ **PII & Secret Scrubber:** Automatically detect and mask emails, phone numbers, API keys, and sensitive tokens before training.
@@ -34,8 +173,10 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
 - 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the one you trained — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models; the answers can be saved as a JSON Lines report.
 - 🔄 **Universal Import & Export:**
-  - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
-  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA configuration next to the files.
+  - **Import:** JSONL, JSON, Parquet, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
+  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA or QLoRA configuration next to the files, set for your GPU (NVIDIA or AMD ROCm, its memory, optional memory saving) with an estimate of whether the model fits.
+  - **Hugging Face:** File › Import from Hugging Face lists a Hub dataset's files from its id (`tatsu-lab/alpaca`), downloads the one you choose and opens it in the import wizard; gated and private datasets with a token in `HF_TOKEN`.
+- ✍️ **Records written by hand:** Record › New Record (Mod+Shift+N) adds an empty draft of the dataset's type and puts the keyboard in it.
 
 ---
 
@@ -191,12 +332,18 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M21 | Merging datasets of one type from several projects into a new dataset | ✅ |
 | M22 | Model evaluation: a model answers the test part's questions, a grader scores them against the dataset's answers; earlier evaluations kept to compare | ✅ |
 | M23 | Merging datasets from another `.adstudio` file, read from a copy and never changed; tags matched by name | ✅ |
+| M24 | Writing a new record by hand (Record › New Record, Mod+Shift+N) | ✅ |
+| M25 | Parquet files and importing a dataset straight from the Hugging Face Hub | ✅ |
+| M26 | QLoRA training configurations (model loaded in 4 bits) | ✅ |
+| M27 | Training settings for your GPU: memory estimate, AMD (ROCm), memory saving with Liger kernels | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
 ---
 
 ## 📋 Documentation
+
+**User guide (Turkish):** [docs/kullanim-kilavuzu.md](docs/kullanim-kilavuzu.md) explains every feature step by step, with the menu names as the app shows them.
 
 For detailed architectural specifications, data schemas, and the product roadmap, refer to [Plan.txt](Plan.txt).
 Review notes, open design decisions and the milestone plan are in [docs/plan-review.md](docs/plan-review.md).

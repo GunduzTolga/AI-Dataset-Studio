@@ -43,6 +43,9 @@
         <MenuItem x:Name="ImportMenuItem" Header="{l:Tr Menu_Import}" Command="{Binding ImportCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowImport" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="ImportFromHubMenuItem" Header="{l:Tr Menu_ImportFromHub}" Command="{Binding ImportFromHubCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="CloudArrowDown" /></MenuItem.Icon>
+        </MenuItem>
         <MenuItem x:Name="ExtractQuestionsMenuItem" Header="{l:Tr Menu_ExtractQuestions}" Command="{Binding ExtractQuestionsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ChatBubblesQuestion" /></MenuItem.Icon>
         </MenuItem>
@@ -91,6 +94,9 @@
         </MenuItem>
       </MenuItem>
       <MenuItem Header="{l:Tr Menu_Record}">
+        <MenuItem x:Name="NewRecordMenuItem" Header="{l:Tr Menu_NewRecord}" Command="{Binding NewRecordCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="Add" /></MenuItem.Icon>
+        </MenuItem>
         <MenuItem x:Name="SaveMenuItem" Header="{l:Tr Menu_SaveRecord}" Command="{Binding Details.SaveCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="Save" /></MenuItem.Icon>
         </MenuItem>
@@ -211,7 +217,7 @@
           <Panel IsVisible="{Binding Records.HasDataset}">
             <!-- Nothing selected: the dataset overview; otherwise the record editor or batch panel -->
             <views:DatasetOverviewView x:Name="OverviewView" DataContext="{Binding Overview}" IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Details.IsEmpty}" />
-            <views:RecordDetailsView DataContext="{Binding Details}" IsVisible="{Binding !IsEmpty}" />
+            <views:RecordDetailsView x:Name="RecordDetailsView" DataContext="{Binding Details}" IsVisible="{Binding !IsEmpty}" />
           </Panel>
         </Border>
       </Grid>

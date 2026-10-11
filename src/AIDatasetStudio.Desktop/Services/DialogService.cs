@@ -127,6 +127,8 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
 
     public Task ShowDatasetMergeAsync(ViewModels.Catalog.DatasetMergeViewModel merge) => new DatasetMergeWindow { DataContext = merge }.ShowDialog(Owner);
 
+    public Task ShowHubImportAsync(ViewModels.Import.HubImportViewModel hub) => new HubImportWindow { DataContext = hub }.ShowDialog(Owner);
+
     public Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation) => new ModelEvaluationWindow { DataContext = evaluation }.ShowDialog(Owner);
 
     private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);

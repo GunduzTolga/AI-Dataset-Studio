@@ -169,6 +169,21 @@ public sealed class ReviewKeyboardTests
         window.Close();
     });
 
+    [Fact]
+    public Task Mod_Shift_N_adds_a_record_and_puts_the_keyboard_in_its_first_field() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        await host.CreateDatasetWithRecordsAsync(1);
+        var window = Open(host);
+        Assert.Equal(new KeyGesture(Key.N, KeyModifiers.Control | KeyModifiers.Shift), window.FindControl<MenuItem>("NewRecordMenuItem")!.InputGesture);
+
+        Press(window, Key.N, RawInputModifiers.Control | RawInputModifiers.Shift);
+        await DesktopTestHost.WaitUntilAsync(() => host.Main.Records.Items.Count == 2 && host.Main.Details.Record?.Ordinal == 2);
+        await DesktopTestHost.WaitUntilAsync(() => window.FocusManager?.GetFocusedElement() == EditorFields(window)[0].TextArea);
+
+        window.Close();
+    });
+
     private static MainWindow Open(DesktopTestHost host)
     {
         var window = new MainWindow { DataContext = host.Main, Width = 1440, Height = 860 };

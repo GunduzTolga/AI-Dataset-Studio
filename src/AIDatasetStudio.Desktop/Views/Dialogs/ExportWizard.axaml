@@ -183,6 +183,47 @@
                   <TextBlock Classes="label" Text="{l:Tr Export_BaseModel}" />
                   <TextBox x:Name="BaseModelBox" Text="{Binding BaseModel}" FontFamily="{StaticResource MonoFontFamily}" PlaceholderText="Qwen/Qwen2.5-7B-Instruct" />
                   <TextBlock Classes="caption muted" Text="{Binding TrainingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <CheckBox x:Name="QLoRABox" IsChecked="{Binding UseQLoRA}" Margin="0,8,0,0">
+                    <TextBlock Text="{l:Tr Export_QLoRA}" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Classes="caption muted" Text="{l:Tr Export_QLoRAHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
+                  <CheckBox x:Name="SaveMemoryBox" IsChecked="{Binding SaveMemory}" Margin="0,8,0,0">
+                    <TextBlock Text="{l:Tr Export_SaveMemory}" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Classes="caption muted" Text="{l:Tr Export_SaveMemoryHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
+
+                  <!-- The GPU that trains: settings it runs and whether the model fits (M27) -->
+                  <Grid ColumnDefinitions="*,12,*" Margin="0,12,0,0">
+                    <StackPanel>
+                      <TextBlock Classes="label" Text="{l:Tr Export_Gpu}" />
+                      <ComboBox x:Name="GpuBox" ItemsSource="{Binding GpuChoices}" SelectedItem="{Binding SelectedGpu}" HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="vm:GpuChoice">
+                            <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Classes="label" Text="{l:Tr Export_GpuMemory}" />
+                      <ComboBox x:Name="GpuMemoryBox" ItemsSource="{Binding GpuMemoryChoices}" SelectedItem="{Binding SelectedGpuMemory}" HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                          <DataTemplate x:DataType="vm:GpuMemoryChoice">
+                            <TextBlock Text="{Binding Label}" />
+                          </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                      </ComboBox>
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock Classes="caption muted" Text="{l:Tr Export_GpuAmdHint}" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="{Binding IsAmd}" />
+                  <Border Classes="callout" Classes.warning="{Binding IsMemoryWarning}" Margin="0,10,0,0"
+                          IsVisible="{Binding MemoryText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <DockPanel>
+                      <ic:SymbolIcon Symbol="Info" IsVisible="{Binding !IsMemoryWarning}" />
+                      <ic:SymbolIcon Symbol="Warning" IsVisible="{Binding IsMemoryWarning}" />
+                      <TextBlock x:Name="MemoryText" Text="{Binding MemoryText}" />
+                    </DockPanel>
+                  </Border>
                 </StackPanel>
               </StackPanel>
             </StackPanel>

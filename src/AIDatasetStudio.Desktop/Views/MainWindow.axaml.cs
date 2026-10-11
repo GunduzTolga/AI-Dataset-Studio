@@ -16,6 +16,13 @@ public sealed partial class MainWindow : Window
         ConfigureHotKeys();
         // Tunnel: shortcuts are seen before a focused text box can turn Mod+Enter into a line break.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.NewRecordShown += (_, _) => RecordDetailsView.FocusFirstField();
+            }
+        };
     }
 
     /// <param name="Gesture">The key combination.</param>
@@ -32,6 +39,7 @@ public sealed partial class MainWindow : Window
         NewWorkspaceMenuItem.HotKey = NewWorkspaceMenuItem.InputGesture = new KeyGesture(Key.N, mod);
         OpenWorkspaceMenuItem.HotKey = OpenWorkspaceMenuItem.InputGesture = new KeyGesture(Key.O, mod);
         Add(ExportMenuItem, new KeyGesture(Key.E, mod), vm => vm.ExportCommand, inTextBox: true);
+        Add(NewRecordMenuItem, new KeyGesture(Key.N, mod | KeyModifiers.Shift), vm => vm.NewRecordCommand, inTextBox: true);
 
         Add(UndoMenuItem, new KeyGesture(Key.Z, mod), vm => vm.UndoCommand, inTextBox: false);
         Add(RedoMenuItem, new KeyGesture(Key.Z, mod | KeyModifiers.Shift), vm => vm.RedoCommand, inTextBox: false);

@@ -45,6 +45,13 @@
             </StackPanel>
           </StackPanel>
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="12,0,0,0" IsVisible="{Binding !IsEmptyDataset}">
+            <Button x:Name="NewRecordButton" Classes="subtle" ToolTip.Tip="{l:Tr Action_NewRecordTip}"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NewRecordCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Add" />
+                <TextBlock Text="{l:Tr Action_NewRecord}" />
+              </StackPanel>
+            </Button>
             <Button Classes="subtle" ToolTip.Tip="{l:Tr Action_ImportFromFile}"
                     Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ImportCommand}">
               <StackPanel Orientation="Horizontal" Spacing="6">
@@ -206,6 +213,13 @@
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <ic:SymbolIcon Symbol="ArrowImport" />
                 <TextBlock Text="{l:Tr Action_ImportFromFile}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="subtle"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NewRecordCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ic:SymbolIcon Symbol="Add" />
+                <TextBlock Text="{l:Tr Action_WriteFirstRecord}" />
               </StackPanel>
             </Button>
             <Button Classes="subtle"

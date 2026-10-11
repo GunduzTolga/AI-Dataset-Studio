@@ -18,6 +18,12 @@ the full license texts are available at the linked projects. This file ships wit
 | Entity Framework Core, Microsoft.Data.Sqlite | MIT | https://github.com/dotnet/efcore |
 | SQLitePCLRaw | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw |
 | PdfPig | Apache-2.0 | https://github.com/UglyToad/PdfPig |
+| Parquet.Net | MIT | https://github.com/aloneguid/parquet-dotnet |
+| Snappier | BSD-3-Clause | https://github.com/brantburnett/Snappier |
+| ZstdSharp | MIT | https://github.com/oleg-st/ZstdSharp |
+| K4os.Compression.LZ4 | MIT | https://github.com/MiloszKrajewski/K4os.Compression.LZ4 |
+| CommunityToolkit.HighPerformance | MIT | https://github.com/CommunityToolkit/dotnet |
+| Microsoft.IO.RecyclableMemoryStream | MIT | https://github.com/Microsoft/Microsoft.IO.RecyclableMemoryStream |
 | SQLite | Public domain | https://sqlite.org |
 | Microsoft.ML.Tokenizers (with the cl100k_base and o200k_base vocabularies) | MIT | https://github.com/dotnet/machinelearning |
 | Microsoft.Extensions.DependencyInjection | MIT | https://github.com/dotnet/runtime |

@@ -25,7 +25,14 @@ public enum TrainingFramework
 /// A training configuration written next to the exported files.
 /// </summary>
 /// <param name="BaseModel">The Hugging Face id of the model to fine-tune, e.g. "Qwen/Qwen2.5-7B-Instruct".</param>
-public sealed record TrainingOptions(TrainingFramework Framework, string BaseModel);
+/// <param name="QLoRA">Load the base model in 4 bits and train the adapter on it (QLoRA, M26): far less
+/// GPU memory, a little slower; needs bitsandbytes (its ROCm build on AMD).</param>
+/// <param name="Gpu">Whose GPU trains (M27): AMD gets settings ROCm runs.</param>
+/// <param name="GpuMemoryGb">The GPU's memory; sets the batch size. <c>null</c> when not given.</param>
+/// <param name="SaveMemory">Fused Liger kernels and activations moved to the computer's memory between
+/// layers (M27): the same training, in less GPU memory, a little slower.</param>
+public sealed record TrainingOptions(
+    TrainingFramework Framework, string BaseModel, bool QLoRA = false, GpuVendor Gpu = GpuVendor.Nvidia, int? GpuMemoryGb = null, bool SaveMemory = false);
 
 /// <summary>
 /// What a configuration is written for: the dataset, its export and the files it wrote.
@@ -89,8 +96,8 @@ public static class TrainingConfigs
         var model = string.IsNullOrWhiteSpace(training.BaseModel) ? DefaultBaseModel(target.Format) : training.BaseModel.Trim();
         return training.Framework switch
         {
-            TrainingFramework.Axolotl => [new(AxolotlFile, Axolotl(model, target))],
-            _ => [new(LlamaFactoryDatasets, LlamaFactoryDatasetInfo(target)), new(LlamaFactoryFile, LlamaFactory(model, target))],
+            TrainingFramework.Axolotl => [new(AxolotlFile, Axolotl(model, target, training))],
+            _ => [new(LlamaFactoryDatasets, LlamaFactoryDatasetInfo(target)), new(LlamaFactoryFile, LlamaFactory(model, target, training))],
         };
     }
 
@@ -114,10 +121,11 @@ public static class TrainingConfigs
         };
     }
 
-    private static string Axolotl(string model, TrainingTarget target)
+    private static string Axolotl(string model, TrainingTarget target, TrainingOptions training)
     {
+        var qlora = training.QLoRA;
         var yaml = new Yaml();
-        Header(yaml, target, "axolotl train " + AxolotlFile);
+        Header(yaml, target, training, "axolotl train " + AxolotlFile);
         yaml.Line("base_model", Quote(model));
         if (target.Format is ExportFormat.OpenAi or ExportFormat.ShareGpt)
         {
@@ -145,19 +153,54 @@ public static class TrainingConfigs
         yaml.Line("sample_packing", target.Type == DatasetType.Preference ? "false" : "true");
         yaml.Line("pad_to_sequence_len", target.Type == DatasetType.Preference ? "false" : "true");
         yaml.Blank();
-        yaml.Comment("LoRA: a small adapter is trained instead of the whole model.");
-        yaml.Line("adapter", "lora");
+        if (qlora)
+        {
+            yaml.Comment("QLoRA: the model is loaded in 4 bits and a small adapter is trained on it.");
+            yaml.Comment($"Needs {QLoRANeeds(training)}; the result is a LoRA adapter.");
+            yaml.Line("adapter", "qlora");
+            yaml.Line("load_in_4bit", "true");
+        }
+        else
+        {
+            yaml.Comment("LoRA: a small adapter is trained instead of the whole model.");
+            yaml.Line("adapter", "lora");
+        }
+
         yaml.Line("lora_r", "16");
         yaml.Line("lora_alpha", "32");
         yaml.Line("lora_dropout", "0.05");
         yaml.Line("lora_target_linear", "true");
+        if (training.SaveMemory)
+        {
+            yaml.Blank();
+            yaml.Comment("Memory saving: fused Liger kernels (pip install liger-kernel) and activations kept in");
+            yaml.Comment("the computer's memory between layers. Same training, less GPU memory, a little slower.");
+            yaml.Key("plugins");
+            yaml.ListItem("axolotl.integrations.liger.LigerPlugin");
+            yaml.Line("liger_rope", "true");
+            yaml.Line("liger_rms_norm", "true");
+            yaml.Line("liger_glu_activation", "true");
+
+            // Preference training compares the answers' log-probabilities, which the fused loss does not give.
+            if (target.Type != DatasetType.Preference)
+            {
+                yaml.Line("liger_fused_linear_cross_entropy", "true");
+            }
+
+            yaml.Line("activation_offloading", "true");
+        }
+
+        var (batch, accumulation) = TrainingMemory.Batch(training.GpuMemoryGb);
         yaml.Blank();
-        yaml.Comment("Starting points: adjust to your GPU and data.");
-        yaml.Line("micro_batch_size", "2");
-        yaml.Line("gradient_accumulation_steps", "4");
+        yaml.Comment(training.GpuMemoryGb is { } memory
+            ? $"Starting points for a {Number(memory)} GB GPU: adjust to your data."
+            : "Starting points: adjust to your GPU and data.");
+        yaml.Line("micro_batch_size", Number(batch));
+        yaml.Line("gradient_accumulation_steps", Number(accumulation));
         yaml.Line("num_epochs", "3");
         yaml.Line("learning_rate", target.Type == DatasetType.Preference ? "0.000005" : "0.0002");
-        yaml.Line("optimizer", "adamw_torch_fused");
+        // bitsandbytes' paged 8-bit optimizer and PyTorch's fused one are CUDA's; ROCm runs the plain one.
+        yaml.Line("optimizer", training.Gpu == GpuVendor.Amd ? "adamw_torch" : qlora ? "paged_adamw_8bit" : "adamw_torch_fused");
         yaml.Line("lr_scheduler", "cosine");
         yaml.Line("warmup_ratio", "0.05");
         yaml.Line("bf16", "auto");
@@ -213,20 +256,37 @@ public static class TrainingConfigs
         }
     }
 
-    private static string LlamaFactory(string model, TrainingTarget target)
+    private static string LlamaFactory(string model, TrainingTarget target, TrainingOptions training)
     {
+        var qlora = training.QLoRA;
         var yaml = new Yaml();
-        Header(yaml, target, "llamafactory-cli train " + LlamaFactoryFile);
+        Header(yaml, target, training, "llamafactory-cli train " + LlamaFactoryFile);
         yaml.Comment("model");
         yaml.Line("model_name_or_path", Quote(model));
         yaml.Line("trust_remote_code", "true");
+        if (training.SaveMemory)
+        {
+            yaml.Comment("memory saving: fused Liger kernels (pip install liger-kernel) and activations kept in the");
+            yaml.Comment("computer's memory between layers; same training, less GPU memory, a little slower");
+            yaml.Line("enable_liger_kernel", "true");
+            yaml.Line("use_unsloth_gc", "true");
+        }
+
         yaml.Blank();
-        yaml.Comment("method: LoRA, a small adapter is trained instead of the whole model");
+        yaml.Comment(qlora
+            ? $"method: QLoRA, the model is loaded in 4 bits and a small adapter is trained on it (needs {QLoRANeeds(training)})"
+            : "method: LoRA, a small adapter is trained instead of the whole model");
         yaml.Line("stage", target.Type == DatasetType.Preference ? "dpo" : "sft");
         yaml.Line("do_train", "true");
         yaml.Line("finetuning_type", "lora");
         yaml.Line("lora_rank", "16");
         yaml.Line("lora_target", "all");
+        if (qlora)
+        {
+            yaml.Line("quantization_bit", "4");
+            yaml.Line("quantization_method", "bnb");
+            yaml.Line("double_quantization", "true");
+        }
         if (target.Type == DatasetType.Preference)
         {
             yaml.Line("pref_beta", "0.1");
@@ -248,14 +308,17 @@ public static class TrainingConfigs
         yaml.Line("preprocessing_num_workers", "8");
         yaml.Blank();
         yaml.Comment("output");
-        yaml.Line("output_dir", Quote($"saves/{Slug(target.DatasetName)}/lora/{(target.Type == DatasetType.Preference ? "dpo" : "sft")}"));
+        yaml.Line("output_dir", Quote($"saves/{Slug(target.DatasetName)}/{(qlora ? "qlora" : "lora")}/{(target.Type == DatasetType.Preference ? "dpo" : "sft")}"));
         yaml.Line("logging_steps", "10");
         yaml.Line("save_strategy", "epoch");
         yaml.Line("plot_loss", "true");
         yaml.Blank();
-        yaml.Comment("train: starting points, adjust to your GPU and data");
-        yaml.Line("per_device_train_batch_size", "2");
-        yaml.Line("gradient_accumulation_steps", "4");
+        var (batch, accumulation) = TrainingMemory.Batch(training.GpuMemoryGb);
+        yaml.Comment(training.GpuMemoryGb is { } memory
+            ? $"train: starting points for a {Number(memory)} GB GPU, adjust to your data"
+            : "train: starting points, adjust to your GPU and data");
+        yaml.Line("per_device_train_batch_size", Number(batch));
+        yaml.Line("gradient_accumulation_steps", Number(accumulation));
         yaml.Line("learning_rate", target.Type == DatasetType.Preference ? "5.0e-6" : "1.0e-4");
         yaml.Line("num_train_epochs", "3.0");
         yaml.Line("lr_scheduler_type", "cosine");
@@ -332,10 +395,15 @@ public static class TrainingConfigs
         return info.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }) + "\n";
     }
 
-    private static void Header(Yaml yaml, TrainingTarget target, string command)
+    private static void Header(Yaml yaml, TrainingTarget target, TrainingOptions training, string command)
     {
         yaml.Comment($"Fine-tuning \"{target.DatasetName}\" with LoRA, written by AI Dataset Studio.");
         yaml.Comment($"Run it from this folder: {command}");
+        if (training.Gpu == GpuVendor.Amd)
+        {
+            yaml.Comment("AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.");
+        }
+
         if (File(target, SplitPart.Test) is { } test)
         {
             yaml.Comment($"{test} is held out: evaluate the trained model on it, not during training.");
@@ -343,6 +411,9 @@ public static class TrainingConfigs
 
         yaml.Blank();
     }
+
+    private static string QLoRANeeds(TrainingOptions training) =>
+        training.Gpu == GpuVendor.Amd ? "bitsandbytes' ROCm build" : "bitsandbytes";
 
     private static string Train(TrainingTarget target) =>
         File(target, SplitPart.Train) ?? target.Files.First(f => f.Part is null).FileName;
@@ -393,6 +464,8 @@ public static class TrainingConfigs
         public void Key(string key) => _text.Append(key).Append(":\n");
 
         public void Item(string key, string value) => _text.Append("  - ").Append(key).Append(": ").Append(value).Append('\n');
+
+        public void ListItem(string value) => _text.Append("  - ").Append(value).Append('\n');
 
         public void Field(string key, string value) => _text.Append("    ").Append(key).Append(": ").Append(value).Append('\n');
 
