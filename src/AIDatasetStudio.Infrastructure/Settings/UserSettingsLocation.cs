@@ -32,4 +32,14 @@ public static class UserSettingsLocation
 
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppFolder);
     }
+
+    /// <summary>
+    /// Large files kept for the user, such as downloaded datasets: not in the settings folder, which
+    /// roams with the profile on Windows. Windows: %LOCALAPPDATA%\AIDatasetStudio; elsewhere the
+    /// settings folder. The settings override applies here too.
+    /// </summary>
+    public static string GetCacheDirectory() =>
+        OperatingSystem.IsWindows() && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(OverrideVariable))
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), AppFolder)
+            : GetDirectory();
 }

@@ -36,6 +36,9 @@ public enum ImportFileError
 
     /// <summary>The file is not a Parquet file that can be read (damaged, or an unsupported encoding).</summary>
     InvalidParquet,
+
+    /// <summary>A Parquet file whose row groups are too large to be read one at a time.</summary>
+    ParquetTooLarge,
 }
 
 /// <summary>

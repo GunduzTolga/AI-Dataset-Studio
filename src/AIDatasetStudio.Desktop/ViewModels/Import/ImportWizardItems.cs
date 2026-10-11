@@ -192,6 +192,7 @@ internal static class ImportText
             ImportFileError.NoText => localizer.Format("Error_ImportNoText", name),
             ImportFileError.EmptyArchive => localizer.Format("Error_ImportEmptyArchive", name),
             ImportFileError.InvalidParquet => localizer.Format("Error_ImportInvalidParquet", name),
+            ImportFileError.ParquetTooLarge => localizer.Format("Error_ImportParquetTooLarge", name),
             _ => localizer.Format("Error_ImportFileUnreadable", name, exception.InnerException?.Message),
         };
     }

@@ -155,12 +155,18 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
         var csvSource = csv is null ? null : new CsvSource(filePath, csv);
         var items = csvSource?.Read() ?? SourceFile.Read(filePath, format, csv);
 
-        long rowCount = 0;
+        // A Parquet file says how many rows it has; only the sample is decoded.
+        var isParquet = format == ImportFormat.Parquet;
+        long rowCount = isParquet ? ParquetSource.CountRows(filePath) : 0;
         var sample = new List<JsonElement>();
-        foreach (var item in items)
+        foreach (var item in isParquet ? items.Take(SampleSize) : items)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            rowCount++;
+            if (!isParquet)
+            {
+                rowCount++;
+            }
+
             if (sample.Count < SampleSize && item.Row?.Json is { } json)
             {
                 // The row's document is disposed when reading moves on.

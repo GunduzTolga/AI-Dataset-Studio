@@ -800,6 +800,9 @@
   <data name="Error_ImportInvalidParquet" xml:space="preserve">
     <value>“{0}” is not a Parquet file that can be read; it may be damaged. Download it again, or as JSON Lines or CSV.</value>
   </data>
+  <data name="Error_ImportParquetTooLarge" xml:space="preserve">
+    <value>“{0}” stores its rows in blocks too large to read at once (over 512 MB each). Download it as JSON Lines or CSV, or split it into smaller files.</value>
+  </data>
   <data name="Hub_Title" xml:space="preserve">
     <value>Import from Hugging Face</value>
   </data>

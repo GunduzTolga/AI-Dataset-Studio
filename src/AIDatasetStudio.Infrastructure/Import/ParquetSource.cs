@@ -11,10 +11,16 @@ namespace AIDatasetStudio.Infrastructure.Import;
 /// Apache Parquet files, the form most Hugging Face datasets are published in (M25). Each row is
 /// read as the JSON object it describes, so the JSON layouts (Alpaca, ShareGPT, messages, DPO)
 /// are recognised as for JSON Lines; nested columns become arrays and objects. One row group is
-/// held in memory at a time.
+/// held in memory at a time, and files whose row groups are too large for that are refused.
 /// </summary>
 internal static class ParquetSource
 {
+    /// <summary>
+    /// The largest row group read, uncompressed. Its rows are held as objects, several times the
+    /// size; Hugging Face writes groups far below this.
+    /// </summary>
+    internal static long MaxRowGroupBytes { get; set; } = 512L * 1024 * 1024;
+
     private static readonly byte[] Magic = "PAR1"u8.ToArray();
 
     public static bool IsParquet(ReadOnlySpan<byte> start) => start.StartsWith(Magic);
@@ -22,14 +28,15 @@ internal static class ParquetSource
     /// <exception cref="ImportFileException">The file is not a Parquet file that can be read.</exception>
     public static IEnumerable<SourceItem> Read(string path)
     {
-        var groups = Run(path, async stream =>
+        var groups = RowGroups(path);
+        if (groups.FirstOrDefault(g => g.Bytes > MaxRowGroupBytes) is { Bytes: > 0 } large)
         {
-            await using var reader = await ParquetReader.CreateAsync(stream, leaveStreamOpen: true);
-            return reader.RowGroupCount;
-        });
+            throw new ImportFileException(
+                ImportFileError.ParquetTooLarge, path, string.Create(CultureInfo.InvariantCulture, $"'{path}' has a row group of {large.Bytes} bytes; at most {MaxRowGroupBytes} are read at once."));
+        }
 
         long number = 0;
-        for (var group = 0; group < groups; group++)
+        for (var group = 0; group < groups.Count; group++)
         {
             var index = group;
             var rows = Run(path, async stream => (await ParquetSerializer.DeserializeUntypedAsync(stream, rowGroupIndex: index)).Data);
@@ -40,6 +47,18 @@ internal static class ParquetSource
             }
         }
     }
+
+    /// <summary>
+    /// The number of rows, from the file's footer: nothing is decoded.
+    /// </summary>
+    /// <exception cref="ImportFileException">The file is not a Parquet file that can be read.</exception>
+    public static long CountRows(string path) => RowGroups(path).Sum(g => g.Rows);
+
+    private static IReadOnlyList<(long Rows, long Bytes)> RowGroups(string path) => Run(path, async stream =>
+    {
+        await using var reader = await ParquetReader.CreateAsync(stream, leaveStreamOpen: true);
+        return (IReadOnlyList<(long Rows, long Bytes)>)[.. reader.Metadata!.RowGroups.Select(g => (g.NumRows, g.TotalByteSize))];
+    });
 
     // Parquet's reader is asynchronous; imports already run off the UI thread.
     private static T Run<T>(string path, Func<Stream, Task<T>> read)

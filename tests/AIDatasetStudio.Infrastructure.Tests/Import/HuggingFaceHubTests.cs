@@ -19,6 +19,8 @@ public sealed class HuggingFaceHubTests : IDisposable
     [InlineData("  https://huggingface.co/datasets/tatsu-lab/alpaca/tree/main/data ", "tatsu-lab/alpaca")]
     [InlineData("huggingface.co/datasets/merve/turkish_instructions", "merve/turkish_instructions")]
     [InlineData("hf://datasets/a.b/c-d", "a.b/c-d")]
+    [InlineData("https://huggingface.co/datasets/HuggingFaceH4/ultrachat_200k/viewer/default/train_sft?row=3#x", "HuggingFaceH4/ultrachat_200k")]
+    [InlineData("https://www.huggingface.co/datasets/a/b", "a/b")]
     [InlineData("alpaca", null)]
     [InlineData("https://example.com/x/y", null)]
     [InlineData("../etc", null)]
@@ -67,7 +69,17 @@ public sealed class HuggingFaceHubTests : IDisposable
         Assert.Equal(HubErrorKind.AccessDenied, (await Assert.ThrowsAsync<HubException>(() => client.ListFilesAsync("meta-llama/gated", Ct))).Kind);
         Assert.Equal(HubErrorKind.InvalidId, (await Assert.ThrowsAsync<HubException>(() => client.ListFilesAsync("alpaca", Ct))).Kind);
         Assert.Equal(HubErrorKind.Unavailable, (await Assert.ThrowsAsync<HubException>(() => client.DownloadAsync("a/b", new HubFile("train.jsonl", null), cancellationToken: Ct))).Kind);
-        Assert.Equal(HubErrorKind.NotFound, (await Assert.ThrowsAsync<HubException>(() => client.DownloadAsync("a/b", new HubFile("../x.jsonl", 1), cancellationToken: Ct))).Kind);
+        foreach (var path in new[] { "../x.jsonl", "data/..\\..\\..\\x.csv", "C:\\Users\\x.csv", "data/C:x.csv" })
+        {
+            // Refused before anything is asked of the server or written.
+            Assert.Equal(HubErrorKind.NotFound, Assert.Throws<HubException>(() => client.LocalPath("a/b", path)).Kind);
+        }
+
+        // A file list that is not one.
+        hub.Pages["/api/datasets/a/b/tree/main?recursive=true"] = ("""{"error": "x"}""", null);
+        Assert.Equal(HubErrorKind.Unavailable, (await Assert.ThrowsAsync<HubException>(() => client.ListFilesAsync("a/b", Ct))).Kind);
+        hub.Pages["/api/datasets/a/b/tree/main?recursive=true"] = ("[{", null);
+        Assert.Equal(HubErrorKind.Unavailable, (await Assert.ThrowsAsync<HubException>(() => client.ListFilesAsync("a/b", Ct))).Kind);
         Assert.Empty(Directory.EnumerateFiles(_folder, "*", SearchOption.AllDirectories));
         Assert.All(hub.Requests, r => Assert.Null(r.Authorization));
     }

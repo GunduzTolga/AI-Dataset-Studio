@@ -1,3 +1,4 @@
+using System.Globalization;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Tests.Support;
@@ -44,7 +45,8 @@ public sealed class HubImportTests
             hub.DatasetId = "https://huggingface.co/datasets/tatsu-lab/alpaca";
             await hub.ListCommand.ExecuteAsync(null);
             Assert.Null(hub.ErrorMessage);
-            Assert.Equal([("data/test.jsonl", "1 KB"), ("data/train.jsonl", "2.4 MB")], hub.Files.Select(f => (f.Path, f.SizeText)));
+            // Sizes follow the system's number format ("2,4 MB" in Turkish).
+            Assert.Equal([("data/test.jsonl", "1 KB"), ("data/train.jsonl", string.Create(CultureInfo.CurrentCulture, $"{2.4:N1} MB"))], hub.Files.Select(f => (f.Path, f.SizeText)));
             Assert.Equal("data/train.jsonl", hub.SelectedFile?.Path);
             Assert.Equal("2 files in tatsu-lab/alpaca", hub.ProgressText);
 

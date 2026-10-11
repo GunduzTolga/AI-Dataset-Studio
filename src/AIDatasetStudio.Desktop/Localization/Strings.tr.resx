@@ -768,6 +768,9 @@
   <data name="Error_ImportInvalidParquet" xml:space="preserve">
     <value>“{0}” okunabilen bir Parquet dosyası değil; bozuk olabilir. Dosyayı yeniden ya da JSON Lines veya CSV olarak indirin.</value>
   </data>
+  <data name="Error_ImportParquetTooLarge" xml:space="preserve">
+    <value>“{0}” satırlarını bir kerede okunamayacak kadar büyük bloklarda (her biri 512 MB'tan büyük) tutuyor. JSON Lines ya da CSV olarak indirin veya daha küçük dosyalara bölün.</value>
+  </data>
   <data name="Hub_Title" xml:space="preserve">
     <value>Hugging Face'ten İçe Aktar</value>
   </data>

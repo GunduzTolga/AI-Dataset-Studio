@@ -43,7 +43,16 @@ public interface IHuggingFaceHub
     static string? ParseDatasetId(string text)
     {
         var value = text.Trim();
-        foreach (var prefix in new[] { "https://huggingface.co/datasets/", "http://huggingface.co/datasets/", "huggingface.co/datasets/", "hf://datasets/" })
+        if (value.IndexOfAny(['?', '#']) is var end and >= 0)
+        {
+            value = value[..end];
+        }
+
+        foreach (var prefix in new[]
+        {
+            "https://huggingface.co/datasets/", "https://www.huggingface.co/datasets/", "http://huggingface.co/datasets/",
+            "huggingface.co/datasets/", "www.huggingface.co/datasets/", "hf://datasets/",
+        })
         {
             if (value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {

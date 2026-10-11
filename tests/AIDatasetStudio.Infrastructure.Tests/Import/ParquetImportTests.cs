@@ -3,6 +3,7 @@ using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
+using AIDatasetStudio.Infrastructure.Import;
 using AIDatasetStudio.Infrastructure.Tests.Support;
 using Parquet;
 using Parquet.Serialization;
@@ -62,6 +63,24 @@ public sealed class ParquetImportTests
         var chat = Assert.IsType<ChatPayload>(first.Payload);
         Assert.Equal(("Kısa yanıt ver.", 2), (chat.SystemPrompt, chat.Messages.Count));
         Assert.Equal(new ChatMessage(ChatRole.Assistant, "Selam!"), chat.Messages[1]);
+    }
+
+    [Fact]
+    public async Task Row_groups_too_large_to_hold_are_refused_before_any_is_read()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var path = await WriteAsync(ws, "big.parquet", Enumerable.Range(1, 50).Select(i => new AlpacaRow { Instruction = new string('x', 200), Output = "y" }));
+        var limit = ParquetSource.MaxRowGroupBytes;
+        ParquetSource.MaxRowGroupBytes = 1024;
+        try
+        {
+            var error = await Assert.ThrowsAsync<ImportFileException>(() => ws.Import.AnalyzeAsync(path, DatasetType.Instruction, cancellationToken: Ct));
+            Assert.Equal(ImportFileError.ParquetTooLarge, error.Error);
+        }
+        finally
+        {
+            ParquetSource.MaxRowGroupBytes = limit;
+        }
     }
 
     [Fact]

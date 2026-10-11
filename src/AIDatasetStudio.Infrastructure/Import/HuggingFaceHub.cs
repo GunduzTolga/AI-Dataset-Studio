@@ -17,6 +17,8 @@ internal sealed class HuggingFaceHub(string downloadDirectory, HttpMessageHandle
 {
     public const string BaseUrl = "https://huggingface.co";
 
+    private const long ProgressStep = 1024 * 1024;
+
     private static readonly string[] Importable = [".parquet", ".jsonl", ".ndjson", ".json", ".csv", ".tsv"];
 
     private readonly HttpClient _http = CreateClient(handler, token ?? Environment.GetEnvironmentVariable("HF_TOKEN"));
@@ -29,9 +31,8 @@ internal sealed class HuggingFaceHub(string downloadDirectory, HttpMessageHandle
         // A dataset with very many files is listed far enough to choose from.
         for (var page = 0; next is not null && page < 20; page++)
         {
-            using var response = await SendAsync(next, id, cancellationToken);
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            using var response = await SendAsync(next, id, cancellationToken).ConfigureAwait(false);
+            using var document = await ReadJsonAsync(response, id, cancellationToken).ConfigureAwait(false);
             foreach (var entry in document.RootElement.EnumerateArray())
             {
                 if (entry.TryGetProperty("type", out var type) && type.GetString() == "file"
@@ -58,30 +59,37 @@ internal sealed class HuggingFaceHub(string downloadDirectory, HttpMessageHandle
             return target;
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         var partial = target + ".part";
         var path = string.Join('/', file.Path.Split('/').Select(Uri.EscapeDataString));
         try
         {
-            using var response = await SendAsync(new Uri($"{BaseUrl}/datasets/{id}/resolve/main/{path}", UriKind.Absolute), id, cancellationToken);
-            await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            using var response = await SendAsync(new Uri($"{BaseUrl}/datasets/{id}/resolve/main/{path}", UriKind.Absolute), id, cancellationToken).ConfigureAwait(false);
+            await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
             await using (var output = new FileStream(partial, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
             {
                 var buffer = new byte[1 << 16];
-                long received = 0;
+                long received = 0, reported = 0;
                 int read;
-                while ((read = await source.ReadAsync(buffer, cancellationToken)) > 0)
+                while ((read = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
                 {
-                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
                     received += read;
-                    progress?.Report(received);
+
+                    // Every megabyte is enough for a progress line.
+                    if (received - reported >= ProgressStep)
+                    {
+                        progress?.Report(reported = received);
+                    }
                 }
+
+                progress?.Report(received);
             }
 
             File.Move(partial, target, overwrite: true);
             return target;
         }
-        catch (Exception ex) when (ex is IOException or HttpRequestException)
+        catch (Exception ex) when (ex is IOException or HttpRequestException or UnauthorizedAccessException)
         {
             File.Delete(partial);
             throw new HubException(HubErrorKind.Unavailable, $"'{file.Path}' of {id} could not be downloaded: {ex.Message}", ex);
@@ -100,24 +108,51 @@ internal sealed class HuggingFaceHub(string downloadDirectory, HttpMessageHandle
     /// </summary>
     internal string LocalPath(string id, string path)
     {
+        // The path comes from the server: it must stay a relative path inside the dataset's folder
+        // on every system ("..\\", "C:" and the like are refused).
+        var folder = Path.GetFullPath(Path.Combine(downloadDirectory, id.Replace('/', '_')));
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0 || parts.Any(part => part is "." or ".."))
+        if (parts.Length == 0
+            || parts.Any(part => part is "." or ".." || part.IndexOfAny(['\\', ':']) >= 0 || part.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0))
         {
             throw new HubException(HubErrorKind.NotFound, $"'{path}' is not a file path.");
         }
 
-        return Path.Combine([downloadDirectory, id.Replace('/', '_'), .. parts]);
+        var full = Path.GetFullPath(Path.Combine([folder, .. parts]));
+        return full.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            ? full
+            : throw new HubException(HubErrorKind.NotFound, $"'{path}' is not a file path.");
     }
 
     private static string Id(string datasetId) =>
         IHuggingFaceHub.ParseDatasetId(datasetId) ?? throw new HubException(HubErrorKind.InvalidId, $"'{datasetId}' is not a Hugging Face dataset id.");
+
+    private static async Task<JsonDocument> ReadJsonAsync(HttpResponseMessage response, string id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                document.Dispose();
+                throw new JsonException("The file list is not an array.");
+            }
+
+            return document;
+        }
+        catch (Exception ex) when (ex is IOException or HttpRequestException or JsonException)
+        {
+            throw new HubException(HubErrorKind.Unavailable, $"The file list of {id} could not be read: {ex.Message}", ex);
+        }
+    }
 
     private async Task<HttpResponseMessage> SendAsync(Uri uri, string id, CancellationToken cancellationToken)
     {
         HttpResponseMessage response;
         try
         {
-            response = await _http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response = await _http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
