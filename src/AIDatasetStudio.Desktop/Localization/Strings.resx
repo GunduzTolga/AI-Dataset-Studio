@@ -1468,8 +1468,59 @@
   <data name="Export_QLoRA" xml:space="preserve">
     <value>QLoRA: load the model in 4 bits</value>
   </data>
+  <data name="Export_Gpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Export_GpuNvidia" xml:space="preserve">
+    <value>NVIDIA (CUDA)</value>
+  </data>
+  <data name="Export_GpuAmd" xml:space="preserve">
+    <value>AMD (ROCm)</value>
+  </data>
+  <data name="Export_GpuAmdHint" xml:space="preserve">
+    <value>Install PyTorch's ROCm build (pytorch.org) on Linux or WSL before the training tool; QLoRA needs bitsandbytes' ROCm build. The RX 7000 and 9000 series are supported.</value>
+  </data>
+  <data name="Export_GpuMemory" xml:space="preserve">
+    <value>GPU memory</value>
+  </data>
+  <data name="Export_GpuMemoryUnknown" xml:space="preserve">
+    <value>Not given</value>
+  </data>
+  <data name="Export_GpuMemoryGb" xml:space="preserve">
+    <value>{0} GB</value>
+  </data>
+  <data name="Export_SaveMemory" xml:space="preserve">
+    <value>Save memory: Liger kernels, activations kept in RAM</value>
+  </data>
+  <data name="Export_SaveMemoryHint" xml:space="preserve">
+    <value>The same training in noticeably less GPU memory, a little slower; the quality does not change. Works on NVIDIA and AMD. Needs: pip install liger-kernel</value>
+  </data>
+  <data name="Export_MemoryEstimate" xml:space="preserve">
+    <value>Needs about {0:0.#} GB of GPU memory ({1}-token sequences, one at a time).</value>
+  </data>
+  <data name="Export_MemoryFits" xml:space="preserve">
+    <value>Needs about {0:0.#} GB: fits a {1} GB GPU.</value>
+  </data>
+  <data name="Export_MemoryTight" xml:space="preserve">
+    <value>Needs about {0:0.#} GB: only just fits a {1} GB GPU. Keep the sequences short and close other programs that use the GPU.</value>
+  </data>
+  <data name="Export_MemoryTooBig" xml:space="preserve">
+    <value>Needs about {0:0.#} GB: does not fit a {1} GB GPU.</value>
+  </data>
+  <data name="Export_MemoryTurnOn" xml:space="preserve">
+    <value>Turn on QLoRA and memory saving, or choose a smaller model.</value>
+  </data>
+  <data name="Export_MemoryLargest" xml:space="preserve">
+    <value>This GPU trains models up to about {0:0.#}B with QLoRA and memory saving.</value>
+  </data>
+  <data name="Export_MemoryTooSmall" xml:space="preserve">
+    <value>This GPU is too small to train on; a cloud GPU can run the same files.</value>
+  </data>
+  <data name="Export_MemoryUnknownSize" xml:space="preserve">
+    <value>The model's size is not in its name, so its memory cannot be estimated.</value>
+  </data>
   <data name="Export_QLoRAHint" xml:space="preserve">
-    <value>Trains on far less GPU memory (a 7–8B model fits on about 10 GB) and a little slower. Needs an NVIDIA GPU with bitsandbytes; the result is a LoRA adapter as well.</value>
+    <value>Trains on far less GPU memory (a 7–8B model fits on about 8 GB) and a little slower. Needs bitsandbytes (on AMD, its ROCm build); the result is a LoRA adapter as well.</value>
   </data>
   <data name="Export_TrainingUnsupported" xml:space="preserve">
     <value>{0} cannot read {1} files; choose another format.</value>

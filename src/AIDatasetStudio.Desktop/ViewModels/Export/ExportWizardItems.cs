@@ -60,6 +60,16 @@ public sealed record StratifyOption(string? StratifyBy, string Label);
 public sealed record TrainingChoice(TrainingFramework? Framework, string Label);
 
 /// <summary>
+/// Whose GPU trains (M27).
+/// </summary>
+public sealed record GpuChoice(GpuVendor Vendor, string Label);
+
+/// <summary>
+/// How much memory the GPU has, or not given (M27).
+/// </summary>
+public sealed record GpuMemoryChoice(int? Gigabytes, string Label);
+
+/// <summary>
 /// A written file on the result screen.
 /// </summary>
 public sealed record ExportedFileItem(string Name, string Folder, string CountText);

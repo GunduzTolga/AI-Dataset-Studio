@@ -1413,8 +1413,59 @@
   <data name="Export_QLoRA" xml:space="preserve">
     <value>QLoRA: model 4 bit yüklensin</value>
   </data>
+  <data name="Export_Gpu" xml:space="preserve">
+    <value>Ekran kartı</value>
+  </data>
+  <data name="Export_GpuNvidia" xml:space="preserve">
+    <value>NVIDIA (CUDA)</value>
+  </data>
+  <data name="Export_GpuAmd" xml:space="preserve">
+    <value>AMD (ROCm)</value>
+  </data>
+  <data name="Export_GpuAmdHint" xml:space="preserve">
+    <value>Eğitim aracından önce Linux'ta ya da WSL'de PyTorch'un ROCm sürümünü kurun (pytorch.org); QLoRA için bitsandbytes'ın ROCm sürümü gerekir. RX 7000 ve 9000 serisi desteklenir.</value>
+  </data>
+  <data name="Export_GpuMemory" xml:space="preserve">
+    <value>Ekran kartı belleği</value>
+  </data>
+  <data name="Export_GpuMemoryUnknown" xml:space="preserve">
+    <value>Belirtilmedi</value>
+  </data>
+  <data name="Export_GpuMemoryGb" xml:space="preserve">
+    <value>{0} GB</value>
+  </data>
+  <data name="Export_SaveMemory" xml:space="preserve">
+    <value>Bellek tasarrufu: Liger kernel, ara sonuçlar RAM'de</value>
+  </data>
+  <data name="Export_SaveMemoryHint" xml:space="preserve">
+    <value>Aynı eğitim belirgin biçimde daha az GPU belleğiyle, biraz daha yavaş; kalite değişmez. NVIDIA'da da AMD'de de çalışır. Gerekli: pip install liger-kernel</value>
+  </data>
+  <data name="Export_MemoryEstimate" xml:space="preserve">
+    <value>Yaklaşık {0:0.#} GB GPU belleği gerekir ({1} token'lık diziler, birer birer).</value>
+  </data>
+  <data name="Export_MemoryFits" xml:space="preserve">
+    <value>Yaklaşık {0:0.#} GB gerekir: {1} GB'lık karta sığar.</value>
+  </data>
+  <data name="Export_MemoryTight" xml:space="preserve">
+    <value>Yaklaşık {0:0.#} GB gerekir: {1} GB'lık karta ancak sığar. Dizileri kısa tutun, GPU kullanan diğer programları kapatın.</value>
+  </data>
+  <data name="Export_MemoryTooBig" xml:space="preserve">
+    <value>Yaklaşık {0:0.#} GB gerekir: {1} GB'lık karta sığmaz.</value>
+  </data>
+  <data name="Export_MemoryTurnOn" xml:space="preserve">
+    <value>QLoRA'yı ve bellek tasarrufunu açın ya da daha küçük bir model seçin.</value>
+  </data>
+  <data name="Export_MemoryLargest" xml:space="preserve">
+    <value>Bu kart QLoRA ve bellek tasarrufuyla en fazla yaklaşık {0:0.#}B'lik modelleri eğitir.</value>
+  </data>
+  <data name="Export_MemoryTooSmall" xml:space="preserve">
+    <value>Bu kart eğitim için çok küçük; aynı dosyalar bulutta kiralanan bir GPU'da çalışır.</value>
+  </data>
+  <data name="Export_MemoryUnknownSize" xml:space="preserve">
+    <value>Modelin boyutu adında yazmadığı için gereken bellek tahmin edilemiyor.</value>
+  </data>
   <data name="Export_QLoRAHint" xml:space="preserve">
-    <value>Çok daha az GPU belleğiyle, biraz daha yavaş eğitir (7–8B bir model yaklaşık 10 GB'a sığar). bitsandbytes kurulu bir NVIDIA ekran kartı gerekir; sonuç yine bir LoRA adaptörüdür.</value>
+    <value>Çok daha az GPU belleğiyle, biraz daha yavaş eğitir (7–8B bir model yaklaşık 8 GB'a sığar). bitsandbytes gerekir (AMD'de ROCm sürümü); sonuç yine bir LoRA adaptörüdür.</value>
   </data>
   <data name="Export_TrainingUnsupported" xml:space="preserve">
     <value>{0} bu biçimdeki ({1}) dosyaları okuyamaz; başka bir biçim seçin.</value>

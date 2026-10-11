@@ -142,6 +142,52 @@ public sealed class TrainingConfigsTests
     }
 
     [Fact]
+    public void An_AMD_GPU_with_little_memory_gets_settings_ROCm_runs_and_memory_saving_in_both_tools()
+    {
+        var target = new TrainingTarget("Destek", DatasetType.Instruction, ExportFormat.Alpaca, 4096, Split, 42);
+        var amd = new TrainingOptions(TrainingFramework.Axolotl, "", QLoRA: true, Gpu: GpuVendor.Amd, GpuMemoryGb: 16, SaveMemory: true);
+        var axolotl = TrainingConfigs.Render(amd, target)[0].Content;
+        var llamaFactory = TrainingConfigs.Render(amd with { Framework = TrainingFramework.LlamaFactory }, target)[1].Content;
+
+        Assert.All(
+            new[]
+            {
+                "# AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.",
+                "# Needs bitsandbytes' ROCm build; the result is a LoRA adapter.",
+                "plugins:\n  - axolotl.integrations.liger.LigerPlugin",
+                "liger_fused_linear_cross_entropy: true",
+                "activation_offloading: true",
+                "# Starting points for a 16 GB GPU: adjust to your data.\nmicro_batch_size: 2\ngradient_accumulation_steps: 4",
+                "optimizer: adamw_torch",
+            },
+            text => Assert.Contains(text + "\n", axolotl, StringComparison.Ordinal));
+        Assert.DoesNotContain("paged_adamw_8bit", axolotl, StringComparison.Ordinal);
+        Assert.All(
+            new[]
+            {
+                "# AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.",
+                "enable_liger_kernel: true\nuse_unsloth_gc: true",
+                "# method: QLoRA, the model is loaded in 4 bits and a small adapter is trained on it (needs bitsandbytes' ROCm build)",
+                "per_device_train_batch_size: 2\ngradient_accumulation_steps: 4",
+            },
+            text => Assert.Contains(text + "\n", llamaFactory, StringComparison.Ordinal));
+
+        // A 6 GB GPU takes one sequence at a time; preference pairs keep their log-probabilities.
+        var laptop = new TrainingOptions(TrainingFramework.Axolotl, "", QLoRA: true, GpuMemoryGb: 6, SaveMemory: true);
+        var dpo = TrainingConfigs.Render(laptop, target with { Type = DatasetType.Preference, Format = ExportFormat.HuggingFaceDpo })[0].Content;
+        Assert.Contains("micro_batch_size: 1\ngradient_accumulation_steps: 8\n", dpo, StringComparison.Ordinal);
+        Assert.Contains("optimizer: paged_adamw_8bit\n", dpo, StringComparison.Ordinal);
+        Assert.Contains("liger_rms_norm: true\n", dpo, StringComparison.Ordinal);
+        Assert.DoesNotContain("liger_fused_linear_cross_entropy", dpo, StringComparison.Ordinal);
+
+        // Without them nothing changes.
+        var plain = TrainingConfigs.Render(new TrainingOptions(TrainingFramework.LlamaFactory, ""), target)[1].Content;
+        Assert.DoesNotContain("liger", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("ROCm", plain, StringComparison.Ordinal);
+        Assert.Contains("# train: starting points, adjust to your GPU and data\nper_device_train_batch_size: 2\n", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LLaMA_Factory_reads_openai_messages_and_alpaca_columns()
     {
         var info = (string format, bool system) => JsonNode.Parse(TrainingConfigs.Render(
