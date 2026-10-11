@@ -215,6 +215,8 @@ public sealed class ExportWizardTests
 
         wizard.SelectedFormat = wizard.Formats.Single(f => f.Format == ExportFormat.ShareGpt);
         wizard.BaseModel = "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1";
+        Assert.False(wizard.UseQLoRA);
+        wizard.UseQLoRA = true;
         await wizard.PendingWork;
         Assert.StartsWith("dataset_info.json and llamafactory.yaml are written next to the files", wizard.TrainingHint, StringComparison.Ordinal);
         var folder = Path.Combine(host.Directory, "egitim");
@@ -233,11 +235,12 @@ public sealed class ExportWizardTests
         Assert.Contains("model_name_or_path: \"ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1\"\n", yaml, StringComparison.Ordinal);
         // A model whose name does not tell its family leaves the template to the user.
         Assert.Contains("template: default  # set your model's template\n", yaml, StringComparison.Ordinal);
+        Assert.Contains("quantization_bit: 4\n", yaml, StringComparison.Ordinal);
 
         // The tool and the model are remembered with the dataset's other settings.
         var again = CreateWizard(host, dataset.Id);
         await again.InitializeAsync();
-        Assert.Equal((TrainingFramework.LlamaFactory, "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1"), (again.SelectedTraining!.Framework, again.BaseModel));
+        Assert.Equal((TrainingFramework.LlamaFactory, "ytu-ce-cosmos/Turkish-Llama-8b-Instruct-v0.1", true), (again.SelectedTraining!.Framework, again.BaseModel, again.UseQLoRA));
     });
 
     [Fact]

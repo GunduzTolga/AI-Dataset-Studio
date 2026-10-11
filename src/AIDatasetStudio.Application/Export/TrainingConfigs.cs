@@ -25,7 +25,9 @@ public enum TrainingFramework
 /// A training configuration written next to the exported files.
 /// </summary>
 /// <param name="BaseModel">The Hugging Face id of the model to fine-tune, e.g. "Qwen/Qwen2.5-7B-Instruct".</param>
-public sealed record TrainingOptions(TrainingFramework Framework, string BaseModel);
+/// <param name="QLoRA">Load the base model in 4 bits and train the adapter on it (QLoRA, M26): far less
+/// GPU memory, a little slower; needs an NVIDIA GPU with bitsandbytes.</param>
+public sealed record TrainingOptions(TrainingFramework Framework, string BaseModel, bool QLoRA = false);
 
 /// <summary>
 /// What a configuration is written for: the dataset, its export and the files it wrote.
@@ -89,8 +91,8 @@ public static class TrainingConfigs
         var model = string.IsNullOrWhiteSpace(training.BaseModel) ? DefaultBaseModel(target.Format) : training.BaseModel.Trim();
         return training.Framework switch
         {
-            TrainingFramework.Axolotl => [new(AxolotlFile, Axolotl(model, target))],
-            _ => [new(LlamaFactoryDatasets, LlamaFactoryDatasetInfo(target)), new(LlamaFactoryFile, LlamaFactory(model, target))],
+            TrainingFramework.Axolotl => [new(AxolotlFile, Axolotl(model, target, training.QLoRA))],
+            _ => [new(LlamaFactoryDatasets, LlamaFactoryDatasetInfo(target)), new(LlamaFactoryFile, LlamaFactory(model, target, training.QLoRA))],
         };
     }
 
@@ -114,7 +116,7 @@ public static class TrainingConfigs
         };
     }
 
-    private static string Axolotl(string model, TrainingTarget target)
+    private static string Axolotl(string model, TrainingTarget target, bool qlora)
     {
         var yaml = new Yaml();
         Header(yaml, target, "axolotl train " + AxolotlFile);
@@ -145,8 +147,19 @@ public static class TrainingConfigs
         yaml.Line("sample_packing", target.Type == DatasetType.Preference ? "false" : "true");
         yaml.Line("pad_to_sequence_len", target.Type == DatasetType.Preference ? "false" : "true");
         yaml.Blank();
-        yaml.Comment("LoRA: a small adapter is trained instead of the whole model.");
-        yaml.Line("adapter", "lora");
+        if (qlora)
+        {
+            yaml.Comment("QLoRA: the model is loaded in 4 bits and a small adapter is trained on it.");
+            yaml.Comment("Needs an NVIDIA GPU with bitsandbytes; the result is a LoRA adapter.");
+            yaml.Line("adapter", "qlora");
+            yaml.Line("load_in_4bit", "true");
+        }
+        else
+        {
+            yaml.Comment("LoRA: a small adapter is trained instead of the whole model.");
+            yaml.Line("adapter", "lora");
+        }
+
         yaml.Line("lora_r", "16");
         yaml.Line("lora_alpha", "32");
         yaml.Line("lora_dropout", "0.05");
@@ -157,7 +170,7 @@ public static class TrainingConfigs
         yaml.Line("gradient_accumulation_steps", "4");
         yaml.Line("num_epochs", "3");
         yaml.Line("learning_rate", target.Type == DatasetType.Preference ? "0.000005" : "0.0002");
-        yaml.Line("optimizer", "adamw_torch_fused");
+        yaml.Line("optimizer", qlora ? "paged_adamw_8bit" : "adamw_torch_fused");
         yaml.Line("lr_scheduler", "cosine");
         yaml.Line("warmup_ratio", "0.05");
         yaml.Line("bf16", "auto");
@@ -213,7 +226,7 @@ public static class TrainingConfigs
         }
     }
 
-    private static string LlamaFactory(string model, TrainingTarget target)
+    private static string LlamaFactory(string model, TrainingTarget target, bool qlora)
     {
         var yaml = new Yaml();
         Header(yaml, target, "llamafactory-cli train " + LlamaFactoryFile);
@@ -221,12 +234,20 @@ public static class TrainingConfigs
         yaml.Line("model_name_or_path", Quote(model));
         yaml.Line("trust_remote_code", "true");
         yaml.Blank();
-        yaml.Comment("method: LoRA, a small adapter is trained instead of the whole model");
+        yaml.Comment(qlora
+            ? "method: QLoRA, the model is loaded in 4 bits and a small adapter is trained on it (NVIDIA GPU, bitsandbytes)"
+            : "method: LoRA, a small adapter is trained instead of the whole model");
         yaml.Line("stage", target.Type == DatasetType.Preference ? "dpo" : "sft");
         yaml.Line("do_train", "true");
         yaml.Line("finetuning_type", "lora");
         yaml.Line("lora_rank", "16");
         yaml.Line("lora_target", "all");
+        if (qlora)
+        {
+            yaml.Line("quantization_bit", "4");
+            yaml.Line("quantization_method", "bnb");
+            yaml.Line("double_quantization", "true");
+        }
         if (target.Type == DatasetType.Preference)
         {
             yaml.Line("pref_beta", "0.1");
@@ -248,7 +269,7 @@ public static class TrainingConfigs
         yaml.Line("preprocessing_num_workers", "8");
         yaml.Blank();
         yaml.Comment("output");
-        yaml.Line("output_dir", Quote($"saves/{Slug(target.DatasetName)}/lora/{(target.Type == DatasetType.Preference ? "dpo" : "sft")}"));
+        yaml.Line("output_dir", Quote($"saves/{Slug(target.DatasetName)}/{(qlora ? "qlora" : "lora")}/{(target.Type == DatasetType.Preference ? "dpo" : "sft")}"));
         yaml.Line("logging_steps", "10");
         yaml.Line("save_strategy", "epoch");
         yaml.Line("plot_loss", "true");

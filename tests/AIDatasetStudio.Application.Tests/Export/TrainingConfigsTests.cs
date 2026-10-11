@@ -124,6 +124,24 @@ public sealed class TrainingConfigsTests
     }
 
     [Fact]
+    public void QLoRA_loads_the_model_in_four_bits_in_both_tools_and_LoRA_does_not()
+    {
+        var target = new TrainingTarget("Destek", DatasetType.Instruction, ExportFormat.Alpaca, 4096, Split, 42);
+        string Axolotl(bool qlora) => TrainingConfigs.Render(new TrainingOptions(TrainingFramework.Axolotl, "", qlora), target)[0].Content;
+        string LlamaFactory(bool qlora) => TrainingConfigs.Render(new TrainingOptions(TrainingFramework.LlamaFactory, "", qlora), target)[1].Content;
+
+        Assert.All(new[] { "adapter: qlora", "load_in_4bit: true", "optimizer: paged_adamw_8bit" }, line => Assert.Contains(line + "\n", Axolotl(true), StringComparison.Ordinal));
+        Assert.All(new[] { "adapter: lora", "optimizer: adamw_torch_fused" }, line => Assert.Contains(line + "\n", Axolotl(false), StringComparison.Ordinal));
+        Assert.DoesNotContain("load_in_4bit", Axolotl(false), StringComparison.Ordinal);
+
+        Assert.All(
+            new[] { "finetuning_type: lora", "quantization_bit: 4", "quantization_method: bnb", "double_quantization: true", "output_dir: \"saves/destek/qlora/sft\"" },
+            line => Assert.Contains(line + "\n", LlamaFactory(true), StringComparison.Ordinal));
+        Assert.DoesNotContain("quantization_bit", LlamaFactory(false), StringComparison.Ordinal);
+        Assert.Contains("output_dir: \"saves/destek/lora/sft\"\n", LlamaFactory(false), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LLaMA_Factory_reads_openai_messages_and_alpaca_columns()
     {
         var info = (string format, bool system) => JsonNode.Parse(TrainingConfigs.Render(

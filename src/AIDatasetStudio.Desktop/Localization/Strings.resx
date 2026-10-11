@@ -1408,6 +1408,12 @@
   <data name="Export_TrainingLlamaFactoryHint" xml:space="preserve">
     <value>dataset_info.json and llamafactory.yaml are written next to the files, to fine-tune this model with LoRA. Run it in that folder: llamafactory-cli train llamafactory.yaml</value>
   </data>
+  <data name="Export_QLoRA" xml:space="preserve">
+    <value>QLoRA: load the model in 4 bits</value>
+  </data>
+  <data name="Export_QLoRAHint" xml:space="preserve">
+    <value>Trains on far less GPU memory (a 7–8B model fits on about 10 GB) and a little slower. Needs an NVIDIA GPU with bitsandbytes; the result is a LoRA adapter as well.</value>
+  </data>
   <data name="Export_TrainingUnsupported" xml:space="preserve">
     <value>{0} cannot read {1} files; choose another format.</value>
   </data>

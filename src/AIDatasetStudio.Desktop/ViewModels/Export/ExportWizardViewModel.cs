@@ -201,6 +201,12 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     [ObservableProperty]
     public partial string BaseModel { get; set; } = TrainingConfigs.DefaultBaseModel(ExportFormat.OpenAi);
 
+    /// <summary>
+    /// QLoRA instead of LoRA: the model is loaded in 4 bits (M26).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool UseQLoRA { get; set; }
+
     public bool IsTraining => SelectedTraining?.Framework is not null;
 
     /// <summary>
@@ -236,7 +242,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 SplitMode.Custom => new SplitOptions((int)(TrainPercent ?? 0), (int)(ValidationPercent ?? 0), (int)(TestPercent ?? 0), seed, stratifyBy),
                 _ => null,
             };
-            var training = SelectedTraining?.Framework is { } framework ? new TrainingOptions(framework, BaseModel.Trim()) : null;
+            var training = SelectedTraining?.Framework is { } framework ? new TrainingOptions(framework, BaseModel.Trim(), UseQLoRA) : null;
             if (split is { IsValid: false } || (training is not null && !TrainingConfigs.Supports(training.Framework, format.Format, Target.Type)))
             {
                 return null;
@@ -540,6 +546,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     partial void OnBaseModelChanged(string value) => OnOptionChanged();
 
+    partial void OnUseQLoRAChanged(bool value) => OnOptionChanged();
+
     partial void OnIncludeApprovedChanged(bool value) => OnOptionChanged();
 
     partial void OnIncludeInReviewChanged(bool value) => OnOptionChanged();
@@ -680,6 +688,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             SkipLowJudgeScore = options.SkipLowJudgeScore;
             MaskPersonalData = options.MaskPersonalData;
             SelectedTraining = TrainingChoices.First(c => c.Framework == options.Training?.Framework);
+            UseQLoRA = options.Training?.QLoRA == true;
             if (options.Training is { BaseModel.Length: > 0 } training)
             {
                 BaseModel = training.BaseModel;

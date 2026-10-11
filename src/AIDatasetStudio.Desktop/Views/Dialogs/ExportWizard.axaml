@@ -183,6 +183,10 @@
                   <TextBlock Classes="label" Text="{l:Tr Export_BaseModel}" />
                   <TextBox x:Name="BaseModelBox" Text="{Binding BaseModel}" FontFamily="{StaticResource MonoFontFamily}" PlaceholderText="Qwen/Qwen2.5-7B-Instruct" />
                   <TextBlock Classes="caption muted" Text="{Binding TrainingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                  <CheckBox x:Name="QLoRABox" IsChecked="{Binding UseQLoRA}" Margin="0,8,0,0">
+                    <TextBlock Text="{l:Tr Export_QLoRA}" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Classes="caption muted" Text="{l:Tr Export_QLoRAHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
                 </StackPanel>
               </StackPanel>
             </StackPanel>

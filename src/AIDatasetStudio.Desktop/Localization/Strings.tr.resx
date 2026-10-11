@@ -1353,6 +1353,12 @@
   <data name="Export_TrainingLlamaFactoryHint" xml:space="preserve">
     <value>Bu modeli LoRA ile eğitmek için dosyaların yanına dataset_info.json ve llamafactory.yaml yazılır. O klasörde çalıştırın: llamafactory-cli train llamafactory.yaml</value>
   </data>
+  <data name="Export_QLoRA" xml:space="preserve">
+    <value>QLoRA: model 4 bit yüklensin</value>
+  </data>
+  <data name="Export_QLoRAHint" xml:space="preserve">
+    <value>Çok daha az GPU belleğiyle, biraz daha yavaş eğitir (7–8B bir model yaklaşık 10 GB'a sığar). bitsandbytes kurulu bir NVIDIA ekran kartı gerekir; sonuç yine bir LoRA adaptörüdür.</value>
+  </data>
   <data name="Export_TrainingUnsupported" xml:space="preserve">
     <value>{0} bu biçimdeki ({1}) dosyaları okuyamaz; başka bir biçim seçin.</value>
   </data>
