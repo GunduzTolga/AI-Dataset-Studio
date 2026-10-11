@@ -1480,6 +1480,24 @@
   <data name="Export_GpuAmdHint" xml:space="preserve">
     <value>Install PyTorch's ROCm build (pytorch.org) on Linux or WSL before the training tool; QLoRA needs bitsandbytes' ROCm build. The RX 7000 and 9000 series are supported.</value>
   </data>
+  <data name="Export_Platform" xml:space="preserve">
+    <value>Training computer's system</value>
+  </data>
+  <data name="Export_PlatformLinux" xml:space="preserve">
+    <value>Linux, WSL or cloud</value>
+  </data>
+  <data name="Export_PlatformWindows" xml:space="preserve">
+    <value>Windows</value>
+  </data>
+  <data name="Export_HintWindowsNvidia" xml:space="preserve">
+    <value>On Windows: install PyTorch with CUDA (pytorch.org), then pip install llamafactory. Memory saving moves activations to RAM only: Liger kernels need Triton, which does not run on Windows.</value>
+  </data>
+  <data name="Export_HintWindowsAmd" xml:space="preserve">
+    <value>On Windows with an AMD GPU: install AMD's PyTorch for Windows (ROCm, Python 3.12, rocm.docs.amd.com), then pip install llamafactory. QLoRA needs a bitsandbytes build for ROCm on Windows, which only the community makes: LoRA with a smaller model is the safe choice. Memory saving moves activations to RAM only.</value>
+  </data>
+  <data name="Export_TrainingUnsupportedPlatform" xml:space="preserve">
+    <value>{0} does not run on {1}; choose LLaMA-Factory, or train on Linux or in WSL.</value>
+  </data>
   <data name="Export_GpuMemory" xml:space="preserve">
     <value>GPU memory</value>
   </data>
@@ -1494,6 +1512,12 @@
   </data>
   <data name="Export_SaveMemoryHint" xml:space="preserve">
     <value>The same training in noticeably less GPU memory, a little slower; the quality does not change. Works on NVIDIA and AMD. Needs: pip install liger-kernel</value>
+  </data>
+  <data name="Export_SaveMemoryWindows" xml:space="preserve">
+    <value>Save memory: activations kept in RAM</value>
+  </data>
+  <data name="Export_SaveMemoryWindowsHint" xml:space="preserve">
+    <value>The same training in less GPU memory, a little slower; the quality does not change. On Windows the activations move to RAM; Liger kernels need Triton, which does not run there. Nothing to install.</value>
   </data>
   <data name="Export_MemoryEstimate" xml:space="preserve">
     <value>Needs about {0:0.#} GB of GPU memory ({1}-token sequences, one at a time).</value>

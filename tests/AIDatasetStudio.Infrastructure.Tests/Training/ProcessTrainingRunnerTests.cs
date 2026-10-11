@@ -105,6 +105,69 @@ public sealed class ProcessTrainingRunnerTests : IDisposable
         Assert.NotEqual(Path.Combine(_folder, "gone"), runner.FindTool(TrainingFramework.Axolotl));
     }
 
+    [Fact]
+    public void On_Windows_the_tool_is_also_looked_for_where_Python_installs_commands()
+    {
+        var root = Path.Combine(_folder, "windows");
+        string Make(params string[] parts)
+        {
+            var path = Path.Combine([root, .. parts]);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        var (home, local, roaming, programs) = (Make("Users", "me"), Make("Local"), Make("Roaming"), Make("Program Files"));
+        Make("Local", "Programs", "Python", "Python311");
+        Make("Local", "Programs", "Python", "Python312");
+        Make("Roaming", "Python", "Python312");
+        Make("Local", "Packages", "PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0", "LocalCache", "local-packages", "Python312");
+        Make("Users", "me", "miniconda3", "envs", "egitim");
+        Make("Users", "me", "LLaMA-Factory", ".venv", "Scripts");
+
+        var folders = ProcessTrainingRunner.WindowsScriptFolders(home, local, roaming, programs).ToList();
+
+        Assert.Equal(
+            [
+                Path.Combine(local, "Programs", "Python", "Python312", "Scripts"),
+                Path.Combine(local, "Programs", "Python", "Python311", "Scripts"),
+                Path.Combine(roaming, "Python", "Python312", "Scripts"),
+                Path.Combine(local, "Packages", "PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0", "LocalCache", "local-packages", "Python312", "Scripts"),
+                Path.Combine(home, "miniconda3", "Scripts"),
+                Path.Combine(home, "miniconda3", "envs", "egitim", "Scripts"),
+            ],
+            folders.Take(6));
+        var venv = Path.Combine(home, "LLaMA-Factory", ".venv", "Scripts");
+        Assert.Contains(venv, folders);
+
+        var tool = Path.Combine(venv, "llamafactory-cli.exe");
+        File.WriteAllText(tool, "");
+        Assert.Equal(tool, ProcessTrainingRunner.FindIn(folders, ["llamafactory-cli.exe", "llamafactory-cli.cmd"]));
+        Assert.Empty(ProcessTrainingRunner.WindowsScriptFolders(Path.Combine(root, "nobody"), "", "", ""));
+    }
+
+    [Theory]
+    [InlineData(17163091968L, 17163091968L)]
+    [InlineData(-1, 4294967295L)]
+    public void A_memory_size_is_read_however_the_registry_keeps_it(long stored, long bytes)
+    {
+        Assert.Equal(bytes, stored > uint.MaxValue ? WindowsGpuMemory.Bytes(stored) : WindowsGpuMemory.Bytes((int)stored));
+        Assert.Equal(bytes, stored > uint.MaxValue ? WindowsGpuMemory.Bytes(BitConverter.GetBytes(stored)) : WindowsGpuMemory.Bytes(BitConverter.GetBytes((int)stored)));
+        Assert.Null(WindowsGpuMemory.Bytes("16 GB"));
+    }
+
+    [Fact]
+    public async Task The_GPU_monitor_answers_on_any_system_with_a_plausible_reading_or_none()
+    {
+        // On a build machine there may be no GPU at all; whatever it reads must make sense.
+        var memory = await new GpuMonitor().ReadAsync(Ct);
+
+        if (memory is not null)
+        {
+            Assert.True(memory.TotalMb > 0);
+            Assert.InRange(memory.UsedMb, 0, memory.TotalMb * 2);
+        }
+    }
+
     [Theory]
     [InlineData("NVIDIA GeForce RTX 4050 Laptop GPU, 1234, 6141\n", "NVIDIA GeForce RTX 4050 Laptop GPU", 1234L, 6141L)]
     [InlineData("", null, 0L, 0L)]

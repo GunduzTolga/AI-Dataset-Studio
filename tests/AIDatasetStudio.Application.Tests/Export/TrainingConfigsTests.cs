@@ -188,6 +188,33 @@ public sealed class TrainingConfigsTests
     }
 
     [Fact]
+    public void On_Windows_memory_saving_leaves_out_Liger_and_the_header_says_which_PyTorch_to_install()
+    {
+        var target = new TrainingTarget("Destek", DatasetType.Instruction, ExportFormat.Alpaca, 4096, Split, 42);
+        var laptop = new TrainingOptions(TrainingFramework.LlamaFactory, "", QLoRA: true, GpuMemoryGb: 6, SaveMemory: true, Platform: TrainingPlatform.Windows);
+        var nvidia = TrainingConfigs.Render(laptop, target)[1].Content;
+        var amd = TrainingConfigs.Render(laptop with { Gpu = GpuVendor.Amd, GpuMemoryGb = 16 }, target)[1].Content;
+
+        // Liger's kernels are Triton's, which does not run on Windows; the activations still go to RAM.
+        Assert.Contains("use_unsloth_gc: true\n", nvidia, StringComparison.Ordinal);
+        Assert.DoesNotContain("enable_liger_kernel", nvidia, StringComparison.Ordinal);
+        Assert.Contains("# Windows: install PyTorch with CUDA before the tool (pip install torch --index-url https://download.pytorch.org/whl/cu126).\n", nvidia, StringComparison.Ordinal);
+        Assert.Contains("(needs bitsandbytes)\n", nvidia, StringComparison.Ordinal);
+
+        Assert.Contains("# Windows with an AMD GPU: install AMD's PyTorch for Windows (ROCm, Python 3.12, rocm.docs.amd.com) before the tool.\n", amd, StringComparison.Ordinal);
+        Assert.Contains("needs a bitsandbytes build for ROCm on Windows, which only the community makes", amd, StringComparison.Ordinal);
+        Assert.DoesNotContain("on Linux or WSL", amd, StringComparison.Ordinal);
+
+        // Axolotl runs only on Linux and in WSL.
+        Assert.False(TrainingConfigs.Supports(TrainingFramework.Axolotl, TrainingPlatform.Windows));
+        Assert.True(TrainingConfigs.Supports(TrainingFramework.LlamaFactory, TrainingPlatform.Windows));
+        Assert.Throws<ArgumentException>(() => TrainingConfigs.Render(laptop with { Framework = TrainingFramework.Axolotl }, target));
+
+        // The desktop keeps part of the GPU's memory on Windows.
+        Assert.Equal(TrainingMemory.EstimateGb(7, true, true) + 0.5, TrainingMemory.EstimateGb(7, true, true, windows: true), 6);
+    }
+
+    [Fact]
     public void LLaMA_Factory_reads_openai_messages_and_alpaca_columns()
     {
         var info = (string format, bool system) => JsonNode.Parse(TrainingConfigs.Render(

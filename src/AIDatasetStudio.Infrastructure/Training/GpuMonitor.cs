@@ -7,7 +7,8 @@ namespace AIDatasetStudio.Infrastructure.Training;
 
 /// <summary>
 /// Reads the first GPU's memory use from <c>nvidia-smi</c> or <c>rocm-smi</c>, whichever answers
-/// (M28). Both come with the vendor's driver; without either, there is nothing to show.
+/// (M28), and on Windows from its own GPU counters when nvidia-smi does not (M29). The tools come
+/// with the vendor's driver; without any, there is nothing to show.
 /// </summary>
 internal sealed class GpuMonitor : IGpuMonitor
 {
@@ -25,6 +26,12 @@ internal sealed class GpuMonitor : IGpuMonitor
             {
                 return nvidia;
             }
+        }
+
+        // AMD's driver on Windows has no rocm-smi; Windows' own counters cover every card.
+        if (OperatingSystem.IsWindows())
+        {
+            return await Task.Run(WindowsGpuMemory.Read, cancellationToken).ConfigureAwait(false);
         }
 
         if (!_rocmMissing)

@@ -59,6 +59,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             .. Enum.GetValues<TrainingFramework>().Select(framework => new TrainingChoice(framework, localizer[$"Export_Training{framework}"])),
         ];
         GpuChoices = [.. Enum.GetValues<GpuVendor>().Select(vendor => new GpuChoice(vendor, localizer[$"Export_Gpu{vendor}"]))];
+        PlatformChoices = [.. Enum.GetValues<TrainingPlatform>().Select(platform => new PlatformChoice(platform, localizer[$"Export_Platform{platform}"]))];
         GpuMemoryChoices =
         [
             new GpuMemoryChoice(null, localizer["Export_GpuMemoryUnknown"]),
@@ -68,6 +69,9 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         _applying = true;
         SelectedTraining = TrainingChoices[0];
         SelectedGpu = GpuChoices[0];
+
+        // Most often the files are trained on the computer that exports them.
+        SelectedPlatform = PlatformChoices.First(c => c.Platform == (OperatingSystem.IsWindows() ? TrainingPlatform.Windows : TrainingPlatform.Linux));
         SelectedGpuMemory = GpuMemoryChoices[0];
         SelectedFormat = Formats.FirstOrDefault();
         SelectedSplitMode = SplitModes[0];
@@ -227,8 +231,39 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     public IReadOnlyList<GpuMemoryChoice> GpuMemoryChoices { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsAmd))]
+    [NotifyPropertyChangedFor(nameof(PlatformHint), nameof(HasPlatformHint))]
     public partial GpuChoice? SelectedGpu { get; set; }
+
+    public IReadOnlyList<PlatformChoice> PlatformChoices { get; }
+
+    /// <summary>
+    /// The system that trains (M29): Windows gets settings that run there.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PlatformHint), nameof(HasPlatformHint), nameof(IsWindows), nameof(SaveMemoryLabel), nameof(SaveMemoryHint), nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
+    public partial PlatformChoice? SelectedPlatform { get; set; }
+
+    public bool IsWindows => SelectedPlatform?.Platform == TrainingPlatform.Windows;
+
+    /// <summary>
+    /// What memory saving does where it trains: on Windows only the activations move to RAM.
+    /// </summary>
+    public string SaveMemoryLabel => _localizer[IsWindows ? "Export_SaveMemoryWindows" : "Export_SaveMemory"];
+
+    public string SaveMemoryHint => _localizer[IsWindows ? "Export_SaveMemoryWindowsHint" : "Export_SaveMemoryHint"];
+
+    /// <summary>
+    /// What to install for the chosen system and GPU, and what does not run there.
+    /// </summary>
+    public string? PlatformHint => (SelectedPlatform?.Platform, SelectedGpu?.Vendor) switch
+    {
+        (TrainingPlatform.Windows, GpuVendor.Amd) => _localizer["Export_HintWindowsAmd"],
+        (TrainingPlatform.Windows, _) => _localizer["Export_HintWindowsNvidia"],
+        (_, GpuVendor.Amd) => _localizer["Export_GpuAmdHint"],
+        _ => null,
+    };
+
+    public bool HasPlatformHint => PlatformHint is not null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
@@ -241,14 +276,12 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(MemoryText), nameof(MemoryFitLevel), nameof(IsMemoryWarning))]
     public partial bool SaveMemory { get; set; }
 
-    public bool IsAmd => SelectedGpu?.Vendor == GpuVendor.Amd;
-
     /// <summary>
     /// How the run sits in the chosen GPU's memory; <c>null</c> without a GPU size or a model size.
     /// </summary>
     public MemoryFit? MemoryFitLevel =>
         SelectedGpuMemory?.Gigabytes is { } memory && TrainingMemory.ParameterBillions(BaseModel) is { } size
-            ? TrainingMemory.Fit(TrainingMemory.EstimateGb(size, UseQLoRA, SaveMemory), memory)
+            ? TrainingMemory.Fit(TrainingMemory.EstimateGb(size, UseQLoRA, SaveMemory, IsWindows), memory)
             : null;
 
     public bool IsMemoryWarning => MemoryFitLevel is MemoryFit.Tight or MemoryFit.TooBig;
@@ -261,13 +294,13 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         get
         {
             var size = TrainingMemory.ParameterBillions(BaseModel);
-            var estimate = size is { } billions ? TrainingMemory.EstimateGb(billions, UseQLoRA, SaveMemory) : (double?)null;
+            var estimate = size is { } billions ? TrainingMemory.EstimateGb(billions, UseQLoRA, SaveMemory, IsWindows) : (double?)null;
             if (SelectedGpuMemory?.Gigabytes is not { } memory)
             {
                 return estimate is { } gb ? _localizer.Format("Export_MemoryEstimate", gb, TrainingMemory.EstimatedSequenceLength) : string.Empty;
             }
 
-            var largest = TrainingMemory.LargestFitting(memory) is { } fitting
+            var largest = TrainingMemory.LargestFitting(memory, IsWindows) is { } fitting
                 ? _localizer.Format("Export_MemoryLargest", fitting)
                 : _localizer["Export_MemoryTooSmall"];
             if (estimate is not { } needed)
@@ -321,9 +354,11 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 _ => null,
             };
             var training = SelectedTraining?.Framework is { } framework
-                ? new TrainingOptions(framework, BaseModel.Trim(), UseQLoRA, SelectedGpu?.Vendor ?? GpuVendor.Nvidia, SelectedGpuMemory?.Gigabytes, SaveMemory)
+                ? new TrainingOptions(
+                    framework, BaseModel.Trim(), UseQLoRA, SelectedGpu?.Vendor ?? GpuVendor.Nvidia, SelectedGpuMemory?.Gigabytes, SaveMemory, SelectedPlatform?.Platform ?? TrainingPlatform.Linux)
                 : null;
-            if (split is { IsValid: false } || (training is not null && !TrainingConfigs.Supports(training.Framework, format.Format, Target.Type)))
+            if (split is { IsValid: false }
+                || (training is not null && (!TrainingConfigs.Supports(training.Framework, format.Format, Target.Type) || !TrainingConfigs.Supports(training.Framework, training.Platform))))
             {
                 return null;
             }
@@ -659,6 +694,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     partial void OnSelectedGpuChanged(GpuChoice? value) => OnOptionChanged();
 
+    partial void OnSelectedPlatformChanged(PlatformChoice? value) => OnOptionChanged();
+
     partial void OnSelectedGpuMemoryChanged(GpuMemoryChoice? value) => OnOptionChanged();
 
     partial void OnSaveMemoryChanged(bool value) => OnOptionChanged();
@@ -719,6 +756,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
                 ProblemText = Statuses.Count == 0 ? _localizer["Export_NoStatus"]
                     : SelectedTraining?.Framework is { } framework && SelectedFormat is { } format && !TrainingConfigs.Supports(framework, format.Format, Target.Type)
                         ? _localizer.Format("Export_TrainingUnsupported", SelectedTraining.Label, format.Label)
+                    : SelectedTraining?.Framework is { } tool && SelectedPlatform is { } platform && !TrainingConfigs.Supports(tool, platform.Platform)
+                        ? _localizer.Format("Export_TrainingUnsupportedPlatform", SelectedTraining.Label, platform.Label)
                         : _localizer["Export_InvalidSplit"];
                 Preview = null;
                 Samples.Clear();
@@ -806,6 +845,10 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             UseQLoRA = options.Training?.QLoRA == true;
             SaveMemory = options.Training?.SaveMemory == true;
             SelectedGpu = GpuChoices.FirstOrDefault(c => c.Vendor == options.Training?.Gpu) ?? GpuChoices[0];
+            if (options.Training is { } remembered)
+            {
+                SelectedPlatform = PlatformChoices.First(c => c.Platform == remembered.Platform);
+            }
             SelectedGpuMemory = GpuMemoryChoices.FirstOrDefault(c => c.Gigabytes == options.Training?.GpuMemoryGb) ?? GpuMemoryChoices[0];
             if (options.Training is { BaseModel.Length: > 0 } training)
             {

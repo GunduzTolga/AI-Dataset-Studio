@@ -65,6 +65,11 @@ public sealed record TrainingChoice(TrainingFramework? Framework, string Label);
 public sealed record GpuChoice(GpuVendor Vendor, string Label);
 
 /// <summary>
+/// The system that trains (M29).
+/// </summary>
+public sealed record PlatformChoice(TrainingPlatform Platform, string Label);
+
+/// <summary>
 /// How much memory the GPU has, or not given (M27).
 /// </summary>
 public sealed record GpuMemoryChoice(int? Gigabytes, string Label);

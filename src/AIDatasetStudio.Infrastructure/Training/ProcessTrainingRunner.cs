@@ -26,13 +26,33 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
         var names = OperatingSystem.IsWindows()
             ? new[] { CommandName(framework) + ".exe", CommandName(framework) + ".cmd" }
             : [CommandName(framework)];
-        foreach (var directory in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        var folders = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim('"'));
+
+        // pip on Windows puts commands in a Scripts folder that is often not on PATH.
+        if (OperatingSystem.IsWindows())
+        {
+            folders = folders.Concat(WindowsScriptFolders(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)));
+        }
+
+        return FindIn(folders, names);
+    }
+
+    /// <summary>
+    /// The first folder that has one of the commands.
+    /// </summary>
+    internal static string? FindIn(IEnumerable<string> folders, IReadOnlyList<string> names)
+    {
+        foreach (var folder in folders)
         {
             foreach (var name in names)
             {
                 try
                 {
-                    var candidate = Path.Combine(directory.Trim('"'), name);
+                    var candidate = Path.Combine(folder, name);
                     if (File.Exists(candidate))
                     {
                         return candidate;
@@ -46,6 +66,66 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Where Python on Windows installs commands, newest Python first: python.org's installer (for the
+    /// user and for everyone), pip's --user folder, the Microsoft Store's Python, Miniconda and
+    /// Anaconda with their environments, and a venv in a folder of the user's own
+    /// (C:\Users\me\LLaMA-Factory\.venv).
+    /// </summary>
+    internal static IEnumerable<string> WindowsScriptFolders(string userProfile, string localAppData, string appData, string programFiles)
+    {
+        IEnumerable<string> Under(string root, string pattern) => Folders(root, pattern).OrderDescending(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var python in Under(Path.Combine(localAppData, "Programs", "Python"), "Python3*").Concat(Under(programFiles, "Python3*")))
+        {
+            yield return Path.Combine(python, "Scripts");
+        }
+
+        foreach (var python in Under(Path.Combine(appData, "Python"), "Python3*"))
+        {
+            yield return Path.Combine(python, "Scripts");
+        }
+
+        foreach (var store in Under(Path.Combine(localAppData, "Packages"), "PythonSoftwareFoundation.Python.3*"))
+        {
+            foreach (var python in Under(Path.Combine(store, "LocalCache", "local-packages"), "Python3*"))
+            {
+                yield return Path.Combine(python, "Scripts");
+            }
+        }
+
+        var condas = new[] { userProfile, localAppData }.Where(root => root.Length > 0)
+            .SelectMany(root => new[] { "miniconda3", "anaconda3", "miniforge3" }.Select(name => Path.Combine(root, name)))
+            .Where(Directory.Exists);
+        foreach (var conda in condas)
+        {
+            yield return Path.Combine(conda, "Scripts");
+            foreach (var environment in Under(Path.Combine(conda, "envs"), "*"))
+            {
+                yield return Path.Combine(environment, "Scripts");
+            }
+        }
+
+        foreach (var folder in Folders(userProfile, "*").Order(StringComparer.OrdinalIgnoreCase))
+        {
+            yield return Path.Combine(folder, "Scripts");
+            yield return Path.Combine(folder, "venv", "Scripts");
+            yield return Path.Combine(folder, ".venv", "Scripts");
+        }
+    }
+
+    private static IEnumerable<string> Folders(string root, string pattern)
+    {
+        try
+        {
+            return root.Length > 0 && Directory.Exists(root) ? Directory.GetDirectories(root, pattern) : [];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
     }
 
     public TrainingFramework? DetectFramework(string folder) =>
