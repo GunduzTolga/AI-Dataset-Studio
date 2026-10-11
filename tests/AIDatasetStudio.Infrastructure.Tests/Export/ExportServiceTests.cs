@@ -114,6 +114,30 @@ public sealed class ExportServiceTests
     }
 
     [Fact]
+    public async Task A_split_part_a_small_dataset_leaves_empty_is_not_named_in_the_training_configuration()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(cancellationToken: Ct);
+        await AddAsync(ws, datasetId, [.. Enumerable.Range(0, 3).Select(i => (RecordPayload)new InstructionPayload($"Soru {i}", "", $"Cevap {i}"))]);
+        var options = new ExportOptions(
+            ExportFormat.Alpaca, [RecordStatus.Draft], Split: SplitOptions.TrainValidation, Training: new TrainingOptions(TrainingFramework.LlamaFactory, ""));
+        var folder = Path.Combine(ws.Directory, "kucuk");
+
+        var result = await ws.Export.ExportAsync(datasetId, options, folder, cancellationToken: Ct);
+
+        // Three records all fall in the training part; the empty validation file is still written.
+        Assert.Equal([(SplitPart.Train, 3L), (SplitPart.Validation, 0L)], result.Files.Select(f => (f.Part!.Value, f.Count)));
+        var yaml = await File.ReadAllTextAsync(Path.Combine(folder, "llamafactory.yaml"), Ct);
+        Assert.DoesNotContain("eval_dataset", yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("eval_strategy", yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("val.jsonl", await File.ReadAllTextAsync(Path.Combine(folder, "dataset_info.json"), Ct), StringComparison.Ordinal);
+
+        var axolotl = await ws.Export.ExportAsync(datasetId, options with { Training = options.Training! with { Framework = TrainingFramework.Axolotl } }, folder, cancellationToken: Ct);
+        Assert.Equal(3, axolotl.Files[0].Count);
+        Assert.DoesNotContain("test_datasets", await File.ReadAllTextAsync(Path.Combine(folder, "axolotl.yaml"), Ct), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_training_configuration_is_written_next_to_the_files_and_remembered()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

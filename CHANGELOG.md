@@ -34,6 +34,10 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   noticeably less GPU memory, a little slower, on NVIDIA and AMD alike.
 
 ### Fixes
+- A small dataset whose validation or test part comes out empty no longer gets a training
+  configuration that names the empty file: LLaMA-Factory stopped with "at least one example"
+  before training. Found in an end-to-end trial (Hugging Face-shaped Parquet file → import →
+  export → LLaMA-Factory 0.9.5 LoRA and DPO training).
 - The training-configuration test no longer fails on Windows, where the checkout gives the
   expected text Windows line endings.
 - WhatsApp chats exported on iOS no longer bring attachments ("<attached: …>"), deleted messages
