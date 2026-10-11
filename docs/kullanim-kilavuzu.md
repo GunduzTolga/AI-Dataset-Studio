@@ -19,6 +19,7 @@ Bu kılavuz uygulamanın Türkçe arayüzüne göre yazılmıştır. Menü adlar
 7. [Kalite denetimi ve kişisel veriler](#7-kalite-denetimi-ve-kişisel-veriler)
 8. [Sürümler](#8-sürümler)
 9. [Dışa aktarma](#9-dışa-aktarma)
+   - [Uygulama içinden eğitim](#uygulama-içinden-eğitim)
 10. [Yapay zekâ özellikleri](#10-yapay-zekâ-özellikleri)
 11. [Veri setlerini birleştirme](#11-veri-setlerini-birleştirme)
 12. [Klavye kısayolları](#12-klavye-kısayolları)
@@ -201,6 +202,30 @@ Bir veri setinin o anki hâlini numaralı bir sürüm olarak dondurabilirsiniz. 
 
 Önizleme, kaç kaydın hangi dosyaya gideceğini ve hangi kayıtların neden dışarıda kaldığını gösterir. Seçtiğiniz ayarlar veri seti için hatırlanır.
 
+### Uygulama içinden eğitim
+
+Dışa aktarma eğitim yapılandırması yazdıysa sonuç ekranında **Eğitimi başlat** düğmesi çıkar. Daha önce dışa aktardığınız bir klasörü eğitmek için **Araçlar › Model Eğit…** ile o klasörü seçin.
+
+1. **Eğitim aracını bir kez kurun.** Uygulama eğitim aracını kendisi kurmaz. Python'a LLaMA-Factory'yi (`pip install llamafactory`) ya da Axolotl'u (`pip install axolotl`) kurun; ekran kartınıza uygun PyTorch'u da (NVIDIA için CUDA, AMD için ROCm sürümü) unutmayın.
+2. **Komutu gösterin.** Komut PATH'teyse uygulama kendisi bulur. Bir sanal ortama (venv, conda) kurduysanız **Seç…** ile komutu gösterin: ör. `…/venv/bin/llamafactory-cli` ya da Windows'ta `…\venv\Scripts\llamafactory-cli.exe`. Seçtiğiniz komut hatırlanır.
+3. **Eğitimi başlat**'a basın. Pencerede şunlar canlı görünür:
+   - adım / toplam, geçen ve kalan süre;
+   - epoch, eğitim kaybı, doğrulama kaybı ve öğrenme hızı;
+   - **kayıp grafiği**: eğitim kaybı çizgi, doğrulama kaybı kesik çizgi. Kayıp düşmeli; eğitim kaybı düşerken doğrulama kaybı yükseliyorsa model veriyi ezberliyordur (daha az epoch ya da daha fazla veri);
+   - **ekran kartı belleği** (NVIDIA'da `nvidia-smi`, AMD'de `rocm-smi` kuruluysa);
+   - **Günlük** düğmesiyle aracın kendi çıktısı.
+4. **Durdur** aracı ve başlattığı her şeyi kapatır; o ana kadar kaydedilen ara kayıtlar kalır. Eğitim sürerken pencereyi kapatmak önce sorar.
+5. Bitince **Çıktı klasörünü aç** ile LoRA adaptörünü bulursunuz (`saves/…` ya da `outputs/…`).
+
+Eğitim başarısız olursa pencere nedenini ve ne yapacağınızı söyler:
+
+| Mesaj | Ne yapmalı |
+|---|---|
+| Ekran kartının belleği yetmedi | QLoRA'yı ve bellek tasarrufunu açarak yeniden dışa aktarın, daha küçük bir model seçin ya da bağlam uzunluğunu kısaltın. |
+| Bir Python paketi eksik | Günlükte adı geçen paketi kurun (ör. `pip install liger-kernel`). |
+| Uygun bir ekran kartı bulunamadı | PyTorch'un CUDA (NVIDIA) ya da ROCm (AMD) sürümünü kurun. |
+| Temel model indirilemedi | Model adını kontrol edin; erişim izni isteyen modeller için `HF_TOKEN` ortam değişkenine Hugging Face anahtarınızı yazın. |
+
 ---
 
 ## 10. Yapay zekâ özellikleri
@@ -306,3 +331,4 @@ Bütün veriniz tek bir `.adstudio` dosyasındadır. Yedeklemek ya da başka bil
 - Notion, Confluence ve yardım masası sistemleri (Zendesk, Intercom) için yalnızca dışa aktarılmış dosyalar okunur; doğrudan bağlantı yoktur.
 - Telegram gibi diğer sohbet uygulamalarının biçimleri ve sesli mesajlar desteklenmez.
 - Kayıt listesi aynı anda yalnızca bir etikete göre süzülebilir.
+- Windows'ta AMD ekran kartıyla eğitim WSL içinde yapılır; uygulama WSL içindeki komutu doğrudan başlatamaz. Dışa aktarılan klasörde WSL'den `llamafactory-cli train llamafactory.yaml` çalıştırın.

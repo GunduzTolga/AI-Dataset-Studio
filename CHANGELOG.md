@@ -24,6 +24,15 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - The export wizard's training configuration can load the model in 4 bits (**QLoRA**): far less
   GPU memory, for Axolotl and LLaMA-Factory alike.
 
+### Training from the app
+- **Start training** on the export's result screen, or **Tools › Train a Model…** for a folder
+  exported before, runs LLaMA-Factory or Axolotl — the one installed on this computer — on the
+  exported files. The window shows the step and the time left, the epoch, the training and
+  validation loss with a live loss chart, the learning rate, the GPU's memory (from nvidia-smi or
+  rocm-smi) and the tool's log. Stop ends the tool and everything it started; closing the window
+  while training asks first. A failed run says why and what to do: the GPU ran out of memory, a
+  Python package is missing, no suitable GPU, the model could not be downloaded.
+
 ### Training on your GPU
 - The export wizard asks for the **GPU** (NVIDIA or AMD) and its **memory**. It estimates the
   memory the model needs from the size in its name and says whether it fits, only just fits or

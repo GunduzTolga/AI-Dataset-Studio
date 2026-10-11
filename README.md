@@ -92,6 +92,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
   - Birbirine benzeyen sorular aynı bölümde kalır, test soruları eğitim verisine sızmaz.
 - Bağlam sınırını aşan, kopya ya da yapay zekânın düşük puan verdiği kayıtları dışarıda bırakma.
 - Axolotl ve LLaMA-Factory için çalışmaya hazır LoRA ya da **QLoRA** (model 4 bit yüklenir, çok daha az GPU belleği) eğitim yapılandırması.
+- **Uygulama içinden eğitim:** dışa aktarmanın sonunda **Eğitimi başlat** ya da Araçlar › Model Eğit… Bilgisayarınızdaki LLaMA-Factory ya da Axolotl çalışır; pencerede adım ve kalan süre, canlı kayıp grafiği (eğitim ve doğrulama), ekran kartı belleği ve günlük görünür. Durdurabilir, hata olursa nedenini ve ne yapacağınızı görürsünüz.
 - **Ekran kartına göre ayar:** NVIDIA ya da **AMD (ROCm)** kartınızı ve belleğini seçin; uygulama modelin karta sığıp sığmadığını tahmin eder, sığmıyorsa ne yapacağınızı söyler. **Bellek tasarrufu** (Liger kernel, ara sonuçlar RAM'de) kaliteyi değiştirmeden belleği düşürür.
 
 **Yapay zekâ özellikleri** (isteğe bağlı; bağlantı olmadan uygulamanın geri kalanı tam çalışır)
@@ -134,7 +135,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 - Notion, Confluence ve Zendesk gibi servislere doğrudan bağlanılmaz; bu servislerden dışa aktarılmış dosyalar okunur.
 - Telegram gibi diğer sohbet uygulamalarının biçimleri ve sesli mesajlar desteklenmez.
 - Kayıt listesi aynı anda yalnızca bir etikete göre süzülebilir.
-- Uygulama eğitimin kendisini yapmaz. Veriyi ve eğitim yapılandırmasını hazırlar; eğitimi Axolotl, LLaMA-Factory ya da bir bulut servisinin ince ayar özelliğiyle siz başlatırsınız.
+- Eğitim aracını uygulama kurmaz: LLaMA-Factory ya da Axolotl'u (ve ekran kartınıza uygun PyTorch'u) bilgisayarınıza siz kurarsınız; uygulama onu çalıştırıp izler. Windows'ta AMD kartla eğitim WSL içinde yapılır ve oradan başlatılır.
 
 ### Daha fazlası
 
@@ -171,6 +172,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🌿 **Variations:** Record › Generate Variations (Mod+Shift+G) has the model ask a record's question in other words — casual and with typos if you like, with the answer reworded too if you choose. Review the variants, then add them as draft records of the record's family: a family stays in one split part and is not flagged as near duplicates of itself.
 - ⚖️ **AI judge:** Record › Judge with AI (Mod+J) has the model rate a record from 1 to 5 with a reason — checking an answer written from a document against its passage and the order of a preference pair — and compare it with records that ask the same thing to find contradicting answers. Scores show in the list, filters list the low ones, and the overview shows how they spread.
 - 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
+- 🏋️ **Training from the app:** Start training on the export's result screen (or Tools › Train a Model…) runs the LLaMA-Factory or Axolotl installed on your computer on the exported files and shows the run live: step and time left, a training and validation loss chart, the GPU's memory and the log. Stop it at any time; a failed run says why (out of GPU memory, a missing package, no GPU, a model that cannot be downloaded).
 - 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the one you trained — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models; the answers can be saved as a JSON Lines report.
 - 🔄 **Universal Import & Export:**
   - **Import:** JSONL, JSON, Parquet, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
@@ -336,6 +338,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M25 | Parquet files and importing a dataset straight from the Hugging Face Hub | ✅ |
 | M26 | QLoRA training configurations (model loaded in 4 bits) | ✅ |
 | M27 | Training settings for your GPU: memory estimate, AMD (ROCm), memory saving with Liger kernels | ✅ |
+| M28 | Training from the app: runs LLaMA-Factory or Axolotl on the export, with live progress, loss chart, GPU memory and log | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
