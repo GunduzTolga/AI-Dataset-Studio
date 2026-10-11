@@ -1,0 +1,2 @@
+# Real tool output kept byte for byte: its carriage returns are what the reader is tested on.
+tests/AIDatasetStudio.Application.Tests/Training/*.txt -text

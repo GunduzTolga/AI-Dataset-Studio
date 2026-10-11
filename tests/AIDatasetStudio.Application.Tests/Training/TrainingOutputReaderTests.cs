@@ -7,7 +7,7 @@ namespace AIDatasetStudio.Application.Tests.Training;
 /// </summary>
 public sealed class TrainingOutputReaderTests
 {
-    private static string Output => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Training", "llamafactory-sft.log"));
+    private static string Output => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Training", "llamafactory-sft-output.txt"));
 
     [Fact]
     public void Steps_and_losses_are_read_from_a_LLaMA_Factory_run_whatever_size_the_pieces_arrive_in()
