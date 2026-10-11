@@ -135,7 +135,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 - Notion, Confluence ve Zendesk gibi servislere doğrudan bağlanılmaz; bu servislerden dışa aktarılmış dosyalar okunur.
 - Telegram gibi diğer sohbet uygulamalarının biçimleri ve sesli mesajlar desteklenmez.
 - Kayıt listesi aynı anda yalnızca bir etikete göre süzülebilir.
-- Eğitim aracını uygulama kurmaz: LLaMA-Factory ya da Axolotl'u (ve ekran kartınıza uygun PyTorch'u) bilgisayarınıza siz kurarsınız; uygulama onu çalıştırıp izler. Windows'ta AMD kartla eğitim WSL içinde yapılır ve oradan başlatılır.
+- Eğitim aracını uygulama kurmaz: LLaMA-Factory ya da Axolotl'u (ve ekran kartınıza uygun PyTorch'u) bilgisayarınıza siz kurarsınız; uygulama onu çalıştırıp izler. Windows'ta NVIDIA kartla CUDA'lı PyTorch, AMD kartla AMD'nin Windows için PyTorch'u kullanılır; Axolotl ve Liger kernel Windows'ta çalışmaz (LLaMA-Factory çalışır).
 
 ### Daha fazlası
 

@@ -33,6 +33,18 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   while training asks first. A failed run says why and what to do: the GPU ran out of memory, a
   Python package is missing, no suitable GPU, the model could not be downloaded.
 
+### Training on Windows
+- The export wizard asks which system trains: **Windows** (the default on Windows) or Linux, WSL
+  or the cloud. On Windows the configuration runs there: memory saving keeps activations in RAM
+  without Liger (Triton has no Windows build), Axolotl is not offered (LLaMA-Factory is), the
+  estimate counts the memory the desktop keeps, and the file says which PyTorch to install:
+  CUDA's for NVIDIA, AMD's PyTorch for Windows for AMD.
+- The training window finds `llamafactory-cli.exe` where Python on Windows puts it even when it
+  is not on PATH: python.org's and the Microsoft Store's Python, `pip --user`, Miniconda and
+  Anaconda environments, and a `venv`/`.venv` in a folder of your own.
+- GPU memory is shown on Windows for AMD cards too, from Windows' own GPU counters.
+- Pull requests are tested on Windows as well as Linux.
+
 ### Training on your GPU
 - The export wizard asks for the **GPU** (NVIDIA or AMD) and its **memory**. It estimates the
   memory the model needs from the size in its name and says whether it fits, only just fits or
