@@ -32,6 +32,9 @@ public enum ImportFormat
 
     /// <summary>A conversation log: a WhatsApp export or a transcript with a speaker before each message.</summary>
     Transcript,
+
+    /// <summary>An Apache Parquet file (Hugging Face datasets), read row by row as JSON objects (M25).</summary>
+    Parquet,
 }
 
 /// <summary>

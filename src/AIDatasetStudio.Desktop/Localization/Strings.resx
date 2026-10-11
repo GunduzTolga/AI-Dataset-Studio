@@ -653,6 +653,9 @@
   <data name="ImportFormat_Transcript" xml:space="preserve">
     <value>Conversation log (WhatsApp, transcript)</value>
   </data>
+  <data name="ImportFormat_Parquet" xml:space="preserve">
+    <value>Parquet (Hugging Face)</value>
+  </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Custom columns</value>
   </data>
@@ -790,6 +793,9 @@
   </data>
   <data name="Error_ImportEmptyArchive" xml:space="preserve">
     <value>“{0}” holds no HTML, Markdown or text page with text. Export Notion pages as Markdown or HTML, and a Confluence space as HTML.</value>
+  </data>
+  <data name="Error_ImportInvalidParquet" xml:space="preserve">
+    <value>“{0}” is not a Parquet file that can be read; it may be damaged. Download it again, or as JSON Lines or CSV.</value>
   </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” is not a valid address. It should look like http://localhost:11434/v1.</value>

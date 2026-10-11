@@ -30,6 +30,8 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
     <!-- Text of PDF documents for import and Q&A extraction (Apache-2.0, no dependencies). -->
     <PackageVersion Include="PdfPig" Version="0.1.16" />
+    <!-- Parquet files (Hugging Face datasets) for import (MIT; managed code only, including its compression). -->
+    <PackageVersion Include="Parquet.Net" Version="6.1.0" />
   </ItemGroup>
 
   <ItemGroup Label="Hosting">

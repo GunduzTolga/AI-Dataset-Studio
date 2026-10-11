@@ -33,6 +33,9 @@ public enum ImportFileError
 
     /// <summary>A ZIP without HTML, Markdown or text pages that have text.</summary>
     EmptyArchive,
+
+    /// <summary>The file is not a Parquet file that can be read (damaged, or an unsupported encoding).</summary>
+    InvalidParquet,
 }
 
 /// <summary>

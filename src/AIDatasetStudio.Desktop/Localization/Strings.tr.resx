@@ -621,6 +621,9 @@
   <data name="ImportFormat_Transcript" xml:space="preserve">
     <value>Konuşma kaydı (WhatsApp, döküm)</value>
   </data>
+  <data name="ImportFormat_Parquet" xml:space="preserve">
+    <value>Parquet (Hugging Face)</value>
+  </data>
   <data name="Layout_Custom" xml:space="preserve">
     <value>Özel sütunlar</value>
   </data>
@@ -758,6 +761,9 @@
   </data>
   <data name="Error_ImportEmptyArchive" xml:space="preserve">
     <value>“{0}” içinde metni olan bir HTML, Markdown ya da metin sayfası yok. Notion sayfalarını Markdown ya da HTML, Confluence alanını HTML olarak dışa aktarın.</value>
+  </data>
+  <data name="Error_ImportInvalidParquet" xml:space="preserve">
+    <value>“{0}” okunabilen bir Parquet dosyası değil; bozuk olabilir. Dosyayı yeniden ya da JSON Lines veya CSV olarak indirin.</value>
   </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” geçerli bir adres değil. http://localhost:11434/v1 gibi olmalı.</value>

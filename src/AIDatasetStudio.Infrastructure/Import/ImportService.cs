@@ -16,7 +16,7 @@ internal sealed class ImportService(IRecordCommandService commands, DocumentRead
     private const int ProgressInterval = 500;
 
     public IReadOnlyList<string> SupportedExtensions { get; } =
-        [".jsonl", ".ndjson", ".json", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown", ".pdf", ".docx", ".docm", ".html", ".htm", ".zip"];
+        [".jsonl", ".ndjson", ".json", ".parquet", ".csv", ".tsv", ".txt", ".xlsx", ".xlsm", ".md", ".markdown", ".pdf", ".docx", ".docm", ".html", ".htm", ".zip"];
 
     // File reading is synchronous, so every operation runs off the caller's (usually the UI) thread.
     public Task<ImportAnalysis> AnalyzeAsync(

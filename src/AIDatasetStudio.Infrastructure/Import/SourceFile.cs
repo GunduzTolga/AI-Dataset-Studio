@@ -44,6 +44,11 @@ internal static class SourceFile
                 : new ImportFileException(ImportFileError.LegacyWorkbook, path, $"'{path}' is an Excel 97-2003 or password-protected workbook.");
         }
 
+        if (ParquetSource.IsParquet(start))
+        {
+            return (ImportFormat.Parquet, [ImportFormat.Parquet]);
+        }
+
         if (DocumentReader.IsPdf(start))
         {
             return (ImportFormat.Pdf, [ImportFormat.Pdf]);
@@ -129,6 +134,7 @@ internal static class SourceFile
     {
         ImportFormat.JsonLines => ReadJsonLines(path),
         ImportFormat.JsonArray => ReadJsonArray(path),
+        ImportFormat.Parquet => ParquetSource.Read(path),
         ImportFormat.Csv => new CsvSource(path, csv ?? throw new ArgumentException("CSV options are required.", nameof(csv))).Read(),
         ImportFormat.Excel => new ExcelSource(path, sheet ?? new SheetOptions(null, HasHeader: true)).Read(),
         ImportFormat.Markdown => TextItems(TextDocuments.Sections([.. ReadTextLines(path)])),
@@ -290,7 +296,7 @@ internal static class SourceFile
         return fields >= 2 && consistency >= 0.9;
     }
 
-    private static SourceItem ToItem(long number, JsonElement root) => root.ValueKind == JsonValueKind.Object
+    public static SourceItem ToItem(long number, JsonElement root) => root.ValueKind == JsonValueKind.Object
         ? new SourceItem(number, new JsonSourceRow(number, root), null)
         : SourceItem.Failed(number, ImportErrorCode.NotAnObject);
 
