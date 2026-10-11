@@ -552,6 +552,32 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     [RelayCommand]
     private void Close() => CloseRequested?.Invoke(this, EventArgs.Empty);
 
+    /// <summary>
+    /// The folder the training configuration went to; <c>null</c> when none was written.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanTrain))]
+    public partial string? TrainingFolder { get; private set; }
+
+    /// <summary>
+    /// The tool the configuration was written for.
+    /// </summary>
+    public TrainingFramework? TrainingTool { get; private set; }
+
+    public bool CanTrain => TrainingFolder is not null;
+
+    /// <summary>
+    /// "Start training" was chosen: once the wizard closes, the training window opens on the folder (M28).
+    /// </summary>
+    public bool StartTrainingRequested { get; private set; }
+
+    [RelayCommand]
+    private void StartTraining()
+    {
+        StartTrainingRequested = true;
+        CloseRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     private async Task RunExportAsync(ExportOptions options, string destination)
     {
         using var cancellation = new CancellationTokenSource();
@@ -584,6 +610,9 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             {
                 WrittenFiles.Add(new ExportedFileItem(Path.GetFileName(file), Path.GetDirectoryName(file) ?? string.Empty, _localizer["Export_TrainingFile"]));
             }
+
+            TrainingTool = result.TrainingFiles is { Count: > 0 } ? options.Training?.Framework : null;
+            TrainingFolder = TrainingTool is not null ? Path.GetDirectoryName(result.TrainingFiles![0]) : null;
 
             SkipItems.Clear();
             AddSkips(result.Unsupported, result.OverContextLimit, result.LowJudgeScore, result.Duplicates, notAnalyzed: 0);

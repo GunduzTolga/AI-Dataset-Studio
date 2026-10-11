@@ -131,6 +131,8 @@ internal sealed class DialogService(Func<Window?> owner, Localizer localizer) : 
 
     public Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation) => new ModelEvaluationWindow { DataContext = evaluation }.ShowDialog(Owner);
 
+    public Task ShowTrainingAsync(ViewModels.Training.TrainingViewModel training) => new TrainingWindow { DataContext = training }.ShowDialog(Owner);
+
     private Task<bool> ShowAsync(InputDialogViewModel viewModel) => new InputDialog { DataContext = viewModel }.ShowDialog<bool>(Owner);
 
     private Window Owner => owner() ?? throw new InvalidOperationException("No window is available to host a dialog.");

@@ -335,6 +335,20 @@
           <TextBlock Classes="title" Text="{l:Tr Export_DoneTitle}" HorizontalAlignment="Center" Margin="0,6,0,0" />
           <TextBlock Classes="secondary" Text="{Binding ResultText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
 
+          <!-- Train on the files just written (M28) -->
+          <Border Classes="callout" Margin="0,14,0,0" IsVisible="{Binding CanTrain}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <ic:SymbolIcon Symbol="DeveloperBoard" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{l:Tr Export_TrainNow}" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <Button x:Name="StartTrainingButton" Grid.Column="2" Classes="accent" Command="{Binding StartTrainingCommand}" Margin="12,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="PlayCircle" />
+                  <TextBlock Text="{l:Tr Export_StartTraining}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Border>
+
           <Border Classes="card" Margin="0,14,0,0">
             <ItemsControl Classes="lines" ItemsSource="{Binding WrittenFiles}">
               <ItemsControl.ItemTemplate>

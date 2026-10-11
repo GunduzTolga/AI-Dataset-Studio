@@ -14,6 +14,7 @@ using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Desktop.ViewModels.Training;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
@@ -50,6 +51,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly RecordVariations _variations;
     private readonly RecordJudge _judge;
     private readonly ModelEvaluator _evaluator;
+    private readonly TrainingLauncher _training;
     private readonly Localizer _localizer;
 
     public MainWindowViewModel(
@@ -74,6 +76,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         RecordVariations variations,
         RecordJudge judge,
         ModelEvaluator evaluator,
+        TrainingLauncher training,
         Localizer localizer,
         StatusBarViewModel status,
         ExplorerViewModel explorer,
@@ -102,6 +105,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _variations = variations;
         _judge = judge;
         _evaluator = evaluator;
+        _training = training;
         _localizer = localizer;
         Status = status;
         Explorer = explorer;
@@ -476,6 +480,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         if (await _dialogs.ShowExportWizardAsync(wizard) is { } result)
         {
             Status.Set("Status_Exported", result.Exported, dataset.Name, string.Join(", ", result.Files.Select(f => Path.GetFileName(f.Path))));
+        }
+
+        // "Start training" on the result screen: the window opens on the folder just written.
+        if (wizard.StartTrainingRequested && wizard.TrainingFolder is { } folder && wizard.TrainingTool is { } framework)
+        {
+            await TrainAsync(new TrainingRunTarget(folder, framework, dataset.Name));
         }
     }
 

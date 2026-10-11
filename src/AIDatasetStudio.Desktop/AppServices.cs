@@ -31,6 +31,7 @@ public static class AppServices
         services.AddSingleton<RecordVariations>();
         services.AddSingleton<RecordJudge>();
         services.AddSingleton<ModelEvaluator>();
+        services.AddSingleton<TrainingLauncher>();
         services.AddSingleton<StatusBarViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<RecordListViewModel>();

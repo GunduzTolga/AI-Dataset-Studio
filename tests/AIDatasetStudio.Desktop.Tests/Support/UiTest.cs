@@ -17,4 +17,17 @@ internal static class UiTest
                     return true;
                 },
                 TestContext.Current.CancellationToken);
+
+    /// <summary>
+    /// Lets the UI thread work until <paramref name="condition"/> holds, failing after 10 seconds.
+    /// </summary>
+    public static async Task UntilAsync(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (!condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "The condition did not hold in time.");
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+    }
 }

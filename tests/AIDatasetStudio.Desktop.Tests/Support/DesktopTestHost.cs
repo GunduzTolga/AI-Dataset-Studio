@@ -3,6 +3,7 @@ using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Import;
 using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Application.Settings;
+using AIDatasetStudio.Application.Training;
 using AIDatasetStudio.Application.Workspaces;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels;
@@ -12,6 +13,7 @@ using AIDatasetStudio.Desktop.ViewModels.Documents;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Desktop.ViewModels.Training;
 using AIDatasetStudio.Desktop.ViewModels.Versions;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
@@ -46,6 +48,10 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             // Never the real Hugging Face.
             .AddSingleton<IHuggingFaceHub>(Hub)
 
+            // Never a real training tool or GPU.
+            .AddSingleton<ITrainingRunner>(Trainer)
+            .AddSingleton<IGpuMonitor>(Gpu)
+
             // Never the developer's own keychain.
             .AddSingleton<ISecretStore>(Secrets)
             .BuildServiceProvider();
@@ -64,6 +70,10 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeAIProviders AI { get; } = new();
 
     public FakeHuggingFaceHub Hub { get; } = new();
+
+    public FakeTrainingRunner Trainer { get; } = new();
+
+    public FakeGpuMonitor Gpu { get; } = new();
 
     public FakeSecretStore Secrets { get; } = new();
 
@@ -328,6 +338,16 @@ internal sealed class FakeDialogs : IDialogService
 
     public ModelEvaluationViewModel? LastEvaluation { get; private set; }
 
+    public Func<TrainingViewModel, Task> TrainingScript { get; set; } = _ => Task.CompletedTask;
+
+    public TrainingViewModel? LastTraining { get; private set; }
+
+    public async Task ShowTrainingAsync(TrainingViewModel training)
+    {
+        LastTraining = training;
+        await TrainingScript(training);
+    }
+
     public async Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation)
     {
         LastEvaluation = evaluation;
@@ -401,6 +421,14 @@ internal sealed class FakeFileDialogs : IFileDialogService
     public string? OpenPath { get; set; }
 
     public Task<string?> PickWorkspaceToOpenAsync() => Task.FromResult(OpenPath);
+
+    public string? TrainingTool { get; set; }
+
+    public string? TrainingFolder { get; set; }
+
+    public Task<string?> PickTrainingToolAsync() => Task.FromResult(TrainingTool);
+
+    public Task<string?> PickTrainingFolderAsync() => Task.FromResult(TrainingFolder);
 
     public Task<string?> PickWorkspaceToCreateAsync(string suggestedName) => Task.FromResult(CreatePath);
 
@@ -514,4 +542,62 @@ internal sealed class FakeHuggingFaceHub : IHuggingFaceHub
         Downloads.Add(datasetId + ":" + file.Path);
         return path;
     }
+}
+
+/// <summary>
+/// A training tool that reports what the test scripts and ends when the test says.
+/// </summary>
+internal sealed class FakeTrainingRunner : ITrainingRunner
+{
+    public string? Tool { get; set; } = "/opt/venv/bin/llamafactory-cli";
+
+    public List<TrainingRequest> Requests { get; } = [];
+
+    /// <summary>What the run reports, in order, before it waits for <see cref="Finish"/>.</summary>
+    public List<TrainingEvent> Events { get; } = [];
+
+    /// <summary>How the run ends once finished; a cancelled run ends as stopped.</summary>
+    public TrainingResult Result { get; set; } = new(0, Cancelled: false, "/data/saves/lora/sft", Failure: null, []);
+
+    public TaskCompletionSource Finish { get; private set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public TaskCompletionSource Started { get; private set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public string? FindTool(TrainingFramework framework) => Tool;
+
+    public TrainingFramework? DetectFramework(string folder) =>
+        File.Exists(Path.Combine(folder, "llamafactory.yaml")) ? TrainingFramework.LlamaFactory
+        : File.Exists(Path.Combine(folder, "axolotl.yaml")) ? TrainingFramework.Axolotl
+        : null;
+
+    public async Task<TrainingResult> RunAsync(TrainingRequest request, IProgress<TrainingEvent> progress, CancellationToken cancellationToken = default)
+    {
+        Requests.Add(request);
+        foreach (var item in Events)
+        {
+            progress.Report(item);
+        }
+
+        Started.TrySetResult();
+        try
+        {
+            await Finish.Task.WaitAsync(cancellationToken);
+            return Result;
+        }
+        catch (OperationCanceledException)
+        {
+            return new TrainingResult(-1, Cancelled: true, Result.OutputDirectory, Failure: null, []);
+        }
+        finally
+        {
+            (Finish, Started) = (new(TaskCreationOptions.RunContinuationsAsynchronously), new(TaskCreationOptions.RunContinuationsAsynchronously));
+        }
+    }
+}
+
+internal sealed class FakeGpuMonitor : IGpuMonitor
+{
+    public GpuMemory? Memory { get; set; }
+
+    public Task<GpuMemory?> ReadAsync(CancellationToken cancellationToken = default) => Task.FromResult(Memory);
 }
