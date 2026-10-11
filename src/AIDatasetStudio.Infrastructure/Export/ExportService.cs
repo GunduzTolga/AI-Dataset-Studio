@@ -296,9 +296,13 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     private static List<string> WriteTrainingFiles(TrainingOptions training, Source source, ExportOptions options, List<PartFile> files, bool hasSystemPrompts)
     {
         var folder = Path.GetDirectoryName(files[0].Path)!;
+
+        // A validation or test part a small dataset left empty is not named: the tools fail on an
+        // empty evaluation set.
+        var named = files.Where(f => f.Count > 0 || f.Part is null or SplitPart.Train);
         var target = new TrainingTarget(
             source.Name, source.Type, options.Format, source.ContextLength,
-            [.. files.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed, hasSystemPrompts);
+            [.. named.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed, hasSystemPrompts);
         var written = new List<string>();
         foreach (var config in TrainingConfigs.Render(training, target))
         {
