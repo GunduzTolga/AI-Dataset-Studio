@@ -14,6 +14,9 @@ using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Desktop.ViewModels.Export;
 using AIDatasetStudio.Desktop.ViewModels.Import;
 using AIDatasetStudio.Desktop.ViewModels.Tags;
+using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Domain.Payloads;
+using AIDatasetStudio.Domain.ValueObjects;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -148,7 +151,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(NewRecordCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
     [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
@@ -319,6 +322,52 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     private bool CanImport() => !IsBusy && Explorer.SelectedDataset is not null;
+
+    /// <summary>
+    /// Raised after Record › New Record shows the new record, so the editor's first field gets the
+    /// keyboard.
+    /// </summary>
+    public event EventHandler? NewRecordShown;
+
+    /// <summary>
+    /// Record › New Record (M24): an empty draft of the dataset's type at the end of the list,
+    /// written by hand. One step in the history, like any other added records.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanImport))]
+    private async Task NewRecordAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset || !await Details.SaveIfDirtyAsync())
+        {
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var ids = await _operations.AddAsync(dataset.Id, [new NewRecord(EmptyPayload(dataset.Type), RecordLineage.Manual())], _localizer["History_NewRecordSource"]);
+            await ShowAffectedAsync(dataset.Id, ids);
+            await Details.ShowAsync(ids[0]);
+            Status.Set("Status_RecordCreated", dataset.Name);
+        }
+        catch (Exception ex) when (Status.TryReport(ex))
+        {
+            return;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        NewRecordShown?.Invoke(this, EventArgs.Empty);
+    }
+
+    // A chat starts with the customer's turn and the answer to write.
+    private static RecordPayload EmptyPayload(DatasetType type) => type switch
+    {
+        DatasetType.Chat => new ChatPayload(null, [new ChatMessage(ChatRole.User, ""), new ChatMessage(ChatRole.Assistant, "")]),
+        DatasetType.Preference => new PreferencePayload("", "", ""),
+        _ => new InstructionPayload("", "", ""),
+    };
 
     /// <summary>
     /// Picks a file and runs the import wizard for the selected dataset.
@@ -631,6 +680,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
+            NewRecordCommand.NotifyCanExecuteChanged();
             ExtractQuestionsCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
             EvaluateModelCommand.NotifyCanExecuteChanged();

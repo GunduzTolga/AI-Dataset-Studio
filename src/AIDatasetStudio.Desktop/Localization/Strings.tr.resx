@@ -385,7 +385,7 @@
     <value>Henüz kayıt yok</value>
   </data>
   <data name="Records_EmptyHint" xml:space="preserve">
-    <value>JSONL, JSON veya CSV dosyası içe aktarın ya da uygulamayı örnek kayıtlarla deneyin.</value>
+    <value>Bir dosya içe aktarın, elle kayıt yazın ya da uygulamayı üretilmiş örnek kayıtlarla deneyin.</value>
   </data>
   <data name="Records_NoMatchesTitle" xml:space="preserve">
     <value>Eşleşme yok</value>
@@ -416,6 +416,15 @@
   </data>
   <data name="Action_Import" xml:space="preserve">
     <value>İçe aktar</value>
+  </data>
+  <data name="Action_NewRecord" xml:space="preserve">
+    <value>Yeni kayıt</value>
+  </data>
+  <data name="Action_NewRecordTip" xml:space="preserve">
+    <value>Elle yeni bir kayıt yazın (Mod+Shift+N)</value>
+  </data>
+  <data name="Action_WriteFirstRecord" xml:space="preserve">
+    <value>Kayıt yaz</value>
   </data>
   <data name="Action_ImportFromFile" xml:space="preserve">
     <value>Dosyadan içe aktar</value>
@@ -798,6 +807,9 @@
   <data name="Status_QAAdded" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} soru-cevap taslak olarak eklendi; gözden geçirin</value>
   </data>
+  <data name="Status_RecordCreated" xml:space="preserve">
+    <value>“{0}” veri setine yeni bir taslak kayıt eklendi; düzenleyicide yazın</value>
+  </data>
   <data name="Status_VariationsAdded" xml:space="preserve">
     <value>“{1}” veri setine {0:N0} varyant taslak olarak eklendi; gözden geçirin</value>
   </data>
@@ -849,6 +861,9 @@
   <data name="Menu_SaveRecord" xml:space="preserve">
     <value>Değişiklikleri _Kaydet</value>
   </data>
+  <data name="Menu_NewRecord" xml:space="preserve">
+    <value>_Yeni Kayıt</value>
+  </data>
   <data name="Menu_ApproveAndNext" xml:space="preserve">
     <value>_Onayla ve Sonrakine Geç</value>
   </data>
@@ -884,6 +899,9 @@
   </data>
   <data name="History_Add" xml:space="preserve">
     <value>{0} ekleme ({1})</value>
+  </data>
+  <data name="History_NewRecordSource" xml:space="preserve">
+    <value>elle</value>
   </data>
   <data name="History_One" xml:space="preserve">
     <value>#{0}</value>

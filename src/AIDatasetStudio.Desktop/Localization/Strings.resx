@@ -414,7 +414,7 @@
     <value>No records yet</value>
   </data>
   <data name="Records_EmptyHint" xml:space="preserve">
-    <value>Import a JSONL, JSON or CSV file, or try the app with generated sample records.</value>
+    <value>Import a file, write a record by hand, or try the app with generated sample records.</value>
   </data>
   <data name="Records_NoMatchesTitle" xml:space="preserve">
     <value>No matches</value>
@@ -448,6 +448,15 @@
   </data>
   <data name="Action_Import" xml:space="preserve">
     <value>Import</value>
+  </data>
+  <data name="Action_NewRecord" xml:space="preserve">
+    <value>New record</value>
+  </data>
+  <data name="Action_NewRecordTip" xml:space="preserve">
+    <value>Write a new record by hand (Mod+Shift+N)</value>
+  </data>
+  <data name="Action_WriteFirstRecord" xml:space="preserve">
+    <value>Write a record</value>
   </data>
   <data name="Action_ImportFromFile" xml:space="preserve">
     <value>Import from file</value>
@@ -830,6 +839,9 @@
   <data name="Status_QAAdded" xml:space="preserve">
     <value>Added {0:N0} questions and answers to “{1}” as drafts to review</value>
   </data>
+  <data name="Status_RecordCreated" xml:space="preserve">
+    <value>Added a new draft record to “{0}”; write it in the editor</value>
+  </data>
   <data name="Status_VariationsAdded" xml:space="preserve">
     <value>Added {0:N0} variations to “{1}” as drafts to review</value>
   </data>
@@ -881,6 +893,9 @@
   <data name="Menu_SaveRecord" xml:space="preserve">
     <value>_Save Changes</value>
   </data>
+  <data name="Menu_NewRecord" xml:space="preserve">
+    <value>_New Record</value>
+  </data>
   <data name="Menu_ApproveAndNext" xml:space="preserve">
     <value>_Approve and Next</value>
   </data>
@@ -916,6 +931,9 @@
   </data>
   <data name="History_Add" xml:space="preserve">
     <value>Add {0} ({1})</value>
+  </data>
+  <data name="History_NewRecordSource" xml:space="preserve">
+    <value>by hand</value>
   </data>
   <data name="History_One" xml:space="preserve">
     <value>#{0}</value>
