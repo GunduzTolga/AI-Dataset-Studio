@@ -26,6 +26,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 | **Hukuk, sağlık, finans gibi hassas alanlar** | Veri bilgisayardan çıkmadan çalışın. T.C. kimlik numarası, IBAN, kart numarası, telefon ve e-posta otomatik bulunur ve maskelenebilir. |
 | **Model kalitesini iyileştirme** | Kötü cevapları yapay zekâya puanlatıp ayıklayın, aynı soruya çelişen cevapları bulun, iyi ve kötü cevap çiftleriyle tercih (DPO) verisi hazırlayın. |
 | **Eğitilen modeli ölçme** | Eğittiğiniz modele hiç görmediği test sorularını sorun ve cevaplarını veri setindeki doğru cevaplarla karşılaştırıp puanlayın. Farklı modelleri yan yana kıyaslayın. |
+| **Hazır bir veri setinden başlamak** | Hugging Face'teki bir veri setini adıyla bulup içe alın, düzenleyin, istemediğiniz kayıtları ayıklayın ve kendi kayıtlarınızı elle ya da yapay zekâyla ekleyin. |
 | **Ekip çalışması** | Herkesin hazırladığı `.adstudio` dosyalarındaki veri setlerini tek bir veri setinde birleştirin. Etiketler isimleriyle eşleşir, tekrar eden kayıtlar ayıklanır. |
 
 ### Tipik iş akışı
@@ -52,12 +53,14 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 
 **İçe aktarma**
 - JSON Lines / JSON: OpenAI, ShareGPT, Alpaca, Hugging Face DPO biçimleri kendiliğinden tanınır.
+- **Hugging Face:** Dosya › Hugging Face'ten İçe Aktar… ile bir veri setinin adını (`tatsu-lab/alpaca`) yazın, dosyalarından birini seçin; indirilip içe aktarma sihirbazında açılır. Hugging Face'in kullandığı Parquet dosyaları da doğrudan okunur.
 - CSV / TSV ve Excel: sütunlar Türkçe adlarıyla da eşlenir. Excel'in Türkçe karakterli (Windows-1254) dosyaları sorunsuz okunur; çok sayfalı çalışma kitaplarında tek sayfa ya da hepsi seçilebilir.
 - Markdown, düz metin, PDF ve Word: başlıklar, listeler ve tablolar tanınır; sayfa numaraları, üst bilgiler ve içindekiler atlanır.
 - Web sayfaları ve Notion / Confluence dışa aktarımları (ZIP): internete bağlanmadan okunur.
 - WhatsApp sohbet dışa aktarımları (Android ve iOS) ve konuşma dökümleri: her konuşma bir sohbet kaydı olur, müşteri ve temsilci rolleri eşlenir.
 
 **İnceleme ve düzenleme**
+- **Elle kayıt yazma** (Ctrl+Shift+N): veri setine boş bir taslak ekler, düzenleyicide yazarsınız.
 - Kayıt listesi, renklendirilmiş düzenleyici (Markdown, kod blokları, JSON), toplu seçim ve toplu işlemler.
 - Durumlar: Taslak → İncelemede → Onaylandı / Arşivlendi.
 - Tam geri alma ve yineleme (Ctrl+Z / Ctrl+Shift+Z).
@@ -88,7 +91,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
   - İsterseniz oranlar her etiket içinde ayrı ayrı tutulur.
   - Birbirine benzeyen sorular aynı bölümde kalır, test soruları eğitim verisine sızmaz.
 - Bağlam sınırını aşan, kopya ya da yapay zekânın düşük puan verdiği kayıtları dışarıda bırakma.
-- Axolotl ve LLaMA-Factory için çalışmaya hazır LoRA eğitim yapılandırması.
+- Axolotl ve LLaMA-Factory için çalışmaya hazır LoRA ya da **QLoRA** (model 4 bit yüklenir, çok daha az GPU belleği) eğitim yapılandırması.
 
 **Yapay zekâ özellikleri** (isteğe bağlı; bağlantı olmadan uygulamanın geri kalanı tam çalışır)
 - **Yerel modeller:** Ollama, LM Studio, vLLM, LocalAI ya da OpenAI uyumlu herhangi bir sunucu. Veri bilgisayarınızdan çıkmaz.
@@ -169,8 +172,10 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
 - 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the one you trained — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models; the answers can be saved as a JSON Lines report.
 - 🔄 **Universal Import & Export:**
-  - **Import:** JSONL, JSON, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
-  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA configuration next to the files.
+  - **Import:** JSONL, JSON, Parquet, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
+  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA or QLoRA configuration next to the files.
+  - **Hugging Face:** File › Import from Hugging Face lists a Hub dataset's files from its id (`tatsu-lab/alpaca`), downloads the one you choose and opens it in the import wizard; gated and private datasets with a token in `HF_TOKEN`.
+- ✍️ **Records written by hand:** Record › New Record (Mod+Shift+N) adds an empty draft of the dataset's type and puts the keyboard in it.
 
 ---
 
@@ -326,6 +331,9 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M21 | Merging datasets of one type from several projects into a new dataset | ✅ |
 | M22 | Model evaluation: a model answers the test part's questions, a grader scores them against the dataset's answers; earlier evaluations kept to compare | ✅ |
 | M23 | Merging datasets from another `.adstudio` file, read from a copy and never changed; tags matched by name | ✅ |
+| M24 | Writing a new record by hand (Record › New Record, Mod+Shift+N) | ✅ |
+| M25 | Parquet files and importing a dataset straight from the Hugging Face Hub | ✅ |
+| M26 | QLoRA training configurations (model loaded in 4 bits) | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

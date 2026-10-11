@@ -5,7 +5,28 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Writing records by hand
+- **Record › New Record** (Mod+Shift+N), the **New record** button above the list and **Write a
+  record** on an empty dataset add an empty draft of the dataset's type (a chat starts with a user
+  turn and an assistant turn), select it and put the keyboard in its first field. Undo takes it
+  back in one step.
+
+### Hugging Face datasets
+- **Parquet files** (`.parquet`), the form Hugging Face publishes datasets in, can be imported.
+  Rows are read like JSON Lines objects, so Alpaca, ShareGPT, OpenAI messages and DPO columns are
+  recognised, nested message lists included.
+- **File › Import from Hugging Face** lists the importable files of a dataset on the Hub from its
+  id or page address, downloads the one you choose and opens it in the import wizard. Public
+  datasets need no account; a token in the `HF_TOKEN` environment variable opens gated and private
+  ones and is only sent to huggingface.co.
+
+### QLoRA
+- The export wizard's training configuration can load the model in 4 bits (**QLoRA**): far less
+  GPU memory, for Axolotl and LLaMA-Factory alike.
+
 ### Fixes
+- The training-configuration test no longer fails on Windows, where the checkout gives the
+  expected text Windows line endings.
 - WhatsApp chats exported on iOS no longer bring attachments ("<attached: …>"), deleted messages
   or WhatsApp's notices in as customer messages, and Android exports with media leave out the
   attached file's line while keeping its caption.

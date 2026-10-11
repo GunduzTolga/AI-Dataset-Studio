@@ -81,6 +81,7 @@ Bir veri seti seçin ve **Dosya › Dosyadan İçe Aktar…** komutunu kullanın
 | Kaynak | Nasıl okunur |
 |---|---|
 | **JSON Lines / JSON** (`.jsonl`, `.ndjson`, `.json`) | OpenAI mesajları, ShareGPT, Alpaca, prompt/completion, Hugging Face DPO, OpenAI tercih biçimleri ve düz nesneler tanınır. |
+| **Parquet** (`.parquet`) | Hugging Face veri setlerinin yayımlandığı biçim. Satırlar JSON Lines gibi okunur; iç içe mesaj listeleri (`messages`, `conversations`) de tanınır. |
 | **CSV / TSV** (`.csv`, `.tsv`, `.txt`) | Sütunlar adlarına göre eşlenir; Türkçe sütun adları da önerilir. UTF-8, UTF-16 ve Excel'in Türkçe (Windows-1254) dosyaları okunur. |
 | **Excel** (`.xlsx`, `.xlsm`) | Tek bir sayfa ya da bütün sayfalar; her sayfanın kendi başlık satırıyla. |
 | **Markdown** (`.md`) | Her başlık bir kayıttır: başlık soru, altındaki metin yanıttır. |
@@ -88,6 +89,16 @@ Bir veri seti seçin ve **Dosya › Dosyadan İçe Aktar…** komutunu kullanın
 | **Düz metin** (`.txt`) | Her paragraf bir kayıttır: ilk satır soru, devamı yanıttır. |
 | **HTML ve Notion / Confluence dışa aktarımları** (`.html`, `.zip`) | Sayfalar belge olarak okunur; menüler, betikler, üst ve alt bilgiler atlanır. Ağ bağlantısı gerekmez. |
 | **Konuşma kayıtları** (WhatsApp dışa aktarımı, `Müşteri: …` biçiminde dökümler) | Her konuşma bir sohbet kaydı olur. Konuşmacılar sütun gibi eşlenir: müşteri soran, temsilci yanıtlayan. Medya ve silinen mesajlar atlanır; 6 saatlik bir aradan sonra yeni konuşma başlar. |
+
+### Hugging Face'ten içe aktarma
+
+Hugging Face'teki hazır veri setlerini doğrudan alabilirsiniz: bir veri seti seçin ve **Dosya › Hugging Face'ten İçe Aktar…** komutunu kullanın.
+
+1. Veri setinin kimliğini (ör. `tatsu-lab/alpaca`) ya da huggingface.co'daki sayfa adresini yazıp **Dosyaları listele**'ye basın.
+2. İçe aktarılabilen dosyalar (Parquet, JSON Lines, JSON, CSV) boyutlarıyla listelenir; eğitim dosyası (`train`) önceden seçilir.
+3. **İndir ve içe aktar** dosyayı indirir ve her dosyada olduğu gibi içe aktarma sihirbazında açar. İçe aldıktan sonra kayıtları düzenleyebilir, kendi kayıtlarınızı ekleyebilirsiniz.
+
+Yalnızca seçtiğiniz dosya indirilir; herkese açık veri setleri hesap gerektirmez. Erişim izni isteyen (gated) ya da özel veri setleri için Hugging Face'te erişim isteyin, bir erişim jetonunu `HF_TOKEN` ortam değişkenine yazın ve uygulamayı yeniden başlatın.
 
 ### Belgeden soru-cevap çıkarma
 
@@ -97,6 +108,7 @@ PDF, Word, Markdown, HTML ya da Notion/Confluence belgelerinden soru-cevap çift
 
 ## 5. Kayıtları inceleme ve düzenleme
 
+- **Elle yeni kayıt yazmak** için **Kayıt › Yeni Kayıt** (Mod+Shift+N) ya da listenin üstündeki **Yeni kayıt** düğmesini kullanın. Veri setinin türünde boş bir taslak listenin sonuna eklenir ve imleç ilk alana geçer; sohbet kaydı boş bir kullanıcı ve bir asistan turuyla başlar. Geri Al (Mod+Z) eklenen kaydı kaldırır.
 - Listeden bir kayıt seçin; alanlarını sağdaki düzenleyicide doğrudan değiştirin.
 - Değişiklikler **Mod+S** ile ya da başka bir kayda geçtiğinizde otomatik olarak kaydedilir.
 - Alanlar Markdown'ı, kod bloklarını (` ```json `, `python`, `sql` vb.) ve JSON'u renklendirir.
@@ -182,7 +194,7 @@ Bir veri setinin o anki hâlini numaralı bir sürüm olarak dondurabilirsiniz. 
    - **Özel oranlar**.
 
    Bölme tohuma göre yapılır: aynı tohum her seferinde aynı dosyaları verir, yeni eklenen kayıtlar eskilerin yerini değiştirmez. Benzer sorular ve bir kaydın varyantları hep aynı bölümde kalır, böylece test sorularının bir benzeri eğitim verisine sızmaz.
-5. **EĞİTİM YAPILANDIRMASI:** isterseniz veri dosyalarının yanına çalıştırılmaya hazır bir **Axolotl** (`axolotl.yaml`) ya da **LLaMA-Factory** (`dataset_info.json`, `llamafactory.yaml`) LoRA yapılandırması yazılır.
+5. **EĞİTİM YAPILANDIRMASI:** isterseniz veri dosyalarının yanına çalıştırılmaya hazır bir **Axolotl** (`axolotl.yaml`) ya da **LLaMA-Factory** (`dataset_info.json`, `llamafactory.yaml`) LoRA yapılandırması yazılır. **QLoRA: model 4 bit yüklensin** kutusunu işaretlerseniz yapılandırma QLoRA olur: çok daha az GPU belleğiyle (7–8B bir model için yaklaşık 10 GB) eğitir; bitsandbytes kurulu bir NVIDIA ekran kartı gerekir.
 
 Önizleme, kaç kaydın hangi dosyaya gideceğini ve hangi kayıtların neden dışarıda kaldığını gösterir. Seçtiğiniz ayarlar veri seti için hatırlanır.
 
@@ -255,6 +267,7 @@ Her veri setine **yapay zekâ talimatları** (ör. "Resmî Türkçe yaz.") gireb
 | Mod+Z / Mod+Shift+Z (Mod+Y) | Geri al / yinele |
 | Mod+F | Kayıtlarda ara |
 | Delete | Seçili kayıtları sil (listedeyken) |
+| Mod+Shift+N | Elle yeni kayıt yaz |
 | Mod+Shift+M | Maskelenmiş önizleme |
 | Mod+1 … Mod+5 | Kısayolu atanmış etiketi ekle / kaldır |
 | Mod+G | Yapay zekâyla yaz (tekrar basınca durur) |
