@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Import"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.HubImportWindow"
+        x:DataType="vm:HubImportViewModel"
+        Title="{l:Tr Hub_Title}"
+        Width="640" Height="540"
+        MinWidth="520" MinHeight="420"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="CloudArrowDown" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Hub_Title}" />
+          <TextBlock Classes="small muted" Text="{Binding TargetText}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Padding="24,12" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock x:Name="ProgressText" Classes="small muted" Text="{Binding ProgressText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+          <Button Classes="subtle" Content="{l:Tr Dialog_Cancel}" Command="{Binding CancelCommand}" IsCancel="True" />
+          <Button x:Name="DownloadButton" Classes="accent" Command="{Binding DownloadCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="ArrowDownload" />
+              <TextBlock Text="{l:Tr Hub_Download}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <DockPanel Margin="24,18,24,16">
+      <StackPanel DockPanel.Dock="Top" Spacing="6">
+        <TextBlock Classes="label" Text="{l:Tr Hub_DatasetLabel}" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox x:Name="DatasetBox" Text="{Binding DatasetId}" FontFamily="{StaticResource MonoFontFamily}"
+                   PlaceholderText="tatsu-lab/alpaca" IsEnabled="{Binding IsIdle}" />
+          <Button x:Name="ListButton" Grid.Column="1" Margin="8,0,0,0" Command="{Binding ListCommand}" IsDefault="True">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Search" />
+              <TextBlock Text="{l:Tr Hub_List}" />
+            </StackPanel>
+          </Button>
+        </Grid>
+        <TextBlock Classes="caption muted" Text="{l:Tr Hub_Hint}" TextWrapping="Wrap" />
+        <Border Classes="callout danger" IsVisible="{Binding HasError}" Margin="0,6,0,0">
+          <DockPanel>
+            <ic:SymbolIcon Symbol="ErrorCircle" />
+            <TextBlock x:Name="ErrorText" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+          </DockPanel>
+        </Border>
+        <TextBlock Classes="overline" Text="{l:Tr Hub_SectionFiles}" Margin="0,10,0,0" IsVisible="{Binding HasFiles}" />
+      </StackPanel>
+      <ListBox x:Name="FileList" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}" IsEnabled="{Binding IsIdle}"
+               IsVisible="{Binding HasFiles}" Margin="0,6,0,0">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:HubFileItem">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <ic:SymbolIcon Symbol="DocumentTable" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,8,0" />
+              <TextBlock Grid.Column="1" Text="{Binding Path}" FontFamily="{StaticResource MonoFontFamily}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Classes="small muted" Text="{Binding SizeText}" Margin="12,0,0,0" VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+  </DockPanel>
+</Window>

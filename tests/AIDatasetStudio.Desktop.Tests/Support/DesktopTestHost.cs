@@ -43,6 +43,9 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             .AddSingleton<IShellService>(Shell)
             .AddSingleton<IAIProviderFactory>(AI)
 
+            // Never the real Hugging Face.
+            .AddSingleton<IHuggingFaceHub>(Hub)
+
             // Never the developer's own keychain.
             .AddSingleton<ISecretStore>(Secrets)
             .BuildServiceProvider();
@@ -59,6 +62,8 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeShell Shell { get; } = new();
 
     public FakeAIProviders AI { get; } = new();
+
+    public FakeHuggingFaceHub Hub { get; } = new();
 
     public FakeSecretStore Secrets { get; } = new();
 
@@ -170,6 +175,7 @@ internal sealed class DesktopTestHost : IAsyncDisposable
         try
         {
             System.IO.Directory.Delete(Directory, recursive: true);
+            System.IO.Directory.Delete(Hub.Folder, recursive: true);
         }
         catch (IOException)
         {
@@ -301,6 +307,13 @@ internal sealed class FakeDialogs : IDialogService
     public Func<Desktop.ViewModels.Catalog.DatasetMergeViewModel, Task> MergeScript { get; set; } = _ => Task.CompletedTask;
 
     public Desktop.ViewModels.Catalog.DatasetMergeViewModel? LastMerge { get; private set; }
+
+    /// <summary>
+    /// What the user does in File › Import from Hugging Face; by default nothing.
+    /// </summary>
+    public Func<HubImportViewModel, Task> HubScript { get; set; } = _ => Task.CompletedTask;
+
+    public Task ShowHubImportAsync(HubImportViewModel hub) => HubScript(hub);
 
     public async Task ShowDatasetMergeAsync(Desktop.ViewModels.Catalog.DatasetMergeViewModel merge)
     {
@@ -473,5 +486,32 @@ internal sealed class FakeShell : IShellService
     {
         Opened.Add(path);
         return Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// A Hugging Face Hub with the files given; a download copies the file's content to a local file.
+/// </summary>
+internal sealed class FakeHuggingFaceHub : IHuggingFaceHub
+{
+    public Dictionary<string, (HubFile File, string Content)[]> Datasets { get; } = [];
+
+    public string Folder { get; } = Directory.CreateTempSubdirectory("adstudio-hub-").FullName;
+
+    public List<string> Downloads { get; } = [];
+
+    public Task<IReadOnlyList<HubFile>> ListFilesAsync(string datasetId, CancellationToken cancellationToken = default) =>
+        Datasets.TryGetValue(datasetId, out var files)
+            ? Task.FromResult<IReadOnlyList<HubFile>>([.. files.Select(f => f.File)])
+            : Task.FromException<IReadOnlyList<HubFile>>(new HubException(HubErrorKind.NotFound, datasetId));
+
+    public async Task<string> DownloadAsync(string datasetId, HubFile file, IProgress<long>? progress = null, CancellationToken cancellationToken = default)
+    {
+        var content = Datasets[datasetId].Single(f => f.File == file).Content;
+        var path = Path.Combine(Folder, Path.GetFileName(file.Path));
+        await File.WriteAllTextAsync(path, content, cancellationToken);
+        progress?.Report(content.Length);
+        Downloads.Add(datasetId + ":" + file.Path);
+        return path;
     }
 }

@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.AddSingleton<DocumentReader>();
         services.AddSingleton<IDocumentReader>(provider => provider.GetRequiredService<DocumentReader>());
         services.AddSingleton<IImportService, ImportService>();
+        services.AddSingleton<IHuggingFaceHub>(_ => new HuggingFaceHub(Path.Combine(settingsDirectory ?? UserSettingsLocation.GetDirectory(), "Downloads", "HuggingFace")));
         services.AddSingleton<ITokenizerProvider, TiktokenProvider>();
         services.AddSingleton<IRecordAnalysisService, RecordAnalysisService>();
         services.AddSingleton<IJudgmentService, JudgmentService>();

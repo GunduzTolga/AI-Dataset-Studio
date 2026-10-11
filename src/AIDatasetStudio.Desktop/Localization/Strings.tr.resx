@@ -414,6 +414,9 @@
   <data name="Menu_ExtractQuestions" xml:space="preserve">
     <value>Belgeden Soru-Cevap Çıkar…</value>
   </data>
+  <data name="Menu_ImportFromHub" xml:space="preserve">
+    <value>_Hugging Face'ten İçe Aktar…</value>
+  </data>
   <data name="Action_Import" xml:space="preserve">
     <value>İçe aktar</value>
   </data>
@@ -764,6 +767,51 @@
   </data>
   <data name="Error_ImportInvalidParquet" xml:space="preserve">
     <value>“{0}” okunabilen bir Parquet dosyası değil; bozuk olabilir. Dosyayı yeniden ya da JSON Lines veya CSV olarak indirin.</value>
+  </data>
+  <data name="Hub_Title" xml:space="preserve">
+    <value>Hugging Face'ten İçe Aktar</value>
+  </data>
+  <data name="Hub_Target" xml:space="preserve">
+    <value>“{0}” veri setine: veri setinin bir dosyası indirilir, sonra içe aktarma sihirbazında açılır.</value>
+  </data>
+  <data name="Hub_DatasetLabel" xml:space="preserve">
+    <value>Veri seti</value>
+  </data>
+  <data name="Hub_List" xml:space="preserve">
+    <value>Dosyaları listele</value>
+  </data>
+  <data name="Hub_Hint" xml:space="preserve">
+    <value>Veri setinin kimliği (sahip/ad) ya da huggingface.co'daki sayfa adresi. Yalnızca seçtiğiniz dosya indirilir; herkese açık veri setleri hesap gerektirmez.</value>
+  </data>
+  <data name="Hub_SectionFiles" xml:space="preserve">
+    <value>İÇE AKTARILABİLEN DOSYALAR</value>
+  </data>
+  <data name="Hub_Download" xml:space="preserve">
+    <value>İndir ve içe aktar</value>
+  </data>
+  <data name="Hub_Listing" xml:space="preserve">
+    <value>{0} dosyaları listeleniyor…</value>
+  </data>
+  <data name="Hub_Found" xml:space="preserve">
+    <value>{1} içinde {0:N0} dosya</value>
+  </data>
+  <data name="Hub_Downloading" xml:space="preserve">
+    <value>{0} indiriliyor: {1} içinden {2}</value>
+  </data>
+  <data name="Hub_NoFiles" xml:space="preserve">
+    <value>Bu veri setinde içe aktarılabilecek bir dosya (Parquet, JSON Lines, JSON ya da CSV) yok.</value>
+  </data>
+  <data name="Hub_InvalidId" xml:space="preserve">
+    <value>tatsu-lab/alpaca gibi bir veri seti kimliği ya da huggingface.co'daki adresini yazın.</value>
+  </data>
+  <data name="Hub_NotFound" xml:space="preserve">
+    <value>Hugging Face'te böyle bir veri seti yok. Kimliği kontrol edin; özel veri setleri erişim jetonu ister.</value>
+  </data>
+  <data name="Hub_AccessDenied" xml:space="preserve">
+    <value>Bu veri seti erişim izni istiyor ya da özel. Hugging Face sayfasından erişim isteyin, bir erişim jetonunu HF_TOKEN ortam değişkenine yazın ve uygulamayı yeniden başlatın.</value>
+  </data>
+  <data name="Hub_Unavailable" xml:space="preserve">
+    <value>Hugging Face'e ulaşılamadı: {0}</value>
   </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” geçerli bir adres değil. http://localhost:11434/v1 gibi olmalı.</value>
@@ -1531,7 +1579,7 @@
     <value>LLM eğitim veri setlerini düzenlemek, temizlemek, denetlemek ve dışa aktarmak için çevrimdışı öncelikli bir stüdyo.</value>
   </data>
   <data name="About_Privacy" xml:space="preserve">
-    <value>Verileriniz bu bilgisayardan çıkmaz. Uygulama telemetri göndermez; yalnızca güncelleme denetlediğinizde internete bağlanır.</value>
+    <value>Verileriniz bu bilgisayardan çıkmaz. Uygulama telemetri göndermez; yalnızca güncelleme denetlediğinizde, Hugging Face'ten veri seti indirdiğinizde ya da bağlayıp izin verdiğiniz bir model servisini kullandığınızda internete bağlanır.</value>
   </data>
   <data name="About_DataFolder" xml:space="preserve">
     <value>Ayarlar ve hata günlükleri</value>

@@ -35,6 +35,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IRecordCommandService _commands;
     private readonly IRecordQueryService _queries;
     private readonly IImportService _import;
+    private readonly IHuggingFaceHub _hub;
     private readonly IExportService _export;
     private readonly IVersionService _versions;
     private readonly IUpdateService _updates;
@@ -58,6 +59,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IRecordCommandService commands,
         IRecordQueryService queries,
         IImportService import,
+        IHuggingFaceHub hub,
         IExportService export,
         IVersionService versions,
         IUpdateService updates,
@@ -85,6 +87,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _commands = commands;
         _queries = queries;
         _import = import;
+        _hub = hub;
         _export = export;
         _versions = versions;
         _updates = updates;
@@ -151,7 +154,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(NewRecordCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NewWorkspaceCommand), nameof(OpenWorkspaceCommand), nameof(OpenRecentCommand), nameof(CloseWorkspaceCommand), nameof(GenerateSampleDataCommand), nameof(ImportCommand), nameof(ImportFromHubCommand), nameof(NewRecordCommand), nameof(ExportCommand), nameof(ExtractQuestionsCommand), nameof(EvaluateModelCommand))]
     [NotifyCanExecuteChangedFor(nameof(VersionsCommand), nameof(CreateVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
     [NotifyCanExecuteChangedFor(nameof(UndoCommand), nameof(RedoCommand), nameof(EditCustomTermsCommand), nameof(ManageTagsCommand))]
@@ -386,6 +389,31 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        await ImportFileAsync(dataset, path);
+    }
+
+    /// <summary>
+    /// File › Import from Hugging Face (M25): a file of a Hub dataset is downloaded, then imported
+    /// through the wizard like any file.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanImport))]
+    private async Task ImportFromHubAsync()
+    {
+        if (Explorer.SelectedDataset is not { } dataset)
+        {
+            return;
+        }
+
+        var hub = new HubImportViewModel(_hub, _localizer, dataset.Name);
+        await _dialogs.ShowHubImportAsync(hub);
+        if (hub.DownloadedPath is { } path)
+        {
+            await ImportFileAsync(dataset, path);
+        }
+    }
+
+    private async Task ImportFileAsync(DatasetNodeViewModel dataset, string path)
+    {
         var wizard = new ImportWizardViewModel(_import, _localizer, path, new ImportTarget(dataset.Id, dataset.Name, dataset.Type));
         if (await _dialogs.ShowImportWizardAsync(wizard) is not { } result)
         {
@@ -681,6 +709,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             GenerateSampleDataCommand.NotifyCanExecuteChanged();
             ImportCommand.NotifyCanExecuteChanged();
             NewRecordCommand.NotifyCanExecuteChanged();
+            ImportFromHubCommand.NotifyCanExecuteChanged();
             ExtractQuestionsCommand.NotifyCanExecuteChanged();
             ExportCommand.NotifyCanExecuteChanged();
             EvaluateModelCommand.NotifyCanExecuteChanged();

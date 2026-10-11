@@ -99,6 +99,11 @@ public interface IDialogService
     Task ShowDatasetMergeAsync(ViewModels.Catalog.DatasetMergeViewModel merge);
 
     /// <summary>
+    /// File › Import from Hugging Face (M25); the downloaded file is on the view model.
+    /// </summary>
+    Task ShowHubImportAsync(ViewModels.Import.HubImportViewModel hub);
+
+    /// <summary>
     /// Shows evaluating a model until the window is closed.
     /// </summary>
     Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation);

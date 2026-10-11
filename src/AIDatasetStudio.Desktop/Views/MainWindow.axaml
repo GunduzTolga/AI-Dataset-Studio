@@ -43,6 +43,9 @@
         <MenuItem x:Name="ImportMenuItem" Header="{l:Tr Menu_Import}" Command="{Binding ImportCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ArrowImport" /></MenuItem.Icon>
         </MenuItem>
+        <MenuItem x:Name="ImportFromHubMenuItem" Header="{l:Tr Menu_ImportFromHub}" Command="{Binding ImportFromHubCommand}">
+          <MenuItem.Icon><ic:SymbolIcon Symbol="CloudArrowDown" /></MenuItem.Icon>
+        </MenuItem>
         <MenuItem x:Name="ExtractQuestionsMenuItem" Header="{l:Tr Menu_ExtractQuestions}" Command="{Binding ExtractQuestionsCommand}">
           <MenuItem.Icon><ic:SymbolIcon Symbol="ChatBubblesQuestion" /></MenuItem.Icon>
         </MenuItem>

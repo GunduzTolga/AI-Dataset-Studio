@@ -446,6 +446,9 @@
   <data name="Menu_ExtractQuestions" xml:space="preserve">
     <value>Extract Q&amp;A from Document…</value>
   </data>
+  <data name="Menu_ImportFromHub" xml:space="preserve">
+    <value>Import from _Hugging Face…</value>
+  </data>
   <data name="Action_Import" xml:space="preserve">
     <value>Import</value>
   </data>
@@ -796,6 +799,51 @@
   </data>
   <data name="Error_ImportInvalidParquet" xml:space="preserve">
     <value>“{0}” is not a Parquet file that can be read; it may be damaged. Download it again, or as JSON Lines or CSV.</value>
+  </data>
+  <data name="Hub_Title" xml:space="preserve">
+    <value>Import from Hugging Face</value>
+  </data>
+  <data name="Hub_Target" xml:space="preserve">
+    <value>Into “{0}”: a file of the dataset is downloaded, then opened in the import wizard.</value>
+  </data>
+  <data name="Hub_DatasetLabel" xml:space="preserve">
+    <value>Dataset</value>
+  </data>
+  <data name="Hub_List" xml:space="preserve">
+    <value>List files</value>
+  </data>
+  <data name="Hub_Hint" xml:space="preserve">
+    <value>The dataset's id (owner/name) or its page address on huggingface.co. Only the file you choose is downloaded; public datasets need no account.</value>
+  </data>
+  <data name="Hub_SectionFiles" xml:space="preserve">
+    <value>FILES THAT CAN BE IMPORTED</value>
+  </data>
+  <data name="Hub_Download" xml:space="preserve">
+    <value>Download and import</value>
+  </data>
+  <data name="Hub_Listing" xml:space="preserve">
+    <value>Listing the files of {0}…</value>
+  </data>
+  <data name="Hub_Found" xml:space="preserve">
+    <value>{0:N0} files in {1}</value>
+  </data>
+  <data name="Hub_Downloading" xml:space="preserve">
+    <value>Downloading {0}: {2} of {1}</value>
+  </data>
+  <data name="Hub_NoFiles" xml:space="preserve">
+    <value>This dataset has no file that can be imported (Parquet, JSON Lines, JSON or CSV).</value>
+  </data>
+  <data name="Hub_InvalidId" xml:space="preserve">
+    <value>Type a dataset id such as tatsu-lab/alpaca, or its address on huggingface.co.</value>
+  </data>
+  <data name="Hub_NotFound" xml:space="preserve">
+    <value>No such dataset on Hugging Face. Check the id; private datasets need a token.</value>
+  </data>
+  <data name="Hub_AccessDenied" xml:space="preserve">
+    <value>This dataset is gated or private. Request access on its Hugging Face page, put an access token in the HF_TOKEN environment variable and start the app again.</value>
+  </data>
+  <data name="Hub_Unavailable" xml:space="preserve">
+    <value>Hugging Face could not be reached: {0}</value>
   </data>
   <data name="AIError_InvalidUrl" xml:space="preserve">
     <value>“{0}” is not a valid address. It should look like http://localhost:11434/v1.</value>
@@ -1591,7 +1639,7 @@
     <value>An offline-first studio for curating, cleaning, checking and exporting LLM training datasets.</value>
   </data>
   <data name="About_Privacy" xml:space="preserve">
-    <value>Your data never leaves this computer. The app sends no telemetry and only connects to the internet when you check for updates.</value>
+    <value>Your data stays on this computer. The app sends no telemetry; it goes online only when you check for updates, download a dataset from Hugging Face, or use a model service you connected and allowed.</value>
   </data>
   <data name="About_DataFolder" xml:space="preserve">
     <value>Settings and error logs</value>
