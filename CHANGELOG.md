@@ -24,6 +24,15 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - The export wizard's training configuration can load the model in 4 bits (**QLoRA**): far less
   GPU memory, for Axolotl and LLaMA-Factory alike.
 
+### Training on your GPU
+- The export wizard asks for the **GPU** (NVIDIA or AMD) and its **memory**. It estimates the
+  memory the model needs from the size in its name and says whether it fits, only just fits or
+  does not fit — and then what to turn on, or the largest model the GPU trains. The batch size
+  follows the GPU's memory.
+- **AMD (ROCm)** configurations use an optimizer ROCm runs and say what to install.
+- **Save memory** turns on Liger kernels and keeps activations in RAM: the same training in
+  noticeably less GPU memory, a little slower, on NVIDIA and AMD alike.
+
 ### Fixes
 - The training-configuration test no longer fails on Windows, where the checkout gives the
   expected text Windows line endings.

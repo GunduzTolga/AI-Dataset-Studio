@@ -92,6 +92,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
   - Birbirine benzeyen sorular aynı bölümde kalır, test soruları eğitim verisine sızmaz.
 - Bağlam sınırını aşan, kopya ya da yapay zekânın düşük puan verdiği kayıtları dışarıda bırakma.
 - Axolotl ve LLaMA-Factory için çalışmaya hazır LoRA ya da **QLoRA** (model 4 bit yüklenir, çok daha az GPU belleği) eğitim yapılandırması.
+- **Ekran kartına göre ayar:** NVIDIA ya da **AMD (ROCm)** kartınızı ve belleğini seçin; uygulama modelin karta sığıp sığmadığını tahmin eder, sığmıyorsa ne yapacağınızı söyler. **Bellek tasarrufu** (Liger kernel, ara sonuçlar RAM'de) kaliteyi değiştirmeden belleği düşürür.
 
 **Yapay zekâ özellikleri** (isteğe bağlı; bağlantı olmadan uygulamanın geri kalanı tam çalışır)
 - **Yerel modeller:** Ollama, LM Studio, vLLM, LocalAI ya da OpenAI uyumlu herhangi bir sunucu. Veri bilgisayarınızdan çıkmaz.
@@ -173,7 +174,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the one you trained — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models; the answers can be saved as a JSON Lines report.
 - 🔄 **Universal Import & Export:**
   - **Import:** JSONL, JSON, Parquet, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
-  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA or QLoRA configuration next to the files.
+  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA or QLoRA configuration next to the files, set for your GPU (NVIDIA or AMD ROCm, its memory, optional memory saving) with an estimate of whether the model fits.
   - **Hugging Face:** File › Import from Hugging Face lists a Hub dataset's files from its id (`tatsu-lab/alpaca`), downloads the one you choose and opens it in the import wizard; gated and private datasets with a token in `HF_TOKEN`.
 - ✍️ **Records written by hand:** Record › New Record (Mod+Shift+N) adds an empty draft of the dataset's type and puts the keyboard in it.
 
@@ -334,6 +335,7 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M24 | Writing a new record by hand (Record › New Record, Mod+Shift+N) | ✅ |
 | M25 | Parquet files and importing a dataset straight from the Hugging Face Hub | ✅ |
 | M26 | QLoRA training configurations (model loaded in 4 bits) | ✅ |
+| M27 | Training settings for your GPU: memory estimate, AMD (ROCm), memory saving with Liger kernels | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 
