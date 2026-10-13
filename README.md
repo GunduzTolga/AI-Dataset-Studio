@@ -153,7 +153,7 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 
 ---
 
-## ✨ Key Features (v0.3 Roadmap & MVP)
+## ✨ Key Features
 
 - 🔒 **100% Offline & Private:** Built with an offline-first architecture. Your proprietary data never touches third-party clouds unless you connect a cloud model service yourself and allow it.
 - 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files; Tools › Merge Datasets brings datasets over from another `.adstudio` file without changing it.
