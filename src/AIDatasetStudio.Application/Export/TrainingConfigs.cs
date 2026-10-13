@@ -94,6 +94,13 @@ public static class TrainingConfigs
         !(framework == TrainingFramework.Axolotl && platform == TrainingPlatform.Windows);
 
     /// <summary>
+    /// The system the files are most often trained on: the computer that exports them. Also the
+    /// system of export profiles saved before M29, which did not record one.
+    /// </summary>
+    public static TrainingPlatform DefaultPlatform =>
+        OperatingSystem.IsWindows() ? TrainingPlatform.Windows : TrainingPlatform.Linux;
+
+    /// <summary>
     /// The files to write next to the data, by name.
     /// </summary>
     /// <exception cref="ArgumentException">The tool cannot read this format.</exception>

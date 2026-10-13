@@ -42,6 +42,23 @@ public sealed class ProcessTrainingRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task Axolotl_is_run_so_that_it_states_its_step_count()
+    {
+        // Axolotl shows the trainer's "Total optimization steps = N" (INFO) only with both levels lowered.
+        var tool = WriteTool("levels", exitCode: 0, waits: false, extraLine: null);
+        var runner = new ProcessTrainingRunner(_settings);
+        var axolotl = new List<TrainingEvent>();
+        var llamaFactory = new List<TrainingEvent>();
+
+        await runner.RunAsync(new TrainingRequest(TrainingFramework.Axolotl, _folder, tool), new Inline(axolotl.Add), Ct);
+        await runner.RunAsync(new TrainingRequest(TrainingFramework.LlamaFactory, _folder, tool), new Inline(llamaFactory.Add), Ct);
+
+        Assert.Contains(new TrainingLogLine("args: train axolotl.yaml"), axolotl);
+        Assert.Contains(new TrainingLogLine("levels: info INFO"), axolotl);
+        Assert.DoesNotContain(new TrainingLogLine("levels: info INFO"), llamaFactory);
+    }
+
+    [Fact]
     public async Task A_failed_run_is_named_from_its_last_lines()
     {
         var tool = WriteTool("oom", exitCode: 3, waits: false, extraLine: "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB");
@@ -117,6 +134,7 @@ public sealed class ProcessTrainingRunnerTests : IDisposable
         }
 
         var (home, local, roaming, programs) = (Make("Users", "me"), Make("Local"), Make("Roaming"), Make("Program Files"));
+        Make("Local", "Programs", "Python", "Python39");
         Make("Local", "Programs", "Python", "Python311");
         Make("Local", "Programs", "Python", "Python312");
         Make("Roaming", "Python", "Python312");
@@ -130,12 +148,13 @@ public sealed class ProcessTrainingRunnerTests : IDisposable
             [
                 Path.Combine(local, "Programs", "Python", "Python312", "Scripts"),
                 Path.Combine(local, "Programs", "Python", "Python311", "Scripts"),
+                Path.Combine(local, "Programs", "Python", "Python39", "Scripts"),
                 Path.Combine(roaming, "Python", "Python312", "Scripts"),
                 Path.Combine(local, "Packages", "PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0", "LocalCache", "local-packages", "Python312", "Scripts"),
                 Path.Combine(home, "miniconda3", "Scripts"),
                 Path.Combine(home, "miniconda3", "envs", "egitim", "Scripts"),
             ],
-            folders.Take(6));
+            folders.Take(7));
         var venv = Path.Combine(home, "LLaMA-Factory", ".venv", "Scripts");
         Assert.Contains(venv, folders);
 
@@ -206,6 +225,7 @@ public sealed class ProcessTrainingRunnerTests : IDisposable
                 "@echo off",
                 "echo args: %1 %2",
                 "echo cwd: %CD%",
+                "echo levels: %TRANSFORMERS_VERBOSITY% %LOG_LEVEL%",
                 "echo   Total optimization steps = 4",
                 "echo  50%%^|  ^| 2/4 [00:02^<00:02, 1.0it/s] 1>&2",
                 "echo {'loss': '1.5', 'learning_rate': '1e-4', 'epoch': '0.5'}",
@@ -221,6 +241,7 @@ public sealed class ProcessTrainingRunnerTests : IDisposable
             "#!/bin/sh",
             "echo \"args: $1 $2\"",
             "echo \"cwd: $(pwd)\"",
+            "echo \"levels: $TRANSFORMERS_VERBOSITY $LOG_LEVEL\"",
             "echo '  Total optimization steps = 4'",
             "printf ' 50%%|  | 2/4 [00:02<00:02, 1.0it/s]\\r' >&2",
             "echo \"{'loss': '1.5', 'learning_rate': '1e-4', 'epoch': '0.5'}\"",

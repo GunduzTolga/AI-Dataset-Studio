@@ -24,6 +24,16 @@ public sealed record TrainingMetrics(double? Epoch, double? Loss, double? EvalLo
 public sealed record TrainingLogLine(string Text) : TrainingEvent;
 
 /// <summary>
+/// The stream a piece of a training tool's output came from: each finishes its lines on its own.
+/// </summary>
+public enum TrainingOutputStream
+{
+    StandardOutput,
+
+    StandardError,
+}
+
+/// <summary>
 /// Why a training run stopped, as far as its output tells.
 /// </summary>
 public enum TrainingFailure

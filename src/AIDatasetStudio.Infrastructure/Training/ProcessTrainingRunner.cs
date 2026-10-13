@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Training;
 
@@ -10,7 +12,7 @@ namespace AIDatasetStudio.Infrastructure.Training;
 /// process and reads its output as it comes (M28, ADR-048). The tool, Python and the GPU drivers
 /// are the user's; the app installs nothing.
 /// </summary>
-internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : ITrainingRunner
+internal sealed partial class ProcessTrainingRunner(ITrainingToolSettings settings) : ITrainingRunner
 {
     /// <summary>The command each tool installs.</summary>
     public static string CommandName(TrainingFramework framework) =>
@@ -76,7 +78,9 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
     /// </summary>
     internal static IEnumerable<string> WindowsScriptFolders(string userProfile, string localAppData, string appData, string programFiles)
     {
-        IEnumerable<string> Under(string root, string pattern) => Folders(root, pattern).OrderDescending(StringComparer.OrdinalIgnoreCase);
+        // By Python version, not by name: "Python39" sorts after "Python313" as text.
+        IEnumerable<string> Under(string root, string pattern) => Folders(root, pattern)
+            .OrderByDescending(PythonMinorVersion).ThenByDescending(f => f, StringComparer.OrdinalIgnoreCase);
 
         foreach (var python in Under(Path.Combine(localAppData, "Programs", "Python"), "Python3*").Concat(Under(programFiles, "Python3*")))
         {
@@ -115,6 +119,14 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
             yield return Path.Combine(folder, ".venv", "Scripts");
         }
     }
+
+    // 13 for "Python313", "Python313-32" and "PythonSoftwareFoundation.Python.3.13_…"; -1 for other folders.
+    private static int PythonMinorVersion(string folder) =>
+        PythonVersion().Match(Path.GetFileName(folder)) is { Success: true } version
+        && int.TryParse(version.Groups[1].ValueSpan, NumberStyles.None, CultureInfo.InvariantCulture, out var minor) ? minor : -1;
+
+    [GeneratedRegex(@"^(?:.*\.)?Python\.?3\.?(\d+)", RegexOptions.IgnoreCase)]
+    private static partial Regex PythonVersion();
 
     private static IEnumerable<string> Folders(string root, string pattern)
     {
@@ -155,6 +167,15 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
         start.Environment["PYTHONUNBUFFERED"] = "1";
         start.Environment["PYTHONIOENCODING"] = "utf-8";
 
+        // The trainer states its step count ("Total optimization steps = N") at INFO, which tells its
+        // progress bar from the others. LLaMA-Factory shows INFO; Axolotl shows other libraries'
+        // messages from WARNING up unless LOG_LEVEL lowers that, and Transformers needs its own level.
+        if (request.Framework == TrainingFramework.Axolotl)
+        {
+            start.Environment["TRANSFORMERS_VERBOSITY"] = "info";
+            start.Environment["LOG_LEVEL"] = "INFO";
+        }
+
         var reader = new TrainingOutputReader();
         var gate = new Lock();
         void Report(IReadOnlyList<TrainingEvent> events)
@@ -176,7 +197,7 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
         }
 
         // Both streams feed one reader: the progress bars go to stderr, the trainer's logs to either.
-        async Task PumpAsync(StreamReader stream)
+        async Task PumpAsync(StreamReader stream, TrainingOutputStream from)
         {
             var buffer = new char[4096];
             int read;
@@ -185,12 +206,14 @@ internal sealed class ProcessTrainingRunner(ITrainingToolSettings settings) : IT
                 // Reported in the order read, whichever stream it came from.
                 lock (gate)
                 {
-                    Report(reader.Read(buffer.AsSpan(0, read)));
+                    Report(reader.Read(buffer.AsSpan(0, read), from));
                 }
             }
         }
 
-        var pumps = Task.WhenAll(PumpAsync(process.StandardOutput), PumpAsync(process.StandardError));
+        var pumps = Task.WhenAll(
+            PumpAsync(process.StandardOutput, TrainingOutputStream.StandardOutput),
+            PumpAsync(process.StandardError, TrainingOutputStream.StandardError));
         var cancelled = false;
         try
         {

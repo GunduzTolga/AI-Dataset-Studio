@@ -58,6 +58,31 @@ public sealed class TrainingOutputReaderTests
         Assert.Equal(["{'loss': 1.25, 'learning_rate': 2e-05, 'epoch': 0.06}", "last"], reader.LastLines);
     }
 
+    [Fact]
+    public void Lines_from_standard_output_and_standard_error_stay_whole_however_they_interleave()
+    {
+        // tqdm redraws its bar on stderr while the trainer's dictionary is half written on stdout.
+        var reader = new TrainingOutputReader();
+        var events = new List<TrainingEvent>();
+        events.AddRange(reader.Read("  Total optimization steps = 66\n", TrainingOutputStream.StandardOutput));
+        events.AddRange(reader.Read("\r 15%|█▌        | 10/66 [00:00<00:03, 16.81it/s]", TrainingOutputStream.StandardError));
+        events.AddRange(reader.Read("{'loss': '6.392', 'grad_norm': '0.4496', ", TrainingOutputStream.StandardOutput));
+        events.AddRange(reader.Read("\r 17%|█▋        | 11/66 [00:00<00:03, 16.80it/s]", TrainingOutputStream.StandardError));
+        events.AddRange(reader.Read("'learning_rate': '9.972e-05', 'epoch': '0.4706'}\n", TrainingOutputStream.StandardOutput));
+        events.AddRange(reader.Read("\r 18%|█▊        | 12/66 [00:00<00:03, 16.79it/s]\n", TrainingOutputStream.StandardError));
+        events.AddRange(reader.Finish());
+
+        Assert.Equal([10, 11, 12], events.OfType<TrainingStep>().Select(s => s.Step));
+        Assert.Equal(new TrainingMetrics(0.4706, 6.392, null, 9.972e-05), Assert.Single(events.OfType<TrainingMetrics>()));
+        Assert.Equal(
+            [
+                "  Total optimization steps = 66",
+                "{'loss': '6.392', 'grad_norm': '0.4496', 'learning_rate': '9.972e-05', 'epoch': '0.4706'}",
+                " 18%|█▊        | 12/66 [00:00<00:03, 16.79it/s]",
+            ],
+            reader.LastLines);
+    }
+
     [Theory]
     [InlineData("torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB", TrainingFailure.OutOfMemory)]
     [InlineData("RuntimeError: HIP out of memory.", TrainingFailure.OutOfMemory)]

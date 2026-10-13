@@ -70,8 +70,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
         SelectedTraining = TrainingChoices[0];
         SelectedGpu = GpuChoices[0];
 
-        // Most often the files are trained on the computer that exports them.
-        SelectedPlatform = PlatformChoices.First(c => c.Platform == (OperatingSystem.IsWindows() ? TrainingPlatform.Windows : TrainingPlatform.Linux));
+        SelectedPlatform = PlatformChoices.First(c => c.Platform == TrainingConfigs.DefaultPlatform);
         SelectedGpuMemory = GpuMemoryChoices[0];
         SelectedFormat = Formats.FirstOrDefault();
         SelectedSplitMode = SplitModes[0];

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Analysis;
@@ -348,11 +349,24 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static ExportOptions? ReadOptions(string json)
+    private static ExportOptions? ReadOptions(string json) => ReadOptions(json, TrainingConfigs.DefaultPlatform);
+
+    /// <summary>
+    /// The remembered options. A training configuration saved before M29 recorded no system; it
+    /// gets <paramref name="unrecordedPlatform"/>, not the record's Linux default, so a Windows
+    /// computer does not get settings that do not run there.
+    /// </summary>
+    internal static ExportOptions? ReadOptions(string json, TrainingPlatform unrecordedPlatform)
     {
         try
         {
-            return JsonSerializer.Deserialize<ExportOptions>(json, SettingsJson);
+            var options = JsonNode.Parse(json, new JsonNodeOptions { PropertyNameCaseInsensitive = true });
+            if (options?["training"] is JsonObject training && !training.ContainsKey("platform"))
+            {
+                training["platform"] = unrecordedPlatform.ToString();
+            }
+
+            return options.Deserialize<ExportOptions>(SettingsJson);
         }
         catch (JsonException)
         {

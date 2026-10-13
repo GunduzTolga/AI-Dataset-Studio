@@ -8,16 +8,16 @@ namespace AIDatasetStudio.Application.Training;
 /// Reads a training tool's console output as it arrives (M28, ADR-048). LLaMA-Factory and Axolotl
 /// both train with Hugging Face's Trainer, so one reader serves both: its progress bar gives the
 /// step, the dictionaries it prints give the losses, and "Total optimization steps = N" tells the
-/// training bar from the evaluation bars that run in between.
+/// training bar from the evaluation bars that run in between. Standard output and standard error
+/// arrive in no fixed order, so each keeps its own unfinished line.
 /// </summary>
 public sealed partial class TrainingOutputReader
 {
-    private readonly StringBuilder _line = new();
+    private readonly PartLine[] _lines = [new(), new()];
     private readonly Queue<string> _lastLines = new();
     private readonly int _keepLines;
     private int? _totalSteps;
     private int _lastStep = -1;
-    private bool _pendingReturn;
 
     public TrainingOutputReader(int keepLines = 200) => _keepLines = keepLines;
 
@@ -27,19 +27,20 @@ public sealed partial class TrainingOutputReader
     public IReadOnlyList<string> LastLines => [.. _lastLines];
 
     /// <summary>
-    /// Takes the next piece of output and returns what it reported. Progress bars redraw with a
-    /// carriage return; each redraw is read, but only finished lines go to the log.
+    /// Takes the next piece of a stream's output and returns what it reported. Progress bars
+    /// redraw with a carriage return; each redraw is read, but only finished lines go to the log.
     /// </summary>
-    public IReadOnlyList<TrainingEvent> Read(ReadOnlySpan<char> output)
+    public IReadOnlyList<TrainingEvent> Read(ReadOnlySpan<char> output, TrainingOutputStream stream = TrainingOutputStream.StandardOutput)
     {
         var events = new List<TrainingEvent>();
+        var part = _lines[(int)stream];
         foreach (var c in output)
         {
             // "\r\n" ends a line (Windows); a lone "\r" redraws a progress bar.
-            if (_pendingReturn)
+            if (part.PendingReturn)
             {
-                _pendingReturn = false;
-                Complete(events, logged: c == '\n');
+                part.PendingReturn = false;
+                Complete(part, events, logged: c == '\n');
                 if (c == '\n')
                 {
                     continue;
@@ -48,22 +49,22 @@ public sealed partial class TrainingOutputReader
 
             if (c == '\r')
             {
-                _pendingReturn = true;
+                part.PendingReturn = true;
             }
             else if (c == '\n')
             {
-                Complete(events, logged: true);
+                Complete(part, events, logged: true);
             }
             else
             {
-                _line.Append(c);
+                part.Text.Append(c);
             }
         }
 
         // A progress bar that has not been redrawn yet is still read.
-        if (_line.Length > 0)
+        if (part.Text.Length > 0)
         {
-            ReadProgress(_line.ToString(), events);
+            ReadProgress(part.Text.ToString(), events);
         }
 
         return events;
@@ -75,8 +76,12 @@ public sealed partial class TrainingOutputReader
     public IReadOnlyList<TrainingEvent> Finish()
     {
         var events = new List<TrainingEvent>();
-        _pendingReturn = false;
-        Complete(events, logged: true);
+        foreach (var part in _lines)
+        {
+            part.PendingReturn = false;
+            Complete(part, events, logged: true);
+        }
+
         return events;
     }
 
@@ -99,15 +104,15 @@ public sealed partial class TrainingOutputReader
         };
     }
 
-    private void Complete(List<TrainingEvent> events, bool logged)
+    private void Complete(PartLine part, List<TrainingEvent> events, bool logged)
     {
-        if (_line.Length == 0)
+        if (part.Text.Length == 0)
         {
             return;
         }
 
-        var line = _line.ToString();
-        _line.Clear();
+        var line = part.Text.ToString();
+        part.Text.Clear();
         ReadProgress(line, events);
         ReadLine(line, events);
         if (logged && !string.IsNullOrWhiteSpace(line))
@@ -201,6 +206,14 @@ public sealed partial class TrainingOutputReader
         }
 
         return TimeSpan.FromSeconds(seconds);
+    }
+
+    // A stream's line not finished yet, and whether a "\r" was just read.
+    private sealed class PartLine
+    {
+        public StringBuilder Text { get; } = new();
+
+        public bool PendingReturn { get; set; }
     }
 
     [GeneratedRegex(@"Total optimization steps = ([\d,]+)")]
