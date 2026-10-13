@@ -351,6 +351,7 @@ Bütün veriniz tek bir `.adstudio` dosyasındadır. Yedeklemek ya da başka bil
 | Durum | Ne yapmalı |
 |---|---|
 | "Daha yeni bir sürümüyle kaydedilmiş" uyarısı | Dosya uygulamanın daha yeni bir sürümüyle kaydedilmiş. Uygulamayı güncelleyin. |
+| "Başka bir AI Dataset Studio penceresinde açık" uyarısı | Dosya aynı anda yalnızca bir pencerede açılır. Diğer pencerede **Dosya › Çalışma Alanını Kapat**'ı seçin ya da o pencereyi kapatın, sonra dosyayı açın. Dosya açıkken yanında görünen `-lock` dosyası bu yüzden vardır; dosya kapanınca kendiliğinden silinir. |
 | PDF'den hiç metin gelmiyor | PDF taranmış bir görüntüdür; içinde metin yoktur. Önce bir OCR aracıyla metne çevirin. |
 | Yapay zekâ özellikleri kapalı görünüyor | **Araçlar › Yapay Zekâ Bağlantıları…** penceresinden bir bağlantı ekleyip **Dene** ile doğrulayın. Yerel modellerde Ollama ya da LM Studio'nun çalıştığından emin olun. |
 | "Bu sunucu bilgisayarınızın dışında" uyarısı | Bağlantıdaki **Kayıtların bu sunucuya gönderilmesine izin ver** kutusunu işaretleyin; izin verilmeden hiçbir kayıt gönderilmez. |

@@ -164,6 +164,8 @@ Ayrıca §5.2'deki tanıma uygun olarak, içeriği değişen kayıt otomatik ola
 
 > Not: M15'te sonraya bırakılan "dışa aktarmayı model puanına göre süzme" M22'den sonra eklendi: dışa aktarma sihirbazında modelin 1–2 puan verdiği kayıtları dışarıda bırakma seçeneği (varsayılan kapalı). Yalnızca şimdiki içeriğin değerlendirmesi sayılır, sürümde dondurulan içeriğinki de; önizlemede sayılır, profilde hatırlanır (Plan §13.2).
 
+> Not: §3'teki öneri listesinden "ikinci bir uygulama örneğinin aynı dosyayı açmasını engelleyen kilit" M29'dan sonra eklendi: dosya açıkken yanında paylaşımsız tutulan bir `-lock` dosyası (Plan §3.1, ADR-050). Aynı adımda M28–M29'un gözden geçirmesinde bulunanlar düzeltildi: Axolotl'da ilerleme çubuğu (Trainer'ın adım sayısı ancak `TRANSFORMERS_VERBOSITY=info` ve `LOG_LEVEL=INFO` ile yazılıyor), standart çıktı ve hatanın ayrı yarım satırları, M29'dan önceki profillerin Windows'ta Linux sayılması ve Windows'ta Python klasörlerinin sürüme göre sıralanması.
+
 > Not: v1.0.0 öncesinde kullanımda görülen eksikler tamamlandı: elle kayıt yazma (M24), Hugging Face veri setleri (M25), QLoRA (M26) ve ekran kartına göre eğitim ayarları (M27; AMD ekran kartları ve 6 GB'lık dizüstü kartları için). Uygulama içinden eğitim başlatma, büyük bir iş olduğu için v1.0.0'dan sonraya (V5) bırakıldı.
 
 > Not: V4 (Plan §21) eğitim yapılandırmalarıyla (M20) ve projeler arası veri seti birleştirmeyle (M21) başladı; ikisi de ağ ve model gerektirmez. Model değerlendirme (M22) dışa aktarımın test bölümünü kullanır: eğitimle değerlendirme aynı bölmeye dayanır, ayrı bir değerlendirme kümesi tutulmaz. Başka çalışma alanı dosyalarından birleştirme (M23) ile V4'ün planlanan maddeleri tamamlandı.
