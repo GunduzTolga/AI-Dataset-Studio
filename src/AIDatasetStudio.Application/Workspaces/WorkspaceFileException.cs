@@ -13,6 +13,9 @@ public enum WorkspaceFileError
 
     /// <summary>The file is the workspace already open, chosen where another file is wanted.</summary>
     AlreadyOpen,
+
+    /// <summary>The file is open in another copy of the app (another window).</summary>
+    InUse,
 }
 
 /// <summary>

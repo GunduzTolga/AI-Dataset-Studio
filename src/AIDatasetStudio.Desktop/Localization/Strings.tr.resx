@@ -66,6 +66,9 @@
   <data name="Error_WorkspaceAlreadyOpen" xml:space="preserve">
     <value>'{0}' zaten açık olan çalışma alanı.</value>
   </data>
+  <data name="Error_WorkspaceInUse" xml:space="preserve">
+    <value>'{0}' başka bir AI Dataset Studio penceresinde açık. Önce orada kapatın.</value>
+  </data>
   <data name="Error_FileAccess" xml:space="preserve">
     <value>Dosyaya erişilemedi: {0}</value>
   </data>

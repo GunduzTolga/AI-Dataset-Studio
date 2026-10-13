@@ -81,6 +81,10 @@
   <data name="Error_WorkspaceAlreadyOpen" xml:space="preserve">
     <value>'{0}' is the workspace already open.</value>
   </data>
+  <data name="Error_WorkspaceInUse" xml:space="preserve">
+    <value>'{0}' is open in another AI Dataset Studio window. Close it there first.</value>
+    <comment>{0} = file name</comment>
+  </data>
   <data name="Dialog_NewWorkspaceTitle" xml:space="preserve">
     <value>New Workspace</value>
   </data>

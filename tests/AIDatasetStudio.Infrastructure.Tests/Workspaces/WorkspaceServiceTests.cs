@@ -153,6 +153,61 @@ public sealed class WorkspaceServiceTests : IAsyncDisposable
         Assert.Same(current, _service.Current);
         await using var context = _service.CreateDbContext();
         Assert.Equal("Current", (await context.Workspace.SingleAsync(Ct)).Name);
+        Assert.True(File.Exists(current.FilePath + WorkspaceLock.Suffix));
+        Assert.False(File.Exists(invalid + WorkspaceLock.Suffix));
+    }
+
+    [Fact]
+    public async Task A_workspace_open_in_another_copy_of_the_app_is_neither_opened_nor_replaced_there()
+    {
+        var path = PathFor("shared");
+        await _service.CreateAsync(path, "Shared", cancellationToken: Ct);
+        await using var other = new WorkspaceService(_clock); // the other window's
+
+        var open = await Assert.ThrowsAsync<WorkspaceFileException>(() => other.OpenAsync(path, Ct));
+        var replace = await Assert.ThrowsAsync<WorkspaceFileException>(() => other.CreateAsync(path, "Replacement", overwrite: true, cancellationToken: Ct));
+
+        Assert.Equal((WorkspaceFileError.InUse, WorkspaceFileError.InUse), (open.Error, replace.Error));
+        Assert.Null(other.Current);
+        await using (var context = _service.CreateDbContext())
+        {
+            Assert.Equal("Shared", (await context.Workspace.SingleAsync(Ct)).Name);
+        }
+
+        // Once the first window has closed it, the other opens it.
+        await _service.CloseAsync(Ct);
+        Assert.Equal("Shared", (await other.OpenAsync(path, Ct)).Name);
+    }
+
+    [Fact]
+    public async Task The_lock_is_held_while_the_workspace_is_open_also_when_it_is_opened_again()
+    {
+        var path = PathFor("locked");
+        await _service.CreateAsync(path, "Locked", cancellationToken: Ct);
+        Assert.True(File.Exists(path + WorkspaceLock.Suffix));
+
+        await _service.OpenAsync(path, Ct);
+        await _service.CreateAsync(path, "Again", overwrite: true, cancellationToken: Ct);
+        await using var other = new WorkspaceService(_clock);
+        Assert.Equal(WorkspaceFileError.InUse, (await Assert.ThrowsAsync<WorkspaceFileException>(() => other.OpenAsync(path, Ct))).Error);
+
+        await _service.CloseAsync(Ct);
+        Assert.Equal(["locked" + WorkspaceFile.Extension], Directory.EnumerateFiles(_directory).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public async Task A_lock_file_left_behind_by_a_crash_does_not_keep_the_workspace_shut()
+    {
+        var path = PathFor("crashed");
+        await _service.CreateAsync(path, "Crashed", cancellationToken: Ct);
+        await _service.CloseAsync(Ct);
+
+        // On Linux and macOS a crash leaves the file; the lock on it goes with the process.
+        await File.WriteAllTextAsync(path + WorkspaceLock.Suffix, "", Ct);
+
+        Assert.Equal("Crashed", (await _service.OpenAsync(path, Ct)).Name);
+        await _service.CloseAsync(Ct);
+        Assert.False(File.Exists(path + WorkspaceLock.Suffix));
     }
 
     [Fact]
