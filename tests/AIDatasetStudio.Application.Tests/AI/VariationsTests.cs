@@ -89,6 +89,11 @@ public sealed class VariationsTests
         // A variation that only asks again keeps the answer even when answers were asked for.
         var asked = (ChatPayload)Variations.Payload(Chat, variation with { Answer = string.Empty }, VariationMode.QuestionsAndAnswers);
         Assert.Equal("500 TL üzeri siparişlerde ücretsiz.", asked.Messages[3].Content);
+
+        // The reasoning stays with the answer it leads to, and goes when the answer is written again.
+        var reasoned = new InstructionPayload("Kargo ücreti?", "", "500 TL üzeri ücretsiz.", "Sınır 500 TL.");
+        Assert.Equal("Sınır 500 TL.", ((InstructionPayload)Variations.Payload(reasoned, variation, VariationMode.Questions)).Reasoning);
+        Assert.Null(((InstructionPayload)Variations.Payload(reasoned, variation, VariationMode.QuestionsAndAnswers)).Reasoning);
     }
 
     [Fact]

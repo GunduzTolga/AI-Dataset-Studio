@@ -136,11 +136,14 @@ internal static class VersionText
     public static string Kind(Localizer localizer, DifferenceKind kind) => localizer[$"Difference_{kind}"];
 
     /// <summary>
-    /// The label of a record field: "Instruction", "System prompt", "3 · Assistant"…
+    /// The label of a record field: "Instruction", "System prompt", "3 · Assistant", "3 · Reasoning"…
     /// </summary>
-    public static string Field(Localizer localizer, RecordField field) => field.Kind == RecordFieldKind.Message
-        ? $"{field.Turn.ToString(CultureInfo.CurrentCulture)} · {localizer[$"Field_{field.Role}"]}"
-        : localizer[$"Field_{field.Kind}"];
+    public static string Field(Localizer localizer, RecordField field) => field switch
+    {
+        { Kind: RecordFieldKind.Message } => $"{field.Turn.ToString(CultureInfo.CurrentCulture)} · {localizer[$"Field_{field.Role}"]}",
+        { Turn: > 0 } => $"{field.Turn.ToString(CultureInfo.CurrentCulture)} · {localizer[$"Field_{field.Kind}"]}",
+        _ => localizer[$"Field_{field.Kind}"],
+    };
 
     /// <summary>
     /// A field without text on one side is still shown, as "(empty)", so changes to and from empty read clearly.

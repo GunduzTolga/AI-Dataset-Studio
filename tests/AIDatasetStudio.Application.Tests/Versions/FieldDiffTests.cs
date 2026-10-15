@@ -28,6 +28,30 @@ public sealed class FieldDiffTests
     }
 
     [Fact]
+    public void Added_reasoning_is_a_field_of_its_own_before_the_answer()
+    {
+        var fields = FieldDiff.Compare(new InstructionPayload("Soru", "", "Yanıt"), new InstructionPayload("Soru", "", "Yanıt", "Düşünce"));
+
+        Assert.Equal([RecordFieldKind.Instruction, RecordFieldKind.Input, RecordFieldKind.Reasoning, RecordFieldKind.Output], fields.Select(f => f.Kind));
+        Assert.Equal([false, false, true, false], fields.Select(f => f.IsChanged));
+        Assert.Null(fields[2].Old);
+    }
+
+    [Fact]
+    public void A_turns_reasoning_is_matched_with_the_turn()
+    {
+        var before = new ChatPayload(null, [new(ChatRole.User, "Soru"), new(ChatRole.Assistant, "Yanıt", "Eski düşünce")]);
+        var after = new ChatPayload(null, [new(ChatRole.User, "Soru"), new(ChatRole.Assistant, "Yanıt", "Yeni düşünce"), new(ChatRole.User, "Sağ ol")]);
+
+        var fields = FieldDiff.Compare(before, after);
+
+        Assert.Equal([RecordFieldKind.Message, RecordFieldKind.Reasoning, RecordFieldKind.Message, RecordFieldKind.Message], fields.Select(f => f.Kind));
+        Assert.Equal([false, true, false, true], fields.Select(f => f.IsChanged));
+        Assert.Equal((2, 2, ChatRole.Assistant), (fields[1].Old!.Turn, fields[1].New!.Turn, fields[1].New!.Role));
+        Assert.Null(fields[3].Old);
+    }
+
+    [Fact]
     public void An_inserted_turn_leaves_later_turns_unchanged()
     {
         var before = Chat(null, (ChatRole.User, "Merhaba"), (ChatRole.Assistant, "Selam"), (ChatRole.User, "Nasılsın?"), (ChatRole.Assistant, "İyiyim"));

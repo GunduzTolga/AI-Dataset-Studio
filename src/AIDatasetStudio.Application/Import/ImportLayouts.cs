@@ -22,6 +22,11 @@ public static class ImportLayouts
         [TargetField.Prompt] = ["prompt", "istem", "question", "soru", "instruction", "talimat", "query"],
         [TargetField.Chosen] = ["chosen", "preferred", "tercihedilen", "secilen", "accepted"],
         [TargetField.Rejected] = ["rejected", "dispreferred", "nonpreferred", "reddedilen"],
+        [TargetField.Reasoning] =
+        [
+            "reasoning", "reasoningcontent", "thinking", "think", "thought", "thoughts", "rationale", "cot", "chainofthought",
+            "akilyurutme", "dusunme", "dusunce", "gerekce",
+        ],
     };
 
     // Normalized parts of speaker names (see Normalize); "Müşteri Hizmetleri" is an agent.
@@ -43,12 +48,14 @@ public static class ImportLayouts
             new(TargetField.Instruction, IsRequired: true),
             new(TargetField.Input, IsRequired: false),
             new(TargetField.Output, IsRequired: true),
+            new(TargetField.Reasoning, IsRequired: false),
         ],
         DatasetType.Chat =>
         [
             new(TargetField.SystemPrompt, IsRequired: false),
             new(TargetField.User, IsRequired: true),
             new(TargetField.Assistant, IsRequired: true),
+            new(TargetField.Reasoning, IsRequired: false),
         ],
         DatasetType.Preference =>
         [

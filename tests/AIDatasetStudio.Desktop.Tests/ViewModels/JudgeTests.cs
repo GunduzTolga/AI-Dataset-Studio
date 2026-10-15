@@ -80,7 +80,7 @@ public sealed class JudgeTests
         await DesktopTestHost.WaitUntilAsync(() => !host.Main.Records.IsLoading && host.Main.Records.Items.Count == 3);
         host.Main.Records.SelectedItem = host.Main.Records.Items[0];
         await host.WaitForDetailsAsync(first.Id);
-        details.Fields[2].Text = "500 TL üzeri ücretsiz, altında 49,90 TL.";
+        details.Fields[3].Text = "500 TL üzeri ücretsiz, altında 49,90 TL.";
         await details.SaveCommand.ExecuteAsync(null);
         Assert.True(details.IsJudgmentOutdated);
         await host.AnalyzeAsync();

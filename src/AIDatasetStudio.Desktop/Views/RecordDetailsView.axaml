@@ -220,7 +220,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:PreviewBlock">
-                <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}">
+                <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}" Classes.reasoning="{Binding IsReasoning}">
                   <StackPanel Spacing="6">
                     <TextBlock Classes="overline card-label" Text="{Binding Label}" />
                     <SelectableTextBlock Classes="content" Classes.muted="{Binding IsEmpty}" Text="{Binding Text}" />
@@ -230,7 +230,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
-          <!-- Fields: instruction / input / output, prompt / chosen / rejected, or the system prompt of a chat -->
+          <!-- Fields: instruction / input / reasoning / output, prompt / chosen / rejected, or the system prompt of a chat -->
           <ItemsControl ItemsSource="{Binding Fields}" IsVisible="{Binding IsEditing}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -239,39 +239,65 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:EditorField">
-                <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}">
-                  <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="*,Auto" MinHeight="22">
-                      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <ic:SymbolIcon Symbol="ThumbLike" FontSize="14" IsVisible="{Binding IsPositive}" />
-                        <ic:SymbolIcon Symbol="ThumbDislike" FontSize="14" IsVisible="{Binding IsNegative}" />
-                        <ic:SymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsSystem}" />
-                        <TextBlock Classes="overline card-label" Text="{Binding Label}" />
-                      </StackPanel>
-                      <!-- The answer side can be written by the AI (Mod+G for the main one) -->
-                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="{Binding CanBeWritten}">
-                        <TextBlock Classes="caption muted" VerticalAlignment="Center" IsVisible="{Binding IsWriting}"
-                                   Text="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).WritingText}" />
-                        <Button Classes="mini" ToolTip.Tip="{l:Tr Editor_Write}" IsVisible="{Binding !IsWriting}"
-                                Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).WriteCommand}" CommandParameter="{Binding WriteTarget}">
-                          <ic:SymbolIcon Symbol="Sparkle" />
+                <Panel>
+                  <!-- An optional field (the reasoning) is added with a button -->
+                  <Button Classes="subtle" HorizontalAlignment="Left" Command="{Binding OpenCommand}" ToolTip.Tip="{l:Tr Editor_AddReasoningHint}">
+                    <Button.IsVisible>
+                      <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="!IsOpen" />
+                        <Binding Path="$parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsEditable" />
+                      </MultiBinding>
+                    </Button.IsVisible>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <ic:SymbolIcon Symbol="Lightbulb" />
+                      <TextBlock Text="{l:Tr Editor_AddReasoning}" />
+                    </StackPanel>
+                  </Button>
+                  <Border Classes="card" Classes.positive="{Binding IsPositive}" Classes.negative="{Binding IsNegative}" Classes.system="{Binding IsSystem}" Classes.reasoning="{Binding IsReasoning}"
+                          IsVisible="{Binding IsOpen}">
+                    <StackPanel Spacing="6">
+                      <Grid ColumnDefinitions="*,Auto" MinHeight="22">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                          <ic:SymbolIcon Symbol="ThumbLike" FontSize="14" IsVisible="{Binding IsPositive}" />
+                          <ic:SymbolIcon Symbol="ThumbDislike" FontSize="14" IsVisible="{Binding IsNegative}" />
+                          <ic:SymbolIcon Symbol="Settings" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsSystem}" />
+                          <ic:SymbolIcon Symbol="Lightbulb" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" IsVisible="{Binding IsReasoning}" />
+                          <TextBlock Classes="overline card-label" Text="{Binding Label}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="mini" Command="{Binding CloseCommand}" ToolTip.Tip="{l:Tr Editor_RemoveReasoning}">
+                          <Button.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                              <Binding Path="IsOptional" />
+                              <Binding Path="$parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsEditable" />
+                            </MultiBinding>
+                          </Button.IsVisible>
+                          <ic:SymbolIcon Symbol="Dismiss" />
                         </Button>
-                        <Button Classes="mini" ToolTip.Tip="{l:Tr Editor_StopWriting}" IsVisible="{Binding IsWriting}"
-                                Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).StopWritingCommand}">
-                          <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
-                        </Button>
-                      </StackPanel>
-                    </Grid>
-                    <controls:CodeEditor Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}">
-                      <controls:CodeEditor.IsReadOnly>
-                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
-                          <Binding Path="$parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived" />
-                          <Binding Path="IsWriting" />
-                        </MultiBinding>
-                      </controls:CodeEditor.IsReadOnly>
-                    </controls:CodeEditor>
-                  </StackPanel>
-                </Border>
+                        <!-- The answer side can be written by the AI (Mod+G for the main one) -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="{Binding CanBeWritten}">
+                          <TextBlock Classes="caption muted" VerticalAlignment="Center" IsVisible="{Binding IsWriting}"
+                                     Text="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).WritingText}" />
+                          <Button Classes="mini" ToolTip.Tip="{l:Tr Editor_Write}" IsVisible="{Binding !IsWriting}"
+                                  Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).WriteCommand}" CommandParameter="{Binding WriteTarget}">
+                            <ic:SymbolIcon Symbol="Sparkle" />
+                          </Button>
+                          <Button Classes="mini" ToolTip.Tip="{l:Tr Editor_StopWriting}" IsVisible="{Binding IsWriting}"
+                                  Command="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).StopWritingCommand}">
+                            <ic:SymbolIcon Symbol="Stop" IconVariant="Filled" />
+                          </Button>
+                        </StackPanel>
+                      </Grid>
+                      <controls:CodeEditor Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}">
+                        <controls:CodeEditor.IsReadOnly>
+                          <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="$parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived" />
+                            <Binding Path="IsWriting" />
+                          </MultiBinding>
+                        </controls:CodeEditor.IsReadOnly>
+                      </controls:CodeEditor>
+                    </StackPanel>
+                  </Border>
+                </Panel>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
@@ -318,6 +344,9 @@
                     <TextBlock Classes="caption muted" VerticalAlignment="Center" IsVisible="{Binding IsWriting}"
                                Text="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).WritingText}" />
                     <StackPanel Orientation="Horizontal" IsVisible="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsEditable}">
+                      <Button Classes="mini" Command="{Binding AddReasoningCommand}" ToolTip.Tip="{l:Tr Editor_AddReasoningHint}" IsVisible="{Binding CanAddReasoning}">
+                        <ic:SymbolIcon Symbol="Lightbulb" />
+                      </Button>
                       <Button Classes="mini" Command="{Binding SwitchRoleCommand}" ToolTip.Tip="{l:Tr Editor_SwitchRole}">
                         <ic:SymbolIcon Symbol="ArrowSwap" />
                       </Button>
@@ -326,6 +355,29 @@
                       </Button>
                     </StackPanel>
                   </StackPanel>
+                  <!-- The assistant's reasoning before its answer -->
+                  <Border Classes="bubble reasoning" HorizontalAlignment="Left" MinWidth="120" MaxWidth="440" IsVisible="{Binding ShowReasoning}">
+                    <StackPanel Spacing="4">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                          <ic:SymbolIcon Symbol="Lightbulb" FontSize="13" Foreground="{DynamicResource TextMutedBrush}" />
+                          <TextBlock Classes="caption muted strong" Text="{l:Tr Field_Reasoning}" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="mini" Command="{Binding RemoveReasoningCommand}" ToolTip.Tip="{l:Tr Editor_RemoveReasoning}"
+                                IsVisible="{Binding $parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsEditable}">
+                          <ic:SymbolIcon Symbol="Dismiss" />
+                        </Button>
+                      </Grid>
+                      <controls:CodeEditor Classes="field" Text="{Binding Reasoning}" PlaceholderText="{l:Tr Editor_ReasoningPlaceholder}">
+                        <controls:CodeEditor.IsReadOnly>
+                          <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="$parent[UserControl].((vm:RecordDetailsViewModel)DataContext).IsArchived" />
+                            <Binding Path="IsWriting" />
+                          </MultiBinding>
+                        </controls:CodeEditor.IsReadOnly>
+                      </controls:CodeEditor>
+                    </StackPanel>
+                  </Border>
                   <Border Classes="bubble" Classes.user="{Binding IsUser}" Classes.assistant="{Binding IsAssistant}"
                           HorizontalAlignment="{Binding IsUser, Converter={x:Static conv:LayoutConverters.RightIfTrue}}" MinWidth="120" MaxWidth="440">
                     <controls:CodeEditor Classes="field" Text="{Binding Text}" PlaceholderText="{l:Tr Editor_Placeholder}">

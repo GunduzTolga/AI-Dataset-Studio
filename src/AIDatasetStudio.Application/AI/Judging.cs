@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AIDatasetStudio.Application.Documents;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 
@@ -74,6 +75,10 @@ public static partial class Judging
         "1 - wrong, harmful, unrelated or empty.\n" +
         "- Check the facts as well as you can. Do not reward length.\n";
 
+    private const string ReasoningRule =
+        "- The answer comes with the reasoning written before it. Mistakes in the reasoning, and reasoning that does not lead " +
+        "to the answer, lower the score.\n";
+
     private const string GroundingRule =
         "- The example was written from the source passage given with it. The answer must be supported by the passage: " +
         "set \"grounded\" to false when it states something the passage does not say, and lower the score.\n";
@@ -128,6 +133,11 @@ public static partial class Judging
 
         var system = new StringBuilder(string.Format(CultureInfo.InvariantCulture, Scale, subject));
         var format = new StringBuilder("{\"score\": 4, \"reason\": \"...\"");
+        if (ReasoningText.Has(payload))
+        {
+            system.Append(ReasoningRule);
+        }
+
         if (passage is not null)
         {
             system.Append(GroundingRule);
@@ -162,6 +172,11 @@ public static partial class Judging
                     user.Append("\n\nInput:\n").Append(p.Input.Trim());
                 }
 
+                if (p.Reasoning is { } reasoning)
+                {
+                    user.Append("\n\nReasoning before the answer:\n").Append(reasoning.Trim());
+                }
+
                 user.Append("\n\nAnswer:\n").Append(p.Output.Trim());
                 break;
             case ChatPayload p:
@@ -173,6 +188,11 @@ public static partial class Judging
 
                 foreach (var message in p.Messages.Where(m => !string.IsNullOrWhiteSpace(m.Content)))
                 {
+                    if (message.Reasoning is { } thought)
+                    {
+                        user.Append("\n\nAssistant's reasoning: ").Append(thought.Trim());
+                    }
+
                     user.Append("\n\n").Append(message.Role switch
                     {
                         ChatRole.User => "User",

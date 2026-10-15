@@ -245,12 +245,8 @@ public sealed partial class RecordDetailsViewModel
                 var reply = CreateMessage(ChatRole.Assistant, string.Empty);
                 Messages.Add(reply);
                 return (null, reply);
-            case AIWriteTarget.Rejected:
-                return (Fields[2], null);
-            case AIWriteTarget.Chosen:
-                return (Fields[1], null);
             default:
-                return (Fields[2], null);
+                return (Fields.First(f => f.WriteTarget == target), null);
         }
     }
 }

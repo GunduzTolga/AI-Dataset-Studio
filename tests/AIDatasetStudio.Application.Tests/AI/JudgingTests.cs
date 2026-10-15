@@ -48,6 +48,19 @@ public sealed class JudgingTests
     }
 
     [Fact]
+    public void Reasoning_is_shown_to_the_judge_and_weighed()
+    {
+        var instruction = Judging.Prompt(new InstructionPayload("2+2?", "", "4", "İki artı iki dört eder."), null, null, "English");
+        var chat = Judging.Prompt(new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4", "İki artı iki.")]), null, null, "English");
+        var plain = Judging.Prompt(new InstructionPayload("2+2?", "", "4"), null, null, "English");
+
+        Assert.Contains("Mistakes in the reasoning, and reasoning that does not lead to the answer, lower the score.", instruction[0].Content, StringComparison.Ordinal);
+        Assert.Equal("Question:\n2+2?\n\nReasoning before the answer:\nİki artı iki dört eder.\n\nAnswer:\n4", instruction[1].Content);
+        Assert.Equal("Conversation:\n\nUser: 2+2?\n\nAssistant's reasoning: İki artı iki.\n\nAssistant: 4", chat[1].Content);
+        Assert.DoesNotContain("reasoning", plain[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void An_answer_written_from_a_document_is_checked_against_its_passage()
     {
         var passage = new PassageSource("kılavuz.pdf", "Sipariş › Kargo", "page", 3, 3, "Kargo 500 TL üzeri siparişlerde ücretsizdir.");

@@ -192,6 +192,9 @@
   <data name="Field_Rejected" xml:space="preserve">
     <value>Reddedilen</value>
   </data>
+  <data name="Field_Reasoning" xml:space="preserve">
+    <value>Akıl yürütme</value>
+  </data>
   <data name="Field_Empty" xml:space="preserve">
     <value>(boş)</value>
   </data>
@@ -1038,6 +1041,18 @@
   <data name="Editor_RemoveMessage" xml:space="preserve">
     <value>Bu mesajı kaldır</value>
   </data>
+  <data name="Editor_AddReasoning" xml:space="preserve">
+    <value>Akıl yürütme ekle</value>
+  </data>
+  <data name="Editor_AddReasoningHint" xml:space="preserve">
+    <value>Cevaptan önceki düşünme; akıl yürüten bir model eğitmek için</value>
+  </data>
+  <data name="Editor_RemoveReasoning" xml:space="preserve">
+    <value>Akıl yürütmeyi kaldır</value>
+  </data>
+  <data name="Editor_ReasoningPlaceholder" xml:space="preserve">
+    <value>Cevaba nasıl varılıyor</value>
+  </data>
   <data name="Editor_AddMessage" xml:space="preserve">
     <value>Mesaj ekle</value>
   </data>
@@ -1373,6 +1388,12 @@
   </data>
   <data name="Export_MaskOption" xml:space="preserve">
     <value>Kişisel verileri maskele (e-posta, telefon, kimlik, anahtar…)</value>
+  </data>
+  <data name="Export_ReasoningOption" xml:space="preserve">
+    <value>Cevaplardan önceki akıl yürütmeyi dahil et</value>
+  </data>
+  <data name="Export_ReasoningHint" xml:space="preserve">
+    <value>OpenAI biçiminde reasoning_content olarak, diğerlerinde cevabın önünde bir &lt;think&gt; bloğu olarak yazılır. Önce düşünmeden cevap veren bir model eğitmek için dışarıda bırakın.</value>
   </data>
   <data name="Export_SplitNone" xml:space="preserve">
     <value>Tek dosya</value>

@@ -207,6 +207,9 @@
   <data name="Field_Rejected" xml:space="preserve">
     <value>Rejected</value>
   </data>
+  <data name="Field_Reasoning" xml:space="preserve">
+    <value>Reasoning</value>
+  </data>
   <data name="Field_Empty" xml:space="preserve">
     <value>(empty)</value>
   </data>
@@ -1071,6 +1074,18 @@
   <data name="Editor_RemoveMessage" xml:space="preserve">
     <value>Remove this message</value>
   </data>
+  <data name="Editor_AddReasoning" xml:space="preserve">
+    <value>Add reasoning</value>
+  </data>
+  <data name="Editor_AddReasoningHint" xml:space="preserve">
+    <value>The thinking before the answer, to train a model that reasons</value>
+  </data>
+  <data name="Editor_RemoveReasoning" xml:space="preserve">
+    <value>Remove the reasoning</value>
+  </data>
+  <data name="Editor_ReasoningPlaceholder" xml:space="preserve">
+    <value>How the answer is reached</value>
+  </data>
   <data name="Editor_AddMessage" xml:space="preserve">
     <value>Add message</value>
   </data>
@@ -1429,6 +1444,12 @@
   </data>
   <data name="Export_MaskOption" xml:space="preserve">
     <value>Mask personal data (e-mail, phone, IDs, keys…)</value>
+  </data>
+  <data name="Export_ReasoningOption" xml:space="preserve">
+    <value>Include the reasoning before answers</value>
+  </data>
+  <data name="Export_ReasoningHint" xml:space="preserve">
+    <value>Written as reasoning_content in the OpenAI format and as a &lt;think&gt; block before the answer in the others. Leave it out to train a model that answers without thinking first.</value>
   </data>
   <data name="Export_SplitNone" xml:space="preserve">
     <value>One file</value>

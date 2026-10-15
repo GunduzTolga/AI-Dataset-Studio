@@ -85,6 +85,35 @@ public sealed class ExportRendererTests
     }
 
     [Fact]
+    public void Reasoning_is_its_own_field_in_openai_and_a_think_block_before_the_answer_elsewhere()
+    {
+        var instruction = new InstructionPayload("2+2?", "", "4", "İki artı iki.");
+        var chat = new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4", "İki artı iki.")]);
+
+        // Axolotl and Qwen3-style chat templates read reasoning_content.
+        Assert.Equal(
+            """{"messages":[{"role":"user","content":"2+2?"},{"role":"assistant","content":"4","reasoning_content":"İki artı iki."}]}""",
+            ExportRenderer.Render(ExportFormat.OpenAi, chat));
+        Assert.Equal(ExportRenderer.Render(ExportFormat.OpenAi, chat), ExportRenderer.Render(ExportFormat.OpenAi, instruction));
+
+        // LLaMA-Factory's reasoning templates read the block in front of the answer.
+        Assert.Equal(
+            """{"conversations":[{"from":"human","value":"2+2?"},{"from":"gpt","value":"<think>\nİki artı iki.\n</think>\n\n4"}]}""",
+            ExportRenderer.Render(ExportFormat.ShareGpt, chat));
+        Assert.Equal(
+            """{"instruction":"2+2?","input":"","output":"<think>\nİki artı iki.\n</think>\n\n4"}""",
+            ExportRenderer.Render(ExportFormat.Alpaca, instruction));
+        Assert.Equal(ExportRenderer.Render(ExportFormat.Alpaca, instruction), ExportRenderer.Render(ExportFormat.Alpaca, chat));
+        Assert.Equal(
+            """{"text":"<|im_start|>user\n2+2?<|im_end|>\n<|im_start|>assistant\n<think>\nİki artı iki.\n</think>\n\n4<|im_end|>\n"}""",
+            ExportRenderer.Render(ExportFormat.ChatMl, instruction));
+        Assert.Contains(
+            "<|start_header_id|>assistant<|end_header_id|>\\n\\n<think>\\nİki artı iki.\\n</think>\\n\\n4<|eot_id|>",
+            ExportRenderer.Render(ExportFormat.Llama3, chat),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Lines_never_contain_line_breaks()
     {
         var multiline = new InstructionPayload("Satır 1\nSatır 2\r\n", "", "```\nkod\n```");

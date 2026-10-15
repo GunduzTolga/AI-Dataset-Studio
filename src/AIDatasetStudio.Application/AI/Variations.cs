@@ -127,7 +127,8 @@ public static class Variations
     /// <summary>
     /// The record a variation makes: the source with its question, and in
     /// <see cref="VariationMode.QuestionsAndAnswers"/> its answer, replaced. Everything else (an
-    /// instruction's input, a chat's system prompt and earlier turns, a rejected answer) is kept.
+    /// instruction's input, a chat's system prompt and earlier turns, a rejected answer) is kept,
+    /// and so is the reasoning of an answer that is kept.
     /// </summary>
     public static RecordPayload Payload(RecordPayload source, QAPair variation, VariationMode mode)
     {
@@ -137,7 +138,9 @@ public static class Variations
         switch (source)
         {
             case InstructionPayload p:
-                return new InstructionPayload(variation.Question, p.Input, rewrite ? variation.Answer : p.Output);
+                return rewrite
+                    ? new InstructionPayload(variation.Question, p.Input, variation.Answer)
+                    : new InstructionPayload(variation.Question, p.Input, p.Output, p.Reasoning);
             case PreferencePayload p:
                 return new PreferencePayload(variation.Question, rewrite ? variation.Answer : p.Chosen, p.Rejected);
             case ChatPayload p when LastUserTurn(p) is { } user:

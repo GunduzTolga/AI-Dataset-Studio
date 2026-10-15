@@ -46,6 +46,11 @@ public sealed record ChatPayload : RecordPayload
 
         foreach (var message in Messages)
         {
+            if (message.Reasoning is { } reasoning)
+            {
+                yield return reasoning;
+            }
+
             yield return message.Content;
         }
     }
@@ -62,6 +67,16 @@ public sealed record ChatPayload : RecordPayload
         {
             yield return message.Role.ToString();
             yield return message.Content;
+
+            // A turn without reasoning has the parts of earlier versions, so stored hashes stay
+            // valid. Content is never null, so a null part marks a tagged extra; the next turn
+            // starts with its role, which no tag equals.
+            if (message.Reasoning is { } reasoning)
+            {
+                yield return null;
+                yield return "reasoning";
+                yield return reasoning;
+            }
         }
     }
 }

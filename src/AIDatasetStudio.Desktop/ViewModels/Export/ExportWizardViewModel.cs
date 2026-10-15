@@ -169,6 +169,18 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool MaskPersonalData { get; set; } = true;
 
+    /// <summary>
+    /// Write the reasoning of answers that have it (ADR-052); off to train a model that answers
+    /// without thinking first.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IncludeReasoning { get; set; } = true;
+
+    /// <summary>
+    /// Some chosen records have reasoning, so whether to write it is asked.
+    /// </summary>
+    public bool HasReasoning => Preview is { WithReasoning: > 0 };
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSplit), nameof(IsCustomSplit))]
     public partial SplitModeOption? SelectedSplitMode { get; set; }
@@ -363,7 +375,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             }
 
             return new ExportOptions(
-                format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split, training, SkipLowJudgeScore && CanSkipLowJudgeScore);
+                format.Format, Statuses, SkipOverContextLimit, SkipDuplicates, MaskPersonalData, split, training, SkipLowJudgeScore && CanSkipLowJudgeScore,
+                IncludeReasoning);
         }
     }
 
@@ -395,6 +408,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ExportedText), nameof(StartText), nameof(SplitEstimateText), nameof(HasSplitEstimate), nameof(ShowNoApprovedHint))]
+    [NotifyPropertyChangedFor(nameof(HasReasoning))]
     [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     public partial ExportPreview? Preview { get; private set; }
 
@@ -713,6 +727,8 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
 
     partial void OnMaskPersonalDataChanged(bool value) => OnOptionChanged();
 
+    partial void OnIncludeReasoningChanged(bool value) => OnOptionChanged();
+
     partial void OnSelectedSplitModeChanged(SplitModeOption? value) => OnOptionChanged();
 
     partial void OnTrainPercentChanged(decimal? value) => OnOptionChanged();
@@ -840,6 +856,7 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
             SkipDuplicates = options.SkipDuplicates;
             SkipLowJudgeScore = options.SkipLowJudgeScore;
             MaskPersonalData = options.MaskPersonalData;
+            IncludeReasoning = options.IncludeReasoning;
             SelectedTraining = TrainingChoices.First(c => c.Framework == options.Training?.Framework);
             UseQLoRA = options.Training?.QLoRA == true;
             SaveMemory = options.Training?.SaveMemory == true;

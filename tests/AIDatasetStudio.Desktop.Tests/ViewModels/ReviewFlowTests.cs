@@ -66,7 +66,7 @@ public sealed class ReviewFlowTests
         var (records, details) = (host.Main.Records, host.Main.Details);
         await SelectAsync(host, 0);
 
-        details.Fields[2].Text = "yeni cevap";
+        details.Fields[3].Text = "yeni cevap";
         await host.Main.NextRecordCommand.ExecuteAsync(null);
         await host.WaitForDetailsAsync(records.Items[1].Id);
 
@@ -74,10 +74,10 @@ public sealed class ReviewFlowTests
         Assert.Equal(new InstructionPayload("Soru 1", "", "yeni cevap"), saved!.Payload);
         Assert.Equal(RecordStatus.InReview, records.Items[0].Status);
 
-        details.Fields[2].Text = "vazgeçilecek";
+        details.Fields[3].Text = "vazgeçilecek";
         details.DiscardCommand.Execute(null);
         Assert.False(details.IsDirty);
-        Assert.Equal("diğer", details.Fields[2].Text);
+        Assert.Equal("diğer", details.Fields[3].Text);
     });
 
     [Fact]
@@ -145,7 +145,7 @@ public sealed class ReviewFlowTests
         await host.WaitForDetailsAsync(records.Items[1].Id);
 
         // Pending edits are saved first, then the record is approved.
-        details.Fields[2].Text = "düzeltilmiş";
+        details.Fields[3].Text = "düzeltilmiş";
         await main.ApproveAndNextCommand.ExecuteAsync(null);
         await host.WaitForDetailsAsync(records.Items[2].Id);
 

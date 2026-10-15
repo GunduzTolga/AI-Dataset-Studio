@@ -115,6 +115,30 @@ public sealed class ImportConverterTests
     }
 
     [Fact]
+    public void Reasoning_is_read_from_its_field_or_from_a_think_block_in_front_of_the_answer()
+    {
+        var field = TestRows.Json("""{"messages":[{"role":"user","content":"2+2?"},{"role":"assistant","content":"4","reasoning_content":"İki artı iki."}]}""");
+        var block = TestRows.Json("""{"conversations":[{"from":"human","value":"2+2?"},{"from":"gpt","value":"<think>\nİki artı iki.\n</think>\n\n4"}]}""");
+        var expected = new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4", "İki artı iki.")]);
+
+        Assert.Equal(expected, Convert(field, SourceLayout.OpenAiMessages, DatasetType.Chat, NoMapping).Payload);
+        Assert.Equal(expected, Convert(block, SourceLayout.ShareGpt, DatasetType.Chat, NoMapping).Payload);
+        Assert.Equal(new InstructionPayload("2+2?", "", "4", "İki artı iki."), Convert(field, SourceLayout.OpenAiMessages, DatasetType.Instruction, NoMapping).Payload);
+    }
+
+    [Fact]
+    public void A_reasoning_column_or_a_think_block_in_the_output_is_the_reasoning()
+    {
+        var column = TestRows.Json("""{"instruction":"2+2?","output":"4","thinking":"İki artı iki."}""");
+        var block = TestRows.Json("""{"instruction":"2+2?","output":"<think>İki artı iki.</think>4"}""");
+        var mapping = Map((TargetField.Instruction, "instruction"), (TargetField.Output, "output"), (TargetField.Reasoning, "thinking"));
+
+        Assert.Equal(new InstructionPayload("2+2?", "", "4", "İki artı iki."), Convert(column, SourceLayout.Alpaca, DatasetType.Instruction, mapping).Payload);
+        Assert.Equal(new InstructionPayload("2+2?", "", "4", "İki artı iki."), Convert(block, SourceLayout.Alpaca, DatasetType.Instruction, mapping).Payload);
+        Assert.Equal(TargetField.Reasoning, ImportLayouts.SuggestMapping(["instruction", "output", "thinking"], DatasetType.Instruction).Single(m => m.Value == "thinking").Key);
+    }
+
+    [Fact]
     public void Unknown_roles_are_named_in_the_error()
     {
         var row = TestRows.Json("""{"messages":[{"role":"user","content":"a"},{"role":"tool","content":"{}"}]}""");

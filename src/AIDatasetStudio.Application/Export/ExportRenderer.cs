@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 
@@ -43,7 +44,7 @@ public static class ExportRenderer
                     WriteOpenAiPreference(writer, p);
                     break;
                 case (ExportFormat.OpenAi, _):
-                    WriteMessages(writer, "messages", "role", "content", Turns(payload), OpenAiRole);
+                    WriteMessages(writer, "messages", "role", "content", Turns(payload), OpenAiRole, reasoningName: "reasoning_content");
                     break;
                 case (ExportFormat.ShareGpt, _):
                     WriteMessages(writer, "conversations", "from", "value", Turns(payload), ShareGptRole);
@@ -79,21 +80,36 @@ public static class ExportRenderer
         InstructionPayload p =>
         [
             new ChatMessage(ChatRole.User, string.IsNullOrWhiteSpace(p.Input) ? p.Instruction : p.Instruction + "\n\n" + p.Input),
-            new ChatMessage(ChatRole.Assistant, p.Output),
+            new ChatMessage(ChatRole.Assistant, p.Output, p.Reasoning),
         ],
         ChatPayload p => p.SystemPrompt is { } system ? [new ChatMessage(ChatRole.System, system), .. p.Messages] : p.Messages,
         _ => [], // preference pairs have their own shapes
     };
 
+    // Reasoning goes into its own field when the format has one (reasoningName), otherwise
+    // in front of the answer (ADR-052).
     private static void WriteMessages(
-        Utf8JsonWriter writer, string arrayName, string roleName, string contentName, IReadOnlyList<ChatMessage> turns, Func<ChatRole, string> role)
+        Utf8JsonWriter writer, string arrayName, string roleName, string contentName, IReadOnlyList<ChatMessage> turns, Func<ChatRole, string> role,
+        string? reasoningName = null)
     {
         writer.WriteStartArray(arrayName);
         foreach (var turn in turns)
         {
             writer.WriteStartObject();
             writer.WriteString(roleName, role(turn.Role));
-            writer.WriteString(contentName, turn.Content);
+            if (reasoningName is null)
+            {
+                writer.WriteString(contentName, ReasoningText.Inline(turn.Reasoning, turn.Content));
+            }
+            else
+            {
+                writer.WriteString(contentName, turn.Content);
+                if (turn.Reasoning is { } reasoning)
+                {
+                    writer.WriteString(reasoningName, reasoning);
+                }
+            }
+
             writer.WriteEndObject();
         }
 
@@ -117,12 +133,12 @@ public static class ExportRenderer
             case InstructionPayload p:
                 writer.WriteString("instruction", p.Instruction);
                 writer.WriteString("input", p.Input);
-                writer.WriteString("output", p.Output);
+                writer.WriteString("output", ReasoningText.Inline(p.Reasoning, p.Output));
                 break;
             case ChatPayload p:
                 writer.WriteString("instruction", p.Messages[0].Content);
                 writer.WriteString("input", string.Empty);
-                writer.WriteString("output", p.Messages[1].Content);
+                writer.WriteString("output", ReasoningText.Inline(p.Messages[1].Reasoning, p.Messages[1].Content));
                 // Read by LLaMA-Factory and other Alpaca loaders; others ignore it.
                 if (p.SystemPrompt is { } system)
                 {
@@ -138,7 +154,7 @@ public static class ExportRenderer
         var text = new StringBuilder();
         foreach (var turn in turns)
         {
-            text.Append("<|im_start|>").Append(OpenAiRole(turn.Role)).Append('\n').Append(turn.Content).Append("<|im_end|>\n");
+            text.Append("<|im_start|>").Append(OpenAiRole(turn.Role)).Append('\n').Append(ReasoningText.Inline(turn.Reasoning, turn.Content)).Append("<|im_end|>\n");
         }
 
         return text.ToString();
@@ -150,7 +166,7 @@ public static class ExportRenderer
         var text = new StringBuilder("<|begin_of_text|>");
         foreach (var turn in turns)
         {
-            text.Append("<|start_header_id|>").Append(OpenAiRole(turn.Role)).Append("<|end_header_id|>\n\n").Append(turn.Content).Append("<|eot_id|>");
+            text.Append("<|start_header_id|>").Append(OpenAiRole(turn.Role)).Append("<|end_header_id|>\n\n").Append(ReasoningText.Inline(turn.Reasoning, turn.Content)).Append("<|eot_id|>");
         }
 
         return text.ToString();

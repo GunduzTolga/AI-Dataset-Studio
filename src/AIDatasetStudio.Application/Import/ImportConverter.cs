@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 
@@ -10,6 +11,9 @@ namespace AIDatasetStudio.Application.Import;
 /// </summary>
 public static class ImportConverter
 {
+    // Where an assistant message keeps its reasoning: OpenAI-compatible APIs, Qwen3 and DeepSeek data.
+    private static readonly string[] ReasoningKeys = ["reasoning_content", "reasoning", "thinking"];
+
     public static ImportRowResult Convert(ISourceRow row, ImportPlan plan)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -93,22 +97,29 @@ public static class ImportConverter
         JsonElement? Element(TargetField field) =>
             plan.Mapping.TryGetValue(field, out var column) ? row.GetElement(column) : null;
 
+        // The reasoning column, or else a <think> block the answer starts with.
+        (string? Reasoning, string Answer) Answer(TargetField field) =>
+            Text(TargetField.Reasoning) is { Length: > 0 } reasoning ? (reasoning, Text(field)) : ReasoningText.Split(Text(field));
+
         RecordPayload payload;
         switch (plan.TargetType)
         {
             case DatasetType.Instruction:
-                payload = new InstructionPayload(Text(TargetField.Instruction), Text(TargetField.Input), Text(TargetField.Output));
+                var output = Answer(TargetField.Output);
+                payload = new InstructionPayload(Text(TargetField.Instruction), Text(TargetField.Input), output.Answer, output.Reasoning);
                 break;
 
             case DatasetType.Chat:
                 var user = Text(TargetField.User);
-                var assistant = Text(TargetField.Assistant);
-                if (user.Length == 0 && assistant.Length == 0)
+                var assistant = Answer(TargetField.Assistant);
+                if (user.Length == 0 && assistant.Answer.Length == 0 && assistant.Reasoning is null)
                 {
                     return Fail(row, ImportErrorCode.EmptyRecord);
                 }
 
-                payload = new ChatPayload(Text(TargetField.SystemPrompt), [new ChatMessage(ChatRole.User, user), new ChatMessage(ChatRole.Assistant, assistant)]);
+                payload = new ChatPayload(
+                    Text(TargetField.SystemPrompt),
+                    [new ChatMessage(ChatRole.User, user), new ChatMessage(ChatRole.Assistant, assistant.Answer, assistant.Reasoning)]);
                 break;
 
             case DatasetType.Preference:
@@ -174,7 +185,7 @@ public static class ImportConverter
             return Fail(row, ImportErrorCode.MultiTurnNotSupported);
         }
 
-        return new ImportRowResult(row.Number, new InstructionPayload(messages[0].Content, string.Empty, messages[1].Content), null);
+        return new ImportRowResult(row.Number, new InstructionPayload(messages[0].Content, string.Empty, messages[1].Content, messages[1].Reasoning), null);
     }
 
     private static ImportRowResult FromOpenAiPreference(ISourceRow row)
@@ -262,7 +273,19 @@ public static class ImportConverter
                 continue;
             }
 
-            messages.Add(new ChatMessage(role.Value, ContentText(content.Value)));
+            var text = ContentText(content.Value);
+            string? reasoning = null;
+            if (role == ChatRole.Assistant)
+            {
+                // A reasoning field, or else a <think> block the answer starts with.
+                reasoning = ReasoningKeys.Select(key => item.GetPropertyOrNull(key)?.GetStringOrNull()).FirstOrDefault(r => !string.IsNullOrWhiteSpace(r));
+                if (reasoning is null)
+                {
+                    (reasoning, text) = ReasoningText.Split(text);
+                }
+            }
+
+            messages.Add(new ChatMessage(role.Value, text, reasoning));
         }
 
         return unknownRole is null;

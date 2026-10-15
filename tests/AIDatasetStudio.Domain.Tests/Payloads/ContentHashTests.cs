@@ -52,6 +52,36 @@ public sealed class ContentHashTests
     }
 
     [Fact]
+    public void Records_without_reasoning_keep_the_hashes_files_were_saved_with()
+    {
+        // Hashes stored by 1.0 (copies, judgments, analyses) stay valid (ADR-052).
+        Assert.Equal(
+            "0be9529c04c53e83f5553f4f5fdc906a254951a01192f7855ce84c6c772f568d",
+            new InstructionPayload("Summarize", "text", "summary", reasoning: "  ").ComputeContentHash());
+        Assert.Equal(
+            "48a1a1e5c707fef3103da9574dfa70ed55081110d5b25dfa243400512f3213fc",
+            new ChatPayload(null, [new(ChatRole.User, "hi"), new(ChatRole.Assistant, "hello")]).ComputeContentHash());
+    }
+
+    [Fact]
+    public void Reasoning_is_part_of_the_content()
+    {
+        var plain = new InstructionPayload("2+2?", "", "4");
+        var reasoned = new InstructionPayload("2+2?", "", "4", "Two and two make four.");
+        var chat = new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4", "Two and two make four.")]);
+        var otherThought = new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4", "Count them.")]);
+
+        Assert.NotEqual(plain.ComputeContentHash(), reasoned.ComputeContentHash());
+        Assert.NotEqual(chat.ComputeContentHash(), otherThought.ComputeContentHash());
+        Assert.NotEqual(chat.ComputeContentHash(), new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4")]).ComputeContentHash());
+
+        // The reasoning cannot be confused with the next turn.
+        var thoughtLikeTurn = new ChatPayload(null, [new(ChatRole.Assistant, "a", "User"), new(ChatRole.User, "b")]);
+        var twoTurns = new ChatPayload(null, [new(ChatRole.Assistant, "a"), new(ChatRole.User, "User"), new(ChatRole.User, "b")]);
+        Assert.NotEqual(thoughtLikeTurn.ComputeContentHash(), twoTurns.ComputeContentHash());
+    }
+
+    [Fact]
     public void Hash_does_not_normalize_whitespace()
     {
         var first = new InstructionPayload("Summarize", "", "x");

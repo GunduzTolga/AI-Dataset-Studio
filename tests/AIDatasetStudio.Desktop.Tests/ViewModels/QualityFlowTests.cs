@@ -105,7 +105,7 @@ public sealed class QualityFlowTests
         Assert.True(details.IsTokenGood);
         Assert.EndsWith("(o200k_base)", details.TokenDetail);
 
-        details.Fields[2].Text = "Hafta içi 09.00 ile 18.00 arası açığız.";
+        details.Fields[3].Text = "Hafta içi 09.00 ile 18.00 arası açığız.";
 
         Assert.Empty(details.QualityIssues);
         Assert.True(details.HasNoQualityIssues);
@@ -138,12 +138,12 @@ public sealed class QualityFlowTests
         Assert.Equal(["Instruction", "Input", "Output"], details.PiiPreview.Select(block => block.Label));
         Assert.Equal(("(empty)", true), (details.PiiPreview[1].Text, details.PiiPreview[1].IsEmpty));
         Assert.Equal(Masked, details.PiiPreview[2].Text);
-        Assert.Contains("ali@firma.com", details.Fields[2].Text); // the editor is untouched
+        Assert.Contains("ali@firma.com", details.Fields[3].Text); // the editor is untouched
 
         details.ApplyMaskCommand.Execute(null);
 
         Assert.False(details.IsPiiPreview);
-        Assert.Equal(Masked, details.Fields[2].Text);
+        Assert.Equal(Masked, details.Fields[3].Text);
         Assert.True(details.IsDirty);
         Assert.Empty(details.QualityIssues);
         Assert.StartsWith("Masked text is in the editor.", host.Main.Status.Message);
@@ -153,7 +153,7 @@ public sealed class QualityFlowTests
         Assert.Equal(Masked, ((InstructionPayload)saved!.Payload).Output);
 
         await host.Main.UndoCommand.ExecuteAsync(null);
-        await DesktopTestHost.WaitUntilAsync(() => details.Fields.Count == 3 && details.Fields[2].Text.Contains("ali@firma.com", StringComparison.Ordinal));
+        await DesktopTestHost.WaitUntilAsync(() => details.Fields.Count == 4 && details.Fields[3].Text.Contains("ali@firma.com", StringComparison.Ordinal));
     });
 
     [Fact]

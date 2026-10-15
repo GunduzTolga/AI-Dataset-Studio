@@ -763,13 +763,18 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         switch (mask.Payload)
         {
             case InstructionPayload p:
-                (Fields[0].Text, Fields[1].Text, Fields[2].Text) = (p.Instruction, p.Input, p.Output);
+                (Field("Field_Instruction").Text, Field("Field_Input").Text, Field("Field_Output").Text) = (p.Instruction, p.Input, p.Output);
+                Field("Field_Reasoning").Text = p.Reasoning ?? string.Empty;
                 break;
             case ChatPayload p:
                 Fields[0].Text = p.SystemPrompt ?? string.Empty;
                 for (var i = 0; i < Messages.Count && i < p.Messages.Count; i++)
                 {
                     Messages[i].Text = p.Messages[i].Content;
+                    if (p.Messages[i].Reasoning is { } reasoning)
+                    {
+                        Messages[i].Reasoning = reasoning;
+                    }
                 }
 
                 break;
@@ -886,11 +891,17 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         PiiSummary = mask.HasFindings ? IssueText.PiiCounts(_localizer, mask.Counts) : _localizer["Pii_NoneFound"];
         PiiPreview = mask.Payload switch
         {
-            InstructionPayload p => [Block("Field_Instruction", p.Instruction), Block("Field_Input", p.Input), Block("Field_Output", p.Output)],
+            InstructionPayload p =>
+            [
+                Block("Field_Instruction", p.Instruction),
+                Block("Field_Input", p.Input),
+                .. Reasoning(p.Reasoning),
+                Block("Field_Output", p.Output),
+            ],
             ChatPayload p =>
             [
                 .. p.SystemPrompt is null ? [] : new[] { Block("Field_SystemPrompt", p.SystemPrompt, FieldTone.System) },
-                .. p.Messages.Select(m => Block($"Field_{m.Role}", m.Content)),
+                .. p.Messages.SelectMany(m => Reasoning(m.Reasoning).Append(Block($"Field_{m.Role}", m.Content))),
             ],
             PreferencePayload p =>
             [
@@ -903,6 +914,9 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
         PreviewBlock Block(string labelKey, string text, FieldTone tone = FieldTone.Neutral) =>
             new(_localizer[labelKey], string.IsNullOrEmpty(text) ? _localizer["Field_Empty"] : text, string.IsNullOrEmpty(text), tone);
+
+        IEnumerable<PreviewBlock> Reasoning(string? reasoning) =>
+            reasoning is null ? [] : [Block("Field_Reasoning", reasoning, FieldTone.Reasoning)];
     }
 
     private void SetRecord(RecordDetails? record)
@@ -940,13 +954,14 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                 case InstructionPayload p:
                     Fields.Add(CreateField("Field_Instruction", p.Instruction));
                     Fields.Add(CreateField("Field_Input", p.Input));
+                    Fields.Add(new EditorField("Field_Reasoning", p.Reasoning ?? string.Empty, FieldTone.Reasoning, _localizer, OnEdited, isOptional: true));
                     Fields.Add(CreateField("Field_Output", p.Output, writeTarget: AIWriteTarget.Answer));
                     break;
                 case ChatPayload p:
                     Fields.Add(CreateField("Field_SystemPrompt", p.SystemPrompt ?? string.Empty, FieldTone.System));
                     foreach (var message in p.Messages)
                     {
-                        Messages.Add(CreateMessage(message.Role, message.Content));
+                        Messages.Add(CreateMessage(message.Role, message.Content, message.Reasoning));
                     }
 
                     break;
@@ -971,8 +986,9 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private RecordPayload BuildPayload(RecordPayload original) => original switch
     {
-        InstructionPayload => new InstructionPayload(Fields[0].Text, Fields[1].Text, Fields[2].Text),
-        ChatPayload => new ChatPayload(Fields[0].Text, Messages.Select(m => new ChatMessage(m.Role, m.Text)).ToList()),
+        InstructionPayload => new InstructionPayload(
+            Field("Field_Instruction").Text, Field("Field_Input").Text, Field("Field_Output").Text, Field("Field_Reasoning").Text),
+        ChatPayload => new ChatPayload(Fields[0].Text, Messages.Select(m => new ChatMessage(m.Role, m.Text, m.Reasoning)).ToList()),
         PreferencePayload => new PreferencePayload(Fields[0].Text, Fields[1].Text, Fields[2].Text),
         _ => original,
     };
@@ -987,15 +1003,17 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    private EditorField Field(string labelKey) => Fields.First(f => f.LabelKey == labelKey);
+
     private EditorField CreateField(string labelKey, string text, FieldTone tone = FieldTone.Neutral, AIWriteTarget? writeTarget = null) =>
         new(labelKey, text, tone, _localizer, OnEdited, writeTarget);
 
-    private EditorMessage CreateMessage(ChatRole role, string text) =>
+    private EditorMessage CreateMessage(ChatRole role, string text, string? reasoning = null) =>
         new(role, text, _localizer, OnEdited, message =>
         {
             Messages.Remove(message);
             OnEdited();
-        });
+        }, reasoning);
 
     private List<InfoItem> BuildInfo(RecordDetails record)
     {

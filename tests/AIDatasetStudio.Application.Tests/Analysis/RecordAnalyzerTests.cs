@@ -21,6 +21,18 @@ public sealed class RecordAnalyzerTests
     }
 
     [Fact]
+    public void Reasoning_counts_on_the_answer_side_and_is_checked_like_the_answer()
+    {
+        var instruction = Analyzer.Analyze(new InstructionPayload("İki artı iki?", "", "Dört.", "Önce iki, sonra iki daha: dört eder.\n```"));
+        var chat = Analyzer.Analyze(new ChatPayload(null, [new(ChatRole.User, "İki artı iki?"), new(ChatRole.Assistant, "Dört.", "İki ve iki.")]));
+
+        Assert.Equal(new TokenCounts(Input: 3, Output: 9), instruction.Tokens);
+        Assert.Equal([new QualityIssue(QualityRule.UnclosedCodeBlock, IssueSeverity.Warning, "Reasoning")], instruction.Issues);
+        Assert.Equal(new TokenCounts(Input: 3, Output: 4), chat.Tokens);
+        Assert.Empty(chat.Issues);
+    }
+
+    [Fact]
     public void Empty_fields_are_errors()
     {
         var result = Analyzer.Analyze(new InstructionPayload("Soru?", "", "   "));

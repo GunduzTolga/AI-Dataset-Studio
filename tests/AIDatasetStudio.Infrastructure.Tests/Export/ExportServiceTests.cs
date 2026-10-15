@@ -196,6 +196,24 @@ public sealed class ExportServiceTests
     }
 
     [Fact]
+    public async Task Reasoning_is_counted_in_the_preview_and_can_be_left_out()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.Chat, Ct);
+        await AddAsync(ws, datasetId,
+            new ChatPayload(null, [new ChatMessage(ChatRole.User, "2+2?"), new ChatMessage(ChatRole.Assistant, "4", "İki artı iki.")]),
+            new ChatPayload(null, [new ChatMessage(ChatRole.User, "3+3?"), new ChatMessage(ChatRole.Assistant, "6")]));
+        var options = ExportOptions.DefaultFor(ExportFormat.ShareGpt) with { Statuses = [RecordStatus.Draft] };
+
+        var kept = await ws.Export.PreviewAsync(datasetId, options, 1, cancellationToken: Ct);
+        var left = await ws.Export.PreviewAsync(datasetId, options with { IncludeReasoning = false }, 1, cancellationToken: Ct);
+
+        Assert.Equal((1L, 1L), (kept.WithReasoning, left.WithReasoning));
+        Assert.Equal(["""{"conversations":[{"from":"human","value":"2+2?"},{"from":"gpt","value":"<think>\nİki artı iki.\n</think>\n\n4"}]}"""], kept.SampleLines);
+        Assert.Equal(["""{"conversations":[{"from":"human","value":"2+2?"},{"from":"gpt","value":"4"}]}"""], left.SampleLines);
+    }
+
+    [Fact]
     public async Task Records_not_analysed_yet_are_checked_when_exporting()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
@@ -320,9 +338,11 @@ public sealed class ExportServiceTests
              "gpuMemoryGb":6,"saveMemory":true},"skipLowJudgeScore":false}
             """;
 
-        var read = ExportService.ReadOptions(saved, TrainingPlatform.Windows)!.Training!;
+        var options = ExportService.ReadOptions(saved, TrainingPlatform.Windows)!;
+        var read = options.Training!;
 
         Assert.Equal(new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct", QLoRA: true, GpuMemoryGb: 6, SaveMemory: true, Platform: TrainingPlatform.Windows), read);
+        Assert.True(options.IncludeReasoning); // saved before reasoning could be left out
 
         // A recorded system is kept.
         var linux = saved.Replace("\"saveMemory\":true", "\"saveMemory\":true,\"platform\":\"Linux\"", StringComparison.Ordinal);

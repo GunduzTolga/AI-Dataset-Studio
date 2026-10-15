@@ -88,6 +88,9 @@ public enum TargetField
     Prompt,
     Chosen,
     Rejected,
+
+    /// <summary>The thinking before the answer (ADR-052).</summary>
+    Reasoning,
 }
 
 public sealed record TargetFieldInfo(TargetField Field, bool IsRequired);

@@ -67,23 +67,25 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                        {(options.SkipOverContextLimit ? "s.OverLimit" : "0")} AS OverLimit,
                        {low} AS LowScore,
                        {(options.SkipDuplicates ? $"ROW_NUMBER() OVER (PARTITION BY s.ContentHash, {low} ORDER BY s.Ordinal) > 1" : "0")} AS Copy,
-                       {(options.SkipOverContextLimit ? "s.NotAnalyzed" : "0")} AS NotAnalyzed
+                       {(options.SkipOverContextLimit ? "s.NotAnalyzed" : "0")} AS NotAnalyzed,
+                       {ReasoningSql} AS HasReasoning
                 FROM s WHERE s.Status IN ({StatusList(options)}))
             SELECT COUNT(*),
                    COALESCE(SUM(Unsupported), 0),
                    COALESCE(SUM(NOT Unsupported AND OverLimit), 0),
                    COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND NOT LowScore AND Copy), 0),
                    COALESCE(SUM(NotAnalyzed), 0),
-                   COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND LowScore), 0)
+                   COALESCE(SUM(NOT Unsupported AND NOT OverLimit AND LowScore), 0),
+                   COALESCE(SUM(HasReasoning), 0)
             FROM chosen;
             """;
         source.Bind(command);
-        long selected, unsupported, overLimit, duplicates, notAnalyzed, lowScore;
+        long selected, unsupported, overLimit, duplicates, notAnalyzed, lowScore, withReasoning;
         await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
         {
             await reader.ReadAsync(cancellationToken);
-            (selected, unsupported, overLimit, duplicates, notAnalyzed, lowScore) =
-                (reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetInt64(5));
+            (selected, unsupported, overLimit, duplicates, notAnalyzed, lowScore, withReasoning) =
+                (reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetInt64(5), reader.GetInt64(6));
         }
 
         var samples = new List<string>(sampleLines);
@@ -104,7 +106,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             }
         }
 
-        return new ExportPreview(selected, unsupported, overLimit, duplicates, notAnalyzed, samples, lowScore);
+        return new ExportPreview(selected, unsupported, overLimit, duplicates, notAnalyzed, samples, lowScore, withReasoning);
     }
 
     public Task<ExportResult> ExportAsync(
@@ -269,7 +271,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
                 pipeline.OverLimit,
                 pipeline.Duplicates,
                 pipeline.Masked,
-                options.Training is { } training ? WriteTrainingFiles(training, source, options, files, pipeline.WithSystemPrompt > 0) : null,
+                options.Training is { } training ? WriteTrainingFiles(training, source, options, files, pipeline.WithSystemPrompt > 0, pipeline.WithReasoning > 0) : null,
                 pipeline.LowJudgeScore);
             // The files are in place: record them even if cancellation comes now.
             await RememberAsync(source, options, result, CancellationToken.None);
@@ -294,7 +296,8 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     /// folder can be moved to a training machine as it is (M20).
     /// </summary>
     /// <param name="hasSystemPrompts">Some written record has a system prompt of its own.</param>
-    private static List<string> WriteTrainingFiles(TrainingOptions training, Source source, ExportOptions options, List<PartFile> files, bool hasSystemPrompts)
+    /// <param name="hasReasoning">Some written answer has its reasoning.</param>
+    private static List<string> WriteTrainingFiles(TrainingOptions training, Source source, ExportOptions options, List<PartFile> files, bool hasSystemPrompts, bool hasReasoning)
     {
         var folder = Path.GetDirectoryName(files[0].Path)!;
 
@@ -303,7 +306,7 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         var named = files.Where(f => f.Count > 0 || f.Part is null or SplitPart.Train);
         var target = new TrainingTarget(
             source.Name, source.Type, options.Format, source.ContextLength,
-            [.. named.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed, hasSystemPrompts);
+            [.. named.Select(f => (f.Part, Path.GetFileName(f.Path)))], options.Split?.Seed ?? SplitOptions.DefaultSeed, hasSystemPrompts, hasReasoning);
         var written = new List<string>();
         foreach (var config in TrainingConfigs.Render(training, target))
         {
@@ -606,6 +609,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
     private static string StatusList(ExportOptions options) =>
         string.Join(", ", options.Statuses.Distinct().Select(s => ((int)s).ToString(CultureInfo.InvariantCulture)));
 
+    // Records with reasoning on the answer or on an assistant turn: the SQL twin of ReasoningText.Has.
+    private const string ReasoningSql =
+        "(json_type(s.DataPayload, '$.reasoning') IS NOT NULL " +
+        "OR EXISTS (SELECT 1 FROM json_each(s.DataPayload, '$.messages') WHERE json_type(value, '$.reasoning') IS NOT NULL))";
+
     // The SQL twin of the pipeline's format check, for the preview counts; tests keep them in step.
     private static string UnsupportedSql(ExportOptions options, DatasetType type) =>
         ExportFormats.IsLossy(options.Format, type)
@@ -693,6 +701,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
         /// </summary>
         public long WithSystemPrompt { get; private set; }
 
+        /// <summary>
+        /// Written records with reasoning (none when it is left out).
+        /// </summary>
+        public long WithReasoning { get; private set; }
+
         public long Duplicates { get; private set; }
 
         public long Masked { get; private set; }
@@ -721,6 +734,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
             // The split follows the stored question, so masking never moves a record to another file.
             var part = Assign(payload, record);
+            if (!options.IncludeReasoning)
+            {
+                payload = ReasoningText.Without(payload);
+            }
+
             if (scanner is not null && scanner.Mask(payload) is { HasFindings: true } masked)
             {
                 payload = masked.Payload;
@@ -731,6 +749,11 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
             if (payload is ChatPayload { SystemPrompt: not null })
             {
                 WithSystemPrompt++;
+            }
+
+            if (ReasoningText.Has(payload))
+            {
+                WithReasoning++;
             }
 
             return new ExportLine(part, ExportRenderer.Render(options.Format, payload));

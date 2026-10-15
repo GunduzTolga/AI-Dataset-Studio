@@ -234,10 +234,10 @@ public sealed partial class PiiScanner
 
         RecordPayload masked = payload switch
         {
-            InstructionPayload p => new InstructionPayload(MaskText(p.Instruction), MaskText(p.Input), MaskText(p.Output)),
+            InstructionPayload p => new InstructionPayload(MaskText(p.Instruction), MaskText(p.Input), MaskText(p.Output), MaskText(p.Reasoning)),
             ChatPayload p => new ChatPayload(
                 p.SystemPrompt is null ? null : MaskText(p.SystemPrompt),
-                p.Messages.Select(m => new ChatMessage(m.Role, MaskText(m.Content))).ToList()),
+                p.Messages.Select(m => new ChatMessage(m.Role, MaskText(m.Content), MaskText(m.Reasoning))).ToList()),
             PreferencePayload p => new PreferencePayload(MaskText(p.Prompt), MaskText(p.Chosen), MaskText(p.Rejected)),
             _ => payload,
         };

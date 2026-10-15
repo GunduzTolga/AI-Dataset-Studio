@@ -51,7 +51,8 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
 
                 question = IsBlank(p.Input) ? p.Instruction : p.Instruction + "\n" + p.Input;
                 answer = p.Output;
-                counts = new TokenCounts(Count(p.Instruction) + Count(p.Input), Count(p.Output));
+                // The reasoning is trained with the answer, so it counts on the answer side.
+                counts = new TokenCounts(Count(p.Instruction) + Count(p.Input), Count(p.Reasoning) + Count(p.Output));
                 questionKeySource = QuestionText(p);
                 break;
 
@@ -75,7 +76,7 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
                 answer = turns.LastOrDefault(m => m.Role == ChatRole.Assistant)?.Content ?? string.Empty;
                 counts = new TokenCounts(
                     Count(p.SystemPrompt) + turns.Where(m => m.Role != ChatRole.Assistant).Sum(m => Count(m.Content)),
-                    turns.Where(m => m.Role == ChatRole.Assistant).Sum(m => Count(m.Content)));
+                    turns.Where(m => m.Role == ChatRole.Assistant).Sum(m => Count(m.Reasoning) + Count(m.Content)));
                 questionKeySource = QuestionText(p);
                 break;
 
@@ -210,11 +211,18 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
     // Labelled texts of the record, for rules that report the field.
     private static IEnumerable<(string Field, string Text)> Fields(RecordPayload payload) => payload switch
     {
-        InstructionPayload p => [("Instruction", p.Instruction), ("Input", p.Input), ("Output", p.Output)],
-        ChatPayload p => [.. (p.SystemPrompt is null ? [] : new[] { ("SystemPrompt", p.SystemPrompt) }), .. p.Messages.Select(m => (m.Role.ToString(), m.Content))],
+        InstructionPayload p => [("Instruction", p.Instruction), ("Input", p.Input), .. Reasoning(p.Reasoning), ("Output", p.Output)],
+        ChatPayload p =>
+        [
+            .. (p.SystemPrompt is null ? [] : new[] { ("SystemPrompt", p.SystemPrompt) }),
+            .. p.Messages.SelectMany(m => Reasoning(m.Reasoning).Append((m.Role.ToString(), m.Content))),
+        ],
         PreferencePayload p => [("Prompt", p.Prompt), ("Chosen", p.Chosen), ("Rejected", p.Rejected)],
         _ => [],
     };
+
+    private static IEnumerable<(string Field, string Text)> Reasoning(string? reasoning) =>
+        reasoning is null ? [] : [("Reasoning", reasoning)];
 
     private static bool IsBlank(string? text) => string.IsNullOrWhiteSpace(text);
 

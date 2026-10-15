@@ -13,13 +13,16 @@ public enum RecordFieldKind
     Prompt,
     Chosen,
     Rejected,
+
+    /// <summary>The reasoning of the output, or of the assistant turn <see cref="RecordField.Turn"/> (ADR-052).</summary>
+    Reasoning,
 }
 
 /// <summary>
 /// One text of a record, in the order the editor shows them.
 /// </summary>
-/// <param name="Role">The speaker of a <see cref="RecordFieldKind.Message"/>.</param>
-/// <param name="Turn">1-based position of a message in the conversation; 0 for other fields.</param>
+/// <param name="Role">The speaker of a <see cref="RecordFieldKind.Message"/> (or of the turn whose reasoning it is).</param>
+/// <param name="Turn">1-based position of a message (or of the turn whose reasoning it is) in the conversation; 0 for other fields.</param>
 public sealed record RecordField(RecordFieldKind Kind, string Text, ChatRole? Role = null, int Turn = 0);
 
 /// <summary>
@@ -49,6 +52,7 @@ public static class FieldDiff
             [
                 new(RecordFieldKind.Instruction, p.Instruction),
                 new(RecordFieldKind.Input, p.Input),
+                .. p.Reasoning is null ? [] : new[] { new RecordField(RecordFieldKind.Reasoning, p.Reasoning) },
                 new(RecordFieldKind.Output, p.Output),
             ],
             PreferencePayload p =>
@@ -60,7 +64,7 @@ public static class FieldDiff
             ChatPayload p =>
             [
                 .. p.SystemPrompt is null ? [] : new[] { new RecordField(RecordFieldKind.SystemPrompt, p.SystemPrompt) },
-                .. p.Messages.Select((m, i) => new RecordField(RecordFieldKind.Message, m.Content, m.Role, i + 1)),
+                .. p.Messages.SelectMany((m, i) => Turn(m, i + 1)),
             ],
             _ => [],
         };
@@ -79,7 +83,9 @@ public static class FieldDiff
 
         if (oldPayload is not ChatPayload)
         {
-            return [.. oldFields.Zip(newFields, (o, n) => One(o, n))];
+            // The same fields on both sides, but for the reasoning, which either side may lack.
+            return [.. Order.Where(kind => oldFields.Any(f => f.Kind == kind) || newFields.Any(f => f.Kind == kind))
+                .Select(kind => One(oldFields.FirstOrDefault(f => f.Kind == kind), newFields.FirstOrDefault(f => f.Kind == kind)))];
         }
 
         var result = new List<FieldDifference>();
@@ -90,19 +96,26 @@ public static class FieldDiff
             result.Add(One(oldSystem, newSystem));
         }
 
-        var oldMessages = oldFields.Where(f => f.Kind == RecordFieldKind.Message).ToList();
-        var newMessages = newFields.Where(f => f.Kind == RecordFieldKind.Message).ToList();
+        // Turns and their reasoning, matched as one sequence.
+        var oldMessages = oldFields.Where(f => f.Kind != RecordFieldKind.SystemPrompt).ToList();
+        var newMessages = newFields.Where(f => f.Kind != RecordFieldKind.SystemPrompt).ToList();
         var deleted = new List<RecordField>();
         var inserted = new List<RecordField>();
 
         void FlushChanges()
         {
-            // Changed turns pair up in order; the rest were removed or added.
-            for (var i = 0; i < Math.Max(deleted.Count, inserted.Count); i++)
+            // Changed turns (and reasoning) pair up in order; the rest were removed or added.
+            foreach (var old in deleted)
             {
-                result.Add(One(i < deleted.Count ? deleted[i] : null, i < inserted.Count ? inserted[i] : null));
+                var match = inserted.FindIndex(f => f.Kind == old.Kind);
+                result.Add(One(old, match < 0 ? null : inserted[match]));
+                if (match >= 0)
+                {
+                    inserted.RemoveAt(match);
+                }
             }
 
+            result.AddRange(inserted.Select(f => One(null, f)));
             deleted.Clear();
             inserted.Clear();
         }
@@ -128,17 +141,29 @@ public static class FieldDiff
         return result;
     }
 
+    // The order of the fields of single-turn records, as the editor shows them.
+    private static readonly RecordFieldKind[] Order =
+    [
+        RecordFieldKind.Instruction, RecordFieldKind.Input, RecordFieldKind.Reasoning, RecordFieldKind.Output,
+        RecordFieldKind.Prompt, RecordFieldKind.Chosen, RecordFieldKind.Rejected,
+    ];
+
+    // A turn, after its reasoning if it has any.
+    private static IEnumerable<RecordField> Turn(ChatMessage message, int turn) => message.Reasoning is { } reasoning
+        ? [new RecordField(RecordFieldKind.Reasoning, reasoning, message.Role, turn), new RecordField(RecordFieldKind.Message, message.Content, message.Role, turn)]
+        : [new RecordField(RecordFieldKind.Message, message.Content, message.Role, turn)];
+
     private static FieldDifference One(RecordField? oldField, RecordField? newField) =>
         new(oldField, newField, TextDiff.Compute(oldField?.Text, newField?.Text));
 
-    // Same speaker and text; the turn number is where the message is, not what it is.
+    // Same kind, speaker and text; the turn number is where the message is, not what it is.
     private sealed class MessageComparer : IEqualityComparer<RecordField>
     {
         public static readonly MessageComparer Instance = new();
 
         public bool Equals(RecordField? x, RecordField? y) =>
-            x is not null && y is not null && x.Role == y.Role && string.Equals(x.Text, y.Text, StringComparison.Ordinal);
+            x is not null && y is not null && x.Kind == y.Kind && x.Role == y.Role && string.Equals(x.Text, y.Text, StringComparison.Ordinal);
 
-        public int GetHashCode(RecordField obj) => HashCode.Combine(obj.Role, obj.Text);
+        public int GetHashCode(RecordField obj) => HashCode.Combine(obj.Kind, obj.Role, obj.Text);
     }
 }

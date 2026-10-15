@@ -50,10 +50,23 @@ public sealed class PayloadJsonTests
         Assert.Equal("""{"$type":"preference","prompt":"p","chosen":"c","rejected":"r"}""", json);
     }
 
+    [Fact]
+    public void Reasoning_is_written_only_where_there_is_some()
+    {
+        Assert.Equal(
+            """{"$type":"instruction","instruction":"2+2?","input":"","output":"4","reasoning":"İki artı iki."}""",
+            PayloadJson.Serialize(new InstructionPayload("2+2?", "", "4", "İki artı iki.")));
+        Assert.Equal(
+            """{"$type":"chat","messages":[{"role":"user","content":"2+2?"},{"role":"assistant","content":"4","reasoning":"İki artı iki."}]}""",
+            PayloadJson.Serialize(new ChatPayload(null, [new ChatMessage(ChatRole.User, "2+2?"), new ChatMessage(ChatRole.Assistant, "4", "İki artı iki.")])));
+    }
+
     public static TheoryData<RecordPayload> Payloads() =>
     [
         new InstructionPayload("i", "", "o\nwith newline"),
+        new InstructionPayload("i", "", "o", "r\nstep 2"),
         new ChatPayload("sys", [new ChatMessage(ChatRole.User, "q"), new ChatMessage(ChatRole.Assistant, "a")]),
+        new ChatPayload(null, [new ChatMessage(ChatRole.User, "q"), new ChatMessage(ChatRole.Assistant, "a", "r")]),
         new ChatPayload(null, []),
         new PreferencePayload("p", "```python\nx[::-1]\n```", "loop"),
     ];

@@ -108,7 +108,7 @@ public sealed class JudgeWindowTests
         await DesktopTestHost.WaitUntilAsync(() => details.IsWriting);
         Press(window, Key.G);
         await DesktopTestHost.WaitUntilAsync(() => !details.IsWriting);
-        Assert.Equal("Yeni", details.Fields[2].Text);
+        Assert.Equal("Yeni", details.Fields[3].Text);
         host.AI.Hold = null;
         details.DiscardCommand.Execute(null);
 
