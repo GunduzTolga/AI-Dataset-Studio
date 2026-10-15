@@ -17,6 +17,21 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - The serving configuration is written next to the training's (`llamafactory-serve.yaml`):
   `llamafactory-cli chat llamafactory-serve.yaml` talks to the trained model.
 
+### Reasoning before the answer
+- Instruction records and assistant turns can carry the **reasoning** a model writes before its
+  answer, to train reasoning models (DeepSeek-R1 and Qwen3 style). In the editor, **Add
+  reasoning** opens it between the input and the output; in a chat, the bulb on an assistant turn
+  adds it above the answer.
+- Import reads it from `reasoning_content`, `reasoning` or `thinking` on assistant messages, from
+  a `<think>…</think>` block an answer starts with, or from a column mapped to **Reasoning**.
+- Export writes it as `reasoning_content` in the OpenAI format and as a `<think>` block before
+  the answer in ShareGPT, Alpaca, ChatML and Llama 3. When the chosen records have reasoning, the
+  wizard asks whether to include it; leave it out to train a model that answers without thinking
+  first. Axolotl configurations map `reasoning_content` to the chat template.
+- Reasoning counts on the answer side of the token count, is searched, checked for unclosed code
+  blocks, masked with the rest of the record, compared between versions, shown to the judge and
+  kept by variations that keep the answer. Records without reasoning keep their content hashes.
+
 ## [1.0.0] - 2026-10-13
 
 The first release: the complete MVP of the design document (SDD §20) and what was built on it —

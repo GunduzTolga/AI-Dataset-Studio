@@ -50,6 +50,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 - **Talimat (SFT):** talimat, isteğe bağlı girdi ve yanıt. Klasik soru-cevap ince ayarı (LoRA, QLoRA) için.
 - **Sohbet:** sistem mesajı ve sırayla kullanıcı/asistan mesajları. Çok turlu sohbet asistanları için.
 - **Tercih (DPO):** bir istem, tercih edilen ve reddedilen yanıt. DPO ve ORPO gibi tercih eğitimleri için.
+- **Akıl yürütme:** talimat yanıtları ve asistan mesajları, modelin yanıttan önceki düşünmesini taşıyabilir (DeepSeek-R1, Qwen3 tarzı akıl yürüten modeller için). İçe aktarmada `reasoning_content` ve `<think>` blokları okunur; dışa aktarmada biçime göre yazılır ya da isteğe bağlı olarak dışarıda bırakılır.
 
 **İçe aktarma**
 - JSON Lines / JSON: OpenAI, ShareGPT, Alpaca, Hugging Face DPO biçimleri kendiliğinden tanınır.

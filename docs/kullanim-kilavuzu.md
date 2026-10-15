@@ -58,6 +58,8 @@ Bu kılavuz uygulamanın Türkçe arayüzüne göre yazılmıştır. Menü adlar
 | **Sohbet** | Sistem mesajı ve sırayla kullanıcı/asistan mesajları | Çok turlu sohbet asistanları |
 | **Tercih (DPO)** | Bir istem, tercih edilen yanıt ve reddedilen yanıt | DPO, ORPO gibi tercih eğitimleri |
 
+Talimat yanıtları ve sohbetteki asistan mesajları isteğe bağlı bir **akıl yürütme** taşıyabilir: modelin yanıttan önce yazdığı düşünme. DeepSeek-R1 ya da Qwen3 gibi önce düşünüp sonra yanıtlayan bir model eğitmek için kullanılır.
+
 ### Kayıt durumları
 
 Her kaydın bir durumu vardır: **Taslak → İncelemede → Onaylandı**. İstemediğiniz kayıtları silmek yerine **Arşivlendi** durumuna alabilirsiniz. Dışa aktarmada hangi durumların yazılacağını siz seçersiniz; arşivlenmiş kayıtlar yazılmaz.
@@ -91,6 +93,8 @@ Bir veri seti seçin ve **Dosya › Dosyadan İçe Aktar…** komutunu kullanın
 | **HTML ve Notion / Confluence dışa aktarımları** (`.html`, `.zip`) | Sayfalar belge olarak okunur; menüler, betikler, üst ve alt bilgiler atlanır. Ağ bağlantısı gerekmez. |
 | **Konuşma kayıtları** (WhatsApp dışa aktarımı, `Müşteri: …` biçiminde dökümler) | Her konuşma bir sohbet kaydı olur. Konuşmacılar sütun gibi eşlenir: müşteri soran, temsilci yanıtlayan. Medya ve silinen mesajlar atlanır; 6 saatlik bir aradan sonra yeni konuşma başlar. |
 
+Akıl yürüten modellerin verileri de okunur: asistan mesajındaki `reasoning_content` (ya da `reasoning`, `thinking`) alanı ve yanıtın başındaki `<think>…</think>` bloğu kaydın akıl yürütmesi olur. Sütunlu dosyalarda bir sütunu **Akıl yürütme** alanına eşleyebilirsiniz (`reasoning`, `thinking`, `düşünce` gibi adlar kendiliğinden önerilir).
+
 ### Hugging Face'ten içe aktarma
 
 Hugging Face'teki hazır veri setlerini doğrudan alabilirsiniz: bir veri seti seçin ve **Dosya › Hugging Face'ten İçe Aktar…** komutunu kullanın.
@@ -113,6 +117,7 @@ PDF, Word, Markdown, HTML ya da Notion/Confluence belgelerinden soru-cevap çift
 - Listeden bir kayıt seçin; alanlarını sağdaki düzenleyicide doğrudan değiştirin.
 - Değişiklikler **Mod+S** ile ya da başka bir kayda geçtiğinizde otomatik olarak kaydedilir.
 - Alanlar Markdown'ı, kod bloklarını (` ```json `, `python`, `sql` vb.) ve JSON'u renklendirir.
+- **Akıl yürütme:** talimat kaydında girdi ile çıktı arasındaki **Akıl yürütme ekle** düğmesi, modelin yanıttan önceki düşünmesi için bir alan açar. Sohbette asistan mesajının başlığındaki ampul düğmesi mesajın üstüne bir akıl yürütme balonu ekler. × akıl yürütmeyi kaldırır. Akıl yürütme token sayısında yanıt tarafına eklenir.
 - **Mod+Enter** kaydı onaylar ve sonrakine geçer; **Mod+Shift+Backspace** arşivler ve sonrakine geçer. Bu ikisiyle büyük veri setleri klavyeden hızla incelenir.
 - **F8 / Shift+F8** sonraki ve önceki kayda gider; listede ↑/↓ tuşları da çalışır.
 - **Kayıtlarda Ara** (Mod+F) metin araması yapar. Listenin üstündeki filtrelerle duruma, kalite sorununa ve etikete göre süzebilirsiniz.
@@ -187,7 +192,8 @@ Bir veri setinin o anki hâlini numaralı bir sürüm olarak dondurabilirsiniz. 
 3. **KAYITLAR:** hangi durumların yazılacağı ve şu seçenekler:
    - bağlam uzunluğunu aşan kayıtları dışarıda bırak;
    - birebir kopyaları dışarıda bırak (ilki kalır);
-   - modelin düşük puan verdiği kayıtları (1–2) dışarıda bırak.
+   - modelin düşük puan verdiği kayıtları (1–2) dışarıda bırak;
+   - **cevaplardan önceki akıl yürütmeyi dahil et** (yalnızca seçilen kayıtlarda akıl yürütme varsa görünür). Akıl yürütme OpenAI biçiminde `reasoning_content` alanına, diğer biçimlerde yanıtın önüne `<think>…</think>` olarak yazılır. Kutuyu kaldırırsanız önce düşünmeden yanıt veren bir model için yazılmaz. LLaMA-Factory'de akıl yürütmeyi düşünme olarak eğitmek için `qwen3` gibi bir akıl yürütme şablonu kullanın; Axolotl'da modelin sohbet şablonu `reasoning_content`'i yazıyorsa (Qwen3, DeepSeek-R1) eğitilir.
 4. **BÖLME:**
    - **Tek dosya**;
    - **Eğitim / doğrulama / test** (80 / 10 / 10);
