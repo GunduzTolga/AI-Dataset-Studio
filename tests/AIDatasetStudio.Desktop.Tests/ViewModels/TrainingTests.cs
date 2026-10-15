@@ -166,7 +166,7 @@ public sealed class TrainingTests
 
         await host.Main.ExportCommand.ExecuteAsync(null);
 
-        Assert.Equal(new TrainingRunTarget(folder, TrainingFramework.LlamaFactory, "Dataset"), host.Dialogs.LastTraining!.Target);
+        Assert.Equal(new TrainingRunTarget(folder, TrainingFramework.LlamaFactory, "Dataset", dataset.Id, DatasetType.Instruction), host.Dialogs.LastTraining!.Target);
         Assert.Equal("Training of Dataset finished: /data/saves/lora/sft", host.Main.Status.Message);
 
         // Tools › Train a Model: a folder exported before, or one without a configuration.
@@ -179,6 +179,75 @@ public sealed class TrainingTests
         await host.Main.TrainModelCommand.ExecuteAsync(null);
         Assert.Same(last, host.Dialogs.LastTraining);
         Assert.StartsWith(Path.GetFileName(host.Directory) + " has no training configuration", host.Main.Status.Message, StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task After_training_from_the_export_the_trained_model_is_evaluated_on_the_dataset() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        await host.CreateDatasetAsync(DatasetType.Instruction, [.. Enumerable.Range(1, 30).Select(i => (RecordPayload)new InstructionPayload($"Soru {i}", "", "14 gün içinde."))]);
+        host.AddAIConnection();
+        var folder = Path.Combine(host.Directory, "egitim");
+        Directory.CreateDirectory(folder);
+        host.Files.ExportFolder = folder;
+        host.Dialogs.ExportWizardScript = async wizard =>
+        {
+            await wizard.InitializeAsync();
+            wizard.IncludeDraft = true;
+            wizard.SelectedSplitMode = wizard.SplitModes.Single(m => m.Mode == SplitMode.Standard);
+            wizard.SelectedTraining = wizard.TrainingChoices.Single(c => c.Framework == TrainingFramework.LlamaFactory);
+            await wizard.PendingWork;
+            await wizard.ExportCommand.ExecuteAsync(null);
+            wizard.StartTrainingCommand.Execute(null);
+        };
+        host.Dialogs.TrainingScript = async training =>
+        {
+            Assert.False(training.CanEvaluateModel);
+            var run = training.StartCommand.ExecuteAsync(null);
+            await host.Trainer.Started.Task;
+
+            // The tool saves the adapter where the configuration says.
+            var adapter = Path.Combine(folder, "saves", "dataset", "lora", "sft");
+            Directory.CreateDirectory(adapter);
+            await File.WriteAllTextAsync(Path.Combine(adapter, TrainedAdapters.AdapterFile), "{}");
+            host.Trainer.Finish.SetResult();
+            await run;
+
+            Assert.True(training.CanEvaluateModel);
+            var closed = false;
+            training.CloseRequested += (_, _) => closed = true;
+            training.EvaluateCommand.Execute(null);
+            Assert.True(closed);
+        };
+        host.AI.Answers.Enqueue(["14 gün içinde."]);
+        host.AI.Answers.Enqueue(["""{"score": 5, "reason": "Aynı."}"""]);
+        host.Dialogs.EvaluationScript = async evaluation =>
+        {
+            // The adapter just trained is the model; the connection grades it.
+            Assert.Equal("Trained model: Qwen2.5-7B-Instruct + LoRA (egitim)", evaluation.SelectedModel!.Label);
+            Assert.Equal(["qwen2.5:7b · Ollama"], evaluation.Judges.Select(j => j.Label));
+            Assert.Equal("qwen2.5:7b · Ollama", evaluation.SelectedJudge!.Label);
+            evaluation.SampleSize = 1;
+
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+
+            Assert.Null(evaluation.ErrorMessage);
+            Assert.Equal("Qwen2.5-7B-Instruct + LoRA (egitim)", Assert.Single(evaluation.History).Model);
+            evaluation.Dispose();
+        };
+
+        await host.Main.ExportCommand.ExecuteAsync(null);
+
+        // LLaMA-Factory serves the adapter in the export's folder; the trained model answers, the connection grades.
+        var (served, tool) = Assert.Single(host.Server.Starts);
+        Assert.Equal((folder, "Qwen/Qwen2.5-7B-Instruct", "saves/dataset/lora/sft", "/opt/venv/bin/llamafactory-cli"), (served.Folder, served.BaseModel, served.AdapterDirectory, tool));
+        var requests = host.AI.Requests.ToList();
+        Assert.Equal(host.Server.Models[0].Connection, requests[0].Connection);
+        Assert.Equal("qwen2.5:7b", requests[1].Connection.Model);
+
+        // Closing the window stops the server.
+        Assert.True(host.Server.Models[0].Disposed);
     });
 
     private static string ExportFolder(DesktopTestHost host)

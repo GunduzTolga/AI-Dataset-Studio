@@ -51,6 +51,7 @@ internal sealed class DesktopTestHost : IAsyncDisposable
             // Never a real training tool or GPU.
             .AddSingleton<ITrainingRunner>(Trainer)
             .AddSingleton<IGpuMonitor>(Gpu)
+            .AddSingleton<IModelServer>(Server)
 
             // Never the developer's own keychain.
             .AddSingleton<ISecretStore>(Secrets)
@@ -74,6 +75,8 @@ internal sealed class DesktopTestHost : IAsyncDisposable
     public FakeTrainingRunner Trainer { get; } = new();
 
     public FakeGpuMonitor Gpu { get; } = new();
+
+    public FakeModelServer Server { get; } = new();
 
     public FakeSecretStore Secrets { get; } = new();
 
@@ -592,6 +595,63 @@ internal sealed class FakeTrainingRunner : ITrainingRunner
         {
             (Finish, Started) = (new(TaskCreationOptions.RunContinuationsAsynchronously), new(TaskCreationOptions.RunContinuationsAsynchronously));
         }
+    }
+}
+
+/// <summary>
+/// Serves no model: a served adapter answers through the fake AI providers, at an address of
+/// its own. Adapters are found as the real server finds them.
+/// </summary>
+internal sealed class FakeModelServer : IModelServer
+{
+    public List<(TrainedAdapter Adapter, string Tool)> Starts { get; } = [];
+
+    /// <summary>The lines the tool writes while the model loads.</summary>
+    public List<string> Log { get; } = ["Loading checkpoint shards: 100%"];
+
+    /// <summary>Thrown by the next start instead of serving.</summary>
+    public ModelServerException? Failure { get; set; }
+
+    public List<Served> Models { get; } = [];
+
+    public TrainedAdapter? FindAdapter(string folder) =>
+        File.Exists(Path.Combine(folder, TrainingConfigs.LlamaFactoryFile))
+        && TrainedAdapters.Read(folder, File.ReadAllText(Path.Combine(folder, TrainingConfigs.LlamaFactoryFile))) is { } adapter
+        && File.Exists(Path.Combine(folder, adapter.AdapterDirectory, TrainedAdapters.AdapterFile))
+            ? adapter
+            : null;
+
+    public Task<IServedModel> StartAsync(TrainedAdapter adapter, string toolPath, IProgress<string> log, CancellationToken cancellationToken = default)
+    {
+        Starts.Add((adapter, toolPath));
+        foreach (var line in Log)
+        {
+            log.Report(line);
+        }
+
+        if (Failure is { } failure)
+        {
+            Failure = null;
+            throw failure;
+        }
+
+        var served = new Served(adapter, new AIConnection(
+            Guid.NewGuid(), adapter.Name, AIProviderKind.OpenAICompatible, $"http://127.0.0.1:{18000 + Models.Count}/v1", adapter.Name, ApiKey: "key", Temperature: 0));
+        Models.Add(served);
+        return Task.FromResult<IServedModel>(served);
+    }
+
+    internal sealed class Served(TrainedAdapter adapter, AIConnection connection) : IServedModel
+    {
+        public TrainedAdapter Adapter => adapter;
+
+        public AIConnection Connection => connection;
+
+        public bool HasExited { get; set; }
+
+        public bool Disposed { get; private set; }
+
+        public void Dispose() => Disposed = true;
     }
 }
 

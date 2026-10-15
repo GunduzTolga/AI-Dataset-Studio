@@ -29,7 +29,7 @@ public sealed class ModelEvaluationWindowTests
             new InstructionPayload("Değişim süresi?", "", "14 gün içinde."),
         ]);
         host.AddAIConnection();
-        var evaluation = await host.Get<ModelEvaluator>().CreateAsync(dataset.Id, dataset.Name, dataset.Type, TestContext.Current.CancellationToken);
+        var evaluation = await host.Get<ModelEvaluator>().CreateAsync(dataset.Id, dataset.Name, dataset.Type, cancellationToken: TestContext.Current.CancellationToken);
         evaluation.IncludeUnapproved = true;
         var window = new ModelEvaluationWindow { DataContext = evaluation };
         window.Show();

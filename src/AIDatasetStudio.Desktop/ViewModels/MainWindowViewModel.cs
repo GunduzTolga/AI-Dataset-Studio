@@ -485,7 +485,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         // "Start training" on the result screen: the window opens on the folder just written.
         if (wizard.StartTrainingRequested && wizard.TrainingFolder is { } folder && wizard.TrainingTool is { } framework)
         {
-            await TrainAsync(new TrainingRunTarget(folder, framework, dataset.Name));
+            await TrainAsync(new TrainingRunTarget(folder, framework, dataset.Name, dataset.Id, dataset.Type));
         }
     }
 

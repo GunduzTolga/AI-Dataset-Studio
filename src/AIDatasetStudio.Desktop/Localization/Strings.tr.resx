@@ -1597,6 +1597,9 @@
   <data name="Training_OpenOutput" xml:space="preserve">
     <value>Çıktı klasörünü aç</value>
   </data>
+  <data name="Training_Evaluate" xml:space="preserve">
+    <value>Modeli değerlendir</value>
+  </data>
   <data name="Training_Stop" xml:space="preserve">
     <value>Durdur</value>
   </data>
@@ -2982,6 +2985,27 @@
   </data>
   <data name="Evaluate_Stopped" xml:space="preserve">
     <value>{0:N0} sorudan sonra durduruldu.</value>
+  </data>
+  <data name="Evaluate_TrainedModel" xml:space="preserve">
+    <value>Eğitilen model: {0}</value>
+  </data>
+  <data name="Evaluate_BaseModel" xml:space="preserve">
+    <value>Eğitimden önce: {0}</value>
+  </data>
+  <data name="Evaluate_Loading" xml:space="preserve">
+    <value>{0} LLaMA-Factory ile yükleniyor…</value>
+  </data>
+  <data name="Evaluate_LoadingLine" xml:space="preserve">
+    <value>{0} yükleniyor: {1}</value>
+  </data>
+  <data name="Evaluate_ServeNoTool" xml:space="preserve">
+    <value>Eğitilen modeli LLaMA-Factory sunar, ama komutu bulunamadı. Araçlar › Model Eğit penceresinde komutu seçin.</value>
+  </data>
+  <data name="Evaluate_ServeFailed" xml:space="preserve">
+    <value>Eğitilen model yüklenemedi: {0}</value>
+  </data>
+  <data name="Evaluate_ServeStopped" xml:space="preserve">
+    <value>LLaMA-Factory {0} modelini sunmayı bıraktı. Yeniden yüklemek için tekrar başlatın.</value>
   </data>
   <data name="Evaluate_Saved" xml:space="preserve">
     <value>Rapor kaydedildi: {0}</value>

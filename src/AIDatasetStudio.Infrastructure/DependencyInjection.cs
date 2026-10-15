@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddSingleton<ITrainingToolSettings>(provider => provider.GetRequiredService<SqliteUserSettings>());
         services.TryAddSingleton<ITrainingRunner, ProcessTrainingRunner>();
         services.TryAddSingleton<IGpuMonitor, GpuMonitor>();
+        services.TryAddSingleton<IModelServer, ProcessModelServer>();
         services.TryAddSingleton<IAIProviderFactory, AIProviderFactory>();
         services.AddSingleton<WorkspaceService>();
         services.AddSingleton<IWorkspaceService>(provider => provider.GetRequiredService<WorkspaceService>());

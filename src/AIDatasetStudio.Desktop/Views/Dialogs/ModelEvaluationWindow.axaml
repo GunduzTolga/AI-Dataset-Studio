@@ -48,7 +48,7 @@
           </StackPanel>
           <StackPanel Grid.Column="2">
             <TextBlock Classes="label" Text="{l:Tr Evaluate_Judge}" />
-            <ComboBox x:Name="JudgeBox" ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedJudge}" HorizontalAlignment="Stretch">
+            <ComboBox x:Name="JudgeBox" ItemsSource="{Binding Judges}" SelectedItem="{Binding SelectedJudge}" HorizontalAlignment="Stretch">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:EvaluationModelOption">
                   <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />

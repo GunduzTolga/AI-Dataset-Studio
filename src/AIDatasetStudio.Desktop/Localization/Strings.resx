@@ -1653,6 +1653,9 @@
   <data name="Training_OpenOutput" xml:space="preserve">
     <value>Open output folder</value>
   </data>
+  <data name="Training_Evaluate" xml:space="preserve">
+    <value>Evaluate the model</value>
+  </data>
   <data name="Training_Stop" xml:space="preserve">
     <value>Stop</value>
   </data>
@@ -3045,6 +3048,33 @@
   </data>
   <data name="Evaluate_Stopped" xml:space="preserve">
     <value>Stopped after {0:N0} questions.</value>
+  </data>
+  <data name="Evaluate_TrainedModel" xml:space="preserve">
+    <value>Trained model: {0}</value>
+    <comment>{0} = model name, e.g. Qwen2.5-7B-Instruct + LoRA (destek)</comment>
+  </data>
+  <data name="Evaluate_BaseModel" xml:space="preserve">
+    <value>Before training: {0}</value>
+    <comment>{0} = the base model, served the same way without the adapter</comment>
+  </data>
+  <data name="Evaluate_Loading" xml:space="preserve">
+    <value>Loading {0} with LLaMA-Factory…</value>
+    <comment>{0} = model name</comment>
+  </data>
+  <data name="Evaluate_LoadingLine" xml:space="preserve">
+    <value>Loading {0}: {1}</value>
+    <comment>{0} = model name, {1} = the tool's last line</comment>
+  </data>
+  <data name="Evaluate_ServeNoTool" xml:space="preserve">
+    <value>The trained model is served by LLaMA-Factory, but its command was not found. Choose it in Tools › Train a Model.</value>
+  </data>
+  <data name="Evaluate_ServeFailed" xml:space="preserve">
+    <value>The trained model could not be loaded: {0}</value>
+    <comment>{0} = cause or the tool's last line</comment>
+  </data>
+  <data name="Evaluate_ServeStopped" xml:space="preserve">
+    <value>LLaMA-Factory stopped serving {0}. Run again to load it once more.</value>
+    <comment>{0} = model name</comment>
   </data>
   <data name="Evaluate_Saved" xml:space="preserve">
     <value>Report saved: {0}</value>
