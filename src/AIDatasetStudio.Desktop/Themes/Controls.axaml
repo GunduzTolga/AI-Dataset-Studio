@@ -59,6 +59,9 @@
   <Style Selector=":is(TextBlock).mono">
     <Setter Property="FontFamily" Value="{StaticResource MonospaceFontFamily}" />
   </Style>
+  <Style Selector="TextBox.mono">
+    <Setter Property="FontFamily" Value="{StaticResource MonospaceFontFamily}" />
+  </Style>
   <Style Selector=":is(TextBlock).content">
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="LineHeight" Value="20" />
@@ -430,9 +433,17 @@
   <Style Selector="Border.bubble.assistant">
     <Setter Property="CornerRadius" Value="12,12,12,4" />
   </Style>
-  <!-- An assistant's reasoning, above its answer -->
+  <!-- An assistant's reasoning, above its answer, and the functions it calls, below -->
   <Style Selector="Border.bubble.reasoning">
     <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+  </Style>
+  <Style Selector="Border.bubble.call">
+    <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+  </Style>
+  <!-- A tool's header folds and unfolds its definition: flush with the card's text. -->
+  <Style Selector="Button.tool-header">
+    <Setter Property="Padding" Value="0,2" />
+    <Setter Property="Background" Value="Transparent" />
   </Style>
 
   <!-- Pills -->

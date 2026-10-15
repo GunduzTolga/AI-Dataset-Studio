@@ -42,6 +42,7 @@ public static class ReasoningText
     {
         InstructionPayload p => p.Reasoning is not null,
         ChatPayload p => p.Messages.Any(m => m.Reasoning is not null),
+        ToolCallingPayload p => p.Messages.Any(m => m.Reasoning is not null),
         _ => false,
     };
 
@@ -52,6 +53,7 @@ public static class ReasoningText
     {
         InstructionPayload { Reasoning: not null } p => new InstructionPayload(p.Instruction, p.Input, p.Output),
         ChatPayload p when Has(p) => new ChatPayload(p.SystemPrompt, [.. p.Messages.Select(m => new ChatMessage(m.Role, m.Content))]),
+        ToolCallingPayload p when Has(p) => new ToolCallingPayload(p.SystemPrompt, p.Tools, [.. p.Messages.Select(m => new ChatMessage(m.Role, m.Content, toolCalls: m.ToolCalls))]),
         _ => payload,
     };
 }

@@ -616,10 +616,39 @@ internal sealed class ExportService(IWorkspaceDatabase database, IRecordAnalysis
 
     // The SQL twin of the pipeline's format check, for the preview counts; tests keep them in step.
     private static string UnsupportedSql(ExportOptions options, DatasetType type) =>
-        ExportFormats.IsLossy(options.Format, type)
+        type == DatasetType.ToolCalling ? MalformedToolCallsSql
+        : ExportFormats.IsLossy(options.Format, type)
             ? "(NOT (json_array_length(s.DataPayload, '$.messages') = 2 AND json_extract(s.DataPayload, '$.messages[0].role') = 'user' " +
               "AND json_extract(s.DataPayload, '$.messages[1].role') = 'assistant'))"
             : "0";
+
+    // The SQL twin of ToolCalls.IsWellFormed. Valid JSON objects are stored as objects (JsonTextConverter),
+    // anything else as text, so json_type tells them apart; a tool stored as text is not JSON, so
+    // only an object's fields are read.
+    private const string MalformedToolCallsSql = """
+        (NOT (
+            json_extract(s.DataPayload, '$.messages[0].role') IS 'user'
+            AND json_extract(s.DataPayload, '$.messages[#-1].role') IS 'assistant'
+            AND NOT EXISTS (SELECT 1 FROM json_each(s.DataPayload, '$.messages[#-1].tool_calls') c WHERE json_type(c.value, '$.result') IS NOT NULL)
+            AND NOT EXISTS (
+                SELECT 1 FROM json_each(s.DataPayload, '$.tools') t
+                WHERE CASE WHEN t.type = 'object'
+                      THEN json_type(t.value, CASE WHEN json_type(t.value, '$.function') = 'object' THEN '$.function.name' ELSE '$.name' END) IS NOT 'text'
+                           OR trim(json_extract(t.value, CASE WHEN json_type(t.value, '$.function') = 'object' THEN '$.function.name' ELSE '$.name' END)) = ''
+                      ELSE 1 END)
+            AND NOT EXISTS (
+                SELECT 1 FROM json_each(s.DataPayload, '$.messages') m
+                WHERE json_extract(m.value, '$.role') NOT IN ('user', 'assistant')
+                   OR EXISTS (SELECT 1 FROM json_each(m.value, '$.tool_calls') c WHERE json_type(c.value, '$.arguments') IS NOT 'object')
+                   OR (m.key > 0 AND CASE json_extract(m.value, '$.role')
+                        WHEN 'user' THEN NOT (json_extract(s.DataPayload, '$.messages[' || (m.key - 1) || '].role') = 'assistant'
+                                              AND COALESCE(json_array_length(s.DataPayload, '$.messages[' || (m.key - 1) || '].tool_calls'), 0) = 0)
+                        ELSE NOT (json_extract(s.DataPayload, '$.messages[' || (m.key - 1) || '].role') = 'user'
+                                  OR (COALESCE(json_array_length(s.DataPayload, '$.messages[' || (m.key - 1) || '].tool_calls'), 0) > 0
+                                      AND NOT EXISTS (SELECT 1 FROM json_each(s.DataPayload, '$.messages[' || (m.key - 1) || '].tool_calls') p
+                                                      WHERE json_type(p.value, '$.result') IS NULL)))
+                        END))))
+        """;
 
     /// <param name="VersionNumber">"1.2.0" for a version.</param>
     private sealed record Source(DatasetType Type, Guid DatasetId, Guid? VersionId, string? VersionNumber, string Name, int ContextLength)

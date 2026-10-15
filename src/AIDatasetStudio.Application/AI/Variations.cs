@@ -82,6 +82,7 @@ public static class Variations
                 null,
                 p.Messages.Skip(user + 1).FirstOrDefault(m => m.Role == ChatRole.Assistant)?.Content.Trim() ?? string.Empty),
             PreferencePayload p => new VariationSource(p.Prompt.Trim(), null, p.Chosen.Trim()),
+            ToolCallingPayload p when LastUserTurn(p.Messages) is { } user => new VariationSource(p.Messages[user].Content.Trim(), null, ToolAnswer(p.Messages.Skip(user + 1))),
             _ => null,
         };
         return source is { Question.Length: > 0 } ? source : null;
@@ -169,9 +170,20 @@ public static class Variations
     /// </summary>
     public static double Similarity(string question, string variation) => NearDuplicates.Similarity(question, variation);
 
-    private static int? LastUserTurn(ChatPayload payload)
+    private static int? LastUserTurn(ChatPayload payload) => LastUserTurn(payload.Messages);
+
+    private static int? LastUserTurn(IReadOnlyList<ChatMessage> messages)
     {
-        var index = payload.Messages.ToList().FindLastIndex(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content));
+        var index = messages.ToList().FindLastIndex(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content));
         return index >= 0 ? index : null;
     }
+
+    // What answers a question in a tool calling record: the reply written from the results, or
+    // the calls when the example ends with them.
+    private static string ToolAnswer(IEnumerable<ChatMessage> after) => after.TakeWhile(m => m.Role == ChatRole.Assistant).LastOrDefault() switch
+    {
+        null => string.Empty,
+        { ToolCalls.Count: > 0 } calling => string.Join("\n", calling.ToolCalls.Select(c => c.Name + " " + c.Arguments)),
+        { } reply => reply.Content.Trim(),
+    };
 }

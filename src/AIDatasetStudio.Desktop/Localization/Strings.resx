@@ -131,6 +131,9 @@
   <data name="DatasetType_Preference" xml:space="preserve">
     <value>Preference (DPO)</value>
   </data>
+  <data name="DatasetType_ToolCalling" xml:space="preserve">
+    <value>Tool calling</value>
+  </data>
   <data name="RecordStatus_Draft" xml:space="preserve">
     <value>Draft</value>
   </data>
@@ -209,6 +212,15 @@
   </data>
   <data name="Field_Reasoning" xml:space="preserve">
     <value>Reasoning</value>
+  </data>
+  <data name="Field_Tool" xml:space="preserve">
+    <value>Tool</value>
+  </data>
+  <data name="Field_ToolCall" xml:space="preserve">
+    <value>Tool call</value>
+  </data>
+  <data name="Field_ToolResult" xml:space="preserve">
+    <value>Tool result</value>
   </data>
   <data name="Field_Empty" xml:space="preserve">
     <value>(empty)</value>
@@ -627,6 +639,9 @@
   <data name="Import_MessageCount" xml:space="preserve">
     <value>{0} messages</value>
   </data>
+  <data name="Import_CallCount" xml:space="preserve">
+    <value>{0} calls</value>
+  </data>
   <data name="Import_Close" xml:space="preserve">
     <value>Close</value>
   </data>
@@ -695,6 +710,15 @@
   </data>
   <data name="Layout_Transcript" xml:space="preserve">
     <value>Conversations by speaker</value>
+  </data>
+  <data name="Layout_OpenAiTools" xml:space="preserve">
+    <value>OpenAI messages with tools</value>
+  </data>
+  <data name="Layout_ShareGptTools" xml:space="preserve">
+    <value>ShareGPT with function calls</value>
+  </data>
+  <data name="Layout_XLam" xml:space="preserve">
+    <value>xLAM function calls</value>
   </data>
   <data name="ImportColumn_heading" xml:space="preserve">
     <value>Heading</value>
@@ -770,6 +794,9 @@
   </data>
   <data name="ImportError_UnsupportedLayout" xml:space="preserve">
     <value>This file layout does not fit the dataset type</value>
+  </data>
+  <data name="ImportError_ToolResultUnmatched" xml:space="preserve">
+    <value>A tool result answers no function call</value>
   </data>
   <data name="Error_ImportFileNotFound" xml:space="preserve">
     <value>“{0}” was not found.</value>
@@ -1085,6 +1112,42 @@
   </data>
   <data name="Editor_ReasoningPlaceholder" xml:space="preserve">
     <value>How the answer is reached</value>
+  </data>
+  <data name="Editor_Tools" xml:space="preserve">
+    <value>TOOLS</value>
+  </data>
+  <data name="Editor_ToolsHint" xml:space="preserve">
+    <value>The functions the assistant may call, as JSON: name, description and parameters (a JSON Schema)</value>
+  </data>
+  <data name="Editor_AddTool" xml:space="preserve">
+    <value>Add tool</value>
+  </data>
+  <data name="Editor_RemoveTool" xml:space="preserve">
+    <value>Remove this tool</value>
+  </data>
+  <data name="Editor_ToggleTool" xml:space="preserve">
+    <value>Show or fold the definition</value>
+  </data>
+  <data name="Editor_ToolNumber" xml:space="preserve">
+    <value>Tool {0}</value>
+  </data>
+  <data name="Editor_NoTools" xml:space="preserve">
+    <value>No tools yet: add the functions the assistant may call.</value>
+  </data>
+  <data name="Editor_AddToolCall" xml:space="preserve">
+    <value>Call a function</value>
+  </data>
+  <data name="Editor_RemoveToolCall" xml:space="preserve">
+    <value>Remove this call</value>
+  </data>
+  <data name="Editor_FunctionName" xml:space="preserve">
+    <value>Function</value>
+  </data>
+  <data name="Editor_ArgumentsPlaceholder" xml:space="preserve">
+    <value>Arguments as JSON, e.g. {"city": "Ankara"}</value>
+  </data>
+  <data name="Editor_ToolResultPlaceholder" xml:space="preserve">
+    <value>What the function returned; empty when the example ends with the call</value>
   </data>
   <data name="Editor_AddMessage" xml:space="preserve">
     <value>Add message</value>
@@ -1795,6 +1858,9 @@
   </data>
   <data name="Export_SkipUnsupported" xml:space="preserve">
     <value>Left out: the format cannot hold them</value>
+  </data>
+  <data name="Export_SkipToolTurnOrder" xml:space="preserve">
+    <value>Left out: turns out of order or a call without its result (see Quality)</value>
   </data>
   <data name="Export_SkipOverLimit" xml:space="preserve">
     <value>Left out: longer than the context length</value>
@@ -3144,6 +3210,36 @@
   </data>
   <data name="Issue_NearDuplicate" xml:space="preserve">
     <value>Nearly the same question as #{0}, in wording or in meaning.</value>
+  </data>
+  <data name="Rule_InvalidTool" xml:space="preserve">
+    <value>Invalid tools</value>
+  </data>
+  <data name="Issue_InvalidTool" xml:space="preserve">
+    <value>Tool {0} is not a function definition with a name</value>
+  </data>
+  <data name="Rule_UnknownTool" xml:space="preserve">
+    <value>Unknown functions</value>
+  </data>
+  <data name="Issue_UnknownTool" xml:space="preserve">
+    <value>Calls “{0}”, which is not among the tools</value>
+  </data>
+  <data name="Rule_InvalidArguments" xml:space="preserve">
+    <value>Invalid arguments</value>
+  </data>
+  <data name="Issue_InvalidArguments" xml:space="preserve">
+    <value>The arguments of “{0}” are not a JSON object</value>
+  </data>
+  <data name="Rule_MissingArgument" xml:space="preserve">
+    <value>Missing arguments</value>
+  </data>
+  <data name="Issue_MissingArgument" xml:space="preserve">
+    <value>The call to “{0}” leaves out “{1}”, which the function requires</value>
+  </data>
+  <data name="Rule_ToolTurnOrder" xml:space="preserve">
+    <value>Turns out of order</value>
+  </data>
+  <data name="Issue_ToolTurnOrder" xml:space="preserve">
+    <value>The turns are out of order or a call has no result: this example cannot be exported</value>
   </data>
   <data name="QualityFilter_NearDuplicates" xml:space="preserve">
     <value>Near-duplicate questions</value>

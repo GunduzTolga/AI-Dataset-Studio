@@ -1,6 +1,9 @@
+using System.Collections.ObjectModel;
 using AIDatasetStudio.Application.AI;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Domain.Enums;
+using AIDatasetStudio.Domain.Payloads;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -109,7 +112,8 @@ public sealed partial class EditorMessage : ViewModelBase
     private readonly Action _edited;
     private readonly Action<EditorMessage> _remove;
 
-    public EditorMessage(ChatRole role, string text, Localizer localizer, Action edited, Action<EditorMessage> remove, string? reasoning = null)
+    /// <param name="calls">The turn's function calls; <c>null</c> when the record cannot call functions (a chat).</param>
+    public EditorMessage(ChatRole role, string text, Localizer localizer, Action edited, Action<EditorMessage> remove, string? reasoning = null, IEnumerable<ToolCall>? calls = null)
     {
         _localizer = localizer;
         _edited = edited;
@@ -118,11 +122,33 @@ public sealed partial class EditorMessage : ViewModelBase
         Text = text;
         Reasoning = reasoning ?? string.Empty;
         IsReasoningOpen = reasoning is not null;
+        CanCallTools = calls is not null;
+        foreach (var call in calls ?? [])
+        {
+            Calls.Add(new EditorToolCall(call.Name, call.Arguments, call.Result, edited, RemoveCall));
+        }
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Label), nameof(IsUser), nameof(IsAssistant), nameof(ShowReasoning), nameof(CanAddReasoning))]
+    [NotifyPropertyChangedFor(nameof(Label), nameof(IsUser), nameof(IsAssistant), nameof(ShowReasoning), nameof(CanAddReasoning), nameof(ShowCalls))]
     public partial ChatRole Role { get; set; }
+
+    /// <summary>
+    /// The functions an assistant turn of a tool calling record calls (SDD §4.4).
+    /// </summary>
+    public ObservableCollection<EditorToolCall> Calls { get; } = [];
+
+    /// <summary>
+    /// The record can call functions: its assistant turns show their calls and can add more.
+    /// </summary>
+    public bool CanCallTools { get; }
+
+    public bool ShowCalls => CanCallTools && IsAssistant;
+
+    /// <summary>
+    /// The function calls of the turn as the record stores them; none for a user turn.
+    /// </summary>
+    public IReadOnlyList<ToolCall> ToolCalls => [.. Calls.Select(c => new ToolCall(c.Name, c.Arguments, c.Result))];
 
     [ObservableProperty]
     public partial string Text { get; set; }
@@ -162,6 +188,13 @@ public sealed partial class EditorMessage : ViewModelBase
     private void Remove() => _remove(this);
 
     [RelayCommand]
+    private void AddCall()
+    {
+        Calls.Add(new EditorToolCall(string.Empty, "{}", null, _edited, RemoveCall));
+        _edited();
+    }
+
+    [RelayCommand]
     private void AddReasoning() => IsReasoningOpen = true;
 
     [RelayCommand]
@@ -176,6 +209,117 @@ public sealed partial class EditorMessage : ViewModelBase
     partial void OnTextChanged(string value) => _edited?.Invoke();
 
     partial void OnReasoningChanged(string value) => _edited?.Invoke();
+
+    private void RemoveCall(EditorToolCall call)
+    {
+        Calls.Remove(call);
+        _edited();
+    }
+}
+
+/// <summary>
+/// A function call of an assistant turn: the function's name, its arguments as JSON and what it
+/// returned (SDD §4.4).
+/// </summary>
+public sealed partial class EditorToolCall : ViewModelBase
+{
+    private readonly Action _edited;
+    private readonly Action<EditorToolCall> _remove;
+
+    public EditorToolCall(string name, string arguments, string? result, Action edited, Action<EditorToolCall> remove)
+    {
+        _edited = edited;
+        _remove = remove;
+        Name = name;
+        Arguments = arguments;
+        Result = result ?? string.Empty;
+    }
+
+    [ObservableProperty]
+    public partial string Name { get; set; }
+
+    [ObservableProperty]
+    public partial string Arguments { get; set; }
+
+    /// <summary>
+    /// What the function returned; empty when the example ends with the call.
+    /// </summary>
+    [ObservableProperty]
+    public partial string Result { get; set; }
+
+    [RelayCommand]
+    private void Remove() => _remove(this);
+
+    partial void OnNameChanged(string value) => _edited?.Invoke();
+
+    partial void OnArgumentsChanged(string value) => _edited?.Invoke();
+
+    partial void OnResultChanged(string value) => _edited?.Invoke();
+}
+
+/// <summary>
+/// A function the assistant of a tool calling record may call: its JSON definition, headed by
+/// the function's name and description once it has them (SDD §4.4). A named tool is shown
+/// folded, so the conversation stays in view; one without a name yet is open.
+/// </summary>
+public sealed partial class EditorTool : ViewModelBase
+{
+    private readonly Localizer _localizer;
+    private readonly Action _edited;
+    private readonly Action<EditorTool> _remove;
+
+    public EditorTool(string json, Localizer localizer, Action edited, Action<EditorTool> remove)
+    {
+        _localizer = localizer;
+        _edited = edited;
+        _remove = remove;
+        Json = json;
+        IsExpanded = FunctionName is null;
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(Description), nameof(HasDescription))]
+    public partial string Json { get; set; }
+
+    /// <summary>
+    /// The JSON definition is shown and can be edited.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsExpanded { get; set; }
+
+    /// <summary>
+    /// The function's description, shown next to its name while the tool is folded.
+    /// </summary>
+    public string Description =>
+        ToolCalls.Function(Json) is { } function && function.TryGetProperty("description", out var text) && text.ValueKind == System.Text.Json.JsonValueKind.String
+            ? text.GetString()!
+            : string.Empty;
+
+    public bool HasDescription => Description.Length > 0;
+
+    /// <summary>
+    /// The tool's position, from 1, for a tool that has no name yet.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
+    public partial int Number { get; set; }
+
+    /// <summary>
+    /// The function's name, or null while the JSON names none.
+    /// </summary>
+    public string? FunctionName => ToolCalls.NameOf(Json);
+
+    public string Title => FunctionName ?? _localizer.Format("Editor_ToolNumber", Number);
+
+    public void RefreshLabel() => OnPropertyChanged(nameof(Title));
+
+    [RelayCommand]
+    private void Remove() => _remove(this);
+
+    [RelayCommand]
+    private void Toggle() => IsExpanded = !IsExpanded;
+
+    partial void OnJsonChanged(string value) => _edited?.Invoke();
 }
 
 /// <summary>

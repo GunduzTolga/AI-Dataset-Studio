@@ -1,3 +1,4 @@
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 
@@ -18,6 +19,7 @@ public static class ExportFormats
         DatasetType.Instruction => [ExportFormat.OpenAi, ExportFormat.Alpaca, ExportFormat.ShareGpt, ExportFormat.ChatMl, ExportFormat.Llama3],
         DatasetType.Chat => [ExportFormat.OpenAi, ExportFormat.ShareGpt, ExportFormat.ChatMl, ExportFormat.Llama3, ExportFormat.Alpaca],
         DatasetType.Preference => [ExportFormat.HuggingFaceDpo, ExportFormat.OpenAi],
+        DatasetType.ToolCalling => [ExportFormat.OpenAi, ExportFormat.ShareGpt],
         _ => [],
     };
 
@@ -28,10 +30,13 @@ public static class ExportFormats
     public static bool IsLossy(ExportFormat format, DatasetType type) => format == ExportFormat.Alpaca && type == DatasetType.Chat;
 
     /// <summary>
-    /// Whether the record can be written in the format without losing content.
+    /// Whether the record can be written in the format without losing content. A tool calling
+    /// conversation must also be complete (<see cref="ToolCalls.IsWellFormed"/>).
     /// </summary>
     public static bool CanWrite(ExportFormat format, RecordPayload payload) => (format, payload) switch
     {
+        (ExportFormat.OpenAi or ExportFormat.ShareGpt, ToolCallingPayload tools) => ToolCalls.IsWellFormed(tools),
+        (_, ToolCallingPayload) => false,
         (ExportFormat.Alpaca, ChatPayload chat) => IsSingleTurn(chat),
         (ExportFormat.HuggingFaceDpo, not PreferencePayload) => false,
         (ExportFormat.ShareGpt or ExportFormat.Alpaca or ExportFormat.ChatMl or ExportFormat.Llama3, PreferencePayload) => false,

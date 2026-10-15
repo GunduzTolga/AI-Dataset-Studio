@@ -61,6 +61,25 @@ public sealed class PayloadJsonTests
             PayloadJson.Serialize(new ChatPayload(null, [new ChatMessage(ChatRole.User, "2+2?"), new ChatMessage(ChatRole.Assistant, "4", "İki artı iki.")])));
     }
 
+    [Fact]
+    public void Tool_calling_payload_stores_json_texts_as_json_and_other_text_as_strings()
+    {
+        var payload = new ToolCallingPayload("Hava asistanı.", ["""{"name": "get_forecast"}"""],
+        [
+            new ChatMessage(ChatRole.User, "Kadıköy?"),
+            new ChatMessage(ChatRole.Assistant, "", toolCalls: [new ToolCall("get_forecast", """{"location": "Kadıköy"}""", """{"temp": 19}""")]),
+            new ChatMessage(ChatRole.Assistant, "19 derece.", toolCalls: null),
+        ]);
+        var draft = new ToolCallingPayload(null, ["{name:"], [new ChatMessage(ChatRole.Assistant, "", toolCalls: [new ToolCall("f", "{a", "Tamam")])]);
+
+        Assert.Equal(
+            """{"$type":"tool_calling","system_prompt":"Hava asistanı.","tools":[{"name": "get_forecast"}],"messages":[{"role":"user","content":"Kadıköy?"},{"role":"assistant","content":"","tool_calls":[{"name":"get_forecast","arguments":{"location": "Kadıköy"},"result":{"temp": 19}}]},{"role":"assistant","content":"19 derece."}]}""",
+            PayloadJson.Serialize(payload));
+        Assert.Equal(
+            """{"$type":"tool_calling","tools":["{name:"],"messages":[{"role":"assistant","content":"","tool_calls":[{"name":"f","arguments":"{a","result":"Tamam"}]}]}""",
+            PayloadJson.Serialize(draft));
+    }
+
     public static TheoryData<RecordPayload> Payloads() =>
     [
         new InstructionPayload("i", "", "o\nwith newline"),
@@ -69,6 +88,12 @@ public sealed class PayloadJsonTests
         new ChatPayload(null, [new ChatMessage(ChatRole.User, "q"), new ChatMessage(ChatRole.Assistant, "a", "r")]),
         new ChatPayload(null, []),
         new PreferencePayload("p", "```python\nx[::-1]\n```", "loop"),
+        new ToolCallingPayload("s", ["{\n  \"name\": \"f\",\n  \"parameters\": {}\n}", "not json", "[1, 2]", "\"quoted\""],
+        [
+            new ChatMessage(ChatRole.User, "q"),
+            new ChatMessage(ChatRole.Assistant, "", "r", [new ToolCall("f", "{ \"a\" : [1,2] }", "{\n\"ok\": true}"), new ToolCall("f", "{}")]),
+            new ChatMessage(ChatRole.Assistant, "a"),
+        ]),
     ];
 
     [Theory]

@@ -115,6 +115,25 @@ public sealed class TrainingConfigsTests
     }
 
     [Fact]
+    public void Function_calls_train_from_ShareGPT_in_LLaMA_Factory_and_from_OpenAI_in_Axolotl()
+    {
+        Assert.True(TrainingConfigs.Supports(TrainingFramework.LlamaFactory, ExportFormat.ShareGpt, DatasetType.ToolCalling));
+        Assert.False(TrainingConfigs.Supports(TrainingFramework.LlamaFactory, ExportFormat.OpenAi, DatasetType.ToolCalling));
+        Assert.True(TrainingConfigs.Supports(TrainingFramework.Axolotl, ExportFormat.OpenAi, DatasetType.ToolCalling));
+        Assert.False(TrainingConfigs.Supports(TrainingFramework.Axolotl, ExportFormat.ShareGpt, DatasetType.ToolCalling));
+
+        var files = TrainingConfigs.Render(
+            new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct"),
+            new TrainingTarget("Mağaza", DatasetType.ToolCalling, ExportFormat.ShareGpt, 4096, [(null, "magaza.jsonl")], 42));
+        var entry = JsonNode.Parse(files[0].Content)!["magaza_train"]!;
+
+        // LLaMA-Factory reads no tag that is not named, its defaults included.
+        Assert.Equal("tools", (string?)entry["columns"]!["tools"]);
+        Assert.Equal(("function_call", "observation"), ((string?)entry["tags"]!["function_tag"], (string?)entry["tags"]!["observation_tag"]));
+        Assert.Contains("stage: sft\n", files[1].Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LLaMA_Factory_describes_the_files_and_trains_preference_pairs_with_dpo()
     {
         var files = TrainingConfigs.Render(

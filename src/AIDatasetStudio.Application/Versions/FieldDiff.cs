@@ -16,6 +16,15 @@ public enum RecordFieldKind
 
     /// <summary>The reasoning of the output, or of the assistant turn <see cref="RecordField.Turn"/> (ADR-052).</summary>
     Reasoning,
+
+    /// <summary>A tool's definition; <see cref="RecordField.Turn"/> is its number (SDD §4.4).</summary>
+    Tool,
+
+    /// <summary>A call of the assistant turn <see cref="RecordField.Turn"/>: "name {arguments}".</summary>
+    ToolCall,
+
+    /// <summary>What a call of the assistant turn <see cref="RecordField.Turn"/> returned.</summary>
+    ToolResult,
 }
 
 /// <summary>
@@ -66,6 +75,12 @@ public static class FieldDiff
                 .. p.SystemPrompt is null ? [] : new[] { new RecordField(RecordFieldKind.SystemPrompt, p.SystemPrompt) },
                 .. p.Messages.SelectMany((m, i) => Turn(m, i + 1)),
             ],
+            ToolCallingPayload p =>
+            [
+                .. p.SystemPrompt is null ? [] : new[] { new RecordField(RecordFieldKind.SystemPrompt, p.SystemPrompt) },
+                .. p.Tools.Select((t, i) => new RecordField(RecordFieldKind.Tool, t, Turn: i + 1)),
+                .. p.Messages.SelectMany((m, i) => Turn(m, i + 1)),
+            ],
             _ => [],
         };
     }
@@ -81,7 +96,7 @@ public static class FieldDiff
             return [.. oldFields.Select(f => One(f, null)), .. newFields.Select(f => One(null, f))];
         }
 
-        if (oldPayload is not ChatPayload)
+        if (oldPayload is not (ChatPayload or ToolCallingPayload))
         {
             // The same fields on both sides, but for the reasoning, which either side may lack.
             return [.. Order.Where(kind => oldFields.Any(f => f.Kind == kind) || newFields.Any(f => f.Kind == kind))
@@ -96,9 +111,17 @@ public static class FieldDiff
             result.Add(One(oldSystem, newSystem));
         }
 
-        // Turns and their reasoning, matched as one sequence.
-        var oldMessages = oldFields.Where(f => f.Kind != RecordFieldKind.SystemPrompt).ToList();
-        var newMessages = newFields.Where(f => f.Kind != RecordFieldKind.SystemPrompt).ToList();
+        // Tools pair up by number.
+        var oldTools = oldFields.Where(f => f.Kind == RecordFieldKind.Tool).ToList();
+        var newTools = newFields.Where(f => f.Kind == RecordFieldKind.Tool).ToList();
+        for (var i = 0; i < Math.Max(oldTools.Count, newTools.Count); i++)
+        {
+            result.Add(One(i < oldTools.Count ? oldTools[i] : null, i < newTools.Count ? newTools[i] : null));
+        }
+
+        // Turns with their reasoning, calls and results, matched as one sequence.
+        var oldMessages = oldFields.Where(f => f.Kind is not (RecordFieldKind.SystemPrompt or RecordFieldKind.Tool)).ToList();
+        var newMessages = newFields.Where(f => f.Kind is not (RecordFieldKind.SystemPrompt or RecordFieldKind.Tool)).ToList();
         var deleted = new List<RecordField>();
         var inserted = new List<RecordField>();
 
@@ -148,10 +171,24 @@ public static class FieldDiff
         RecordFieldKind.Prompt, RecordFieldKind.Chosen, RecordFieldKind.Rejected,
     ];
 
-    // A turn, after its reasoning if it has any.
-    private static IEnumerable<RecordField> Turn(ChatMessage message, int turn) => message.Reasoning is { } reasoning
-        ? [new RecordField(RecordFieldKind.Reasoning, reasoning, message.Role, turn), new RecordField(RecordFieldKind.Message, message.Content, message.Role, turn)]
-        : [new RecordField(RecordFieldKind.Message, message.Content, message.Role, turn)];
+    // A turn, after its reasoning if it has any, and before its calls and their results.
+    private static IEnumerable<RecordField> Turn(ChatMessage message, int turn)
+    {
+        if (message.Reasoning is { } reasoning)
+        {
+            yield return new RecordField(RecordFieldKind.Reasoning, reasoning, message.Role, turn);
+        }
+
+        yield return new RecordField(RecordFieldKind.Message, message.Content, message.Role, turn);
+        foreach (var call in message.ToolCalls)
+        {
+            yield return new RecordField(RecordFieldKind.ToolCall, call.Name + " " + call.Arguments, message.Role, turn);
+            if (call.Result is { } result)
+            {
+                yield return new RecordField(RecordFieldKind.ToolResult, result, message.Role, turn);
+            }
+        }
+    }
 
     private static FieldDifference One(RecordField? oldField, RecordField? newField) =>
         new(oldField, newField, TextDiff.Compute(oldField?.Text, newField?.Text));

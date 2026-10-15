@@ -86,6 +86,9 @@ public static class TrainingConfigs
         {
             (ExportFormat.OpenAi, DatasetType.Preference, _) => false,
             (ExportFormat.ChatMl or ExportFormat.Llama3, _, TrainingFramework.LlamaFactory) => false,
+            // Function calls: LLaMA-Factory reads them from ShareGPT, Axolotl from OpenAI's shape.
+            (ExportFormat.OpenAi, DatasetType.ToolCalling, TrainingFramework.LlamaFactory) => false,
+            (ExportFormat.ShareGpt, DatasetType.ToolCalling, TrainingFramework.Axolotl) => false,
             _ => true,
         };
 
@@ -412,6 +415,14 @@ public static class TrainingConfigs
                         ["assistant_tag"] = "gpt",
                         ["system_tag"] = "system",
                     };
+                    if (target.Type == DatasetType.ToolCalling)
+                    {
+                        // Tags that are not named are not read, defaults included.
+                        entry["columns"]!["tools"] = "tools";
+                        entry["tags"]!["function_tag"] = "function_call";
+                        entry["tags"]!["observation_tag"] = "observation";
+                    }
+
                     break;
                 case ExportFormat.Alpaca:
                     entry["formatting"] = "alpaca";

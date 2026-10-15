@@ -75,6 +75,10 @@ public static partial class Judging
         "1 - wrong, harmful, unrelated or empty.\n" +
         "- Check the facts as well as you can. Do not reward length.\n";
 
+    private const string ToolRule =
+        "- The assistant may call the functions listed with the example. It should call the right function with correct " +
+        "arguments when one is needed, call none when none is needed, and answer from the results; wrong calls lower the score.\n";
+
     private const string ReasoningRule =
         "- The answer comes with the reasoning written before it. Mistakes in the reasoning, and reasoning that does not lead " +
         "to the answer, lower the score.\n";
@@ -102,7 +106,7 @@ public static partial class Judging
     /// <summary>
     /// The dataset types whose records can be judged.
     /// </summary>
-    public static bool Supports(DatasetType type) => type is DatasetType.Instruction or DatasetType.Chat or DatasetType.Preference;
+    public static bool Supports(DatasetType type) => type is DatasetType.Instruction or DatasetType.Chat or DatasetType.Preference or DatasetType.ToolCalling;
 
     /// <summary>
     /// Whether the record asks and answers something: an empty question or answer has nothing to judge.
@@ -113,6 +117,8 @@ public static partial class Judging
         ChatPayload p => p.Messages.Any(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content))
             && p.Messages.Any(m => m.Role == ChatRole.Assistant && !string.IsNullOrWhiteSpace(m.Content)),
         PreferencePayload p => !string.IsNullOrWhiteSpace(p.Prompt) && !string.IsNullOrWhiteSpace(p.Chosen),
+        ToolCallingPayload p => p.Messages.Any(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content))
+            && p.Messages.Any(m => m.Role == ChatRole.Assistant && (!string.IsNullOrWhiteSpace(m.Content) || m.ToolCalls.Count > 0)),
         _ => false,
     };
 
@@ -127,12 +133,18 @@ public static partial class Judging
         var subject = payload switch
         {
             ChatPayload => "the assistant's replies in the conversation (the last one counts most)",
+            ToolCallingPayload => "the assistant's function calls and replies in the conversation (the last reply counts most)",
             PreferencePayload => "the chosen answer to the prompt",
             _ => "the answer to the question",
         };
 
         var system = new StringBuilder(string.Format(CultureInfo.InvariantCulture, Scale, subject));
         var format = new StringBuilder("{\"score\": 4, \"reason\": \"...\"");
+        if (payload is ToolCallingPayload)
+        {
+            system.Append(ToolRule);
+        }
+
         if (ReasoningText.Has(payload))
         {
             system.Append(ReasoningRule);
@@ -199,6 +211,42 @@ public static partial class Judging
                         ChatRole.Assistant => "Assistant",
                         _ => "System",
                     }).Append(": ").Append(message.Content.Trim());
+                }
+
+                break;
+            case ToolCallingPayload p:
+                user.Append("Functions:");
+                foreach (var tool in p.Tools)
+                {
+                    user.Append("\n").Append(ToolCalls.Function(tool) is { } function ? ToolCalls.Write(function) : tool);
+                }
+
+                user.Append("\n\nConversation:");
+                if (p.SystemPrompt is { } instructions && instructions.Trim().Length > 0)
+                {
+                    user.Append("\n\nSystem: ").Append(instructions.Trim());
+                }
+
+                foreach (var message in p.Messages)
+                {
+                    if (message.Reasoning is { } thought)
+                    {
+                        user.Append("\n\nAssistant's reasoning: ").Append(thought.Trim());
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(message.Content))
+                    {
+                        user.Append("\n\n").Append(message.Role == ChatRole.User ? "User" : "Assistant").Append(": ").Append(message.Content.Trim());
+                    }
+
+                    foreach (var call in message.ToolCalls)
+                    {
+                        user.Append("\n\nAssistant calls: ").Append(call.Name).Append(' ').Append(ToolCalls.Minify(call.Arguments));
+                        if (call.Result is { } result)
+                        {
+                            user.Append("\n\nResult of ").Append(call.Name).Append(": ").Append(result.Trim());
+                        }
+                    }
                 }
 
                 break;

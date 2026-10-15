@@ -35,6 +35,68 @@ internal static class SampleData
         "Summarize the answer for a support agent.",
     ];
 
+    // A shop assistant's functions (SDD §4.4).
+    private static readonly string[] Tools =
+    [
+        """
+        {
+          "name": "get_order_status",
+          "description": "Returns the status, carrier and expected delivery date of an order.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "order_id": { "type": "string", "description": "The order number" }
+            },
+            "required": ["order_id"]
+          }
+        }
+        """,
+        """
+        {
+          "name": "get_shipping_fee",
+          "description": "Returns the shipping fee for a cart total and the total above which shipping is free.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "cart_total": { "type": "number", "description": "Cart total in TL" }
+            },
+            "required": ["cart_total"]
+          }
+        }
+        """,
+    ];
+
+    private static ChatMessage[] ToolTurns(int i) => (i % 4) switch
+    {
+        0 =>
+        [
+            new(ChatRole.User, $"Siparişim nerede? Sipariş numaram {48200 + i}."),
+            new(ChatRole.Assistant, string.Empty, toolCalls:
+                [new ToolCall("get_order_status", $"{{\"order_id\": \"{48200 + i}\"}}", """{"status": "kargoda", "carrier": "Yurtiçi Kargo", "eta": "2026-10-17"}""")]),
+            new(ChatRole.Assistant, $"{48200 + i} numaralı siparişiniz kargoda; Yurtiçi Kargo ile 17 Ekim'de teslim edilmesi bekleniyor."),
+        ],
+        1 =>
+        [
+            new(ChatRole.User, $"Sepetim {400 + i} TL, kargo ücreti ne kadar?"),
+            new(ChatRole.Assistant, string.Empty, toolCalls:
+                [new ToolCall("get_shipping_fee", $"{{\"cart_total\": {400 + i}}}", """{"fee": 49.90, "free_over": 500}""")]),
+            new(ChatRole.Assistant, $"Sepetiniz 500 TL'nin altında olduğu için kargo ücreti 49,90 TL; {100 - i} TL'lik daha alışverişte kargo ücretsiz."),
+        ],
+        2 =>
+        [
+            new(ChatRole.User, $"Where is order {77100 + i}?"),
+            new(ChatRole.Assistant, string.Empty, toolCalls:
+                [new ToolCall("get_order_status", $"{{\"order_id\": \"{77100 + i}\"}}", """{"status": "delivered", "carrier": "Aras Kargo", "eta": "2026-10-12"}""")]),
+            new(ChatRole.Assistant, $"Order {77100 + i} was delivered by Aras Kargo on 12 October."),
+        ],
+        // No function is needed: the assistant answers without calling one.
+        _ =>
+        [
+            new(ChatRole.User, $"Merhaba! (#{i})"),
+            new(ChatRole.Assistant, "Merhaba! Siparişleriniz ve kargo ücretleri hakkında yardımcı olabilirim."),
+        ],
+    };
+
     public static IEnumerable<NewRecord> Create(DatasetType type, int count, int seed = 42)
     {
         var random = new Random(seed);
@@ -54,6 +116,7 @@ internal static class SampleData
                     "Sen yardımsever bir müşteri destek asistanısın.",
                     [new ChatMessage(ChatRole.User, variant), new ChatMessage(ChatRole.Assistant, answer)]),
                 DatasetType.Preference => new PreferencePayload(variant, answer, "Bilmiyorum."),
+                DatasetType.ToolCalling => new ToolCallingPayload("Sen bir online mağazanın asistanısın. Gerektiğinde araçları kullan.", Tools, ToolTurns(i)),
                 _ => throw new NotSupportedException($"Sample data is not available for {type} datasets."),
             };
 

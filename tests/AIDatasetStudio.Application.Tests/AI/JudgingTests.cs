@@ -61,6 +61,27 @@ public sealed class JudgingTests
     }
 
     [Fact]
+    public void A_tool_calling_record_is_judged_with_its_functions_calls_and_results()
+    {
+        var payload = new ToolCallingPayload(null, ["""{ "name": "fee", "description": "Kargo ücreti" }"""],
+        [
+            new(ChatRole.User, "Kargo ne kadar?"),
+            new(ChatRole.Assistant, "", toolCalls: [new ToolCall("fee", "{ }", "49,90 TL")]),
+            new(ChatRole.Assistant, "Kargo 49,90 TL."),
+        ]);
+
+        var prompt = Judging.Prompt(payload, null, null, "English");
+
+        Assert.True(Judging.Supports(DatasetType.ToolCalling) && Judging.CanJudge(payload));
+        Assert.Contains("Rate the assistant's function calls and replies in the conversation", prompt[0].Content, StringComparison.Ordinal);
+        Assert.Contains("call the right function with correct arguments", prompt[0].Content, StringComparison.Ordinal);
+        Assert.Equal(
+            "Functions:\n{\"name\":\"fee\",\"description\":\"Kargo ücreti\"}\n\nConversation:\n\nUser: Kargo ne kadar?\n\nAssistant calls: fee {}\n\nResult of fee: 49,90 TL\n\nAssistant: Kargo 49,90 TL.",
+            prompt[1].Content);
+        Assert.Equal(("Kargo ne kadar?", "Kargo 49,90 TL."), (Variations.SourceOf(payload)!.Question, Variations.SourceOf(payload)!.Answer));
+    }
+
+    [Fact]
     public void An_answer_written_from_a_document_is_checked_against_its_passage()
     {
         var passage = new PassageSource("kılavuz.pdf", "Sipariş › Kargo", "page", 3, 3, "Kargo 500 TL üzeri siparişlerde ücretsizdir.");

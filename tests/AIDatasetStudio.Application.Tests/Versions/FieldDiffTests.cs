@@ -52,6 +52,23 @@ public sealed class FieldDiffTests
     }
 
     [Fact]
+    public void Tools_pair_up_by_number_and_calls_follow_their_turn()
+    {
+        var before = new ToolCallingPayload(null, ["""{"name": "a"}"""],
+            [new(ChatRole.User, "Soru"), new(ChatRole.Assistant, "", toolCalls: [new ToolCall("a", "{}", "1")]), new(ChatRole.Assistant, "Yanıt")]);
+        var after = new ToolCallingPayload(null, ["""{"name": "a"}""", """{"name": "b"}"""],
+            [new(ChatRole.User, "Soru"), new(ChatRole.Assistant, "", toolCalls: [new ToolCall("a", "{\"x\": 1}", "1")]), new(ChatRole.Assistant, "Yanıt")]);
+
+        var fields = FieldDiff.Compare(before, after);
+
+        Assert.Equal(
+            [RecordFieldKind.Tool, RecordFieldKind.Tool, RecordFieldKind.Message, RecordFieldKind.Message, RecordFieldKind.ToolCall, RecordFieldKind.ToolResult, RecordFieldKind.Message],
+            fields.Select(f => f.Kind));
+        Assert.Equal([false, true, false, false, true, false, false], fields.Select(f => f.IsChanged));
+        Assert.Equal((2, "a {\"x\": 1}"), (fields[4].New!.Turn, fields[4].New!.Text));
+    }
+
+    [Fact]
     public void An_inserted_turn_leaves_later_turns_unchanged()
     {
         var before = Chat(null, (ChatRole.User, "Merhaba"), (ChatRole.Assistant, "Selam"), (ChatRole.User, "Nasılsın?"), (ChatRole.Assistant, "İyiyim"));

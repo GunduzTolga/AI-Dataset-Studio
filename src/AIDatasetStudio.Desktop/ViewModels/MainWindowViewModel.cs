@@ -351,7 +351,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         IsBusy = true;
         try
         {
-            var ids = await _operations.AddAsync(dataset.Id, [new NewRecord(EmptyPayload(dataset.Type), RecordLineage.Manual())], _localizer["History_NewRecordSource"]);
+            var ids = await _operations.AddAsync(dataset.Id, [new NewRecord(EmptyPayload(dataset.Type, Details.Record?.Payload), RecordLineage.Manual())], _localizer["History_NewRecordSource"]);
             await ShowAffectedAsync(dataset.Id, ids);
             await Details.ShowAsync(ids[0]);
             Status.Set("Status_RecordCreated", dataset.Name);
@@ -368,11 +368,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         NewRecordShown?.Invoke(this, EventArgs.Empty);
     }
 
-    // A chat starts with the customer's turn and the answer to write.
-    private static RecordPayload EmptyPayload(DatasetType type) => type switch
+    // A chat starts with the customer's turn and the answer to write. A tool calling record also
+    // gets the tools and system prompt of the record on screen: a dataset usually offers the
+    // same functions in every example.
+    private static RecordPayload EmptyPayload(DatasetType type, RecordPayload? shown) => type switch
     {
         DatasetType.Chat => new ChatPayload(null, [new ChatMessage(ChatRole.User, ""), new ChatMessage(ChatRole.Assistant, "")]),
         DatasetType.Preference => new PreferencePayload("", "", ""),
+        DatasetType.ToolCalling => new ToolCallingPayload(
+            (shown as ToolCallingPayload)?.SystemPrompt,
+            (shown as ToolCallingPayload)?.Tools,
+            [new ChatMessage(ChatRole.User, ""), new ChatMessage(ChatRole.Assistant, "")]),
         _ => new InstructionPayload("", "", ""),
     };
 

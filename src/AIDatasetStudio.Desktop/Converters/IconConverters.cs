@@ -14,6 +14,7 @@ public static class IconConverters
         Domain.Enums.DatasetType.Instruction => Symbol.TextBulletListSquare,
         Domain.Enums.DatasetType.Chat => Symbol.ChatMultiple,
         Domain.Enums.DatasetType.Preference => Symbol.ThumbLike,
+        Domain.Enums.DatasetType.ToolCalling => Symbol.Wrench,
         _ => Symbol.DocumentText,
     });
 

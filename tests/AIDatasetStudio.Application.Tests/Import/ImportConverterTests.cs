@@ -139,6 +139,84 @@ public sealed class ImportConverterTests
     }
 
     [Fact]
+    public void OpenAI_tool_calls_get_their_results_by_id_and_compact_arguments_and_the_tools_their_functions()
+    {
+        var row = TestRows.Json("""
+            {"messages":[
+              {"role":"system","content":"Hava asistanı."},
+              {"role":"user","content":"Kadıköy ve Beşiktaş?"},
+              {"role":"assistant","content":null,"reasoning_content":"İki yer.","tool_calls":[
+                {"id":"a1","type":"function","function":{"name":"get_forecast","arguments":"{\"location\": \"Kadıköy\"}"}},
+                {"id":"b2","type":"function","function":{"name":"get_forecast","arguments":{"location":"Beşiktaş"}}}]},
+              {"role":"tool","tool_call_id":"b2","content":"{\"temp\": 18}"},
+              {"role":"tool","tool_call_id":"a1","content":"{\"temp\": 19}"},
+              {"role":"assistant","content":"19 ve 18 derece."}],
+             "tools":[{"type":"function","function":{"name":"get_forecast","parameters":{"type":"object"}}}]}
+            """);
+
+        var payload = Assert.IsType<ToolCallingPayload>(Convert(row, SourceLayout.OpenAiTools, DatasetType.ToolCalling, NoMapping).Payload);
+
+        Assert.Equal("Hava asistanı.", payload.SystemPrompt);
+        Assert.Equal("{\n  \"name\": \"get_forecast\",\n  \"parameters\": {\n    \"type\": \"object\"\n  }\n}", Assert.Single(payload.Tools));
+        Assert.Equal(3, payload.Messages.Count);
+        Assert.Equal("İki yer.", payload.Messages[1].Reasoning);
+        Assert.Equal(
+            [new ToolCall("get_forecast", "{\"location\":\"Kadıköy\"}", "{\"temp\": 19}"), new ToolCall("get_forecast", "{\"location\":\"Beşiktaş\"}", "{\"temp\": 18}")],
+            payload.Messages[1].ToolCalls);
+        Assert.Equal("19 ve 18 derece.", payload.Messages[2].Content);
+    }
+
+    [Fact]
+    public void ShareGPT_function_calls_and_observations_become_calls_with_results()
+    {
+        var row = TestRows.Json("""
+            {"conversations":[
+              {"from":"human","value":"Sipariş 1 ve kargo?"},
+              {"from":"function_call","value":"<think>\nİki şey.\n</think>\n\nBakıyorum.<tool_call>[{\"name\": \"status\", \"arguments\": {\"id\": \"1\"}}, {\"name\": \"fee\", \"arguments\": {}}]</tool_call>"},
+              {"from":"observation","value":"kargoda\n</tool_response>\n<tool_response>\n49,90 TL"},
+              {"from":"gpt","value":"Kargoda; 49,90 TL."},
+              {"from":"human","value":"Ya 2?"},
+              {"from":"function_call","value":"{\"name\": \"status\", \"arguments\": \"{\\\"id\\\": \\\"2\\\"}\"}"}],
+             "tools":"[{\"name\": \"status\"}, {\"name\": \"fee\"}]"}
+            """);
+
+        var payload = Assert.IsType<ToolCallingPayload>(Convert(row, SourceLayout.ShareGptTools, DatasetType.ToolCalling, NoMapping).Payload);
+
+        Assert.Equal(["{\n  \"name\": \"status\"\n}", "{\n  \"name\": \"fee\"\n}"], payload.Tools);
+        Assert.Equal(("Bakıyorum.", "İki şey."), (payload.Messages[1].Content, payload.Messages[1].Reasoning));
+        Assert.Equal([new ToolCall("status", "{\"id\":\"1\"}", "kargoda"), new ToolCall("fee", "{}", "49,90 TL")], payload.Messages[1].ToolCalls);
+        Assert.Equal([new ToolCall("status", "{\"id\":\"2\"}")], payload.Messages[^1].ToolCalls);
+    }
+
+    [Fact]
+    public void xLAM_rows_are_a_question_and_the_calls_that_answer_it()
+    {
+        var row = TestRows.Json("""
+            {"query":"Kadıköy'de yarın?","tools":"[{\"name\": \"get_forecast\"}]","answers":"[{\"name\": \"get_forecast\", \"arguments\": {\"location\": \"Kadıköy\", \"days\": 1}}]"}
+            """);
+
+        var payload = Assert.IsType<ToolCallingPayload>(Convert(row, SourceLayout.XLam, DatasetType.ToolCalling, NoMapping).Payload);
+
+        Assert.Equal("Kadıköy'de yarın?", payload.Messages[0].Content);
+        Assert.Equal([new ToolCall("get_forecast", "{\"location\":\"Kadıköy\",\"days\":1}")], payload.Messages[1].ToolCalls);
+    }
+
+    [Fact]
+    public void A_result_without_a_call_and_a_chat_with_tools_are_named_in_the_error()
+    {
+        var orphan = TestRows.Json("""{"messages":[{"role":"user","content":"a"},{"role":"tool","content":"{}"}]}""");
+
+        Assert.Equal(ImportErrorCode.ToolResultUnmatched, Convert(orphan, SourceLayout.OpenAiTools, DatasetType.ToolCalling, NoMapping).Error?.Code);
+        Assert.Equal(ImportErrorCode.UnsupportedLayout, Convert(orphan, SourceLayout.OpenAiTools, DatasetType.Chat, NoMapping).Error?.Code);
+
+        // A plain conversation is a tool calling example that needs no tool.
+        var plain = TestRows.Json("""{"messages":[{"role":"user","content":"Merhaba"},{"role":"assistant","content":"Merhaba!"}]}""");
+        Assert.Equal(
+            new ToolCallingPayload(null, [], [new(ChatRole.User, "Merhaba"), new(ChatRole.Assistant, "Merhaba!")]),
+            Convert(plain, SourceLayout.OpenAiMessages, DatasetType.ToolCalling, NoMapping).Payload);
+    }
+
+    [Fact]
     public void Unknown_roles_are_named_in_the_error()
     {
         var row = TestRows.Json("""{"messages":[{"role":"user","content":"a"},{"role":"tool","content":"{}"}]}""");

@@ -7,10 +7,15 @@ namespace AIDatasetStudio.Domain.Payloads;
 /// </summary>
 public sealed record ChatPayload : RecordPayload
 {
+    /// <exception cref="ArgumentException">A turn calls a function: that is a tool calling record (SDD §4.4).</exception>
     public ChatPayload(string? systemPrompt, IReadOnlyList<ChatMessage>? messages)
     {
         SystemPrompt = string.IsNullOrEmpty(systemPrompt) ? null : systemPrompt;
         Messages = messages is null ? [] : [.. messages];
+        if (Messages.Any(m => m.ToolCalls.Count > 0))
+        {
+            throw new ArgumentException("A chat turn cannot call a function; use a tool calling record.", nameof(messages));
+        }
     }
 
     public override DatasetType Type => DatasetType.Chat;
@@ -44,14 +49,9 @@ public sealed record ChatPayload : RecordPayload
             yield return SystemPrompt;
         }
 
-        foreach (var message in Messages)
+        foreach (var text in Messages.SelectMany(m => m.GetSearchableTexts()))
         {
-            if (message.Reasoning is { } reasoning)
-            {
-                yield return reasoning;
-            }
-
-            yield return message.Content;
+            yield return text;
         }
     }
 
@@ -63,20 +63,9 @@ public sealed record ChatPayload : RecordPayload
     protected override IEnumerable<string?> GetCanonicalParts()
     {
         yield return SystemPrompt;
-        foreach (var message in Messages)
+        foreach (var part in Messages.SelectMany(m => m.GetCanonicalParts()))
         {
-            yield return message.Role.ToString();
-            yield return message.Content;
-
-            // A turn without reasoning has the parts of earlier versions, so stored hashes stay
-            // valid. Content is never null, so a null part marks a tagged extra; the next turn
-            // starts with its role, which no tag equals.
-            if (message.Reasoning is { } reasoning)
-            {
-                yield return null;
-                yield return "reasoning";
-                yield return reasoning;
-            }
+            yield return part;
         }
     }
 }

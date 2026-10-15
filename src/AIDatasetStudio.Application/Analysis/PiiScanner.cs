@@ -239,6 +239,13 @@ public sealed partial class PiiScanner
                 p.SystemPrompt is null ? null : MaskText(p.SystemPrompt),
                 p.Messages.Select(m => new ChatMessage(m.Role, MaskText(m.Content), MaskText(m.Reasoning))).ToList()),
             PreferencePayload p => new PreferencePayload(MaskText(p.Prompt), MaskText(p.Chosen), MaskText(p.Rejected)),
+            // Placeholders have no quotes, so masked arguments and results stay valid JSON. The
+            // tools describe functions, not people, and are left as they are.
+            ToolCallingPayload p => new ToolCallingPayload(
+                p.SystemPrompt is null ? null : MaskText(p.SystemPrompt),
+                p.Tools,
+                [.. p.Messages.Select(m => new ChatMessage(m.Role, MaskText(m.Content), MaskText(m.Reasoning),
+                    [.. m.ToolCalls.Select(c => new ToolCall(c.Name, MaskText(c.Arguments), c.Result is null ? null : MaskText(c.Result)))]))]),
             _ => payload,
         };
 

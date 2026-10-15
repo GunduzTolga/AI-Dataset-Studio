@@ -26,6 +26,11 @@ public static class ImportConverter
 
         return plan.Layout switch
         {
+            SourceLayout.OpenAiMessages or SourceLayout.OpenAiTools when plan.TargetType == DatasetType.ToolCalling =>
+                FromToolConversation(row, row.Json?.GetPropertyOrNull("messages")),
+            SourceLayout.ShareGpt or SourceLayout.ShareGptTools when plan.TargetType == DatasetType.ToolCalling =>
+                FromToolConversation(row, row.Json?.GetPropertyOrNull("conversations")),
+            SourceLayout.XLam => FromXLam(row),
             SourceLayout.OpenAiMessages => FromConversation(row, row.Json?.GetPropertyOrNull("messages"), plan.TargetType),
             SourceLayout.ShareGpt => FromConversation(row, row.Json?.GetPropertyOrNull("conversations"), plan.TargetType),
             SourceLayout.OpenAiPreference => FromOpenAiPreference(row),
@@ -188,6 +193,225 @@ public static class ImportConverter
         return new ImportRowResult(row.Number, new InstructionPayload(messages[0].Content, string.Empty, messages[1].Content, messages[1].Reasoning), null);
     }
 
+    /// <summary>
+    /// A conversation with function calls (SDD §4.4): OpenAI's <c>tool_calls</c> and <c>tool</c>
+    /// results (matched by <c>tool_call_id</c>, otherwise in order), or ShareGPT's
+    /// <c>function_call</c> and <c>observation</c> turns. A result is stored with its call.
+    /// </summary>
+    private static ImportRowResult FromToolConversation(ISourceRow row, JsonElement? conversation)
+    {
+        if (conversation is not { ValueKind: JsonValueKind.Array } array)
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        var system = row.Json?.GetPropertyOrNull("system")?.GetStringOrNull();
+        var turns = new List<ToolTurn>();
+        foreach (var item in array.EnumerateArray())
+        {
+            var roleName = (item.GetPropertyOrNull("role") ?? item.GetPropertyOrNull("from"))?.GetStringOrNull();
+            if (item.ValueKind != JsonValueKind.Object || roleName is null)
+            {
+                return Fail(row, ImportErrorCode.NoConversation);
+            }
+
+            var text = (item.GetPropertyOrNull("content") ?? item.GetPropertyOrNull("value")) is { } content ? ContentText(content) : string.Empty;
+            var kind = ImportLayouts.Normalize(roleName);
+            switch (kind)
+            {
+                case "system" when turns.Count == 0 && system is null:
+                    system = text;
+                    break;
+                case "functioncall":
+                    if (ReadCalls(text) is not { } called)
+                    {
+                        return Fail(row, ImportErrorCode.InvalidJson);
+                    }
+
+                    turns.Add(called);
+                    break;
+                case "tool" or "function" or "observation" or "ipython":
+                    if (!Answer(turns, text, item.GetPropertyOrNull("tool_call_id")?.GetStringOrNull(), kind == "observation"))
+                    {
+                        return Fail(row, ImportErrorCode.ToolResultUnmatched);
+                    }
+
+                    break;
+                default:
+                    var role = RoleFrom(roleName);
+                    if (role is not (ChatRole.User or ChatRole.Assistant))
+                    {
+                        return Fail(row, ImportErrorCode.UnknownRole, roleName);
+                    }
+
+                    turns.Add(role == ChatRole.User ? new ToolTurn(ChatRole.User, text, null) : AssistantTurn(item, text));
+                    break;
+            }
+        }
+
+        if (!turns.Any(t => t.Role == ChatRole.User) && !turns.Any(t => t.Role == ChatRole.Assistant))
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        var tools = ReadTools(row.Json?.GetPropertyOrNull("tools") ?? row.Json?.GetPropertyOrNull("functions"));
+        return new ImportRowResult(row.Number, new ToolCallingPayload(system, tools, [.. turns.Select(t => t.ToMessage())]), null);
+    }
+
+    // xLAM / APIGen: a question, the functions it may use and the calls that answer it.
+    private static ImportRowResult FromXLam(ISourceRow row)
+    {
+        var query = row.Json?.GetPropertyOrNull("query") is { } asked ? ContentText(asked) : string.Empty;
+        var answers = Parse(row.Json?.GetPropertyOrNull("answers"));
+        if (string.IsNullOrWhiteSpace(query) || answers is not { ValueKind: JsonValueKind.Array or JsonValueKind.Object } calls)
+        {
+            return Fail(row, ImportErrorCode.NoConversation);
+        }
+
+        var assistant = new ToolTurn(ChatRole.Assistant, string.Empty, null);
+        assistant.Calls.AddRange(CallsIn(calls));
+        var tools = ReadTools(row.Json?.GetPropertyOrNull("tools"));
+        return new ImportRowResult(row.Number, new ToolCallingPayload(null, tools, [new ChatMessage(ChatRole.User, query), assistant.ToMessage()]), null);
+    }
+
+    // An assistant message: its text, reasoning and calls (OpenAI "tool_calls", or the older "function_call").
+    private static ToolTurn AssistantTurn(JsonElement item, string text)
+    {
+        var reasoning = ReasoningKeys.Select(key => item.GetPropertyOrNull(key)?.GetStringOrNull()).FirstOrDefault(r => !string.IsNullOrWhiteSpace(r));
+        if (reasoning is null)
+        {
+            (reasoning, text) = ReasoningText.Split(text);
+        }
+
+        var turn = new ToolTurn(ChatRole.Assistant, text, reasoning);
+        if (item.GetPropertyOrNull("tool_calls") is { ValueKind: JsonValueKind.Array } calls)
+        {
+            foreach (var call in calls.EnumerateArray())
+            {
+                var function = call.GetPropertyOrNull("function") ?? call;
+                turn.Calls.Add(new ToolCallDraft(
+                    call.GetPropertyOrNull("id")?.GetStringOrNull(),
+                    function.GetPropertyOrNull("name")?.GetStringOrNull() ?? string.Empty,
+                    Arguments(function.GetPropertyOrNull("arguments"))));
+            }
+        }
+        else if (item.GetPropertyOrNull("function_call") is { ValueKind: JsonValueKind.Object } legacy)
+        {
+            turn.Calls.AddRange(CallsIn(legacy));
+        }
+
+        return turn;
+    }
+
+    // A ShareGPT "function_call" turn: the calls as JSON (one or a list), after any reasoning and
+    // text; LLaMA-Factory and Hermes wrap them in <tool_call> tags when the assistant also writes.
+    private static ToolTurn? ReadCalls(string value)
+    {
+        var (reasoning, text) = ReasoningText.Split(value);
+        var open = text.IndexOf("<tool_call>", StringComparison.Ordinal);
+        var written = open < 0 ? string.Empty : text[..open].Trim();
+        var blocks = open < 0
+            ? [text]
+            : text[open..].Split("<tool_call>", StringSplitOptions.RemoveEmptyEntries)
+                .Select(b => b.Replace("</tool_call>", string.Empty, StringComparison.Ordinal))
+                .Where(b => !string.IsNullOrWhiteSpace(b))
+                .ToList();
+        var turn = new ToolTurn(ChatRole.Assistant, written, reasoning);
+        foreach (var block in blocks)
+        {
+            if (ParseText(block) is not { ValueKind: JsonValueKind.Array or JsonValueKind.Object } calls)
+            {
+                return null;
+            }
+
+            turn.Calls.AddRange(CallsIn(calls));
+        }
+
+        return turn.Calls.Count > 0 ? turn : null;
+    }
+
+    // Each {"name", "arguments"} of a list (or a single call).
+    private static IEnumerable<ToolCallDraft> CallsIn(JsonElement calls) =>
+        (calls.ValueKind == JsonValueKind.Array ? calls.EnumerateArray().ToList() : [calls])
+            .Where(c => c.ValueKind == JsonValueKind.Object)
+            .Select(c => new ToolCallDraft(null, c.GetPropertyOrNull("name")?.GetStringOrNull() ?? string.Empty,
+                Arguments(c.GetPropertyOrNull("arguments") ?? c.GetPropertyOrNull("parameters"))));
+
+    // Gives a result to the call it answers: by id, otherwise the first one still waiting. A
+    // ShareGPT observation answers all waiting calls, split as LLaMA-Factory joins them.
+    private static bool Answer(List<ToolTurn> turns, string result, string? callId, bool all)
+    {
+        var waiting = turns.Count > 0 ? turns[^1].Calls.Where(c => c.Result is null).ToList() : [];
+        if (waiting.Count == 0)
+        {
+            return false;
+        }
+
+        if (all && waiting.Count > 1)
+        {
+            var parts = result.Split("\n</tool_response>\n<tool_response>\n");
+            if (parts.Length != waiting.Count)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < parts.Length; i++)
+            {
+                waiting[i].Result = parts[i];
+            }
+
+            return true;
+        }
+
+        (waiting.FirstOrDefault(c => callId is not null && c.Id == callId) ?? waiting[0]).Result = result;
+        return true;
+    }
+
+    // Tools as a list of objects or a JSON text of one; each is stored as its function, indented.
+    private static List<string> ReadTools(JsonElement? value) =>
+        Parse(value) switch
+        {
+            { ValueKind: JsonValueKind.Array } list => [.. list.EnumerateArray().Select(Tool)],
+            { ValueKind: JsonValueKind.Object } one => [Tool(one)],
+            _ => [],
+        };
+
+    private static string Tool(JsonElement tool)
+    {
+        var item = tool.ValueKind == JsonValueKind.String && ParseText(tool.GetString()!) is { } parsed ? parsed : tool;
+        if (item.ValueKind != JsonValueKind.Object)
+        {
+            return item.ValueKind == JsonValueKind.String ? item.GetString()! : item.GetRawText();
+        }
+
+        return ToolCalls.Pretty(item.GetPropertyOrNull("function") is { ValueKind: JsonValueKind.Object } function ? function : item);
+    }
+
+    // Arguments as compact JSON: an object as it is, a JSON text of one parsed, nothing as {}.
+    private static string Arguments(JsonElement? value) => Parse(value) switch
+    {
+        null or { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined } => "{}",
+        { ValueKind: JsonValueKind.String } text => text.GetString()!,
+        { } json => ToolCalls.Write(json),
+    };
+
+    // A JSON value, or the JSON a string holds.
+    private static JsonElement? Parse(JsonElement? value) =>
+        value is { ValueKind: JsonValueKind.String } text && ParseText(text.GetString()!) is { } parsed ? parsed : value;
+
+    private static JsonElement? ParseText(string text)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            return document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     private static ImportRowResult FromOpenAiPreference(ISourceRow row)
     {
         var input = row.Json?.GetPropertyOrNull("input")?.GetPropertyOrNull("messages");
@@ -323,6 +547,27 @@ public static class ImportConverter
         "assistant" or "gpt" or "chatgpt" or "bard" or "bing" or "model" or "bot" => ChatRole.Assistant,
         _ => null,
     };
+
+    // A turn being read: calls get their results from later messages.
+    private sealed class ToolTurn(ChatRole role, string content, string? reasoning)
+    {
+        public ChatRole Role { get; } = role;
+
+        public List<ToolCallDraft> Calls { get; } = [];
+
+        public ChatMessage ToMessage() => new(Role, content, reasoning, [.. Calls.Select(c => new ToolCall(c.Name, c.Arguments, c.Result))]);
+    }
+
+    private sealed class ToolCallDraft(string? id, string name, string arguments)
+    {
+        public string? Id { get; } = id;
+
+        public string Name { get; } = name;
+
+        public string Arguments { get; } = arguments;
+
+        public string? Result { get; set; }
+    }
 
     private static ImportRowResult Fail(ISourceRow row, ImportErrorCode code, string? detail = null) =>
         new(row.Number, null, new ImportRowError(row.Number, code, detail));

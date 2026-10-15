@@ -113,6 +113,51 @@ public sealed class ExportRendererTests
             StringComparison.Ordinal);
     }
 
+    private static readonly ToolCallingPayload Tools = new(
+        "Mağaza asistanısın.",
+        ["""
+         {
+           "name": "get_order_status",
+           "parameters": {"type": "object", "properties": {"order_id": {"type": "string"}}}
+         }
+         """, """{"type": "function", "function": {"name": "get_fee"}}"""],
+        [
+            new(ChatRole.User, "48213 nerede, kargo kaç para?"),
+            new(ChatRole.Assistant, "Bakıyorum.", "İki şey soruluyor.",
+                [new ToolCall("get_order_status", """{ "order_id": "48213" }""", """{"status": "kargoda"}"""), new ToolCall("get_fee", "{}", "49,90 TL")]),
+            new(ChatRole.Assistant, "Kargoda; kargo 49,90 TL."),
+            new(ChatRole.User, "Ya 77120?"),
+            new(ChatRole.Assistant, "", toolCalls: [new ToolCall("get_order_status", """{"order_id": "77120"}""")]),
+        ]);
+
+    [Fact]
+    public void Tool_calls_are_written_in_OpenAIs_shape_with_each_result_naming_its_call()
+    {
+        Assert.Equal(
+            """{"messages":[{"role":"system","content":"Mağaza asistanısın."},{"role":"user","content":"48213 nerede, kargo kaç para?"},{"role":"assistant","content":"Bakıyorum.","reasoning_content":"İki şey soruluyor.","tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_order_status","arguments":"{\"order_id\":\"48213\"}"}},{"id":"call_2","type":"function","function":{"name":"get_fee","arguments":"{}"}}]},{"role":"tool","tool_call_id":"call_1","content":"{\"status\": \"kargoda\"}"},{"role":"tool","tool_call_id":"call_2","content":"49,90 TL"},{"role":"assistant","content":"Kargoda; kargo 49,90 TL."},{"role":"user","content":"Ya 77120?"},{"role":"assistant","content":"","tool_calls":[{"id":"call_3","type":"function","function":{"name":"get_order_status","arguments":"{\"order_id\":\"77120\"}"}}]}],"tools":[{"type":"function","function":{"name":"get_order_status","parameters":{"type":"object","properties":{"order_id":{"type":"string"}}}}},{"type":"function","function":{"name":"get_fee"}}]}""",
+            ExportRenderer.Render(ExportFormat.OpenAi, Tools));
+    }
+
+    [Fact]
+    public void Tool_calls_are_written_in_LLaMA_Factorys_ShareGPT_shape()
+    {
+        Assert.Equal(
+            """{"conversations":[{"from":"system","value":"Mağaza asistanısın."},{"from":"human","value":"48213 nerede, kargo kaç para?"},{"from":"function_call","value":"<think>\nİki şey soruluyor.\n</think>\n\nBakıyorum.<tool_call>[{\"name\": \"get_order_status\", \"arguments\": {\"order_id\":\"48213\"}}, {\"name\": \"get_fee\", \"arguments\": {}}]</tool_call>"},{"from":"observation","value":"{\"status\": \"kargoda\"}\n</tool_response>\n<tool_response>\n49,90 TL"},{"from":"gpt","value":"Kargoda; kargo 49,90 TL."},{"from":"human","value":"Ya 77120?"},{"from":"function_call","value":"[{\"name\": \"get_order_status\", \"arguments\": {\"order_id\":\"77120\"}}]"}],"tools":"[{\"name\":\"get_order_status\",\"parameters\":{\"type\":\"object\",\"properties\":{\"order_id\":{\"type\":\"string\"}}}}, {\"name\":\"get_fee\"}]"}""",
+            ExportRenderer.Render(ExportFormat.ShareGpt, Tools));
+    }
+
+    [Fact]
+    public void An_incomplete_tool_conversation_is_not_written_and_text_formats_take_none()
+    {
+        var unanswered = new ToolCallingPayload(null, [], [Tools.Messages[0], Tools.Messages[1], Tools.Messages[3]]);
+
+        Assert.Equal([ExportFormat.OpenAi, ExportFormat.ShareGpt], ExportFormats.For(DatasetType.ToolCalling));
+        Assert.False(ExportFormats.CanWrite(ExportFormat.OpenAi, unanswered));
+        Assert.False(ExportFormats.CanWrite(ExportFormat.ChatMl, Tools));
+        Assert.True(ExportFormats.CanWrite(ExportFormat.ShareGpt, Tools));
+        Assert.Throws<ArgumentException>(() => ExportRenderer.Render(ExportFormat.ShareGpt, unanswered));
+    }
+
     [Fact]
     public void Lines_never_contain_line_breaks()
     {

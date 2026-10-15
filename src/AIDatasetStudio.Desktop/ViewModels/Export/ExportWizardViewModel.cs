@@ -819,7 +819,9 @@ public sealed partial class ExportWizardViewModel : ViewModelBase
     {
         if (unsupported > 0)
         {
-            SkipItems.Add(new SkipItem(_localizer["Export_SkipUnsupported"], ExportText.Count(unsupported)));
+            // Every tool calling format holds the calls; what is left out is incomplete (SDD §4.4).
+            var reason = Target.Type == DatasetType.ToolCalling ? "Export_SkipToolTurnOrder" : "Export_SkipUnsupported";
+            SkipItems.Add(new SkipItem(_localizer[reason], ExportText.Count(unsupported)));
         }
 
         if (overLimit > 0)

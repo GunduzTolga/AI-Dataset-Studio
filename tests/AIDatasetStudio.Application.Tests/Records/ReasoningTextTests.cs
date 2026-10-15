@@ -43,5 +43,13 @@ public sealed class ReasoningTextTests
         Assert.Equal(new ChatPayload("Kısa yaz.", [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4")]), ReasoningText.Without(chat));
         Assert.Same(plain, ReasoningText.Without(plain));
         Assert.False(ReasoningText.Has(plain));
+
+        // The calls stay; only the thinking goes.
+        var call = new ToolCall("f", "{}", "1");
+        var tools = new ToolCallingPayload(null, ["{\"name\": \"f\"}"], [new(ChatRole.User, "?"), new(ChatRole.Assistant, "", "Önce f.", [call]), new(ChatRole.Assistant, "1")]);
+        Assert.True(ReasoningText.Has(tools));
+        Assert.Equal(
+            new ToolCallingPayload(null, tools.Tools, [new(ChatRole.User, "?"), new(ChatRole.Assistant, "", toolCalls: [call]), new(ChatRole.Assistant, "1")]),
+            ReasoningText.Without(tools));
     }
 }
