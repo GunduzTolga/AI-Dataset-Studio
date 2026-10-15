@@ -32,6 +32,27 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
   blocks, masked with the rest of the record, compared between versions, shown to the judge and
   kept by variations that keep the answer. Records without reasoning keep their content hashes.
 
+### Tool calling datasets
+- A new dataset type, **Tool calling**, for training function calling and agents. A record holds
+  the functions the assistant may call (JSON definitions with a JSON Schema of parameters) and a
+  conversation whose assistant turns call them; each call keeps what the function returned, and
+  the next assistant turn answers from the results. Parallel calls, several rounds, examples that
+  need no tool and examples that end with the call (xLAM style) are all records.
+- The editor shows the tools folded by name and description, opens their JSON with a click, adds
+  a tool from a template, and adds calls to an assistant turn with the function, the arguments and
+  the result. **New Record** starts with the tools and system prompt of the record on screen.
+- Quality rules name tools without a function name, calls to functions that are not among the
+  tools, arguments that are not a JSON object, required arguments that are missing, and turns out
+  of order or calls without the result an answer needs.
+- Import recognizes OpenAI messages with `tool_calls` and `tool` results, LLaMA-Factory's ShareGPT
+  with `function_call` and `observation` turns, and xLAM rows (`query`, `tools`, `answers`).
+- Export writes OpenAI's shape (`tool_calls` with `call_N` ids, `tool` messages, `tools`) and
+  LLaMA-Factory's ShareGPT (`function_call`, `observation`, `tools`); an incomplete conversation is
+  left out and counted. LLaMA-Factory configurations name the tools column and the function and
+  observation tags; Axolotl reads the OpenAI shape through the model's chat template.
+- Sample data, masking of arguments and results, version comparison of tools and calls, and the
+  model's judgment cover tool calling records too.
+
 ## [1.0.0] - 2026-10-13
 
 The first release: the complete MVP of the design document (SDD §20) and what was built on it —

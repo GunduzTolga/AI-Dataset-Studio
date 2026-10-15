@@ -120,7 +120,9 @@ Büyük harfli başlıklar kaynak dosyasında büyük harfle yazılır ("BİLGİ
 | Uygulama / marka | `Sparkle` (dolu, gradyan zemin); uygulama ikonları (`Assets/app.ico`, `.icns`, `.png`) aynı işaretten `build/make-icon.cs` ile üretilir: 1024 px tuvalde %6 boşluk, köşe yarıçapı karenin %27'si, simge %56 |
 | Güncellemeleri denetle / Hakkında | `ArrowSync` / `Info` |
 | Proje | `Folder` · yeni: `FolderAdd` |
-| Veri seti: Talimat / Sohbet / Tercih | `TextBulletListSquare` / `ChatMultiple` / `ThumbLike` · yeni: `DocumentAdd` |
+| Veri seti: Talimat / Sohbet / Tercih / Araç çağırma | `TextBulletListSquare` / `ChatMultiple` / `ThumbLike` / `Wrench` · yeni: `DocumentAdd` |
+| Akıl yürütme | `Lightbulb` (gri zeminli kart ya da balon; turun başlığında ekleme düğmesi) |
+| Araçlar / Araç, araç çağrısı / Araç sonucu | `Toolbox` / `Wrench` / `ArrowReply` (araç kartı katlanır: `ChevronRight` / `ChevronDown`) |
 | Kullanıcı / Asistan / Sistem mesajı | `Person` / `BotSparkle` / `Settings` |
 | Tercih edilen / Reddedilen | `ThumbLike` / `ThumbDislike` |
 | Onayla / İncelemeye al / Arşivle / Geri yükle / Sil | `Checkmark` / `Eye` / `Archive` / `ArrowUndo` / `Delete` |
