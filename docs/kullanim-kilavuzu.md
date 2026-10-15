@@ -217,6 +217,7 @@ Dışa aktarma eğitim yapılandırması yazdıysa sonuç ekranında **Eğitimi 
    - **Günlük** düğmesiyle aracın kendi çıktısı.
 4. **Durdur** aracı ve başlattığı her şeyi kapatır; o ana kadar kaydedilen ara kayıtlar kalır. Eğitim sürerken pencereyi kapatmak önce sorar.
 5. Bitince **Çıktı klasörünü aç** ile LoRA adaptörünü bulursunuz (`saves/…` ya da `outputs/…`).
+6. Eğitimi dışa aktarmanın sonuç ekranından LLaMA-Factory ile başlattıysanız **Modeli değerlendir** düğmesi de çıkar: eğitilen model, veri setinizin test sorularıyla hemen değerlendirilir (bkz. [Modeli değerlendirme](#modeli-değerlendirme-benchmark)).
 
 #### Windows'ta kurulum
 
@@ -299,6 +300,12 @@ Her veri setine **yapay zekâ talimatları** (ör. "Resmî Türkçe yaz.") gireb
 - Sorular varsayılan olarak son dışa aktarımın **test** bölümünden alınır; bunlar, eğitilen modelin görmediği sorulardır.
 - Bir hakem model, her yanıtı veri setindeki yanıtla karşılaştırıp 1–5 puan verir. Yanında modelden bağımsız bir kelime örtüşmesi (F1) puanı da gösterilir.
 - Biten değerlendirmeler saklanır; farklı modelleri aynı sorular üzerinde karşılaştırabilirsiniz. **Raporu kaydet…** bütün yanıtları JSON Lines dosyasına yazar.
+
+**Eğittiğiniz modeli değerlendirmek.** Son dışa aktarımın klasöründe LLaMA-Factory ile eğitilmiş bir adaptör varsa model listesinin başında iki seçenek görünür:
+- **Eğitilen model: …** — adaptörüyle birlikte eğittiğiniz model;
+- **Eğitimden önce: …** — aynı temel model, aynı ayarlarla ama adaptörsüz.
+
+Birini seçip **Değerlendir**'e basın. Uygulama modeli bilgisayarınızda LLaMA-Factory ile yükler (`llamafactory-cli api`); bu, modelin boyutuna göre birkaç dakika sürebilir, ilerleme satırında yükleme görünür. Model yalnızca sizin bilgisayarınızdan erişilebilir; pencereyi kapatınca durdurulur. Puanlamak için **Puanlayan** olarak Yapay Zekâ Bağlantıları'ndaki bir model gerekir (ör. Ollama'da daha büyük bir model). İkisini aynı sorular ve aynı tohumla değerlendirirseniz **Önceki değerlendirmeler**'de eğitimin puanı ne kadar değiştirdiğini yan yana görürsünüz. LLaMA-Factory klasöre bir `llamafactory-serve.yaml` da yazar; isterseniz `llamafactory-cli chat llamafactory-serve.yaml` ile eğittiğiniz modelle doğrudan konuşabilirsiniz.
 
 ---
 

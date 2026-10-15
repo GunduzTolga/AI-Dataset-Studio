@@ -5,6 +5,18 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Evaluating the model you trained
+- **Tools › Evaluate a Model…** offers the adapter trained with LLaMA-Factory in the folder of
+  the dataset's last export, and the same base model before training. The app serves the one you
+  choose with LLaMA-Factory (`llamafactory-cli api`) on this computer only — the same chat
+  template, the same 4-bit loading, on Windows and AMD too — and asks it the test questions;
+  a connection grades the answers. Evaluate both with the same questions and seed to see what
+  training changed side by side in **Earlier evaluations**.
+- After training from the export's result, **Evaluate the model** in the training window opens
+  the evaluation with the trained model chosen.
+- The serving configuration is written next to the training's (`llamafactory-serve.yaml`):
+  `llamafactory-cli chat llamafactory-serve.yaml` talks to the trained model.
+
 ## [1.0.0] - 2026-10-13
 
 The first release: the complete MVP of the design document (SDD §20) and what was built on it —
