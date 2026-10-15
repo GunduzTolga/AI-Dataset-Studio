@@ -66,6 +66,9 @@
   <data name="Error_WorkspaceAlreadyOpen" xml:space="preserve">
     <value>'{0}' zaten açık olan çalışma alanı.</value>
   </data>
+  <data name="Error_WorkspaceInUse" xml:space="preserve">
+    <value>'{0}' başka bir AI Dataset Studio penceresinde açık. Önce orada kapatın.</value>
+  </data>
   <data name="Error_FileAccess" xml:space="preserve">
     <value>Dosyaya erişilemedi: {0}</value>
   </data>
@@ -1425,6 +1428,24 @@
   <data name="Export_GpuAmdHint" xml:space="preserve">
     <value>Eğitim aracından önce Linux'ta ya da WSL'de PyTorch'un ROCm sürümünü kurun (pytorch.org); QLoRA için bitsandbytes'ın ROCm sürümü gerekir. RX 7000 ve 9000 serisi desteklenir.</value>
   </data>
+  <data name="Export_Platform" xml:space="preserve">
+    <value>Eğitim bilgisayarının sistemi</value>
+  </data>
+  <data name="Export_PlatformLinux" xml:space="preserve">
+    <value>Linux, WSL ya da bulut</value>
+  </data>
+  <data name="Export_PlatformWindows" xml:space="preserve">
+    <value>Windows</value>
+  </data>
+  <data name="Export_HintWindowsNvidia" xml:space="preserve">
+    <value>Windows'ta: PyTorch'u CUDA ile kurun (pytorch.org), sonra pip install llamafactory. Bellek tasarrufu yalnızca ara sonuçları RAM'e taşır: Liger kernel'in istediği Triton Windows'ta çalışmaz.</value>
+  </data>
+  <data name="Export_HintWindowsAmd" xml:space="preserve">
+    <value>AMD kartla Windows'ta: AMD'nin Windows için PyTorch'unu kurun (ROCm, Python 3.12, rocm.docs.amd.com), sonra pip install llamafactory. QLoRA, Windows'ta ROCm için bitsandbytes ister ve bunu yalnızca topluluk derliyor: güvenli seçim daha küçük bir modelle LoRA. Bellek tasarrufu yalnızca ara sonuçları RAM'e taşır.</value>
+  </data>
+  <data name="Export_TrainingUnsupportedPlatform" xml:space="preserve">
+    <value>{0}, {1} üzerinde çalışmaz; LLaMA-Factory seçin ya da Linux'ta veya WSL'de eğitin.</value>
+  </data>
   <data name="Export_GpuMemory" xml:space="preserve">
     <value>Ekran kartı belleği</value>
   </data>
@@ -1439,6 +1460,12 @@
   </data>
   <data name="Export_SaveMemoryHint" xml:space="preserve">
     <value>Aynı eğitim belirgin biçimde daha az GPU belleğiyle, biraz daha yavaş; kalite değişmez. NVIDIA'da da AMD'de de çalışır. Gerekli: pip install liger-kernel</value>
+  </data>
+  <data name="Export_SaveMemoryWindows" xml:space="preserve">
+    <value>Bellek tasarrufu: ara sonuçlar RAM'de</value>
+  </data>
+  <data name="Export_SaveMemoryWindowsHint" xml:space="preserve">
+    <value>Aynı eğitim daha az GPU belleğiyle, biraz daha yavaş; kalite değişmez. Windows'ta ara sonuçlar RAM'e taşınır; Liger kernel'in istediği Triton orada çalışmaz. Ayrıca bir şey kurmak gerekmez.</value>
   </data>
   <data name="Export_MemoryEstimate" xml:space="preserve">
     <value>Yaklaşık {0:0.#} GB GPU belleği gerekir ({1} token'lık diziler, birer birer).</value>
@@ -1463,6 +1490,157 @@
   </data>
   <data name="Export_MemoryUnknownSize" xml:space="preserve">
     <value>Modelin boyutu adında yazmadığı için gereken bellek tahmin edilemiyor.</value>
+  </data>
+  <data name="Export_TrainNow" xml:space="preserve">
+    <value>Bu dosyalarla şimdi, bu bilgisayarda kurulu eğitim aracıyla bir model eğitin.</value>
+  </data>
+  <data name="Export_StartTraining" xml:space="preserve">
+    <value>Eğitimi başlat</value>
+  </data>
+  <data name="Training_Title" xml:space="preserve">
+    <value>Model Eğit</value>
+  </data>
+  <data name="Training_Target" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="Training_ToolLabel" xml:space="preserve">
+    <value>{0} komutu</value>
+  </data>
+  <data name="Training_BrowseTool" xml:space="preserve">
+    <value>Seç…</value>
+  </data>
+  <data name="Training_ToolHint" xml:space="preserve">
+    <value>{0} klasöründe, dışa aktarmanın oraya yazdığı veri ve yapılandırmayla çalışır.</value>
+  </data>
+  <data name="Training_ToolMissing" xml:space="preserve">
+    <value>{0} bu bilgisayarda bulunamadı. Python'a kurun ({1}), sonra komutunu buradan seçin; ör. …/venv/bin/llamafactory-cli ya da …\venv\Scripts\llamafactory-cli.exe.</value>
+  </data>
+  <data name="Training_StateReady" xml:space="preserve">
+    <value>Hazır</value>
+  </data>
+  <data name="Training_StateRunning" xml:space="preserve">
+    <value>Eğitiliyor</value>
+  </data>
+  <data name="Training_StateSucceeded" xml:space="preserve">
+    <value>Bitti</value>
+  </data>
+  <data name="Training_StateFailed" xml:space="preserve">
+    <value>Başarısız</value>
+  </data>
+  <data name="Training_StateStopped" xml:space="preserve">
+    <value>Durduruldu</value>
+  </data>
+  <data name="Training_Step" xml:space="preserve">
+    <value>Adım {0} / {1} · %{2}</value>
+  </data>
+  <data name="Training_Preparing" xml:space="preserve">
+    <value>Model ve veri yükleniyor…</value>
+  </data>
+  <data name="Training_NoSteps" xml:space="preserve">
+    <value>Başlamadı</value>
+  </data>
+  <data name="Training_Time" xml:space="preserve">
+    <value>{0} geçti · yaklaşık {1} kaldı</value>
+  </data>
+  <data name="Training_Took" xml:space="preserve">
+    <value>{0} sürdü</value>
+  </data>
+  <data name="Training_Hours" xml:space="preserve">
+    <value>{0} sa {1} dk</value>
+  </data>
+  <data name="Training_Minutes" xml:space="preserve">
+    <value>{0} dk {1} sn</value>
+  </data>
+  <data name="Training_Seconds" xml:space="preserve">
+    <value>{0} sn</value>
+  </data>
+  <data name="Training_Epoch" xml:space="preserve">
+    <value>EPOCH</value>
+  </data>
+  <data name="Training_Loss" xml:space="preserve">
+    <value>Eğitim kaybı</value>
+  </data>
+  <data name="Training_EvalLoss" xml:space="preserve">
+    <value>Doğrulama kaybı</value>
+  </data>
+  <data name="Training_LearningRate" xml:space="preserve">
+    <value>ÖĞRENME HIZI</value>
+  </data>
+  <data name="Training_Curve" xml:space="preserve">
+    <value>KAYIP</value>
+  </data>
+  <data name="Training_CurveEmpty" xml:space="preserve">
+    <value>Eğri, ilk kayıp değerleri yazıldıkça (her 10 adımda bir) görünür.</value>
+  </data>
+  <data name="Training_CurveHint" xml:space="preserve">
+    <value>Kayıp düşmeli. Eğitim kaybı düşerken doğrulama kaybı yükseliyorsa model veriyi ezberliyordur: daha az epoch ya da daha fazla veri işe yarar.</value>
+  </data>
+  <data name="Training_GpuTitle" xml:space="preserve">
+    <value>EKRAN KARTI</value>
+  </data>
+  <data name="Training_Gpu" xml:space="preserve">
+    <value>{0}
+{1} / {2} GB kullanımda</value>
+  </data>
+  <data name="Training_GpuNone" xml:space="preserve">
+    <value>Ekran kartı belleği, Windows bildiriyorsa ya da nvidia-smi (NVIDIA) veya rocm-smi (AMD) kuruluysa görünür.</value>
+  </data>
+  <data name="Training_AboutTitle" xml:space="preserve">
+    <value>BU EĞİTİM HAKKINDA</value>
+  </data>
+  <data name="Training_About" xml:space="preserve">
+    <value>Araç bu bilgisayarda kendi Python'u ve sürücüleriyle çalışır; uygulama onun çıktısını okur. Adaptör ve ara kayıtlar yapılandırmadaki çıktı klasörüne yazılır. Durdurunca o ana kadar kaydedilen ara kayıtlar kalır.</value>
+  </data>
+  <data name="Training_Log" xml:space="preserve">
+    <value>Günlük</value>
+  </data>
+  <data name="Training_OpenOutput" xml:space="preserve">
+    <value>Çıktı klasörünü aç</value>
+  </data>
+  <data name="Training_Stop" xml:space="preserve">
+    <value>Durdur</value>
+  </data>
+  <data name="Training_Start" xml:space="preserve">
+    <value>Eğitimi başlat</value>
+  </data>
+  <data name="Training_ConfirmClose" xml:space="preserve">
+    <value>Eğitim hâlâ sürüyor. Pencereyi kapatmak eğitimi durdurur; o ana kadar kaydedilen ara kayıtlar kalır.</value>
+  </data>
+  <data name="Training_KeepRunning" xml:space="preserve">
+    <value>Eğitime devam</value>
+  </data>
+  <data name="Training_StopAndClose" xml:space="preserve">
+    <value>Durdur ve kapat</value>
+  </data>
+  <data name="Training_Stopped" xml:space="preserve">
+    <value>Eğitim durduruldu. O ana kadar kaydedilen ara kayıtlar çıktı klasöründe.</value>
+  </data>
+  <data name="Training_Done" xml:space="preserve">
+    <value>Eğitim bitti. LoRA adaptörü: {0}</value>
+  </data>
+  <data name="Training_FailToolNotFound" xml:space="preserve">
+    <value>Eğitim aracı başlatılamadı: {0}. Komutunu seçin.</value>
+  </data>
+  <data name="Training_FailOutOfMemory" xml:space="preserve">
+    <value>Ekran kartının belleği yetmedi. QLoRA'yı ve bellek tasarrufunu açarak yeniden dışa aktarın, daha küçük bir model seçin ya da bağlam uzunluğunu kısaltın.</value>
+  </data>
+  <data name="Training_FailMissingPackage" xml:space="preserve">
+    <value>Aracın ihtiyaç duyduğu bir Python paketi eksik; günlükte adı geçeni kurun (ör. pip install liger-kernel).</value>
+  </data>
+  <data name="Training_FailNoGpu" xml:space="preserve">
+    <value>Uygun bir ekran kartı bulunamadı. Araç, CUDA (NVIDIA) ya da ROCm (AMD) için derlenmiş PyTorch ister.</value>
+  </data>
+  <data name="Training_FailModel" xml:space="preserve">
+    <value>Temel model indirilemedi: adı yanlış olabilir ya da erişim izni gerekiyor (HF_TOKEN'da bir anahtar).</value>
+  </data>
+  <data name="Training_FailDataset" xml:space="preserve">
+    <value>Araç veri dosyalarını okuyamadı; ayrıntılar günlükte.</value>
+  </data>
+  <data name="Training_FailExit" xml:space="preserve">
+    <value>Eğitim {0} çıkış koduyla durdu; ayrıntılar günlükte.</value>
+  </data>
+  <data name="Training_FailUnknown" xml:space="preserve">
+    <value>Eğitim çalıştırılamadı: {0}</value>
   </data>
   <data name="Export_QLoRAHint" xml:space="preserve">
     <value>Çok daha az GPU belleğiyle, biraz daha yavaş eğitir (7–8B bir model yaklaşık 8 GB'a sığar). bitsandbytes gerekir (AMD'de ROCm sürümü); sonuç yine bir LoRA adaptörüdür.</value>
@@ -1593,6 +1771,18 @@
   <data name="Status_Exported" xml:space="preserve">
     <value>'{1}' veri setinden {0:N0} kayıt dışa aktarıldı: {2}</value>
   </data>
+  <data name="Status_NoTrainingConfig" xml:space="preserve">
+    <value>{0} klasöründe eğitim yapılandırması yok; önce bir veri setini eğitim yapılandırmasıyla dışa aktarın.</value>
+  </data>
+  <data name="Status_TrainingDone" xml:space="preserve">
+    <value>{0} eğitimi bitti: {1}</value>
+  </data>
+  <data name="Status_TrainingFailed" xml:space="preserve">
+    <value>{0} eğitimi başarısız oldu; ayrıntılar eğitim penceresinin günlüğünde.</value>
+  </data>
+  <data name="Status_TrainingStopped" xml:space="preserve">
+    <value>{0} eğitimi durduruldu.</value>
+  </data>
   <data name="Dialog_ExportFileTitle" xml:space="preserve">
     <value>Dosyaya Dışa Aktar</value>
   </data>
@@ -1601,6 +1791,12 @@
   </data>
   <data name="Dialog_ExportFolderTitle" xml:space="preserve">
     <value>train / val / test İçin Klasör Seçin</value>
+  </data>
+  <data name="Dialog_TrainingToolTitle" xml:space="preserve">
+    <value>Eğitim aracının komutunu seçin</value>
+  </data>
+  <data name="Dialog_TrainingFolderTitle" xml:space="preserve">
+    <value>Eğitim yapılandırmasıyla dışa aktarılmış bir klasör seçin</value>
   </data>
   <data name="Export_TrainShare" xml:space="preserve">
     <value>Eğitim %</value>
@@ -1958,6 +2154,9 @@
   </data>
   <data name="Menu_EvaluateModel" xml:space="preserve">
     <value>Modeli Değerlendir…</value>
+  </data>
+  <data name="Menu_TrainModel" xml:space="preserve">
+    <value>Model Eğit…</value>
   </data>
   <data name="AI_Title" xml:space="preserve">
     <value>Yapay zekâ bağlantıları</value>

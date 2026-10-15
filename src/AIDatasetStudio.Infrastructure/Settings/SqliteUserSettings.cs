@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AIDatasetStudio.Application.AI;
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Settings;
+using AIDatasetStudio.Application.Training;
 using AIDatasetStudio.Infrastructure.Settings.Secrets;
 using Microsoft.Data.Sqlite;
 
@@ -14,7 +16,7 @@ namespace AIDatasetStudio.Infrastructure.Settings;
 /// the app. API keys go to the operating system's key store; only without one are they kept in
 /// the file, which only the user can read (ADR-041).
 /// </summary>
-internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore
+internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore, ITrainingToolSettings
 {
     public const string FileName = "app.settings.db";
     public const int MaxRecentWorkspaces = 10;
@@ -24,6 +26,7 @@ internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore
     private const string CheckForUpdatesKey = "updates.check";
     private const string AIConnectionsKey = "ai.connections";
     private const string AIDefaultKey = "ai.default";
+    private const string TrainingToolKeyPrefix = "training.tool.";
 
     // Nulls are written: a missing value would come back as the constructor's default.
     private static readonly JsonSerializerOptions ConnectionJson = new()
@@ -47,6 +50,7 @@ internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore
     private readonly List<string> _recent = [];
     private readonly List<AIConnection> _connections = [];
     private Guid? _defaultConnection;
+    private readonly Dictionary<TrainingFramework, string> _trainingTools = [];
 
     /// <param name="secrets">Where API keys are kept; without one, they are kept in the settings file.</param>
     public SqliteUserSettings(string directory, TimeProvider timeProvider, ISecretStore? secrets = null)
@@ -339,6 +343,32 @@ internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore
         }
     }
 
+    public string? GetToolPath(TrainingFramework framework)
+    {
+        lock (_lock)
+        {
+            return _trainingTools.GetValueOrDefault(framework);
+        }
+    }
+
+    public void SetToolPath(TrainingFramework framework, string? path)
+    {
+        var value = string.IsNullOrWhiteSpace(path) ? null : path.Trim();
+        lock (_lock)
+        {
+            if (value is null)
+            {
+                _trainingTools.Remove(framework);
+            }
+            else
+            {
+                _trainingTools[framework] = value;
+            }
+
+            SaveValue(TrainingToolKeyPrefix + framework, value);
+        }
+    }
+
     public void SetUiLanguage(string? cultureName)
     {
         lock (_lock)
@@ -406,6 +436,13 @@ internal sealed class SqliteUserSettings : IUserSettings, IAIConnectionStore
         _uiTheme = ReadValue(connection, UiThemeKey);
         _checkForUpdates = ReadValue(connection, CheckForUpdatesKey) == "true";
         LoadConnections(ReadValue(connection, AIConnectionsKey), ReadValue(connection, AIDefaultKey));
+        foreach (var framework in Enum.GetValues<TrainingFramework>())
+        {
+            if (ReadValue(connection, TrainingToolKeyPrefix + framework) is { } tool)
+            {
+                _trainingTools[framework] = tool;
+            }
+        }
 
         using (var read = connection.CreateCommand())
         {

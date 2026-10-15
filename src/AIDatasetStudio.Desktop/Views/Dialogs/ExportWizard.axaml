@@ -183,17 +183,8 @@
                   <TextBlock Classes="label" Text="{l:Tr Export_BaseModel}" />
                   <TextBox x:Name="BaseModelBox" Text="{Binding BaseModel}" FontFamily="{StaticResource MonoFontFamily}" PlaceholderText="Qwen/Qwen2.5-7B-Instruct" />
                   <TextBlock Classes="caption muted" Text="{Binding TrainingHint}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                  <CheckBox x:Name="QLoRABox" IsChecked="{Binding UseQLoRA}" Margin="0,8,0,0">
-                    <TextBlock Text="{l:Tr Export_QLoRA}" TextWrapping="Wrap" />
-                  </CheckBox>
-                  <TextBlock Classes="caption muted" Text="{l:Tr Export_QLoRAHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
-                  <CheckBox x:Name="SaveMemoryBox" IsChecked="{Binding SaveMemory}" Margin="0,8,0,0">
-                    <TextBlock Text="{l:Tr Export_SaveMemory}" TextWrapping="Wrap" />
-                  </CheckBox>
-                  <TextBlock Classes="caption muted" Text="{l:Tr Export_SaveMemoryHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
-
                   <!-- The GPU that trains: settings it runs and whether the model fits (M27) -->
-                  <Grid ColumnDefinitions="*,12,*" Margin="0,12,0,0">
+                  <Grid ColumnDefinitions="*,12,*" Margin="0,10,0,0">
                     <StackPanel>
                       <TextBlock Classes="label" Text="{l:Tr Export_Gpu}" />
                       <ComboBox x:Name="GpuBox" ItemsSource="{Binding GpuChoices}" SelectedItem="{Binding SelectedGpu}" HorizontalAlignment="Stretch">
@@ -215,7 +206,26 @@
                       </ComboBox>
                     </StackPanel>
                   </Grid>
-                  <TextBlock Classes="caption muted" Text="{l:Tr Export_GpuAmdHint}" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="{Binding IsAmd}" />
+                  <StackPanel Margin="0,8,0,0">
+                    <TextBlock Classes="label" Text="{l:Tr Export_Platform}" />
+                    <ComboBox x:Name="PlatformBox" ItemsSource="{Binding PlatformChoices}" SelectedItem="{Binding SelectedPlatform}" HorizontalAlignment="Stretch">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PlatformChoice">
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </StackPanel>
+                  <TextBlock x:Name="PlatformHint" Classes="caption muted" Text="{Binding PlatformHint}" TextWrapping="Wrap" Margin="0,6,0,0" IsVisible="{Binding HasPlatformHint}" />
+                  <CheckBox x:Name="QLoRABox" IsChecked="{Binding UseQLoRA}" Margin="0,8,0,0">
+                    <TextBlock Text="{l:Tr Export_QLoRA}" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Classes="caption muted" Text="{l:Tr Export_QLoRAHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
+                  <CheckBox x:Name="SaveMemoryBox" IsChecked="{Binding SaveMemory}" Margin="0,8,0,0">
+                    <TextBlock Text="{Binding SaveMemoryLabel}" TextWrapping="Wrap" />
+                  </CheckBox>
+                  <TextBlock Classes="caption muted" Text="{Binding SaveMemoryHint}" TextWrapping="Wrap" Margin="28,2,0,0" />
+
                   <Border Classes="callout" Classes.warning="{Binding IsMemoryWarning}" Margin="0,10,0,0"
                           IsVisible="{Binding MemoryText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <DockPanel>
@@ -334,6 +344,20 @@
           </Border>
           <TextBlock Classes="title" Text="{l:Tr Export_DoneTitle}" HorizontalAlignment="Center" Margin="0,6,0,0" />
           <TextBlock Classes="secondary" Text="{Binding ResultText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+
+          <!-- Train on the files just written (M28) -->
+          <Border Classes="callout" Margin="0,14,0,0" IsVisible="{Binding CanTrain}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <ic:SymbolIcon Symbol="DeveloperBoard" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{l:Tr Export_TrainNow}" TextWrapping="Wrap" VerticalAlignment="Center" />
+              <Button x:Name="StartTrainingButton" Grid.Column="2" Classes="accent" Command="{Binding StartTrainingCommand}" Margin="12,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="PlayCircle" />
+                  <TextBlock Text="{l:Tr Export_StartTraining}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+          </Border>
 
           <Border Classes="card" Margin="0,14,0,0">
             <ItemsControl Classes="lines" ItemsSource="{Binding WrittenFiles}">

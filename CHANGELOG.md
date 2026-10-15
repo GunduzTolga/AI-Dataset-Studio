@@ -5,6 +5,40 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-13
+
+The first release: the complete MVP of the design document (SDD §20) and what was built on it —
+dataset versions, tags, near duplicates, AI writing, judging and variations, questions from
+documents, customer conversations, cloud model services, training configurations, dataset merging,
+model evaluation — up to training from the app. Offline unless you connect a model service, on
+Windows, macOS and Linux, in English and Turkish.
+
+### Workspaces and records
+- Portable `.adstudio` workspace files (SQLite) with projects and datasets of three types:
+  instruction, chat and preference (DPO).
+- A virtualized record list for 100,000+ records with full-text search (Turkish-aware), status
+  filters and quality filters.
+- A type-aware editor with automatic saving, review shortcuts (Mod+Enter, Mod+Shift+Backspace,
+  F8), multi-select batch actions and undo / redo.
+
+### Import and export
+- Import from JSON Lines, JSON arrays and CSV (column mapping, delimiter and encoding detection,
+  Turkish Excel files) with a live preview and a report of skipped rows.
+- Export to OpenAI JSONL, ShareGPT, Alpaca, Hugging Face DPO, ChatML and Llama 3 text, with a
+  hash-based train / validation / test split that keeps questions in one file and stays stable
+  as the dataset grows.
+
+### Quality and privacy
+- Offline token counts (o200k_base, cl100k_base) against each dataset's context length.
+- Eleven quality rules and a 0–100 score, with a dataset overview and one-click clean-up.
+- Detection and masking of personal data and secrets (e-mail, phone, Turkish ID, IBAN, cards,
+  internal addresses, API keys, passwords and your own terms), as a preview and at export.
+
+### Installation
+- Installers for Windows (x64), macOS (Apple silicon and Intel) and Linux (x64 AppImage).
+- Optional update check (off by default; Help › Check for Updates). No telemetry.
+- Unexpected errors are written to a local log (Help › About › Open Log Folder).
+
 ### Writing records by hand
 - **Record › New Record** (Mod+Shift+N), the **New record** button above the list and **Write a
   record** on an empty dataset add an empty draft of the dataset's type (a chat starts with a user
@@ -24,6 +58,35 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - The export wizard's training configuration can load the model in 4 bits (**QLoRA**): far less
   GPU memory, for Axolotl and LLaMA-Factory alike.
 
+### Training from the app
+- **Start training** on the export's result screen, or **Tools › Train a Model…** for a folder
+  exported before, runs LLaMA-Factory or Axolotl — the one installed on this computer — on the
+  exported files. The window shows the step and the time left, the epoch, the training and
+  validation loss with a live loss chart, the learning rate, the GPU's memory (from nvidia-smi or
+  rocm-smi) and the tool's log. Stop ends the tool and everything it started; closing the window
+  while training asks first. A failed run says why and what to do: the GPU ran out of memory, a
+  Python package is missing, no suitable GPU, the model could not be downloaded.
+
+### Training on Windows
+- The export wizard asks which system trains: **Windows** (the default on Windows) or Linux, WSL
+  or the cloud. On Windows the configuration runs there: memory saving keeps activations in RAM
+  without Liger (Triton has no Windows build), Axolotl is not offered (LLaMA-Factory is), the
+  estimate counts the memory the desktop keeps, and the file says which PyTorch to install:
+  CUDA's for NVIDIA, AMD's PyTorch for Windows for AMD. Export settings remembered before this
+  choice existed use the system the app runs on, so a Windows computer does not get Liger again.
+- The training window finds `llamafactory-cli.exe` where Python on Windows puts it even when it
+  is not on PATH: python.org's and the Microsoft Store's Python, `pip --user`, Miniconda and
+  Anaconda environments, and a `venv`/`.venv` in a folder of your own.
+- GPU memory is shown on Windows for AMD cards too, from Windows' own GPU counters.
+- Pull requests are tested on Windows as well as Linux.
+
+### One window per file
+- A workspace file is open in one AI Dataset Studio window at a time. Opening it in a second
+  window, or creating a new workspace in its place there, says "open in another AI Dataset
+  Studio window" and leaves the file alone. While the file is open a `-lock` file sits next to it,
+  as `-wal` and `-shm` do; it goes when the file closes, and after a crash it does not keep the
+  file shut.
+
 ### Training on your GPU
 - The export wizard asks for the **GPU** (NVIDIA or AMD) and its **memory**. It estimates the
   memory the model needs from the size in its name and says whether it fits, only just fits or
@@ -32,32 +95,6 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - **AMD (ROCm)** configurations use an optimizer ROCm runs and say what to install.
 - **Save memory** turns on Liger kernels and keeps activations in RAM: the same training in
   noticeably less GPU memory, a little slower, on NVIDIA and AMD alike.
-
-### Fixes
-- A small dataset whose validation or test part comes out empty no longer gets a training
-  configuration that names the empty file: LLaMA-Factory stopped with "at least one example"
-  before training. Found in an end-to-end trial (Hugging Face-shaped Parquet file → import →
-  export → LLaMA-Factory 0.9.5 LoRA and DPO training).
-- The training-configuration test no longer fails on Windows, where the checkout gives the
-  expected text Windows line endings.
-- WhatsApp chats exported on iOS no longer bring attachments ("<attached: …>"), deleted messages
-  or WhatsApp's notices in as customer messages, and Android exports with media leave out the
-  attached file's line while keeping its caption.
-- Anthropic models that take only their own temperature are asked again without one, as OpenAI's
-  reasoning models already were.
-- An API key is saved once typing pauses, not at every keystroke, and is deleted when the
-  connection is switched to another service, so it is never sent to that service.
-- LLaMA-Factory reads the system prompts of Alpaca exports: `dataset_info.json` names the
-  `system` column when a written record has one.
-- Merging datasets runs in the background with its progress and Cancel working, and model
-  evaluation chooses its questions without holding up the window.
-- Web pages with broken markup no longer stop an import: a table cell outside a table is read as
-  text, pages that never close their tags are read quickly and can be stopped, and a charset that
-  cannot be used (UTF-7, UTF-16 without a byte order mark) is ignored.
-- A damaged or encrypted ZIP attached inside a Notion or Confluence export is left out instead of
-  failing the whole import.
-- Comparing judged records with others and finding questions to compare by meaning no longer hold
-  up the window, and closing the judge window mid-run still shows the scores already kept.
 
 ### Leaving out records the model scored low
 - The export wizard's **Leave out records the model scored low (1–2)** keeps records that
@@ -186,9 +223,6 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - A judgment is kept with the content it judged: after an edit it is shown as out of date and no
   longer counts.
 
-### Fixed
-- Mod+G now stops writing with AI, as the menu says; the shortcut was disabled while the model wrote.
-
 ### Variations
 - **Record › Generate Variations** (Mod+Shift+G, also in the editor's header and in the panel for
   several selected records) has the model ask each record's question in other words: 1–10
@@ -304,33 +338,27 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 - Versions keep tags: comparisons show tag changes and going back to a version restores the
   tags of existing records too.
 
-## [1.0.0] - 2026-10-08
-
-The first release: the complete MVP of the design document (SDD §20), offline on Windows, macOS
-and Linux, in English and Turkish.
-
-### Workspaces and records
-- Portable `.adstudio` workspace files (SQLite) with projects and datasets of three types:
-  instruction, chat and preference (DPO).
-- A virtualized record list for 100,000+ records with full-text search (Turkish-aware), status
-  filters and quality filters.
-- A type-aware editor with automatic saving, review shortcuts (Mod+Enter, Mod+Shift+Backspace,
-  F8), multi-select batch actions and undo / redo.
-
-### Import and export
-- Import from JSON Lines, JSON arrays and CSV (column mapping, delimiter and encoding detection,
-  Turkish Excel files) with a live preview and a report of skipped rows.
-- Export to OpenAI JSONL, ShareGPT, Alpaca, Hugging Face DPO, ChatML and Llama 3 text, with a
-  hash-based train / validation / test split that keeps questions in one file and stays stable
-  as the dataset grows.
-
-### Quality and privacy
-- Offline token counts (o200k_base, cl100k_base) against each dataset's context length.
-- Eleven quality rules and a 0–100 score, with a dataset overview and one-click clean-up.
-- Detection and masking of personal data and secrets (e-mail, phone, Turkish ID, IBAN, cards,
-  internal addresses, API keys, passwords and your own terms), as a preview and at export.
-
-### Installation
-- Installers for Windows (x64), macOS (Apple silicon and Intel) and Linux (x64 AppImage).
-- Optional update check (off by default; Help › Check for Updates). No telemetry.
-- Unexpected errors are written to a local log (Help › About › Open Log Folder).
+### Fixed during the pre-release trials
+- A small dataset whose validation or test part comes out empty no longer gets a training
+  configuration that names the empty file: LLaMA-Factory stopped with "at least one example"
+  before training. Found in an end-to-end trial (Hugging Face-shaped Parquet file → import →
+  export → LLaMA-Factory 0.9.5 LoRA and DPO training).
+- WhatsApp chats exported on iOS no longer bring attachments ("<attached: …>"), deleted messages
+  or WhatsApp's notices in as customer messages, and Android exports with media leave out the
+  attached file's line while keeping its caption.
+- Anthropic models that take only their own temperature are asked again without one, as OpenAI's
+  reasoning models already were.
+- An API key is saved once typing pauses, not at every keystroke, and is deleted when the
+  connection is switched to another service, so it is never sent to that service.
+- LLaMA-Factory reads the system prompts of Alpaca exports: `dataset_info.json` names the
+  `system` column when a written record has one.
+- Merging datasets runs in the background with its progress and Cancel working, and model
+  evaluation chooses its questions without holding up the window.
+- Web pages with broken markup no longer stop an import: a table cell outside a table is read as
+  text, pages that never close their tags are read quickly and can be stopped, and a charset that
+  cannot be used (UTF-7, UTF-16 without a byte order mark) is ignored.
+- A damaged or encrypted ZIP attached inside a Notion or Confluence export is left out instead of
+  failing the whole import.
+- Comparing judged records with others and finding questions to compare by meaning no longer hold
+  up the window, and closing the judge window mid-run still shows the scores already kept.
+- Mod+G now stops writing with AI, as the menu says; the shortcut was disabled while the model wrote.

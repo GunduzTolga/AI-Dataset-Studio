@@ -256,7 +256,12 @@ public sealed class ExportWizardTests
         wizard.SelectedTraining = wizard.TrainingChoices.Single(c => c.Framework == TrainingFramework.Axolotl);
         Assert.Equal(["NVIDIA (CUDA)", "AMD (ROCm)"], wizard.GpuChoices.Select(c => c.Label));
         Assert.Equal("Not given", wizard.SelectedGpuMemory!.Label);
-        Assert.False(wizard.IsAmd);
+
+        // The files are trained where they are exported, unless the user says otherwise; here, on Linux.
+        Assert.Equal(OperatingSystem.IsWindows() ? TrainingPlatform.Windows : TrainingPlatform.Linux, wizard.SelectedPlatform!.Platform);
+        wizard.SelectedPlatform = wizard.PlatformChoices.Single(c => c.Platform == TrainingPlatform.Linux);
+        Assert.False(wizard.HasPlatformHint);
+        Assert.Equal("Save memory: Liger kernels, activations kept in RAM", wizard.SaveMemoryLabel);
 
         // Without the GPU's memory, only the estimate.
         string Gb(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
@@ -266,7 +271,7 @@ public sealed class ExportWizardTests
         // A 7B model with LoRA does not fit a 16 GB GPU: the wizard says what to turn on.
         wizard.SelectedGpu = wizard.GpuChoices.Single(c => c.Vendor == GpuVendor.Amd);
         wizard.SelectedGpuMemory = wizard.GpuMemoryChoices.Single(c => c.Gigabytes == 16);
-        Assert.True(wizard.IsAmd);
+        Assert.StartsWith("Install PyTorch's ROCm build", wizard.PlatformHint, StringComparison.Ordinal);
         Assert.Equal(MemoryFit.TooBig, wizard.MemoryFitLevel);
         Assert.True(wizard.IsMemoryWarning);
         Assert.EndsWith("does not fit a 16 GB GPU. Turn on QLoRA and memory saving, or choose a smaller model.", wizard.MemoryText, StringComparison.Ordinal);
@@ -298,6 +303,53 @@ public sealed class ExportWizardTests
         var again = CreateWizard(host, dataset.Id);
         await again.InitializeAsync();
         Assert.Equal((GpuVendor.Amd, (int?)16, true), (again.SelectedGpu!.Vendor, again.SelectedGpuMemory!.Gigabytes, again.SaveMemory));
+    });
+
+    [Fact]
+    public Task Training_on_Windows_gets_settings_that_run_there_and_Axolotl_is_not_offered_for_it() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction, Samples);
+        var wizard = CreateWizard(host, dataset.Id);
+        await wizard.InitializeAsync();
+        wizard.IncludeDraft = true;
+        wizard.SelectedSplitMode = wizard.SplitModes.Single(m => m.Mode == SplitMode.TrainValidation);
+        wizard.SelectedPlatform = wizard.PlatformChoices.Single(c => c.Platform == TrainingPlatform.Windows);
+        Assert.Equal(["Linux, WSL or cloud", "Windows"], wizard.PlatformChoices.Select(c => c.Label));
+
+        // Axolotl does not run on Windows itself.
+        wizard.SelectedTraining = wizard.TrainingChoices.Single(c => c.Framework == TrainingFramework.Axolotl);
+        await wizard.PendingWork;
+        Assert.Null(wizard.Options);
+        Assert.Equal("Axolotl does not run on Windows; choose LLaMA-Factory, or train on Linux or in WSL.", wizard.ProblemText);
+
+        // The laptop: NVIDIA on Windows.
+        wizard.SelectedTraining = wizard.TrainingChoices.Single(c => c.Framework == TrainingFramework.LlamaFactory);
+        wizard.SelectedGpuMemory = wizard.GpuMemoryChoices.Single(c => c.Gigabytes == 6);
+        wizard.UseQLoRA = true;
+        wizard.SaveMemory = true;
+        Assert.StartsWith("On Windows: install PyTorch with CUDA", wizard.PlatformHint, StringComparison.Ordinal);
+        Assert.Equal("Save memory: activations kept in RAM", wizard.SaveMemoryLabel);
+        string Gb(double value) => value.ToString("0.#", CultureInfo.CurrentCulture);
+        wizard.BaseModel = "Qwen/Qwen2.5-3B-Instruct";
+        Assert.Equal($"Needs about {Gb(TrainingMemory.EstimateGb(3, true, true, windows: true))} GB: fits a 6 GB GPU.", wizard.MemoryText);
+
+        // The desktop: AMD on Windows.
+        wizard.SelectedGpu = wizard.GpuChoices.Single(c => c.Vendor == GpuVendor.Amd);
+        Assert.StartsWith("On Windows with an AMD GPU: install AMD's PyTorch for Windows", wizard.PlatformHint, StringComparison.Ordinal);
+        await wizard.PendingWork;
+        Assert.Equal(TrainingPlatform.Windows, wizard.Options!.Training!.Platform);
+        var folder = Path.Combine(host.Directory, "windows");
+        Directory.CreateDirectory(folder);
+        host.Files.ExportFolder = folder;
+        await wizard.ExportCommand.ExecuteAsync(null);
+        var yaml = await File.ReadAllTextAsync(Path.Combine(folder, "llamafactory.yaml"), TestContext.Current.CancellationToken);
+        Assert.Contains("use_unsloth_gc: true\n", yaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("enable_liger_kernel", yaml, StringComparison.Ordinal);
+
+        var again = CreateWizard(host, dataset.Id);
+        await again.InitializeAsync();
+        Assert.Equal(TrainingPlatform.Windows, again.SelectedPlatform!.Platform);
     });
 
     [Fact]

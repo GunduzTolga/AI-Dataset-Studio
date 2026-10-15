@@ -91,6 +91,28 @@ internal sealed class FileDialogService(Func<TopLevel?> topLevel, Localizer loca
         return folders.Count == 1 ? folders[0].TryGetLocalPath() : null;
     }
 
+    public async Task<string?> PickTrainingToolAsync()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = localizer["Dialog_TrainingToolTitle"],
+            AllowMultiple = false,
+        });
+
+        return files.Count == 1 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task<string?> PickTrainingFolderAsync()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = localizer["Dialog_TrainingFolderTitle"],
+            AllowMultiple = false,
+        });
+
+        return folders.Count == 1 ? folders[0].TryGetLocalPath() : null;
+    }
+
     private FilePickerFileType WorkspaceFileType() => new(localizer["Dialog_WorkspaceFileType"])
     {
         Patterns = ["*" + WorkspaceFile.Extension],

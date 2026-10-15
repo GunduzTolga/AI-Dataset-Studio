@@ -107,4 +107,9 @@ public interface IDialogService
     /// Shows evaluating a model until the window is closed.
     /// </summary>
     Task ShowModelEvaluationAsync(ModelEvaluationViewModel evaluation);
+
+    /// <summary>
+    /// The training window (M28); returns once it is closed, the run stopped.
+    /// </summary>
+    Task ShowTrainingAsync(ViewModels.Training.TrainingViewModel training);
 }

@@ -1,0 +1,216 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AIDatasetStudio.Desktop.ViewModels.Training"
+        xmlns:l="using:AIDatasetStudio.Desktop.Localization"
+        xmlns:c="using:AIDatasetStudio.Desktop.Controls"
+        xmlns:ic="using:FluentIcons.Avalonia"
+        x:Class="AIDatasetStudio.Desktop.Views.Dialogs.TrainingWindow"
+        x:DataType="vm:TrainingViewModel"
+        Title="{l:Tr Training_Title}"
+        Width="1080" Height="740"
+        MinWidth="860" MinHeight="580"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceBrush}">
+  <DockPanel>
+    <!-- Header -->
+    <Border DockPanel.Dock="Top" Padding="24,18,24,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Width="40" Height="40" CornerRadius="10" Background="{DynamicResource AccentSubtleBrush}">
+          <ic:SymbolIcon Symbol="DeveloperBoard" FontSize="22" Foreground="{DynamicResource AccentTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+        <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center" Spacing="2">
+          <TextBlock Classes="title" Text="{l:Tr Training_Title}" />
+          <TextBlock x:Name="TargetText" Classes="small muted" Text="{Binding TitleText}" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+        <Border Grid.Column="2" Classes="chip" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Ellipse Width="8" Height="8" Fill="{DynamicResource AccentBrush}" IsVisible="{Binding IsRunning}" VerticalAlignment="Center" />
+            <ic:SymbolIcon Symbol="CheckmarkCircle" FontSize="14" Foreground="{DynamicResource PositiveBrush}" IsVisible="{Binding IsSucceeded}" VerticalAlignment="Center" />
+            <ic:SymbolIcon Symbol="ErrorCircle" FontSize="14" Foreground="{DynamicResource DangerTextBrush}" IsVisible="{Binding IsFailed}" VerticalAlignment="Center" />
+            <TextBlock x:Name="StateText" Classes="small strong" Text="{Binding StateText}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- Footer -->
+    <Border DockPanel.Dock="Bottom" Padding="24,14" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <ToggleButton x:Name="LogToggle" Classes="subtle" IsChecked="{Binding ShowLog}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ic:SymbolIcon Symbol="DocumentText" />
+            <TextBlock Text="{l:Tr Training_Log}" />
+          </StackPanel>
+        </ToggleButton>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button x:Name="OpenOutputButton" Classes="subtle" Command="{Binding OpenOutputCommand}" IsVisible="{Binding HasResult}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="FolderOpen" />
+              <TextBlock Text="{l:Tr Training_OpenOutput}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="StopButton" Classes="danger" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Stop" />
+              <TextBlock Text="{l:Tr Training_Stop}" />
+            </StackPanel>
+          </Button>
+          <Button x:Name="StartButton" Classes="accent" Command="{Binding StartCommand}" IsVisible="{Binding IsIdle}" IsDefault="True">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="PlayCircle" />
+              <TextBlock Text="{l:Tr Training_Start}" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- The tool's log -->
+    <Border DockPanel.Dock="Bottom" Height="190" IsVisible="{Binding ShowLog}" Background="{DynamicResource AppBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <TextBox x:Name="LogBox" Text="{Binding LogText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+               FontFamily="{StaticResource MonoFontFamily}" FontSize="11" BorderThickness="0" Background="Transparent"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="12,6" />
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="24,16,24,20" Spacing="14">
+        <!-- Closing while training -->
+        <Border Classes="callout warning" IsVisible="{Binding IsConfirmingClose}">
+          <StackPanel Spacing="8">
+            <DockPanel>
+              <ic:SymbolIcon Symbol="Warning" />
+              <TextBlock Text="{l:Tr Training_ConfirmClose}" />
+            </DockPanel>
+            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+              <Button Classes="subtle" Content="{l:Tr Training_KeepRunning}" Command="{Binding KeepRunningCommand}" />
+              <Button x:Name="StopAndCloseButton" Classes="danger" Content="{l:Tr Training_StopAndClose}" Command="{Binding StopAndCloseCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- The tool -->
+        <StackPanel Spacing="6" IsEnabled="{Binding IsIdle}">
+          <TextBlock Classes="label" Text="{Binding ToolLabel}" />
+          <Grid ColumnDefinitions="*,8,Auto">
+            <TextBox x:Name="ToolBox" Text="{Binding ToolPath}" FontFamily="{StaticResource MonoFontFamily}" PlaceholderText="llamafactory-cli" />
+            <Button x:Name="BrowseToolButton" Grid.Column="2" Classes="subtle" Content="{l:Tr Training_BrowseTool}" Command="{Binding BrowseToolCommand}" />
+          </Grid>
+          <TextBlock Classes="caption muted" Text="{Binding ToolHint}" TextWrapping="Wrap" />
+          <TextBlock Classes="caption mono" Text="{Binding CommandText}" Foreground="{DynamicResource TextSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- The result -->
+        <Border Classes="callout" Classes.danger="{Binding IsFailed}" IsVisible="{Binding ResultText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <DockPanel>
+            <Panel>
+              <ic:SymbolIcon Symbol="CheckmarkCircle" IsVisible="{Binding IsSucceeded}" />
+              <ic:SymbolIcon Symbol="ErrorCircle" IsVisible="{Binding IsFailed}" />
+              <ic:SymbolIcon Symbol="Info" IsVisible="{Binding IsStopped}" />
+            </Panel>
+            <SelectableTextBlock x:Name="ResultText" Text="{Binding ResultText}" TextWrapping="Wrap" />
+          </DockPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="*,16,300">
+          <StackPanel Spacing="14">
+            <!-- Progress -->
+            <Border Classes="card" Padding="16,14">
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock x:Name="StepText" Classes="strong" Text="{Binding StepText}" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" IsVisible="{Binding TimeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <ic:SymbolIcon Symbol="Timer" FontSize="14" Foreground="{DynamicResource TextMutedBrush}" />
+                    <TextBlock x:Name="TimeText" Classes="small muted" Text="{Binding TimeText}" />
+                  </StackPanel>
+                </Grid>
+                <ProgressBar Value="{Binding Percent}" Maximum="100" Height="8" IsIndeterminate="{Binding IsPreparing}" />
+              </StackPanel>
+            </Border>
+
+            <!-- Numbers -->
+            <UniformGrid Columns="4">
+              <Border Classes="card" Padding="12,10" Margin="0,0,8,0">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="overline" Text="{l:Tr Training_Epoch}" />
+                  <TextBlock x:Name="EpochValue" Classes="subtitle numeric" Text="{Binding EpochText}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="card" Padding="12,10" Margin="4,0">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="overline" Text="{l:Tr Training_Loss}" />
+                  <TextBlock x:Name="LossValue" Classes="subtitle numeric" Text="{Binding LossText}" Foreground="{DynamicResource AccentTextBrush}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="card" Padding="12,10" Margin="4,0">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="overline" Text="{l:Tr Training_EvalLoss}" />
+                  <TextBlock x:Name="EvalLossValue" Classes="subtitle numeric" Text="{Binding EvalLossText}" Foreground="{DynamicResource WarningTextBrush}" />
+                </StackPanel>
+              </Border>
+              <Border Classes="card" Padding="12,10" Margin="8,0,0,0">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="overline" Text="{l:Tr Training_LearningRate}" />
+                  <TextBlock Classes="subtitle numeric" Text="{Binding LearningRateText}" />
+                </StackPanel>
+              </Border>
+            </UniformGrid>
+
+            <!-- Loss curves -->
+            <Border Classes="card" Padding="16,12">
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Classes="overline" Text="{l:Tr Training_Curve}" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Border Width="14" Height="3" CornerRadius="2" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                      <TextBlock Classes="small muted" Text="{l:Tr Training_Loss}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Border Width="14" Height="3" CornerRadius="2" Background="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" />
+                      <TextBlock Classes="small muted" Text="{l:Tr Training_EvalLoss}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+                <Panel Height="240">
+                  <c:LossChart x:Name="Chart" TrainPoints="{Binding TrainPoints}" EvalPoints="{Binding EvalPoints}"
+                               TrainBrush="{DynamicResource AccentBrush}" EvalBrush="{DynamicResource WarningTextBrush}"
+                               GridBrush="{DynamicResource BorderBrush}" LabelBrush="{DynamicResource TextMutedBrush}" />
+                  <TextBlock Classes="small muted" Text="{l:Tr Training_CurveEmpty}" IsVisible="{Binding !HasCurve}"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="360" TextAlignment="Center" />
+                </Panel>
+                <TextBlock Classes="caption muted" Text="{l:Tr Training_CurveHint}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Grid.Column="2" Spacing="14">
+            <!-- GPU -->
+            <Border Classes="card" Padding="16,14">
+              <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <ic:SymbolIcon Symbol="DeveloperBoard" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" />
+                  <TextBlock Classes="overline" Text="{l:Tr Training_GpuTitle}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock x:Name="GpuText" Text="{Binding GpuText}" TextWrapping="Wrap" IsVisible="{Binding HasGpu}" />
+                <ProgressBar Value="{Binding GpuPercent}" Maximum="100" Height="8" IsVisible="{Binding HasGpu}" />
+                <TextBlock Classes="caption muted" Text="{l:Tr Training_GpuNone}" TextWrapping="Wrap" IsVisible="{Binding !HasGpu}" />
+              </StackPanel>
+            </Border>
+
+            <!-- What to know -->
+            <Border Classes="card" Padding="16,14">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="overline" Text="{l:Tr Training_AboutTitle}" />
+                <TextBlock Classes="small secondary" Text="{l:Tr Training_About}" TextWrapping="Wrap" />
+                <TextBlock Classes="caption mono muted" Text="{Binding Target.Folder}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

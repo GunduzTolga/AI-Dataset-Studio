@@ -15,6 +15,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string? _connectionString;
+    private WorkspaceLock? _lock;
     private int _disposed;
 
     public WorkspaceInfo? Current { get; private set; }
@@ -34,9 +35,19 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                 throw new WorkspaceFileException(WorkspaceFileError.AlreadyExists, fullPath, $"'{fullPath}' already exists.");
             }
 
-            // Close first: the file being replaced may be the one that is currently open.
-            await CloseCoreAsync(cancellationToken);
-            DeleteWorkspaceFiles(fullPath);
+            // Before anything is deleted: the file being replaced may be open in another copy of the app.
+            var fileLock = LockFor(fullPath);
+            try
+            {
+                // Close first: the file being replaced may be the one that is currently open.
+                await CloseCoreAsync(cancellationToken, keep: fileLock);
+                DeleteWorkspaceFiles(fullPath);
+            }
+            catch
+            {
+                ReleaseUnlessCurrent(fileLock);
+                throw;
+            }
 
             var connectionString = WorkspaceDatabase.BuildConnectionString(fullPath, allowCreate: true);
             try
@@ -60,6 +71,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
             {
                 SqliteConnection.ClearPool(new SqliteConnection(connectionString));
                 DeleteWorkspaceFiles(fullPath);
+                ReleaseUnlessCurrent(fileLock);
                 if (ex is SqliteException sqliteException)
                 {
                     throw Unavailable(fullPath, sqliteException);
@@ -68,7 +80,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                 throw;
             }
 
-            return SetCurrent(fullPath, connectionString, workspace);
+            return SetCurrent(fullPath, connectionString, workspace, fileLock);
         }
         finally
         {
@@ -88,6 +100,8 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                 throw new WorkspaceFileException(WorkspaceFileError.NotFound, fullPath, $"'{fullPath}' does not exist.");
             }
 
+            // Before the file is read: opening upgrades and repairs it, which another copy of the app must not see.
+            var fileLock = LockFor(fullPath);
             var connectionString = WorkspaceDatabase.BuildConnectionString(fullPath, allowCreate: false);
             try
             {
@@ -98,7 +112,7 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                     await EnsureNotNewerThanAppAsync(fullPath, probe, cancellationToken);
                 }
 
-                await CloseCoreAsync(cancellationToken);
+                await CloseCoreAsync(cancellationToken, keep: fileLock);
 
                 Workspace workspace;
                 await using (var context = new WorkspaceDbContext(WorkspaceDatabase.BuildOptions(connectionString)))
@@ -115,16 +129,18 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
                     await SearchIndex.RepairAsync(connection, cancellationToken);
                 }
 
-                return SetCurrent(fullPath, connectionString, workspace);
+                return SetCurrent(fullPath, connectionString, workspace, fileLock);
             }
             catch (SqliteException ex) when (ex.SqliteErrorCode is SqliteNotADatabase or SqliteCorrupt)
             {
                 SqliteConnection.ClearPool(new SqliteConnection(connectionString));
+                ReleaseUnlessCurrent(fileLock);
                 throw new WorkspaceFileException(WorkspaceFileError.NotAWorkspace, fullPath, $"'{fullPath}' is not an {WorkspaceFile.DisplayName} file.", ex);
             }
             catch (Exception ex)
             {
                 SqliteConnection.ClearPool(new SqliteConnection(connectionString));
+                ReleaseUnlessCurrent(fileLock);
                 if (ex is SqliteException sqliteException)
                 {
                     throw Unavailable(fullPath, sqliteException);
@@ -214,15 +230,29 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
         }
     }
 
-    private WorkspaceInfo SetCurrent(string fullPath, string connectionString, Workspace workspace)
+    // The open workspace's own lock when the same file is opened or replaced again.
+    private WorkspaceLock LockFor(string fullPath) =>
+        _lock is { } current && current.IsFor(fullPath) ? current : WorkspaceLock.Acquire(fullPath);
+
+    // After a failed open or create: a lock taken for it goes, the open workspace's stays.
+    private void ReleaseUnlessCurrent(WorkspaceLock fileLock)
+    {
+        if (!ReferenceEquals(fileLock, _lock))
+        {
+            fileLock.Dispose();
+        }
+    }
+
+    private WorkspaceInfo SetCurrent(string fullPath, string connectionString, Workspace workspace, WorkspaceLock fileLock)
     {
         _connectionString = connectionString;
+        _lock = fileLock;
         Current = new WorkspaceInfo(fullPath, workspace.Id, workspace.Name, workspace.Description, workspace.CreatedAt);
         CurrentChanged?.Invoke(this, EventArgs.Empty);
         return Current;
     }
 
-    private async Task CloseCoreAsync(CancellationToken cancellationToken)
+    private async Task CloseCoreAsync(CancellationToken cancellationToken, WorkspaceLock? keep = null)
     {
         if (_connectionString is not { } connectionString)
         {
@@ -238,6 +268,13 @@ internal sealed class WorkspaceService(TimeProvider timeProvider) : IWorkspaceSe
             SqliteConnection.ClearPool(connection);
         }
 
+        // Released once the file is whole again; kept when the same file is being opened or replaced.
+        if (!ReferenceEquals(_lock, keep))
+        {
+            _lock?.Dispose();
+        }
+
+        _lock = null;
         _connectionString = null;
         Current = null;
         CurrentChanged?.Invoke(this, EventArgs.Empty);

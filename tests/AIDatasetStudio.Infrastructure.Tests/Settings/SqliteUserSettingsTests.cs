@@ -1,4 +1,5 @@
 using AIDatasetStudio.Application.AI;
+using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Infrastructure.Settings;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Settings;
@@ -30,6 +31,20 @@ public sealed class SqliteUserSettingsTests : IDisposable
 
         reloaded.SetUiLanguage(null);
         Assert.Null(new SqliteUserSettings(_directory, _clock).UiLanguage);
+    }
+
+    [Fact]
+    public void Training_tool_paths_survive_a_restart_per_tool()
+    {
+        var settings = new SqliteUserSettings(_directory, _clock);
+        settings.SetToolPath(TrainingFramework.LlamaFactory, "  /home/me/venv/bin/llamafactory-cli ");
+
+        var reloaded = new SqliteUserSettings(_directory, _clock);
+        Assert.Equal("/home/me/venv/bin/llamafactory-cli", reloaded.GetToolPath(TrainingFramework.LlamaFactory));
+        Assert.Null(reloaded.GetToolPath(TrainingFramework.Axolotl));
+
+        reloaded.SetToolPath(TrainingFramework.LlamaFactory, " ");
+        Assert.Null(new SqliteUserSettings(_directory, _clock).GetToolPath(TrainingFramework.LlamaFactory));
     }
 
     [Fact]

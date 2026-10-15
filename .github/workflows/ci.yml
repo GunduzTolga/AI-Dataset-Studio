@@ -26,8 +26,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Pull requests run on Linux only; macOS minutes are expensive on private repositories.
-        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-latest","macos-latest"]') }}
+        # Pull requests run on Linux and on Windows, the platform the app is mostly used on; macOS
+        # runs once a change is merged.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest","windows-latest"]') || fromJSON('["ubuntu-latest","windows-latest","macos-latest"]') }}
 
     steps:
       - uses: actions/checkout@v6

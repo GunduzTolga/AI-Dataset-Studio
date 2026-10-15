@@ -31,8 +31,15 @@ public enum TrainingFramework
 /// <param name="GpuMemoryGb">The GPU's memory; sets the batch size. <c>null</c> when not given.</param>
 /// <param name="SaveMemory">Fused Liger kernels and activations moved to the computer's memory between
 /// layers (M27): the same training, in less GPU memory, a little slower.</param>
+/// <param name="Platform">The operating system that trains (M29): Windows gets settings that run there.</param>
 public sealed record TrainingOptions(
-    TrainingFramework Framework, string BaseModel, bool QLoRA = false, GpuVendor Gpu = GpuVendor.Nvidia, int? GpuMemoryGb = null, bool SaveMemory = false);
+    TrainingFramework Framework,
+    string BaseModel,
+    bool QLoRA = false,
+    GpuVendor Gpu = GpuVendor.Nvidia,
+    int? GpuMemoryGb = null,
+    bool SaveMemory = false,
+    TrainingPlatform Platform = TrainingPlatform.Linux);
 
 /// <summary>
 /// What a configuration is written for: the dataset, its export and the files it wrote.
@@ -81,6 +88,19 @@ public static class TrainingConfigs
         };
 
     /// <summary>
+    /// Whether the tool runs on the system at all: Axolotl does not run on Windows itself (only in WSL).
+    /// </summary>
+    public static bool Supports(TrainingFramework framework, TrainingPlatform platform) =>
+        !(framework == TrainingFramework.Axolotl && platform == TrainingPlatform.Windows);
+
+    /// <summary>
+    /// The system the files are most often trained on: the computer that exports them. Also the
+    /// system of export profiles saved before M29, which did not record one.
+    /// </summary>
+    public static TrainingPlatform DefaultPlatform =>
+        OperatingSystem.IsWindows() ? TrainingPlatform.Windows : TrainingPlatform.Linux;
+
+    /// <summary>
     /// The files to write next to the data, by name.
     /// </summary>
     /// <exception cref="ArgumentException">The tool cannot read this format.</exception>
@@ -91,6 +111,11 @@ public static class TrainingConfigs
         if (!Supports(training.Framework, target.Format, target.Type))
         {
             throw new ArgumentException($"{training.Framework} cannot train on {target.Format} files of a {target.Type} dataset.", nameof(training));
+        }
+
+        if (!Supports(training.Framework, training.Platform))
+        {
+            throw new ArgumentException($"{training.Framework} does not run on {training.Platform}.", nameof(training));
         }
 
         var model = string.IsNullOrWhiteSpace(training.BaseModel) ? DefaultBaseModel(target.Format) : training.BaseModel.Trim();
@@ -264,7 +289,14 @@ public static class TrainingConfigs
         yaml.Comment("model");
         yaml.Line("model_name_or_path", Quote(model));
         yaml.Line("trust_remote_code", "true");
-        if (training.SaveMemory)
+        if (training.SaveMemory && training.Platform == TrainingPlatform.Windows)
+        {
+            // Liger's kernels are written in Triton, which has no Windows build.
+            yaml.Comment("memory saving: activations kept in the computer's memory between layers; same training,");
+            yaml.Comment("less GPU memory, a little slower (Liger kernels need Triton, which does not run on Windows)");
+            yaml.Line("use_unsloth_gc", "true");
+        }
+        else if (training.SaveMemory)
         {
             yaml.Comment("memory saving: fused Liger kernels (pip install liger-kernel) and activations kept in the");
             yaml.Comment("computer's memory between layers; same training, less GPU memory, a little slower");
@@ -399,9 +431,17 @@ public static class TrainingConfigs
     {
         yaml.Comment($"Fine-tuning \"{target.DatasetName}\" with LoRA, written by AI Dataset Studio.");
         yaml.Comment($"Run it from this folder: {command}");
-        if (training.Gpu == GpuVendor.Amd)
+        switch (training.Platform, training.Gpu)
         {
-            yaml.Comment("AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.");
+            case (TrainingPlatform.Windows, GpuVendor.Amd):
+                yaml.Comment("Windows with an AMD GPU: install AMD's PyTorch for Windows (ROCm, Python 3.12, rocm.docs.amd.com) before the tool.");
+                break;
+            case (TrainingPlatform.Windows, _):
+                yaml.Comment("Windows: install PyTorch with CUDA before the tool (pip install torch --index-url https://download.pytorch.org/whl/cu126).");
+                break;
+            case (_, GpuVendor.Amd):
+                yaml.Comment("AMD GPU (ROCm): install PyTorch's ROCm build (pytorch.org) before the tool, on Linux or WSL.");
+                break;
         }
 
         if (File(target, SplitPart.Test) is { } test)
@@ -412,8 +452,12 @@ public static class TrainingConfigs
         yaml.Blank();
     }
 
-    private static string QLoRANeeds(TrainingOptions training) =>
-        training.Gpu == GpuVendor.Amd ? "bitsandbytes' ROCm build" : "bitsandbytes";
+    private static string QLoRANeeds(TrainingOptions training) => (training.Platform, training.Gpu) switch
+    {
+        (TrainingPlatform.Windows, GpuVendor.Amd) => "a bitsandbytes build for ROCm on Windows, which only the community makes",
+        (_, GpuVendor.Amd) => "bitsandbytes' ROCm build",
+        _ => "bitsandbytes",
+    };
 
     private static string Train(TrainingTarget target) =>
         File(target, SplitPart.Train) ?? target.Files.First(f => f.Part is null).FileName;

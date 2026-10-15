@@ -1,0 +1,243 @@
+Converting format of dataset (num_proc=8):   0%|          | 0/169 [00:00<?, ? examples/s]Converting format of dataset (num_proc=8):  13%|█▎        | 22/169 [00:00<00:01, 137.12 examples/s]Converting format of dataset (num_proc=8): 100%|██████████| 169/169 [00:00<00:00, 546.21 examples/s]
+Converting format of dataset (num_proc=8):   0%|          | 0/34 [00:00<?, ? examples/s]Converting format of dataset (num_proc=8):  15%|█▍        | 5/34 [00:00<00:01, 28.40 examples/s]Converting format of dataset (num_proc=8): 100%|██████████| 34/34 [00:00<00:00, 104.25 examples/s]
+[INFO|2026-10-11 09:26:01] llamafactory.model.model_utils.misc:144 >> Found linear modules: up_proj,gate_proj,o_proj,q_proj,v_proj,down_proj,k_proj
+[INFO|2026-10-11 09:26:01] llamafactory.model.loader:144 >> trainable params: 32,768 || all params: 145,472 || trainable%: 22.5253
+[INFO|trainer.py:1469] 2026-10-11 09:26:01,897 >> ***** Running training *****
+[INFO|trainer.py:1470] 2026-10-11 09:26:01,897 >>   Num examples = 169
+[INFO|trainer.py:1471] 2026-10-11 09:26:01,897 >>   Num Epochs = 3
+[INFO|trainer.py:1472] 2026-10-11 09:26:01,897 >>   Num update steps per epoch = 22
+[INFO|trainer.py:1473] 2026-10-11 09:26:01,897 >>   Instantaneous batch size per device = 2
+[INFO|trainer.py:1476] 2026-10-11 09:26:01,897 >>   Total train batch size (w. parallel, distributed & accumulation) = 8
+[INFO|trainer.py:1477] 2026-10-11 09:26:01,897 >>   Gradient Accumulation steps = 4
+[INFO|trainer.py:1478] 2026-10-11 09:26:01,897 >>   Total optimization steps = 66
+[INFO|trainer.py:1479] 2026-10-11 09:26:01,897 >>   Number of trainable parameters = 32,768
+  0%|          | 0/66 [00:00<?, ?it/s]  3%|▎         | 2/66 [00:00<00:04, 15.07it/s]  6%|▌         | 4/66 [00:00<00:03, 16.39it/s]  9%|▉         | 6/66 [00:00<00:03, 16.97it/s] 12%|█▏        | 8/66 [00:00<00:03, 17.41it/s] 15%|█▌        | 10/66 [00:00<00:03, 16.81it/s]                                               {'loss': '6.392', 'grad_norm': '0.4496', 'learning_rate': '9.972e-05', 'epoch': '0.4706'}
+ 15%|█▌        | 10/66 [00:00<00:03, 16.81it/s] 18%|█▊        | 12/66 [00:00<00:03, 15.64it/s] 21%|██        | 14/66 [00:00<00:03, 16.39it/s] 26%|██▌       | 17/66 [00:01<00:02, 17.70it/s] 29%|██▉       | 19/66 [00:01<00:02, 18.13it/s]                                               {'loss': '6.383', 'grad_norm': '0.4181', 'learning_rate': '9.014e-05', 'epoch': '0.9412'}
+ 30%|███       | 20/66 [00:01<00:02, 18.13it/s] 32%|███▏      | 21/66 [00:01<00:02, 18.33it/s][INFO|trainer.py:2668] 2026-10-11 09:26:01,897 >> 
+***** Running Evaluation *****
+[INFO|trainer.py:2670] 2026-10-11 09:26:01,897 >>   Num examples = 34
+[INFO|trainer.py:2673] 2026-10-11 09:26:01,897 >>   Batch size = 1
+
+  0%|          | 0/34 [00:00<?, ?it/s][A
+ 82%|████████▏ | 28/34 [00:00<00:00, 272.79it/s][A                                               
+                                                [A{'eval_loss': '6.371', 'eval_runtime': '0.1286', 'eval_samples_per_second': '264.3', 'eval_steps_per_second': '264.3', 'epoch': '1'}
+ 33%|███▎      | 22/66 [00:01<00:02, 18.33it/s]
+100%|██████████| 34/34 [00:00<00:00, 272.79it/s][A
+                                                [A[INFO|trainer.py:3815] 2026-10-11 09:26:01,897 >> Saving model checkpoint to saves/alpaca/lora/sft/checkpoint-22
+[INFO|hub.py:364] 2026-10-11 09:26:01,897 >> Offline mode: forcing local_files_only=True
+[INFO|configuration_utils.py:769] 2026-10-11 09:26:01,897 >> loading configuration file /data/model
+[INFO|configuration_utils.py:847] 2026-10-11 09:26:01,897 >> Model config Qwen2Config {
+  "architectures": [
+    "Qwen2ForCausalLM"
+  ],
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "float32",
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 64,
+  "initializer_range": 0.02,
+  "intermediate_size": 128,
+  "layer_types": [
+    "full_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 4096,
+  "max_window_layers": 28,
+  "model_type": "qwen2",
+  "num_attention_heads": 4,
+  "num_hidden_layers": 2,
+  "num_key_value_heads": 2,
+  "pad_token_id": 0,
+  "rms_norm_eps": 1e-06,
+  "rope_parameters": {
+    "rope_theta": 10000.0,
+    "rope_type": "default"
+  },
+  "sliding_window": null,
+  "tie_word_embeddings": true,
+  "transformers_version": "5.6.0",
+  "use_cache": true,
+  "use_sliding_window": false,
+  "vocab_size": 600
+}
+
+[INFO|tokenization_utils_base.py:3278] 2026-10-11 09:26:01,897 >> chat template saved in saves/alpaca/lora/sft/checkpoint-22/chat_template.jinja
+[INFO|tokenization_utils_base.py:2111] 2026-10-11 09:26:01,897 >> tokenizer config file saved in saves/alpaca/lora/sft/checkpoint-22/tokenizer_config.json
+ 35%|███▍      | 23/66 [00:01<00:03, 14.22it/s] 38%|███▊      | 25/66 [00:01<00:02, 15.52it/s] 41%|████      | 27/66 [00:01<00:02, 15.65it/s] 44%|████▍     | 29/66 [00:01<00:02, 16.11it/s]                                               {'loss': '6.362', 'grad_norm': '0.4727', 'learning_rate': '6.944e-05', 'epoch': '1.376'}
+ 45%|████▌     | 30/66 [00:01<00:02, 16.11it/s] 47%|████▋     | 31/66 [00:01<00:02, 13.39it/s] 50%|█████     | 33/66 [00:02<00:02, 13.06it/s] 53%|█████▎    | 35/66 [00:02<00:02, 13.27it/s] 56%|█████▌    | 37/66 [00:02<00:02, 13.82it/s] 59%|█████▉    | 39/66 [00:02<00:01, 14.59it/s]                                               {'loss': '6.333', 'grad_norm': '0.4977', 'learning_rate': '4.336e-05', 'epoch': '1.847'}
+ 61%|██████    | 40/66 [00:02<00:01, 14.59it/s] 62%|██████▏   | 41/66 [00:02<00:01, 15.44it/s] 65%|██████▌   | 43/66 [00:02<00:01, 16.27it/s][INFO|trainer.py:2668] 2026-10-11 09:26:01,897 >> 
+***** Running Evaluation *****
+[INFO|trainer.py:2670] 2026-10-11 09:26:01,897 >>   Num examples = 34
+[INFO|trainer.py:2673] 2026-10-11 09:26:01,897 >>   Batch size = 1
+
+  0%|          | 0/34 [00:00<?, ?it/s][A
+ 85%|████████▌ | 29/34 [00:00<00:00, 286.87it/s][A                                               
+                                                [A{'eval_loss': '6.34', 'eval_runtime': '0.1236', 'eval_samples_per_second': '275', 'eval_steps_per_second': '275', 'epoch': '2'}
+ 67%|██████▋   | 44/66 [00:02<00:01, 16.27it/s]
+100%|██████████| 34/34 [00:00<00:00, 286.87it/s][A
+                                                [A[INFO|trainer.py:3815] 2026-10-11 09:26:01,897 >> Saving model checkpoint to saves/alpaca/lora/sft/checkpoint-44
+[INFO|hub.py:364] 2026-10-11 09:26:01,897 >> Offline mode: forcing local_files_only=True
+[INFO|configuration_utils.py:769] 2026-10-11 09:26:01,897 >> loading configuration file /data/model
+[INFO|configuration_utils.py:847] 2026-10-11 09:26:01,897 >> Model config Qwen2Config {
+  "architectures": [
+    "Qwen2ForCausalLM"
+  ],
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "float32",
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 64,
+  "initializer_range": 0.02,
+  "intermediate_size": 128,
+  "layer_types": [
+    "full_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 4096,
+  "max_window_layers": 28,
+  "model_type": "qwen2",
+  "num_attention_heads": 4,
+  "num_hidden_layers": 2,
+  "num_key_value_heads": 2,
+  "pad_token_id": 0,
+  "rms_norm_eps": 1e-06,
+  "rope_parameters": {
+    "rope_theta": 10000.0,
+    "rope_type": "default"
+  },
+  "sliding_window": null,
+  "tie_word_embeddings": true,
+  "transformers_version": "5.6.0",
+  "use_cache": true,
+  "use_sliding_window": false,
+  "vocab_size": 600
+}
+
+[INFO|tokenization_utils_base.py:3278] 2026-10-11 09:26:01,897 >> chat template saved in saves/alpaca/lora/sft/checkpoint-44/chat_template.jinja
+[INFO|tokenization_utils_base.py:2111] 2026-10-11 09:26:01,897 >> tokenizer config file saved in saves/alpaca/lora/sft/checkpoint-44/tokenizer_config.json
+ 68%|██████▊   | 45/66 [00:02<00:01, 13.50it/s] 71%|███████   | 47/66 [00:03<00:01, 14.77it/s] 74%|███████▍  | 49/66 [00:03<00:01, 15.90it/s]                                               {'loss': '6.323', 'grad_norm': '0.4403', 'learning_rate': '1.912e-05', 'epoch': '2.282'}
+ 76%|███████▌  | 50/66 [00:03<00:01, 15.90it/s] 77%|███████▋  | 51/66 [00:03<00:00, 16.77it/s] 80%|████████  | 53/66 [00:03<00:00, 17.29it/s] 83%|████████▎ | 55/66 [00:03<00:00, 17.39it/s] 86%|████████▋ | 57/66 [00:03<00:00, 16.87it/s] 89%|████████▉ | 59/66 [00:03<00:00, 16.75it/s]                                               {'loss': '6.318', 'grad_norm': '0.4162', 'learning_rate': '3.433e-06', 'epoch': '2.753'}
+ 91%|█████████ | 60/66 [00:03<00:00, 16.75it/s] 92%|█████████▏| 61/66 [00:03<00:00, 17.01it/s] 95%|█████████▌| 63/66 [00:03<00:00, 16.14it/s] 98%|█████████▊| 65/66 [00:04<00:00, 17.13it/s][INFO|trainer.py:2668] 2026-10-11 09:26:01,897 >> 
+***** Running Evaluation *****
+[INFO|trainer.py:2670] 2026-10-11 09:26:01,897 >>   Num examples = 34
+[INFO|trainer.py:2673] 2026-10-11 09:26:01,897 >>   Batch size = 1
+
+  0%|          | 0/34 [00:00<?, ?it/s][A
+ 88%|████████▊ | 30/34 [00:00<00:00, 299.53it/s][A                                               
+                                                [A{'eval_loss': '6.334', 'eval_runtime': '0.1196', 'eval_samples_per_second': '284.2', 'eval_steps_per_second': '284.2', 'epoch': '3'}
+100%|██████████| 66/66 [00:04<00:00, 17.13it/s]
+100%|██████████| 34/34 [00:00<00:00, 299.53it/s][A
+                                                [A[INFO|trainer.py:3815] 2026-10-11 09:26:01,897 >> Saving model checkpoint to saves/alpaca/lora/sft/checkpoint-66
+[INFO|hub.py:364] 2026-10-11 09:26:01,897 >> Offline mode: forcing local_files_only=True
+[INFO|configuration_utils.py:769] 2026-10-11 09:26:01,897 >> loading configuration file /data/model
+[INFO|configuration_utils.py:847] 2026-10-11 09:26:01,897 >> Model config Qwen2Config {
+  "architectures": [
+    "Qwen2ForCausalLM"
+  ],
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "float32",
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 64,
+  "initializer_range": 0.02,
+  "intermediate_size": 128,
+  "layer_types": [
+    "full_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 4096,
+  "max_window_layers": 28,
+  "model_type": "qwen2",
+  "num_attention_heads": 4,
+  "num_hidden_layers": 2,
+  "num_key_value_heads": 2,
+  "pad_token_id": 0,
+  "rms_norm_eps": 1e-06,
+  "rope_parameters": {
+    "rope_theta": 10000.0,
+    "rope_type": "default"
+  },
+  "sliding_window": null,
+  "tie_word_embeddings": true,
+  "transformers_version": "5.6.0",
+  "use_cache": true,
+  "use_sliding_window": false,
+  "vocab_size": 600
+}
+
+[INFO|tokenization_utils_base.py:3278] 2026-10-11 09:26:01,897 >> chat template saved in saves/alpaca/lora/sft/checkpoint-66/chat_template.jinja
+[INFO|tokenization_utils_base.py:2111] 2026-10-11 09:26:01,897 >> tokenizer config file saved in saves/alpaca/lora/sft/checkpoint-66/tokenizer_config.json
+[INFO|trainer.py:1823] 2026-10-11 09:26:01,897 >> 
+
+Training completed. Do not forget to share your model on huggingface.co/models =)
+
+
+                                               {'train_runtime': '4.25', 'train_samples_per_second': '119.3', 'train_steps_per_second': '15.53', 'train_loss': '6.349', 'epoch': '3'}
+100%|██████████| 66/66 [00:04<00:00, 17.13it/s]100%|██████████| 66/66 [00:04<00:00, 15.53it/s]
+[INFO|trainer.py:3815] 2026-10-11 09:26:01,897 >> Saving model checkpoint to saves/alpaca/lora/sft
+[INFO|hub.py:364] 2026-10-11 09:26:01,897 >> Offline mode: forcing local_files_only=True
+[INFO|configuration_utils.py:769] 2026-10-11 09:26:01,897 >> loading configuration file /data/model
+[INFO|configuration_utils.py:847] 2026-10-11 09:26:01,897 >> Model config Qwen2Config {
+  "architectures": [
+    "Qwen2ForCausalLM"
+  ],
+  "attention_dropout": 0.0,
+  "bos_token_id": null,
+  "dtype": "float32",
+  "eos_token_id": 2,
+  "hidden_act": "silu",
+  "hidden_size": 64,
+  "initializer_range": 0.02,
+  "intermediate_size": 128,
+  "layer_types": [
+    "full_attention",
+    "full_attention"
+  ],
+  "max_position_embeddings": 4096,
+  "max_window_layers": 28,
+  "model_type": "qwen2",
+  "num_attention_heads": 4,
+  "num_hidden_layers": 2,
+  "num_key_value_heads": 2,
+  "pad_token_id": 0,
+  "rms_norm_eps": 1e-06,
+  "rope_parameters": {
+    "rope_theta": 10000.0,
+    "rope_type": "default"
+  },
+  "sliding_window": null,
+  "tie_word_embeddings": true,
+  "transformers_version": "5.6.0",
+  "use_cache": true,
+  "use_sliding_window": false,
+  "vocab_size": 600
+}
+
+[INFO|tokenization_utils_base.py:3278] 2026-10-11 09:26:01,897 >> chat template saved in saves/alpaca/lora/sft/chat_template.jinja
+[INFO|tokenization_utils_base.py:2111] 2026-10-11 09:26:01,897 >> tokenizer config file saved in saves/alpaca/lora/sft/tokenizer_config.json
+***** train metrics *****
+  epoch                    =        3.0
+  total_flos               =       31GF
+  train_loss               =     6.3494
+  train_runtime            = 0:00:04.25
+  train_samples_per_second =     119.28
+  train_steps_per_second   =     15.528
+Figure saved at: saves/alpaca/lora/sft/training_loss.png
+Figure saved at: saves/alpaca/lora/sft/training_eval_loss.png
+[WARNING|2026-10-11 09:26:06] llamafactory.extras.ploting:149 >> No metric eval_accuracy to plot.
+[INFO|trainer.py:2668] 2026-10-11 09:26:01,897 >> 
+***** Running Evaluation *****
+[INFO|trainer.py:2670] 2026-10-11 09:26:01,897 >>   Num examples = 34
+[INFO|trainer.py:2673] 2026-10-11 09:26:01,897 >>   Batch size = 1
+  0%|          | 0/34 [00:00<?, ?it/s] 82%|████████▏ | 28/34 [00:00<00:00, 279.59it/s]100%|██████████| 34/34 [00:00<00:00, 276.17it/s]
+***** eval metrics *****
+  epoch                   =        3.0
+  eval_loss               =     6.3336
+  eval_runtime            = 0:00:00.13
+  eval_samples_per_second =    257.796
+  eval_steps_per_second   =    257.796
+[INFO|modelcard.py:263] 2026-10-11 09:26:01,897 >> Dropping the following result as it does not have all the necessary fields:
+{'task': {'name': 'Causal Language Modeling', 'type': 'text-generation'}}

@@ -17,6 +17,20 @@ public enum GpuVendor
 }
 
 /// <summary>
+/// The operating system the training runs on (M29). Values are persisted by name in export
+/// profiles; never rename existing members.
+/// </summary>
+public enum TrainingPlatform
+{
+    /// <summary>Linux, WSL or a cloud machine: every option the tools have.</summary>
+    Linux,
+
+    /// <summary>Windows itself: LLaMA-Factory only, no Triton (so no Liger kernels), and the
+    /// desktop keeps part of the GPU's memory.</summary>
+    Windows,
+}
+
+/// <summary>
 /// How a training run is expected to sit in the GPU's memory.
 /// </summary>
 public enum MemoryFit
@@ -35,7 +49,8 @@ public enum MemoryFit
 /// the rank-16 adapter with its gradients and optimizer state (about 0.1 GB) and the activations
 /// kept between layers (0.07 GB, 0.02 GB when they are moved to the computer's memory). On top:
 /// the logits of a 2048-token sequence over a large vocabulary (1.2 GB, 0.2 GB with fused
-/// kernels) and the GPU runtime itself (0.8 GB). Batch size 1.
+/// kernels) and the GPU runtime itself (0.8 GB); on Windows, 0.5 GB more that the desktop keeps.
+/// Batch size 1.
 /// </remarks>
 public static partial class TrainingMemory
 {
@@ -67,14 +82,14 @@ public static partial class TrainingMemory
     /// <summary>
     /// The GPU memory, in GB, a LoRA run on a model of this size is expected to need.
     /// </summary>
-    public static double EstimateGb(double parameterBillions, bool qlora, bool saveMemory)
+    public static double EstimateGb(double parameterBillions, bool qlora, bool saveMemory, bool windows = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(parameterBillions);
         var weights = parameterBillions * (qlora ? 0.6 : 2.0);
         var adapter = parameterBillions * 0.1;
         var activations = parameterBillions * (saveMemory ? 0.02 : 0.07);
         var logits = saveMemory ? 0.2 : 1.2;
-        return weights + adapter + activations + logits + 0.8;
+        return weights + adapter + activations + logits + 0.8 + (windows ? 0.5 : 0);
     }
 
     /// <summary>
@@ -89,8 +104,8 @@ public static partial class TrainingMemory
     /// The largest common model size that fits a GPU with 4-bit loading and memory saving; <c>null</c>
     /// when not even the smallest does.
     /// </summary>
-    public static double? LargestFitting(int gpuMemoryGb) =>
-        CommonSizes.LastOrDefault(size => Fit(EstimateGb(size, qlora: true, saveMemory: true), gpuMemoryGb) != MemoryFit.TooBig) is var size and > 0
+    public static double? LargestFitting(int gpuMemoryGb, bool windows = false) =>
+        CommonSizes.LastOrDefault(size => Fit(EstimateGb(size, qlora: true, saveMemory: true, windows), gpuMemoryGb) != MemoryFit.TooBig) is var size and > 0
             ? size
             : null;
 

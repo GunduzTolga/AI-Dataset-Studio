@@ -7,6 +7,7 @@ using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 using AIDatasetStudio.Domain.ValueObjects;
+using AIDatasetStudio.Infrastructure.Export;
 using AIDatasetStudio.Infrastructure.Tests.Support;
 
 namespace AIDatasetStudio.Infrastructure.Tests.Export;
@@ -307,6 +308,25 @@ public sealed class ExportServiceTests
         // No test part, no split: nothing.
         Assert.Empty(await ws.Export.GetSplitPartAsync(datasetId, options with { Split = SplitOptions.TrainValidation }, SplitPart.Test, Ct));
         Assert.Empty(await ws.Export.GetSplitPartAsync(datasetId, options with { Split = null }, SplitPart.Test, Ct));
+    }
+
+    [Fact]
+    public void A_training_configuration_saved_before_the_system_was_asked_trains_on_this_computer()
+    {
+        // As M27 saved it: no "platform". Read back as Linux, a Windows computer got Liger kernels.
+        const string saved = """
+            {"format":"ShareGpt","statuses":["Approved"],"skipOverContextLimit":true,"skipDuplicates":true,"maskPersonalData":true,
+             "split":null,"training":{"framework":"LlamaFactory","baseModel":"Qwen/Qwen2.5-7B-Instruct","qLoRA":true,"gpu":"Nvidia",
+             "gpuMemoryGb":6,"saveMemory":true},"skipLowJudgeScore":false}
+            """;
+
+        var read = ExportService.ReadOptions(saved, TrainingPlatform.Windows)!.Training!;
+
+        Assert.Equal(new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct", QLoRA: true, GpuMemoryGb: 6, SaveMemory: true, Platform: TrainingPlatform.Windows), read);
+
+        // A recorded system is kept.
+        var linux = saved.Replace("\"saveMemory\":true", "\"saveMemory\":true,\"platform\":\"Linux\"", StringComparison.Ordinal);
+        Assert.Equal(TrainingPlatform.Linux, ExportService.ReadOptions(linux, TrainingPlatform.Windows)!.Training!.Platform);
     }
 
     [Fact]

@@ -24,4 +24,10 @@ public interface IFileDialogService
 
     /// <returns>The folder for split files, or <c>null</c> if the user cancelled.</returns>
     Task<string?> PickExportFolderAsync();
+
+    /// <returns>The training tool's command (<c>llamafactory-cli</c>, <c>axolotl</c>), or <c>null</c> if the user cancelled.</returns>
+    Task<string?> PickTrainingToolAsync();
+
+    /// <returns>A folder an export wrote with a training configuration, or <c>null</c> if the user cancelled.</returns>
+    Task<string?> PickTrainingFolderAsync();
 }
