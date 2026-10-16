@@ -100,6 +100,33 @@ public sealed class PiiScannerTests
     }
 
     [Fact]
+    public void Reasoning_is_masked_with_the_same_placeholders()
+    {
+        var instruction = (InstructionPayload)Scanner.Mask(new InstructionPayload("Kime yazayım?", "", "ali@firma.com adresine.", "Kayıtta ali@firma.com var.")).Payload;
+        var chat = (ChatPayload)Scanner.Mask(new ChatPayload(null,
+            [new(ChatRole.User, "Kime yazayım?"), new(ChatRole.Assistant, "ali@firma.com adresine.", "Kayıtta ali@firma.com var.")])).Payload;
+
+        Assert.Equal(("[EMAIL_1] adresine.", "Kayıtta [EMAIL_1] var."), (instruction.Output, instruction.Reasoning));
+        Assert.Equal(("[EMAIL_1] adresine.", "Kayıtta [EMAIL_1] var."), (chat.Messages[1].Content, chat.Messages[1].Reasoning));
+    }
+
+    [Fact]
+    public void Tool_call_arguments_and_results_are_masked_as_JSON_and_the_tools_are_not()
+    {
+        const string tool = """{"name": "send_mail", "description": "Örnek: ali@firma.com"}""";
+        var payload = (ToolCallingPayload)Scanner.Mask(new ToolCallingPayload(null, [tool],
+        [
+            new(ChatRole.User, "ali@firma.com adresine yaz."),
+            new(ChatRole.Assistant, "", toolCalls: [new ToolCall("send_mail", """{"to": "ali@firma.com"}""", """{"sent_to": "ali@firma.com"}""")]),
+            new(ChatRole.Assistant, "Gönderildi."),
+        ])).Payload;
+
+        Assert.Equal([tool], payload.Tools);
+        Assert.Equal("[EMAIL_1] adresine yaz.", payload.Messages[0].Content);
+        Assert.Equal(new ToolCall("send_mail", """{"to": "[EMAIL_1]"}""", """{"sent_to": "[EMAIL_1]"}"""), payload.Messages[1].ToolCalls[0]);
+    }
+
+    [Fact]
     public void Clean_payloads_are_returned_as_they_are()
     {
         var payload = new InstructionPayload("Başkent neresi?", "", "Ankara.");

@@ -7,11 +7,13 @@ namespace AIDatasetStudio.Domain.Payloads;
 /// </summary>
 public sealed record InstructionPayload : RecordPayload
 {
-    public InstructionPayload(string? instruction, string? input, string? output)
+    /// <param name="reasoning">The thinking shown before the output (SDD §4.1); kept only when not blank.</param>
+    public InstructionPayload(string? instruction, string? input, string? output, string? reasoning = null)
     {
         Instruction = instruction ?? string.Empty;
         Input = input ?? string.Empty;
         Output = output ?? string.Empty;
+        Reasoning = string.IsNullOrWhiteSpace(reasoning) ? null : reasoning;
     }
 
     public override DatasetType Type => DatasetType.Instruction;
@@ -22,9 +24,18 @@ public sealed record InstructionPayload : RecordPayload
 
     public string Output { get; }
 
-    protected override IEnumerable<string?> GetCanonicalParts() => [Instruction, Input, Output];
+    /// <summary>
+    /// The model's reasoning (thinking) before the output, for training reasoning models; <c>null</c> for none.
+    /// </summary>
+    public string? Reasoning { get; }
 
-    public override IEnumerable<string> GetSearchableTexts() => [Instruction, Input, Output];
+    // Without reasoning the parts are those of earlier versions, so stored hashes stay valid;
+    // the null part marks what follows as the reasoning.
+    protected override IEnumerable<string?> GetCanonicalParts() =>
+        Reasoning is null ? [Instruction, Input, Output] : [Instruction, Input, Output, null, Reasoning];
+
+    public override IEnumerable<string> GetSearchableTexts() =>
+        Reasoning is null ? [Instruction, Input, Output] : [Instruction, Input, Output, Reasoning];
 
     protected override string? GetPreviewSource() =>
         FirstNonBlank(Instruction, Input, Output);

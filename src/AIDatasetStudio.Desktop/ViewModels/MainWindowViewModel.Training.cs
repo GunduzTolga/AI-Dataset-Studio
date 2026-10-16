@@ -46,5 +46,12 @@ public sealed partial class MainWindowViewModel
                 Status.Set("Status_TrainingStopped", target.Name);
                 break;
         }
+
+        // "Evaluate the model": the adapter just trained answers the dataset's test questions (M30).
+        if (training.EvaluateRequested && target is { DatasetId: { } datasetId, DatasetType: { } type })
+        {
+            var evaluation = await _evaluator.CreateAsync(datasetId, target.Name, type, target.Folder);
+            await _dialogs.ShowModelEvaluationAsync(evaluation);
+        }
     }
 }

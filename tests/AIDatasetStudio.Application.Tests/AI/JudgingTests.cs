@@ -48,6 +48,40 @@ public sealed class JudgingTests
     }
 
     [Fact]
+    public void Reasoning_is_shown_to_the_judge_and_weighed()
+    {
+        var instruction = Judging.Prompt(new InstructionPayload("2+2?", "", "4", "İki artı iki dört eder."), null, null, "English");
+        var chat = Judging.Prompt(new ChatPayload(null, [new(ChatRole.User, "2+2?"), new(ChatRole.Assistant, "4", "İki artı iki.")]), null, null, "English");
+        var plain = Judging.Prompt(new InstructionPayload("2+2?", "", "4"), null, null, "English");
+
+        Assert.Contains("Mistakes in the reasoning, and reasoning that does not lead to the answer, lower the score.", instruction[0].Content, StringComparison.Ordinal);
+        Assert.Equal("Question:\n2+2?\n\nReasoning before the answer:\nİki artı iki dört eder.\n\nAnswer:\n4", instruction[1].Content);
+        Assert.Equal("Conversation:\n\nUser: 2+2?\n\nAssistant's reasoning: İki artı iki.\n\nAssistant: 4", chat[1].Content);
+        Assert.DoesNotContain("reasoning", plain[0].Content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void A_tool_calling_record_is_judged_with_its_functions_calls_and_results()
+    {
+        var payload = new ToolCallingPayload(null, ["""{ "name": "fee", "description": "Kargo ücreti" }"""],
+        [
+            new(ChatRole.User, "Kargo ne kadar?"),
+            new(ChatRole.Assistant, "", toolCalls: [new ToolCall("fee", "{ }", "49,90 TL")]),
+            new(ChatRole.Assistant, "Kargo 49,90 TL."),
+        ]);
+
+        var prompt = Judging.Prompt(payload, null, null, "English");
+
+        Assert.True(Judging.Supports(DatasetType.ToolCalling) && Judging.CanJudge(payload));
+        Assert.Contains("Rate the assistant's function calls and replies in the conversation", prompt[0].Content, StringComparison.Ordinal);
+        Assert.Contains("call the right function with correct arguments", prompt[0].Content, StringComparison.Ordinal);
+        Assert.Equal(
+            "Functions:\n{\"name\":\"fee\",\"description\":\"Kargo ücreti\"}\n\nConversation:\n\nUser: Kargo ne kadar?\n\nAssistant calls: fee {}\n\nResult of fee: 49,90 TL\n\nAssistant: Kargo 49,90 TL.",
+            prompt[1].Content);
+        Assert.Equal(("Kargo ne kadar?", "Kargo 49,90 TL."), (Variations.SourceOf(payload)!.Question, Variations.SourceOf(payload)!.Answer));
+    }
+
+    [Fact]
     public void An_answer_written_from_a_document_is_checked_against_its_passage()
     {
         var passage = new PassageSource("kılavuz.pdf", "Sipariş › Kargo", "page", 3, 3, "Kargo 500 TL üzeri siparişlerde ücretsizdir.");

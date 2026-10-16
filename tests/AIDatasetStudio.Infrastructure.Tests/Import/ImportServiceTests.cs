@@ -45,6 +45,26 @@ public sealed class ImportServiceTests
     }
 
     [Fact]
+    public async Task Tool_calling_files_are_recognized_and_imported_with_their_calls()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.ToolCalling, Ct);
+        var path = ws.WriteFile("tools.jsonl", Lines(
+            """{"messages": [{"role": "user", "content": "Kadıköy?"}, {"role": "assistant", "content": null, "tool_calls": [{"id": "1", "type": "function", "function": {"name": "get_forecast", "arguments": "{\"location\": \"Kadıköy\"}"}}]}, {"role": "tool", "tool_call_id": "1", "content": "19"}, {"role": "assistant", "content": "19 derece."}], "tools": [{"type": "function", "function": {"name": "get_forecast"}}]}""",
+            """{"messages": [{"role": "user", "content": "Merhaba"}, {"role": "assistant", "content": "Merhaba!"}], "tools": []}"""));
+
+        var analysis = await ws.Import.AnalyzeAsync(path, DatasetType.ToolCalling, cancellationToken: Ct);
+        var result = await ws.Import.ImportAsync(PlanFrom(analysis, DatasetType.ToolCalling), datasetId, cancellationToken: Ct);
+
+        Assert.Equal((SourceLayout.OpenAiTools, true), (analysis.Layout, analysis.SupportsTargetType));
+        Assert.False((await ws.Import.AnalyzeAsync(path, DatasetType.Chat, cancellationToken: Ct)).SupportsTargetType);
+        Assert.Equal((2, 0), (result.Imported, result.Skipped));
+        var page = await ws.Queries.GetPageAsync(datasetId, RecordFilter.None, after: null, pageSize: 10, Ct);
+        var first = (ToolCallingPayload)(await ws.Queries.GetAsync(page.Items[0].Id, Ct))!.Payload;
+        Assert.Equal(new ToolCall("get_forecast", "{\"location\":\"Kadıköy\"}", "19"), first.Messages[1].ToolCalls.Single());
+    }
+
+    [Fact]
     public async Task Analyzes_a_turkish_excel_csv()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);

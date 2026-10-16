@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Application.Training;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Tests.Support;
 using AIDatasetStudio.Desktop.ViewModels.AI;
@@ -141,6 +142,86 @@ public sealed class ModelEvaluationTests
 
         await host.Main.EvaluateModelCommand.ExecuteAsync(null);
         Assert.NotNull(host.Dialogs.LastEvaluation);
+    });
+
+    [Fact]
+    public Task A_model_trained_on_the_last_export_is_served_for_the_evaluation_and_a_failure_to_load_it_says_why() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction,
+            [.. Enumerable.Range(0, 40).Select(i => new InstructionPayload($"Soru {Code(i)}", "", "14 gün içinde."))]);
+        var training = new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct", QLoRA: true);
+        var options = new ExportOptions(ExportFormat.Alpaca, [RecordStatus.Draft], Split: SplitOptions.Standard, Training: training);
+        var folder = Path.Combine(host.Directory, "split");
+        await host.Get<IExportService>().ExportAsync(dataset.Id, options, folder, cancellationToken: TestContext.Current.CancellationToken);
+        host.AddAIConnection();
+
+        // Not trained yet: only the connections.
+        host.Dialogs.EvaluationScript = evaluation =>
+        {
+            Assert.Equal(["qwen2.5:7b · Ollama"], evaluation.Models.Select(m => m.Label));
+            return Task.CompletedTask;
+        };
+        await host.Main.EvaluateModelCommand.ExecuteAsync(null);
+
+        var adapter = Path.Combine(folder, "saves", "dataset", "qlora", "sft");
+        Directory.CreateDirectory(adapter);
+        await File.WriteAllTextAsync(Path.Combine(adapter, TrainedAdapters.AdapterFile), "{}", TestContext.Current.CancellationToken);
+        host.Dialogs.EvaluationScript = async evaluation =>
+        {
+            // Offered first with the base model before training, but the default connection stays chosen;
+            // neither grades.
+            Assert.Equal(
+                ["Trained model: Qwen2.5-7B-Instruct + QLoRA (split)", "Before training: Qwen2.5-7B-Instruct (4 bit)", "qwen2.5:7b · Ollama"],
+                evaluation.Models.Select(m => m.Label));
+            Assert.Equal(["qwen2.5:7b · Ollama"], evaluation.Judges.Select(m => m.Label));
+            Assert.Same(evaluation.Judges[0], evaluation.SelectedModel);
+            evaluation.SelectedModel = evaluation.Models[0];
+            evaluation.SampleSize = 1;
+
+            host.Server.Failure = new ModelServerException(TrainingFailure.OutOfMemory, ["torch.OutOfMemoryError: CUDA out of memory."], "stopped");
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+            Assert.StartsWith("The trained model could not be loaded: The GPU ran out of memory.", evaluation.ErrorMessage, StringComparison.Ordinal);
+            Assert.Empty(evaluation.Rows);
+            Assert.False(evaluation.HasHistory);
+
+            host.Trainer.Tool = null;
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+            Assert.StartsWith("The trained model is served by LLaMA-Factory, but its command was not found.", evaluation.ErrorMessage, StringComparison.Ordinal);
+            host.Trainer.Tool = "/opt/venv/bin/llamafactory-cli";
+
+            // Served once, then asked again without loading it again.
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+            Assert.Null(evaluation.ErrorMessage);
+            Assert.Equal(2, host.Server.Starts.Count);
+            Assert.Equal(["Qwen2.5-7B-Instruct + QLoRA (split)", "Qwen2.5-7B-Instruct + QLoRA (split)"], evaluation.History.Select(r => r.Model));
+
+            // A server that stopped is started again.
+            host.Server.Models[0].HasExited = true;
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+            Assert.Equal(3, host.Server.Starts.Count);
+            Assert.True(host.Server.Models[0].Disposed);
+            Assert.False(host.Server.Models[1].Disposed);
+
+            // The base model on the same questions, for the scores before and after training.
+            evaluation.SelectedModel = evaluation.Models[1];
+            await evaluation.RunCommand.ExecuteAsync(null);
+            await evaluation.PendingWork;
+            Assert.True(host.Server.Models[1].Disposed);
+            Assert.Equal("Qwen2.5-7B-Instruct (4 bit)", evaluation.History[0].Model);
+            evaluation.Dispose();
+            Assert.True(host.Server.Models[2].Disposed);
+        };
+
+        await host.Main.EvaluateModelCommand.ExecuteAsync(null);
+        Assert.All(host.Server.Starts, s => Assert.Equal((folder, true), (s.Adapter.Folder, s.Adapter.IsQLoRA)));
+        Assert.Equal([false, false, false, true], host.Server.Starts.Select(s => s.Adapter.BaseOnly));
     });
 
     // Distinct letters for each question, so no two are near-duplicates.

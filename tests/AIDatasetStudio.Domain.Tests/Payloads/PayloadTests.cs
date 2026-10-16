@@ -41,4 +41,26 @@ public sealed class PayloadTests
     {
         Assert.Null(new ChatPayload("", []).SystemPrompt);
     }
+
+    [Fact]
+    public void Reasoning_is_kept_on_answers_only_and_blank_reasoning_is_none()
+    {
+        Assert.Null(new InstructionPayload("q", "", "a", " \n").Reasoning);
+        Assert.Equal("Adım adım.", new InstructionPayload("q", "", "a", "Adım adım.").Reasoning);
+        Assert.Null(new ChatMessage(ChatRole.User, "q", "Kullanıcı düşünmez.").Reasoning);
+        Assert.Null(new ChatMessage(ChatRole.Assistant, "a", "").Reasoning);
+        Assert.Equal("Adım adım.", new ChatMessage(ChatRole.Assistant, "a", "Adım adım.").Reasoning);
+    }
+
+    [Fact]
+    public void Reasoning_is_searched_and_scanned_but_not_previewed()
+    {
+        var instruction = new InstructionPayload("Soru", "", "Cevap", "Düşünce");
+        var chat = new ChatPayload(null, [new(ChatRole.User, "Soru"), new(ChatRole.Assistant, "Cevap", "Düşünce")]);
+
+        Assert.Equal(["Soru", "", "Cevap", "Düşünce"], instruction.GetSearchableTexts());
+        Assert.Equal(["Soru", "Düşünce", "Cevap"], chat.GetSearchableTexts());
+        Assert.Equal("Soru", chat.GetPreviewText());
+        Assert.NotEqual(chat, new ChatPayload(null, [new(ChatRole.User, "Soru"), new(ChatRole.Assistant, "Cevap")]));
+    }
 }

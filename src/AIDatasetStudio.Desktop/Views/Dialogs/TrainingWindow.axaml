@@ -45,6 +45,12 @@
           </StackPanel>
         </ToggleButton>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <Button x:Name="EvaluateButton" Classes="accent" Command="{Binding EvaluateCommand}" IsVisible="{Binding CanEvaluateModel}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ic:SymbolIcon Symbol="Trophy" />
+              <TextBlock Text="{l:Tr Training_Evaluate}" />
+            </StackPanel>
+          </Button>
           <Button x:Name="OpenOutputButton" Classes="subtle" Command="{Binding OpenOutputCommand}" IsVisible="{Binding HasResult}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <ic:SymbolIcon Symbol="FolderOpen" />

@@ -21,6 +21,64 @@ public sealed class RecordAnalyzerTests
     }
 
     [Fact]
+    public void Reasoning_counts_on_the_answer_side_and_is_checked_like_the_answer()
+    {
+        var instruction = Analyzer.Analyze(new InstructionPayload("İki artı iki?", "", "Dört.", "Önce iki, sonra iki daha: dört eder.\n```"));
+        var chat = Analyzer.Analyze(new ChatPayload(null, [new(ChatRole.User, "İki artı iki?"), new(ChatRole.Assistant, "Dört.", "İki ve iki.")]));
+
+        Assert.Equal(new TokenCounts(Input: 3, Output: 9), instruction.Tokens);
+        Assert.Equal([new QualityIssue(QualityRule.UnclosedCodeBlock, IssueSeverity.Warning, "Reasoning")], instruction.Issues);
+        Assert.Equal(new TokenCounts(Input: 3, Output: 4), chat.Tokens);
+        Assert.Empty(chat.Issues);
+    }
+
+    [Fact]
+    public void Tool_calls_are_checked_against_the_tools_and_the_turn_order()
+    {
+        const string forecast = """{"name": "get_forecast", "parameters": {"type": "object", "required": ["location", "days"]}}""";
+        var payload = new ToolCallingPayload(null, [forecast, """{"description": "isimsiz"}"""],
+        [
+            new(ChatRole.User, "Kadıköy yarın?"),
+            new(ChatRole.Assistant, "", toolCalls:
+            [
+                new ToolCall("get_forecast", """{"location": "Kadıköy"}""", "19 derece"),
+                new ToolCall("get_weather", "{}", "?"),
+                new ToolCall("get_weather", "konum", "?"),
+            ]),
+            new(ChatRole.User, "Teşekkürler"),
+        ]);
+
+        var result = Analyzer.Analyze(payload);
+
+        Assert.Equal(
+            [
+                new QualityIssue(QualityRule.InvalidTool, IssueSeverity.Error, "2"),
+                new QualityIssue(QualityRule.MissingArgument, IssueSeverity.Warning, "get_forecast.days"),
+                new QualityIssue(QualityRule.UnknownTool, IssueSeverity.Error, "get_weather"),
+                new QualityIssue(QualityRule.InvalidArguments, IssueSeverity.Error, "get_weather"),
+                new QualityIssue(QualityRule.ToolTurnOrder, IssueSeverity.Error),
+            ],
+            result.Issues);
+    }
+
+    [Fact]
+    public void A_well_formed_tool_conversation_counts_tools_and_results_as_prompt_and_calls_as_answer()
+    {
+        const string fee = """{"name": "fee"}""";
+        var result = Analyzer.Analyze(new ToolCallingPayload("Kısa yaz.", [fee],
+        [
+            new(ChatRole.User, "Kargo ne kadar?"),
+            new(ChatRole.Assistant, "", "Ücrete bakmalıyım.", [new ToolCall("fee", "{}", "49,90 TL")]),
+            new(ChatRole.Assistant, "Kargo 49,90 TL."),
+        ]));
+
+        Assert.Empty(result.Issues);
+        // Prompt: "Kısa yaz." 2 + tool 2 + question 3 + result 2; answer: reasoning 2 + name 1 + "{}" 1 + reply 3.
+        Assert.Equal(new TokenCounts(Input: 9, Output: 7), result.Tokens);
+        Assert.NotNull(result.QuestionKey);
+    }
+
+    [Fact]
     public void Empty_fields_are_errors()
     {
         var result = Analyzer.Analyze(new InstructionPayload("Soru?", "", "   "));

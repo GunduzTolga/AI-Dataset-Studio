@@ -46,8 +46,10 @@ public sealed record TrainingOptions(
 /// </summary>
 /// <param name="Files">The data files by split part (<c>null</c> for a single file), as names in the same folder.</param>
 /// <param name="HasSystemPrompts">Some written record has a system prompt of its own (Alpaca's <c>system</c> field).</param>
+/// <param name="HasReasoning">Some written answer has its reasoning (ADR-052).</param>
 public sealed record TrainingTarget(
-    string DatasetName, DatasetType Type, ExportFormat Format, int ContextLength, IReadOnlyList<(SplitPart? Part, string FileName)> Files, int Seed, bool HasSystemPrompts = false);
+    string DatasetName, DatasetType Type, ExportFormat Format, int ContextLength, IReadOnlyList<(SplitPart? Part, string FileName)> Files, int Seed,
+    bool HasSystemPrompts = false, bool HasReasoning = false);
 
 public sealed record TrainingFile(string FileName, string Content);
 
@@ -84,6 +86,9 @@ public static class TrainingConfigs
         {
             (ExportFormat.OpenAi, DatasetType.Preference, _) => false,
             (ExportFormat.ChatMl or ExportFormat.Llama3, _, TrainingFramework.LlamaFactory) => false,
+            // Function calls: LLaMA-Factory reads them from ShareGPT, Axolotl from OpenAI's shape.
+            (ExportFormat.OpenAi, DatasetType.ToolCalling, TrainingFramework.LlamaFactory) => false,
+            (ExportFormat.ShareGpt, DatasetType.ToolCalling, TrainingFramework.Axolotl) => false,
             _ => true,
         };
 
@@ -256,7 +261,10 @@ public static class TrainingConfigs
             case ExportFormat.OpenAi:
                 yaml.Field("type", "chat_template");
                 yaml.Field("field_messages", "messages");
-                yaml.Field("message_property_mappings", "{role: role, content: content}");
+                // reasoning_content reaches chat templates that write it (Qwen3, DeepSeek-R1).
+                yaml.Field("message_property_mappings", target.HasReasoning
+                    ? "{role: role, content: content, reasoning_content: reasoning_content}"
+                    : "{role: role, content: content}");
                 yaml.Field("roles_to_train", "[\"assistant\"]");
                 break;
             case ExportFormat.ShareGpt:
@@ -335,6 +343,11 @@ public static class TrainingConfigs
         }
 
         var template = LlamaFactoryTemplate(model);
+        if (target.HasReasoning)
+        {
+            yaml.Comment("answers start with their reasoning in <think> blocks; a reasoning template (qwen3, deepseekr1) trains it as thinking");
+        }
+
         yaml.Line("template", template == "default" ? "default  # set your model's template" : template);
         yaml.Line("cutoff_len", Number(target.ContextLength));
         yaml.Line("preprocessing_num_workers", "8");
@@ -402,6 +415,14 @@ public static class TrainingConfigs
                         ["assistant_tag"] = "gpt",
                         ["system_tag"] = "system",
                     };
+                    if (target.Type == DatasetType.ToolCalling)
+                    {
+                        // Tags that are not named are not read, defaults included.
+                        entry["columns"]!["tools"] = "tools";
+                        entry["tags"]!["function_tag"] = "function_call";
+                        entry["tags"]!["observation_tag"] = "observation";
+                    }
+
                     break;
                 case ExportFormat.Alpaca:
                     entry["formatting"] = "alpaca";

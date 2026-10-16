@@ -1,8 +1,10 @@
 using System.Globalization;
+using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Training;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
+using AIDatasetStudio.Domain.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -12,7 +14,9 @@ namespace AIDatasetStudio.Desktop.ViewModels.Training;
 /// The folder to train on: what an export wrote, data and configuration side by side.
 /// </summary>
 /// <param name="Name">What is trained, for the window's title: the dataset's name, or the folder's.</param>
-public sealed record TrainingRunTarget(string Folder, TrainingFramework Framework, string Name);
+/// <param name="DatasetId">The dataset exported to the folder, when training starts from the export (M30):
+/// the trained model can then be evaluated on its questions.</param>
+public sealed record TrainingRunTarget(string Folder, TrainingFramework Framework, string Name, Guid? DatasetId = null, DatasetType? DatasetType = null);
 
 /// <summary>
 /// A point of a loss curve: the epoch (or step) and the loss.
@@ -98,8 +102,8 @@ public sealed partial class TrainingViewModel : ViewModelBase, IDisposable
     private string ProcessCommand => Target.Framework == TrainingFramework.Axolotl ? "axolotl" : "llamafactory-cli";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsRunning), nameof(IsIdle), nameof(IsSucceeded), nameof(IsFailed), nameof(IsStopped), nameof(HasResult), nameof(StateText), nameof(IsPreparing))]
-    [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand))]
+    [NotifyPropertyChangedFor(nameof(IsRunning), nameof(IsIdle), nameof(IsSucceeded), nameof(IsFailed), nameof(IsStopped), nameof(HasResult), nameof(StateText), nameof(IsPreparing), nameof(CanEvaluateModel))]
+    [NotifyCanExecuteChangedFor(nameof(StartCommand), nameof(StopCommand), nameof(EvaluateCommand))]
     public partial TrainingState State { get; private set; }
 
     public bool IsRunning => State == TrainingState.Running;
@@ -113,6 +117,18 @@ public sealed partial class TrainingViewModel : ViewModelBase, IDisposable
     public bool IsStopped => State == TrainingState.Stopped;
 
     public bool HasResult => State is TrainingState.Succeeded or TrainingState.Failed or TrainingState.Stopped;
+
+    /// <summary>
+    /// The adapter just trained can be evaluated on the dataset it was exported from (M30):
+    /// LLaMA-Factory serves it for the questions. Axolotl has no server of its own.
+    /// </summary>
+    public bool CanEvaluateModel =>
+        IsSucceeded && Target.Framework == TrainingFramework.LlamaFactory && Target.DatasetId is not null && Target.DatasetType is { } type && ModelEvaluation.Supports(type);
+
+    /// <summary>
+    /// The window was closed to evaluate the trained model.
+    /// </summary>
+    public bool EvaluateRequested { get; private set; }
 
     public string StateText => _localizer[$"Training_State{State}"];
 
@@ -232,6 +248,16 @@ public sealed partial class TrainingViewModel : ViewModelBase, IDisposable
 
     [RelayCommand(CanExecute = nameof(CanOpenOutput))]
     private Task OpenOutputAsync() => _shell.OpenFolderAsync(OutputDirectory!);
+
+    /// <summary>
+    /// Closes the window and opens Tools › Evaluate a Model with the trained model chosen.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanEvaluateModel))]
+    private void Evaluate()
+    {
+        EvaluateRequested = true;
+        CloseRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>
     /// The window is being closed. While training runs it asks first; returns whether it may close now.

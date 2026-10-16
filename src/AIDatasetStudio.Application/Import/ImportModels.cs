@@ -72,6 +72,15 @@ public enum SourceLayout
 
     /// <summary>Conversations of a log, message by message; its speakers are mapped to roles.</summary>
     Transcript,
+
+    /// <summary>OpenAI messages with <c>tool_calls</c>, <c>tool</c> results and <c>tools</c> (SDD §4.4).</summary>
+    OpenAiTools,
+
+    /// <summary>ShareGPT with <c>function_call</c> and <c>observation</c> turns and <c>tools</c> (LLaMA-Factory).</summary>
+    ShareGptTools,
+
+    /// <summary><c>query</c> / <c>tools</c> / <c>answers</c>: the calls a question needs (xLAM, APIGen).</summary>
+    XLam,
 }
 
 /// <summary>
@@ -88,6 +97,9 @@ public enum TargetField
     Prompt,
     Chosen,
     Rejected,
+
+    /// <summary>The thinking before the answer (ADR-052).</summary>
+    Reasoning,
 }
 
 public sealed record TargetFieldInfo(TargetField Field, bool IsRequired);
@@ -228,6 +240,9 @@ public enum ImportErrorCode
 
     /// <summary>The file's layout cannot be converted to the dataset's type.</summary>
     UnsupportedLayout,
+
+    /// <summary>A tool result follows no function call it could answer.</summary>
+    ToolResultUnmatched,
 }
 
 /// <param name="Sheet">The workbook sheet of the row when several sheets are read.</param>

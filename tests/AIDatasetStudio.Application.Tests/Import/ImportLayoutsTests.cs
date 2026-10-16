@@ -33,6 +33,22 @@ public sealed class ImportLayoutsTests
     }
 
     [Theory]
+    [InlineData("""{"messages":[{"role":"user","content":"a"}],"tools":[]}""", SourceLayout.OpenAiTools)]
+    [InlineData("""{"messages":[{"role":"assistant","content":null,"tool_calls":[]}]}""", SourceLayout.OpenAiTools)]
+    [InlineData("""{"messages":[{"role":"user","content":"a"}]}""", SourceLayout.OpenAiMessages)]
+    [InlineData("""{"conversations":[{"from":"function_call","value":"{}"}]}""", SourceLayout.ShareGptTools)]
+    [InlineData("""{"conversations":[{"from":"human","value":"a"}]}""", SourceLayout.ShareGpt)]
+    [InlineData("""{"query":"a","tools":"[]","answers":"[]"}""", SourceLayout.XLam)]
+    public void Conversations_with_function_calls_are_told_apart(string json, SourceLayout expected)
+    {
+        var layout = ImportLayouts.DetectFromJson([JsonDocument.Parse(json).RootElement]);
+
+        Assert.Equal(expected, layout);
+        Assert.True(ImportLayouts.Supports(layout, DatasetType.ToolCalling));
+        Assert.Equal(expected is SourceLayout.OpenAiMessages or SourceLayout.ShareGpt, ImportLayouts.Supports(layout, DatasetType.Chat));
+    }
+
+    [Theory]
     [InlineData(DatasetType.Instruction, new[] { "Soru", "Bağlam", "Cevap" }, new[] { "Instruction=Soru", "Input=Bağlam", "Output=Cevap" })]
     [InlineData(DatasetType.Instruction, new[] { "instruction", "input", "output" }, new[] { "Instruction=instruction", "Input=input", "Output=output" })]
     [InlineData(DatasetType.Chat, new[] { "System Prompt", "Kullanıcı", "Asistan" }, new[] { "SystemPrompt=System Prompt", "User=Kullanıcı", "Assistant=Asistan" })]

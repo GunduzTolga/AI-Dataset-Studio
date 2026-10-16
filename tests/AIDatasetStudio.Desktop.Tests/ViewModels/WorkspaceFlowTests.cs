@@ -120,7 +120,7 @@ public sealed class WorkspaceFlowTests
         records.SelectedItem = records.Items[0];
         await DesktopTestHost.WaitUntilAsync(() => details.Record?.Id == records.Items[0].Id);
         Assert.Equal("Record #1", details.Title);
-        Assert.Equal(["Instruction", "Input", "Output"], details.Fields.Select(f => f.Label));
+        Assert.Equal(["Instruction", "Input", "Reasoning", "Output"], details.Fields.Select(f => f.Label));
         Assert.True(details.ShowApprove);
         Assert.False(details.ShowRestore);
 

@@ -6,6 +6,7 @@ using System.Text.Json;
 using AIDatasetStudio.Application.AI;
 using AIDatasetStudio.Application.Export;
 using AIDatasetStudio.Application.Records;
+using AIDatasetStudio.Application.Training;
 using AIDatasetStudio.Desktop.Localization;
 using AIDatasetStudio.Desktop.Services;
 using AIDatasetStudio.Domain.Enums;
@@ -69,9 +70,10 @@ public sealed class EvaluationSourceOption(EvaluationSource source, Func<string>
 }
 
 /// <summary>
-/// A connection to choose as the model or the grader.
+/// A connection to choose as the model or the grader, or the adapter a training saved, which is
+/// served for the evaluation (M30).
 /// </summary>
-public sealed record EvaluationModelOption(AIConnection Connection, string Label);
+public sealed record EvaluationModelOption(AIConnection Connection, string Label, TrainedAdapter? Adapter = null);
 
 /// <summary>
 /// One question of an evaluation, filled in as the model answers and the grader scores.
@@ -123,15 +125,24 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
     private readonly IEvaluationRunService _runs;
     private readonly IFileDialogService _files;
     private readonly IDialogService _dialogs;
+    private readonly IModelServer _server;
+    private readonly Func<string?> _findServerTool;
     private readonly Localizer _localizer;
     private CancellationTokenSource? _work;
+
+    // The trained model while it is served: kept for the next run, stopped with the window.
+    private IServedModel? _served;
+    private bool _loading;
 
     // The models of the evaluation shown, for its report: the choices may have changed since.
     private string _runModel = string.Empty;
     private string _runJudge = string.Empty;
 
     /// <param name="history">The dataset's earlier evaluations, the latest first.</param>
-    internal ModelEvaluationViewModel(ModelEvaluator services, EvaluationTarget target, IReadOnlyList<EvaluationRun> history)
+    /// <param name="adapter">The adapter a training saved in the export's folder, offered as the model to evaluate.</param>
+    /// <param name="chooseAdapter">Start with the adapter chosen, after training it.</param>
+    internal ModelEvaluationViewModel(
+        ModelEvaluator services, EvaluationTarget target, IReadOnlyList<EvaluationRun> history, TrainedAdapter? adapter = null, bool chooseAdapter = false)
     {
         _ai = services.AI;
         _queries = services.Queries;
@@ -139,6 +150,8 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         _runs = services.Runs;
         _files = services.Files;
         _dialogs = services.Dialogs;
+        _server = services.Server;
+        _findServerTool = services.FindServerTool;
         _localizer = services.Localizer;
         Target = target;
         History = [.. history.Select(run => new EvaluationRunRow(run, _localizer))];
@@ -147,9 +160,10 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
             OnPropertyChanged(nameof(HasHistory));
             OnPropertyChanged(nameof(HistoryText));
         };
-        Models = [.. _ai.Connections.Select(c => new EvaluationModelOption(c, AIText.Describe(c)))];
-        SelectedModel = Models.FirstOrDefault(m => m.Connection.Id == _ai.Connection?.Id) ?? Models.FirstOrDefault();
-        SelectedJudge = SelectedModel;
+        Judges = [.. _ai.Connections.Select(c => new EvaluationModelOption(c, AIText.Describe(c)))];
+        Models = adapter is null ? Judges : [Trained(adapter, "Evaluate_TrainedModel"), Trained(adapter.WithoutAdapter(), "Evaluate_BaseModel"), .. Judges];
+        SelectedJudge = Judges.FirstOrDefault(m => m.Connection.Id == _ai.Connection?.Id) ?? Judges.FirstOrDefault();
+        SelectedModel = chooseAdapter && adapter is not null ? Models[0] : SelectedJudge ?? Models.FirstOrDefault();
 
         // Questions the model was not trained on, when an export split the dataset.
         var split = target.LastExport?.Split;
@@ -177,9 +191,21 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
 
     public string TargetText => _localizer.Format("Export_Target", Target.Name, Labels.For(_localizer, Target.Type));
 
+    /// <summary>
+    /// The models that can be evaluated: the trained one and its base model before training first,
+    /// when there is one, then the connections.
+    /// </summary>
     public IReadOnlyList<EvaluationModelOption> Models { get; }
 
-    public bool HasModels => Models.Count > 0;
+    /// <summary>
+    /// The models that can grade: the connections. A trained model does not grade itself.
+    /// </summary>
+    public IReadOnlyList<EvaluationModelOption> Judges { get; }
+
+    /// <summary>
+    /// Whether a grader can be chosen; without one nothing can be evaluated.
+    /// </summary>
+    public bool HasModels => Judges.Count > 0;
 
     /// <summary>
     /// The model whose answers are evaluated.
@@ -391,6 +417,8 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
     public void Dispose()
     {
         _work?.Cancel();
+        _served?.Dispose();
+        _served = null;
         _localizer.CultureChanged -= OnCultureChanged;
     }
 
@@ -413,7 +441,7 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
 
     private async Task RunCoreAsync()
     {
-        if (SelectedModel?.Connection is not { } model || SelectedJudge?.Connection is not { } judge)
+        if (SelectedModel is not { } choice || SelectedJudge?.Connection is not { } judge)
         {
             return;
         }
@@ -423,7 +451,7 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         var token = work.Token;
         var source = SelectedSource?.Source ?? EvaluationSource.AllRecords;
         var seed = (int)(Seed ?? 42);
-        (_runModel, _runJudge) = (model.Model, judge.Model);
+        var model = choice.Connection;
         IsRunning = true;
         ShowHistory = false;
         ErrorMessage = null;
@@ -434,6 +462,13 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         var connection = model;
         try
         {
+            if (choice.Adapter is { } adapter)
+            {
+                model = await ServeAsync(adapter, token);
+                connection = model;
+            }
+
+            (_runModel, _runJudge) = (model.Model, judge.Model);
             ProgressText = _localizer["Evaluate_Sampling"];
             var sample = ModelEvaluation.Sample(await AllIdsAsync(source, token), (int)Math.Clamp(SampleSize ?? ModelEvaluation.DefaultSampleSize, 1, ModelEvaluation.MaxSampleSize), seed);
             var language = (_localizer.Culture.IsNeutralCulture ? _localizer.Culture : _localizer.Culture.Parent).EnglishName;
@@ -489,7 +524,14 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         }
         catch (AIException ex)
         {
-            ErrorMessage = _ai.Describe(ex, connection);
+            ErrorMessage = _served is { HasExited: true } stopped
+                ? _localizer.Format("Evaluate_ServeStopped", stopped.Adapter.Name)
+                : _ai.Describe(ex, connection);
+        }
+        catch (ModelServerException ex)
+        {
+            ProgressText = null;
+            ErrorMessage = ServeFailure(ex);
         }
         catch (Exception ex) when (UiErrors.TryDescribe(ex) is { } error)
         {
@@ -497,10 +539,57 @@ public sealed partial class ModelEvaluationViewModel : ViewModelBase, IDisposabl
         }
         finally
         {
+            _loading = false;
             _work = null;
             IsRunning = false;
         }
     }
+
+    // The model to choose for an adapter (or its base model): named, and reached only once it is served.
+    private EvaluationModelOption Trained(TrainedAdapter adapter, string labelKey) => new(
+        new AIConnection(Guid.Empty, adapter.Name, AIProviderKind.OpenAICompatible, "http://127.0.0.1/v1", adapter.Name),
+        _localizer.Format(labelKey, adapter.Name),
+        adapter);
+
+    // Serves the trained adapter with LLaMA-Factory on this computer, or reuses the server a
+    // previous run of this window started.
+    private async Task<AIConnection> ServeAsync(TrainedAdapter adapter, CancellationToken token)
+    {
+        if (_served is { HasExited: false } served && ReferenceEquals(served.Adapter, adapter))
+        {
+            return served.Connection;
+        }
+
+        _served?.Dispose();
+        _served = null;
+        if (_findServerTool() is not { } tool)
+        {
+            throw new ModelServerException(TrainingFailure.ToolNotFound, [], "LLaMA-Factory's command was not found.");
+        }
+
+        _loading = true;
+        ProgressText = _localizer.Format("Evaluate_Loading", adapter.Name);
+        var log = new Progress<string>(line =>
+        {
+            if (_loading && !string.IsNullOrWhiteSpace(line))
+            {
+                ProgressText = _localizer.Format("Evaluate_LoadingLine", adapter.Name, line.Trim());
+            }
+        });
+        _served = await _server.StartAsync(adapter, tool, log, token);
+        _loading = false;
+        return _served.Connection;
+    }
+
+    private string ServeFailure(ModelServerException exception) => exception.Failure switch
+    {
+        TrainingFailure.ToolNotFound => _localizer["Evaluate_ServeNoTool"],
+        TrainingFailure.OutOfMemory => _localizer.Format("Evaluate_ServeFailed", _localizer["Training_FailOutOfMemory"]),
+        TrainingFailure.MissingPackage => _localizer.Format("Evaluate_ServeFailed", _localizer["Training_FailMissingPackage"]),
+        TrainingFailure.NoGpu => _localizer.Format("Evaluate_ServeFailed", _localizer["Training_FailNoGpu"]),
+        TrainingFailure.ModelUnavailable => _localizer.Format("Evaluate_ServeFailed", _localizer["Training_FailModel"]),
+        _ => _localizer.Format("Evaluate_ServeFailed", exception.LastLines.Count > 0 ? exception.LastLines[^1] : exception.Message),
+    };
 
     // The records that can be asked: a part of the last export's split, or approved records (or
     // every record not archived).

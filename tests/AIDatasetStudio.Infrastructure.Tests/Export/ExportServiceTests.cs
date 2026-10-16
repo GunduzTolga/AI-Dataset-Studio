@@ -196,6 +196,74 @@ public sealed class ExportServiceTests
     }
 
     [Fact]
+    public async Task Reasoning_is_counted_in_the_preview_and_can_be_left_out()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.Chat, Ct);
+        await AddAsync(ws, datasetId,
+            new ChatPayload(null, [new ChatMessage(ChatRole.User, "2+2?"), new ChatMessage(ChatRole.Assistant, "4", "İki artı iki.")]),
+            new ChatPayload(null, [new ChatMessage(ChatRole.User, "3+3?"), new ChatMessage(ChatRole.Assistant, "6")]));
+        var options = ExportOptions.DefaultFor(ExportFormat.ShareGpt) with { Statuses = [RecordStatus.Draft] };
+
+        var kept = await ws.Export.PreviewAsync(datasetId, options, 1, cancellationToken: Ct);
+        var left = await ws.Export.PreviewAsync(datasetId, options with { IncludeReasoning = false }, 1, cancellationToken: Ct);
+
+        Assert.Equal((1L, 1L), (kept.WithReasoning, left.WithReasoning));
+        Assert.Equal(["""{"conversations":[{"from":"human","value":"2+2?"},{"from":"gpt","value":"<think>\nİki artı iki.\n</think>\n\n4"}]}"""], kept.SampleLines);
+        Assert.Equal(["""{"conversations":[{"from":"human","value":"2+2?"},{"from":"gpt","value":"4"}]}"""], left.SampleLines);
+    }
+
+    [Fact]
+    public async Task Incomplete_tool_conversations_are_counted_in_the_preview_as_the_export_leaves_them_out()
+    {
+        await using var ws = await TestWorkspace.CreateAsync(Ct);
+        var datasetId = await ws.CreateDatasetAsync(DatasetType.ToolCalling, Ct);
+        const string tool = """{"name": "f"}""";
+        ChatMessage User(string text = "soru") => new(ChatRole.User, text);
+        ChatMessage Answer(string text = "yanıt") => new(ChatRole.Assistant, text);
+        ChatMessage Calls(params ToolCall[] calls) => new(ChatRole.Assistant, "", toolCalls: calls);
+        ToolCall Call(string? result = "sonuç", string arguments = "{\"a\": 1}") => new("f", arguments, result);
+        ToolCallingPayload Record(params ChatMessage[] turns) => new(null, [tool], turns);
+        var records = new[]
+        {
+            // Written
+            Record(User("1"), Calls(Call()), Answer()),
+            Record(User("2"), Calls(Call(null), Call(null))),
+            Record(User("3"), Answer(), User(), Calls(Call(), Call()), Calls(Call()), Answer()),
+            new ToolCallingPayload(null, ["""{"type": "function", "function": {"name": "f"}}"""], [User("4"), Calls(Call()), Answer()]),
+            Record(User("5"), Answer()),
+
+            // Left out
+            Record(Answer("6")),
+            Record(User("7")),
+            Record(User("8"), Calls(Call()), User()),
+            Record(User("9"), Calls(Call(null)), Answer()),
+            Record(User("10"), Calls(Call(), Call(null)), Answer()),
+            Record(User("11"), Calls(Call())),
+            Record(User("12"), Answer(), Answer()),
+            Record(User("13"), Calls(Call(arguments: "[1]")), Answer()),
+            Record(User("14"), Calls(Call(arguments: "{a")), Answer()),
+            new ToolCallingPayload(null, ["""{"description": "isimsiz"}"""], [User("15"), Answer()]),
+            new ToolCallingPayload(null, ["""{"name": " "}"""], [User("16"), Answer()]),
+            new ToolCallingPayload(null, ["isim:"], [User("17"), Answer()]),
+            new ToolCallingPayload(null, [tool], []),
+        };
+        await AddAsync(ws, datasetId, records);
+        var expected = records.Count(r => !ToolCalls.IsWellFormed(r));
+
+        foreach (var format in new[] { ExportFormat.OpenAi, ExportFormat.ShareGpt })
+        {
+            var options = ExportOptions.DefaultFor(format) with { Statuses = [RecordStatus.Draft], SkipDuplicates = false };
+            var preview = await ws.Export.PreviewAsync(datasetId, options, 20, cancellationToken: Ct);
+            var result = await ws.Export.ExportAsync(datasetId, options, Path.Combine(ws.Directory, $"{format}.jsonl"), cancellationToken: Ct);
+
+            Assert.Equal(13, expected);
+            Assert.Equal((expected, (long)expected), (preview.Unsupported, result.Unsupported));
+            Assert.Equal((records.Length - expected, (long)records.Length - expected), (preview.SampleLines.Count, result.Exported));
+        }
+    }
+
+    [Fact]
     public async Task Records_not_analysed_yet_are_checked_when_exporting()
     {
         await using var ws = await TestWorkspace.CreateAsync(Ct);
@@ -320,9 +388,11 @@ public sealed class ExportServiceTests
              "gpuMemoryGb":6,"saveMemory":true},"skipLowJudgeScore":false}
             """;
 
-        var read = ExportService.ReadOptions(saved, TrainingPlatform.Windows)!.Training!;
+        var options = ExportService.ReadOptions(saved, TrainingPlatform.Windows)!;
+        var read = options.Training!;
 
         Assert.Equal(new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct", QLoRA: true, GpuMemoryGb: 6, SaveMemory: true, Platform: TrainingPlatform.Windows), read);
+        Assert.True(options.IncludeReasoning); // saved before reasoning could be left out
 
         // A recorded system is kept.
         var linux = saved.Replace("\"saveMemory\":true", "\"saveMemory\":true,\"platform\":\"Linux\"", StringComparison.Ordinal);

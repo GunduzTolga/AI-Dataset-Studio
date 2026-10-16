@@ -35,7 +35,7 @@ public sealed class AIWritingTests
         details.SaveCommand.CanExecuteChanged += (_, _) => saveEnabled = details.SaveCommand.CanExecute(null);
 
         var writing = details.WriteCommand.ExecuteAsync(AIWriteTarget.Answer);
-        await DesktopTestHost.WaitUntilAsync(() => details.Fields[2].IsWriting && host.AI.Requests.Count == 1);
+        await DesktopTestHost.WaitUntilAsync(() => details.Fields[3].IsWriting && host.AI.Requests.Count == 1);
 
         Assert.True(details.IsWriting);
         Assert.Equal("Writing with qwen2.5:7b…", details.WritingText);
@@ -50,8 +50,8 @@ public sealed class AIWritingTests
         await writing;
 
         Assert.False(details.IsWriting);
-        Assert.False(details.Fields[2].IsWriting);
-        Assert.Equal("500 TL üzeri siparişlerde kargo ücretsizdir.", details.Fields[2].Text);
+        Assert.False(details.Fields[3].IsWriting);
+        Assert.Equal("500 TL üzeri siparişlerde kargo ücretsizdir.", details.Fields[3].Text);
         Assert.True(details.IsDirty);
         Assert.True(saveEnabled);
         Assert.Equal("qwen2.5:7b wrote the answer; review it before approving", host.Main.Status.Message);
@@ -86,14 +86,14 @@ public sealed class AIWritingTests
         await details.WriteMainCommand.ExecuteAsync(null); // Mod+G again stops
         await writing;
 
-        Assert.Equal("Yarım ", details.Fields[2].Text);
+        Assert.Equal("Yarım ", details.Fields[3].Text);
         Assert.Equal("Writing stopped; the text so far is kept", host.Main.Status.Message);
 
         host.AI.Hold = null;
         host.AI.Failure = new AIException(AIErrorKind.Unreachable, "down");
         await details.WriteCommand.ExecuteAsync(AIWriteTarget.Answer);
 
-        Assert.Equal("Yarım ", details.Fields[2].Text);
+        Assert.Equal("Yarım ", details.Fields[3].Text);
         Assert.Equal("Nothing answers at http://localhost:11434/v1. Is Ollama running?", details.AIError);
         details.DismissAIErrorCommand.Execute(null);
         Assert.False(details.HasAIError);
@@ -192,7 +192,7 @@ public sealed class AIWritingTests
         Assert.False(details.IsWriting);
         var first = await host.Get<IRecordQueryService>().GetAsync(records.Items[0].Id);
         Assert.Equal(("Bir ", "qwen2.5:7b"), (((InstructionPayload)first!.Payload).Output, first.Lineage.GeneratedByModel));
-        Assert.Equal(string.Empty, details.Fields[2].Text);
+        Assert.Equal(string.Empty, details.Fields[3].Text);
     });
 
     [Fact]
@@ -208,7 +208,7 @@ public sealed class AIWritingTests
         await details.WriteCommand.ExecuteAsync(AIWriteTarget.Answer);
 
         details.DiscardCommand.Execute(null);
-        details.Fields[2].Text = "Elle yazılmış yanıt.";
+        details.Fields[3].Text = "Elle yazılmış yanıt.";
         await details.SaveCommand.ExecuteAsync(null);
 
         Assert.Null((await host.Get<IRecordQueryService>().GetAsync(row.Id))!.Lineage.GeneratedByModel);

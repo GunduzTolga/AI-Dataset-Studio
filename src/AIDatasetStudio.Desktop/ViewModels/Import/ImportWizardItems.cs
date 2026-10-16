@@ -127,6 +127,16 @@ public sealed class ImportRowViewModel
                 p.Messages.Count > 2 ? localizer.Format("Import_MessageCount", p.Messages.Count) : null,
                 sheet),
             PreferencePayload p => new(number, true, Text(p.Prompt), Text(p.Chosen), badge: null, sheet),
+            // The question, then what answers it: the calls, or the reply written from their results.
+            ToolCallingPayload p => new(
+                number,
+                true,
+                Text(p.Messages.FirstOrDefault(m => m.Role == ChatRole.User)?.Content),
+                Text(p.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant) is { ToolCalls.Count: > 0 } calling
+                    ? string.Join(", ", calling.ToolCalls.Select(c => c.Name + " " + c.Arguments))
+                    : p.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant)?.Content),
+                p.Messages.Sum(m => m.ToolCalls.Count) is var calls and > 0 ? localizer.Format("Import_CallCount", calls) : null,
+                sheet),
             _ => new(number, true, Text(payload.GetPreviewText()), secondary: null, badge: null, sheet),
         };
     }

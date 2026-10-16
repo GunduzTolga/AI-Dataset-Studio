@@ -94,6 +94,10 @@ public sealed record SplitOptions(int TrainPercent, int ValidationPercent, int T
 /// Leave out records the model scored 1–2 (SDD §17.7), by a judgment of their content as it is;
 /// an outdated judgment does not count.
 /// </param>
+/// <param name="IncludeReasoning">
+/// Write the reasoning of answers that have it (ADR-052); off to train a model that answers
+/// without thinking first.
+/// </param>
 public sealed record ExportOptions(
     ExportFormat Format,
     IReadOnlyList<RecordStatus> Statuses,
@@ -102,7 +106,8 @@ public sealed record ExportOptions(
     bool MaskPersonalData = true,
     SplitOptions? Split = null,
     TrainingOptions? Training = null,
-    bool SkipLowJudgeScore = false)
+    bool SkipLowJudgeScore = false,
+    bool IncludeReasoning = true)
 {
     /// <summary>
     /// Approved records only, the safe default (SDD §13.2).
@@ -119,7 +124,8 @@ public sealed record ExportOptions(
         && MaskPersonalData == other.MaskPersonalData
         && Split == other.Split
         && Training == other.Training
-        && SkipLowJudgeScore == other.SkipLowJudgeScore;
+        && SkipLowJudgeScore == other.SkipLowJudgeScore
+        && IncludeReasoning == other.IncludeReasoning;
 
     public override int GetHashCode()
     {
@@ -136,6 +142,7 @@ public sealed record ExportOptions(
         hash.Add(Split);
         hash.Add(Training);
         hash.Add(SkipLowJudgeScore);
+        hash.Add(IncludeReasoning);
         return hash.ToHashCode();
     }
 }
@@ -157,7 +164,8 @@ public sealed record ExportPreview(
     long Duplicates,
     long NotAnalyzed,
     IReadOnlyList<string> SampleLines,
-    long LowJudgeScore = 0)
+    long LowJudgeScore = 0,
+    long WithReasoning = 0)
 {
     public long Exported => Selected - Unsupported - OverContextLimit - LowJudgeScore - Duplicates;
 }

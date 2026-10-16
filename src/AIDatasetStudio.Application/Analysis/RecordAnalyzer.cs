@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using AIDatasetStudio.Application.Records;
 using AIDatasetStudio.Domain.Enums;
 using AIDatasetStudio.Domain.Payloads;
 
@@ -51,7 +52,8 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
 
                 question = IsBlank(p.Input) ? p.Instruction : p.Instruction + "\n" + p.Input;
                 answer = p.Output;
-                counts = new TokenCounts(Count(p.Instruction) + Count(p.Input), Count(p.Output));
+                // The reasoning is trained with the answer, so it counts on the answer side.
+                counts = new TokenCounts(Count(p.Instruction) + Count(p.Input), Count(p.Reasoning) + Count(p.Output));
                 questionKeySource = QuestionText(p);
                 break;
 
@@ -75,7 +77,7 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
                 answer = turns.LastOrDefault(m => m.Role == ChatRole.Assistant)?.Content ?? string.Empty;
                 counts = new TokenCounts(
                     Count(p.SystemPrompt) + turns.Where(m => m.Role != ChatRole.Assistant).Sum(m => Count(m.Content)),
-                    turns.Where(m => m.Role == ChatRole.Assistant).Sum(m => Count(m.Content)));
+                    turns.Where(m => m.Role == ChatRole.Assistant).Sum(m => Count(m.Reasoning) + Count(m.Content)));
                 questionKeySource = QuestionText(p);
                 break;
 
@@ -104,6 +106,33 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
                 counts = new TokenCounts(Count(p.Prompt), Math.Max(Count(p.Chosen), Count(p.Rejected)));
                 // Several pairs per prompt are normal in DPO data, so the conflict rule does not apply.
                 questionKeySource = null;
+                break;
+
+            case ToolCallingPayload p:
+                if (!p.Messages.Any(m => m.Role == ChatRole.User && !IsBlank(m.Content)))
+                {
+                    Issue(QualityRule.EmptyContent, "User");
+                }
+
+                // The answer: the last turn, unless it ends the example with calls.
+                var last = p.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant);
+                if (last is null || (last.ToolCalls.Count == 0 && IsBlank(last.Content)))
+                {
+                    Issue(QualityRule.EmptyContent, "Assistant");
+                }
+
+                CheckTools(p, Issue);
+                question = p.Messages.LastOrDefault(m => m.Role == ChatRole.User)?.Content ?? string.Empty;
+                answer = last is { ToolCalls.Count: 0 } ? last.Content : string.Empty;
+
+                // The functions and their results are read by the model; the calls are written by it.
+                var calls = p.Messages.SelectMany(m => m.ToolCalls).ToList();
+                counts = new TokenCounts(
+                    Count(p.SystemPrompt) + p.Tools.Sum(Count) + p.Messages.Where(m => m.Role != ChatRole.Assistant).Sum(m => Count(m.Content))
+                        + calls.Sum(c => Count(c.Result)),
+                    p.Messages.Where(m => m.Role == ChatRole.Assistant).Sum(m => Count(m.Reasoning) + Count(m.Content))
+                        + calls.Sum(c => Count(c.Name) + Count(c.Arguments)));
+                questionKeySource = QuestionText(p);
                 break;
 
             default:
@@ -165,8 +194,63 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
     {
         InstructionPayload p => IsBlank(p.Input) ? p.Instruction : p.Instruction + "\n" + p.Input,
         ChatPayload p => string.Join('\n', new[] { p.SystemPrompt ?? string.Empty }.Concat(p.Messages.Where(m => m.Role != ChatRole.Assistant).Select(m => m.Content))),
+        ToolCallingPayload p => string.Join('\n', new[] { p.SystemPrompt ?? string.Empty }.Concat(p.Messages.Where(m => m.Role != ChatRole.Assistant).Select(m => m.Content))),
         _ => null,
     };
+
+    // Tools name functions, calls name tools with object arguments that have what the function
+    // requires, and the turns are in an order the formats can write (SDD §4.4).
+    private static void CheckTools(ToolCallingPayload payload, Action<QualityRule, string?> report)
+    {
+        // A function called twice is named once.
+        var reported = new HashSet<(QualityRule, string?)>();
+        void Issue(QualityRule rule, string? detail)
+        {
+            if (reported.Add((rule, detail)))
+            {
+                report(rule, detail);
+            }
+        }
+
+        var tools = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (var i = 0; i < payload.Tools.Count; i++)
+        {
+            if (ToolCalls.NameOf(payload.Tools[i]) is { } name)
+            {
+                tools.TryAdd(name, payload.Tools[i]);
+            }
+            else
+            {
+                Issue(QualityRule.InvalidTool, (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+
+        foreach (var call in payload.Messages.SelectMany(m => m.ToolCalls))
+        {
+            var known = tools.TryGetValue(call.Name, out var tool);
+            if (!known)
+            {
+                Issue(QualityRule.UnknownTool, call.Name);
+            }
+
+            if (ToolCalls.Object(call.Arguments) is not { } arguments)
+            {
+                Issue(QualityRule.InvalidArguments, call.Name);
+            }
+            else if (known)
+            {
+                foreach (var required in ToolCalls.RequiredOf(tool!).Where(r => !arguments.TryGetProperty(r, out _)))
+                {
+                    Issue(QualityRule.MissingArgument, call.Name + "." + required);
+                }
+            }
+        }
+
+        if (!ToolCalls.IsInOrder(payload))
+        {
+            Issue(QualityRule.ToolTurnOrder, null);
+        }
+    }
 
     /// <summary>
     /// Lowercase, Turkish letters folded, punctuation dropped, whitespace collapsed: "Şifremi
@@ -210,11 +294,24 @@ public sealed partial class RecordAnalyzer(ITokenCounter tokens, PiiScanner pii)
     // Labelled texts of the record, for rules that report the field.
     private static IEnumerable<(string Field, string Text)> Fields(RecordPayload payload) => payload switch
     {
-        InstructionPayload p => [("Instruction", p.Instruction), ("Input", p.Input), ("Output", p.Output)],
-        ChatPayload p => [.. (p.SystemPrompt is null ? [] : new[] { ("SystemPrompt", p.SystemPrompt) }), .. p.Messages.Select(m => (m.Role.ToString(), m.Content))],
+        InstructionPayload p => [("Instruction", p.Instruction), ("Input", p.Input), .. Reasoning(p.Reasoning), ("Output", p.Output)],
+        ChatPayload p =>
+        [
+            .. (p.SystemPrompt is null ? [] : new[] { ("SystemPrompt", p.SystemPrompt) }),
+            .. p.Messages.SelectMany(m => Reasoning(m.Reasoning).Append((m.Role.ToString(), m.Content))),
+        ],
+        ToolCallingPayload p =>
+        [
+            .. (p.SystemPrompt is null ? [] : new[] { ("SystemPrompt", p.SystemPrompt) }),
+            .. p.Messages.SelectMany(m => Reasoning(m.Reasoning).Append((m.Role.ToString(), m.Content))
+                .Concat(m.ToolCalls.Where(c => c.Result is not null).Select(c => ("ToolResult", c.Result!)))),
+        ],
         PreferencePayload p => [("Prompt", p.Prompt), ("Chosen", p.Chosen), ("Rejected", p.Rejected)],
         _ => [],
     };
+
+    private static IEnumerable<(string Field, string Text)> Reasoning(string? reasoning) =>
+        reasoning is null ? [] : [("Reasoning", reasoning)];
 
     private static bool IsBlank(string? text) => string.IsNullOrWhiteSpace(text);
 

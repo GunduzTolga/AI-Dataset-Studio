@@ -82,6 +82,7 @@ public static class Variations
                 null,
                 p.Messages.Skip(user + 1).FirstOrDefault(m => m.Role == ChatRole.Assistant)?.Content.Trim() ?? string.Empty),
             PreferencePayload p => new VariationSource(p.Prompt.Trim(), null, p.Chosen.Trim()),
+            ToolCallingPayload p when LastUserTurn(p.Messages) is { } user => new VariationSource(p.Messages[user].Content.Trim(), null, ToolAnswer(p.Messages.Skip(user + 1))),
             _ => null,
         };
         return source is { Question.Length: > 0 } ? source : null;
@@ -127,7 +128,8 @@ public static class Variations
     /// <summary>
     /// The record a variation makes: the source with its question, and in
     /// <see cref="VariationMode.QuestionsAndAnswers"/> its answer, replaced. Everything else (an
-    /// instruction's input, a chat's system prompt and earlier turns, a rejected answer) is kept.
+    /// instruction's input, a chat's system prompt and earlier turns, a rejected answer) is kept,
+    /// and so is the reasoning of an answer that is kept.
     /// </summary>
     public static RecordPayload Payload(RecordPayload source, QAPair variation, VariationMode mode)
     {
@@ -137,7 +139,9 @@ public static class Variations
         switch (source)
         {
             case InstructionPayload p:
-                return new InstructionPayload(variation.Question, p.Input, rewrite ? variation.Answer : p.Output);
+                return rewrite
+                    ? new InstructionPayload(variation.Question, p.Input, variation.Answer)
+                    : new InstructionPayload(variation.Question, p.Input, p.Output, p.Reasoning);
             case PreferencePayload p:
                 return new PreferencePayload(variation.Question, rewrite ? variation.Answer : p.Chosen, p.Rejected);
             case ChatPayload p when LastUserTurn(p) is { } user:
@@ -166,9 +170,20 @@ public static class Variations
     /// </summary>
     public static double Similarity(string question, string variation) => NearDuplicates.Similarity(question, variation);
 
-    private static int? LastUserTurn(ChatPayload payload)
+    private static int? LastUserTurn(ChatPayload payload) => LastUserTurn(payload.Messages);
+
+    private static int? LastUserTurn(IReadOnlyList<ChatMessage> messages)
     {
-        var index = payload.Messages.ToList().FindLastIndex(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content));
+        var index = messages.ToList().FindLastIndex(m => m.Role == ChatRole.User && !string.IsNullOrWhiteSpace(m.Content));
         return index >= 0 ? index : null;
     }
+
+    // What answers a question in a tool calling record: the reply written from the results, or
+    // the calls when the example ends with them.
+    private static string ToolAnswer(IEnumerable<ChatMessage> after) => after.TakeWhile(m => m.Role == ChatRole.Assistant).LastOrDefault() switch
+    {
+        null => string.Empty,
+        { ToolCalls.Count: > 0 } calling => string.Join("\n", calling.ToolCalls.Select(c => c.Name + " " + c.Arguments)),
+        { } reply => reply.Content.Trim(),
+    };
 }

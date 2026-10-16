@@ -12,7 +12,7 @@ internal static class Labels
     /// Dataset types that can be created in this version (their payload types exist).
     /// </summary>
     public static readonly IReadOnlyList<DatasetType> CreatableDatasetTypes =
-        [DatasetType.Instruction, DatasetType.Chat, DatasetType.Preference];
+        [DatasetType.Instruction, DatasetType.Chat, DatasetType.Preference, DatasetType.ToolCalling];
 
     public static string For(Localizer localizer, DatasetType type) => localizer[$"DatasetType_{type}"];
 

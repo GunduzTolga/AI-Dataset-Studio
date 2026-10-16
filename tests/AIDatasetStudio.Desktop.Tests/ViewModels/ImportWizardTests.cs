@@ -35,7 +35,7 @@ public sealed class ImportWizardTests
         Assert.Equal(CsvOptions.Utf8, wizard.SelectedEncoding?.Name);
         Assert.Equal("Custom columns", wizard.LayoutText);
         Assert.Equal("2 rows", wizard.RowCountText);
-        Assert.Equal(["Soru", "Bağlam", "Cevap"], Mapped(wizard));
+        Assert.Equal(["Soru", "Bağlam", "Cevap", null], Mapped(wizard));
         Assert.False(wizard.HasMissingFields);
         Assert.Equal(["Şifre?", "İzin?"], wizard.Preview.Select(r => r.Primary));
         Assert.Equal(["Sıfırlayın.", "14 gün."], wizard.Preview.Select(r => r.Secondary));
@@ -227,7 +227,7 @@ public sealed class ImportWizardTests
         Assert.Equal(["Kargo", "İade", "All sheets (2)"], wizard.Sheets.Select(s => s.Label));
         Assert.Equal("Kargo", wizard.SelectedSheet?.Name);
         Assert.True(wizard.HasHeader);
-        Assert.Equal(["Soru", null, "Cevap"], Mapped(wizard));
+        Assert.Equal(["Soru", null, "Cevap", null], Mapped(wizard));
         Assert.Equal(["2", "3"], wizard.Preview.Select(r => r.NumberText));
         Assert.Equal("Import 2 rows", wizard.StartText);
 
@@ -235,7 +235,7 @@ public sealed class ImportWizardTests
         await wizard.PendingWork;
 
         Assert.True(wizard.IsAllSheets);
-        Assert.Equal(["Soru", null, "Cevap"], Mapped(wizard));
+        Assert.Equal(["Soru", null, "Cevap", null], Mapped(wizard));
         Assert.Equal(["Kargo · 2", "Kargo · 3", "İade · 2"], wizard.Preview.Select(r => r.NumberText));
         Assert.Equal(["Kargo ücreti?", "Kaç günde?", "İade süresi?"], wizard.Preview.Select(r => r.Primary));
 
@@ -273,7 +273,7 @@ public sealed class ImportWizardTests
         Assert.False(wizard.IsCsv);
         var user = wizard.Mappings.Single(m => m.Field == TargetField.User);
         Assert.Equal(["— Not mapped —", "First line", "Lines after the first", "Whole paragraph"], user.Options.Select(o => o.Label));
-        Assert.Equal([null, TextColumns.FirstLine, TextColumns.Rest], Mapped(wizard));
+        Assert.Equal([null, TextColumns.FirstLine, TextColumns.Rest, null], Mapped(wizard));
         Assert.Equal(["Kargo ücreti ne kadar?", "İade süresi, kaç gün?"], wizard.Preview.Select(r => r.Primary));
         Assert.Equal(["1", "4"], wizard.Preview.Select(r => r.NumberText));
 
@@ -304,7 +304,7 @@ public sealed class ImportWizardTests
 
         Assert.Equal(("Markdown", "Sections by heading"), (wizard.FormatText, wizard.LayoutText));
         Assert.Equal(["Markdown", "Plain text"], wizard.FormatOptions.Select(f => f.Label));
-        Assert.Equal([TextColumns.Heading, null, TextColumns.Content], Mapped(wizard));
+        Assert.Equal([TextColumns.Heading, null, TextColumns.Content, null], Mapped(wizard));
         Assert.Equal(["Kargo ücreti?", "İade süresi?"], wizard.Preview.Select(r => r.Primary));
         Assert.Equal(["Ücretsiz.", "14 gün."], wizard.Preview.Select(r => r.Secondary));
 

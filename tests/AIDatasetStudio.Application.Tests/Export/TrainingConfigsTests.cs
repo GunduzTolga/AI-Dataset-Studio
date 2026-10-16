@@ -98,6 +98,42 @@ public sealed class TrainingConfigsTests
     }
 
     [Fact]
+    public void Reasoning_reaches_the_chat_template_in_Axolotl_and_is_noted_at_the_template_in_LLaMA_Factory()
+    {
+        var reasoned = new TrainingTarget("Matematik", DatasetType.Chat, ExportFormat.OpenAi, 4096, [(null, "matematik.jsonl")], 42, HasReasoning: true);
+        string Axolotl(TrainingTarget target) => TrainingConfigs.Render(new TrainingOptions(TrainingFramework.Axolotl, "Qwen/Qwen3-8B"), target)[0].Content;
+        string LlamaFactory(TrainingTarget target) =>
+            TrainingConfigs.Render(new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen3-8B"), target with { Format = ExportFormat.ShareGpt })[1].Content;
+
+        Assert.Contains("    message_property_mappings: {role: role, content: content, reasoning_content: reasoning_content}\n", Axolotl(reasoned), StringComparison.Ordinal);
+        Assert.Contains("    message_property_mappings: {role: role, content: content}\n", Axolotl(reasoned with { HasReasoning = false }), StringComparison.Ordinal);
+        Assert.Contains(
+            "# answers start with their reasoning in <think> blocks; a reasoning template (qwen3, deepseekr1) trains it as thinking\ntemplate: qwen3\n",
+            LlamaFactory(reasoned),
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("<think>", LlamaFactory(reasoned with { HasReasoning = false }), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Function_calls_train_from_ShareGPT_in_LLaMA_Factory_and_from_OpenAI_in_Axolotl()
+    {
+        Assert.True(TrainingConfigs.Supports(TrainingFramework.LlamaFactory, ExportFormat.ShareGpt, DatasetType.ToolCalling));
+        Assert.False(TrainingConfigs.Supports(TrainingFramework.LlamaFactory, ExportFormat.OpenAi, DatasetType.ToolCalling));
+        Assert.True(TrainingConfigs.Supports(TrainingFramework.Axolotl, ExportFormat.OpenAi, DatasetType.ToolCalling));
+        Assert.False(TrainingConfigs.Supports(TrainingFramework.Axolotl, ExportFormat.ShareGpt, DatasetType.ToolCalling));
+
+        var files = TrainingConfigs.Render(
+            new TrainingOptions(TrainingFramework.LlamaFactory, "Qwen/Qwen2.5-7B-Instruct"),
+            new TrainingTarget("Mağaza", DatasetType.ToolCalling, ExportFormat.ShareGpt, 4096, [(null, "magaza.jsonl")], 42));
+        var entry = JsonNode.Parse(files[0].Content)!["magaza_train"]!;
+
+        // LLaMA-Factory reads no tag that is not named, its defaults included.
+        Assert.Equal("tools", (string?)entry["columns"]!["tools"]);
+        Assert.Equal(("function_call", "observation"), ((string?)entry["tags"]!["function_tag"], (string?)entry["tags"]!["observation_tag"]));
+        Assert.Contains("stage: sft\n", files[1].Content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LLaMA_Factory_describes_the_files_and_trains_preference_pairs_with_dpo()
     {
         var files = TrainingConfigs.Render(

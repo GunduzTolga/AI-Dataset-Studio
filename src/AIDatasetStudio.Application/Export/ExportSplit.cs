@@ -137,6 +137,7 @@ public static class ExportSplit
             InstructionPayload p => p.Instruction + "\n" + p.Input,
             ChatPayload p => string.Join('\n', new[] { p.SystemPrompt ?? string.Empty }.Concat(p.Messages.Where(m => m.Role != ChatRole.Assistant).Select(m => m.Content))),
             PreferencePayload p => p.Prompt,
+            ToolCallingPayload p => string.Join('\n', new[] { p.SystemPrompt ?? string.Empty }.Concat(p.Messages.Where(m => m.Role != ChatRole.Assistant).Select(m => m.Content))),
             _ => string.Empty,
         };
 

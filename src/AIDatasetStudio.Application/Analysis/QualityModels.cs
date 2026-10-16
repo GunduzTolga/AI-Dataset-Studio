@@ -52,6 +52,24 @@ public enum QualityRule
     /// of the first such record.
     /// </summary>
     NearDuplicate,
+
+    /// <summary>A tool is not a JSON function definition with a name (SDD §4.4). Detail: its number.</summary>
+    InvalidTool,
+
+    /// <summary>A call names a function that is not among the tools. Detail: the name.</summary>
+    UnknownTool,
+
+    /// <summary>A call's arguments are not a JSON object. Detail: the function's name.</summary>
+    InvalidArguments,
+
+    /// <summary>A call leaves out a parameter its function requires. Detail: "function.parameter".</summary>
+    MissingArgument,
+
+    /// <summary>
+    /// The turns of a tool calling conversation are out of order, or a call before an answer has
+    /// no result: the training formats cannot write it.
+    /// </summary>
+    ToolTurnOrder,
 }
 
 /// <param name="Detail">Rule-specific detail (a field name or a list of kinds), not localized.</param>
@@ -77,11 +95,13 @@ public static class QualityRules
     [
         QualityRule.EmptyContent, QualityRule.IdenticalAnswers, QualityRule.ShortAnswer, QualityRule.UnbalancedLength,
         QualityRule.EchoedInput, QualityRule.UnclosedCodeBlock, QualityRule.InvalidJson, QualityRule.PersonalData,
+        QualityRule.InvalidTool, QualityRule.UnknownTool, QualityRule.InvalidArguments, QualityRule.MissingArgument, QualityRule.ToolTurnOrder,
     ];
 
     public static IssueSeverity SeverityOf(QualityRule rule) => rule switch
     {
         QualityRule.EmptyContent or QualityRule.IdenticalAnswers or QualityRule.OverContextLimit => IssueSeverity.Error,
+        QualityRule.InvalidTool or QualityRule.UnknownTool or QualityRule.InvalidArguments or QualityRule.ToolTurnOrder => IssueSeverity.Error,
         _ => IssueSeverity.Warning,
     };
 

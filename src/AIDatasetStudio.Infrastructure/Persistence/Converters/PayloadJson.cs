@@ -44,7 +44,32 @@ internal static class PayloadJson
 
     private static void ConfigurePayloadTypes(JsonTypeInfo typeInfo)
     {
-        if (!typeof(RecordPayload).IsAssignableFrom(typeInfo.Type) || typeInfo.Kind != JsonTypeInfoKind.Object)
+        if (typeInfo.Kind != JsonTypeInfoKind.Object)
+        {
+            return;
+        }
+
+        // Tool calling (SDD §4.4): JSON texts are stored as JSON; a turn without calls has no
+        // "tool_calls", so chats are stored as before.
+        if (typeInfo.Type == typeof(ChatMessage))
+        {
+            Property(typeInfo, "tool_calls").ShouldSerialize = (_, value) => value is IReadOnlyCollection<ToolCall> { Count: > 0 };
+            return;
+        }
+
+        if (typeInfo.Type == typeof(ToolCall))
+        {
+            Property(typeInfo, "arguments").CustomConverter = JsonTextConverter.Instance;
+            Property(typeInfo, "result").CustomConverter = JsonTextConverter.Instance;
+            return;
+        }
+
+        if (typeInfo.Type == typeof(ToolCallingPayload))
+        {
+            Property(typeInfo, "tools").CustomConverter = JsonTextListConverter.Instance;
+        }
+
+        if (!typeof(RecordPayload).IsAssignableFrom(typeInfo.Type))
         {
             return;
         }
@@ -67,8 +92,11 @@ internal static class PayloadJson
                     new JsonDerivedType(typeof(InstructionPayload), "instruction"),
                     new JsonDerivedType(typeof(ChatPayload), "chat"),
                     new JsonDerivedType(typeof(PreferencePayload), "preference"),
+                    new JsonDerivedType(typeof(ToolCallingPayload), "tool_calling"),
                 },
             };
         }
     }
+
+    private static JsonPropertyInfo Property(JsonTypeInfo typeInfo, string name) => typeInfo.Properties.Single(p => p.Name == name);
 }

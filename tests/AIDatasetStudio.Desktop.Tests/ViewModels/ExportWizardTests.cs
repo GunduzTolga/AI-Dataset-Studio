@@ -134,6 +134,32 @@ public sealed class ExportWizardTests
     });
 
     [Fact]
+    public Task Reasoning_is_asked_about_only_when_chosen_records_have_it() => UiTest.RunAsync(async () =>
+    {
+        await using var host = new DesktopTestHost();
+        var dataset = await host.CreateDatasetAsync(DatasetType.Instruction,
+            [new InstructionPayload("2+2?", "", "4", "İki artı iki."), new InstructionPayload("İade süresi?", "", "14 gün.")]);
+        await host.Get<IRecordCommandService>().SetStatusAsync([host.Main.Records.Items[1].Id], RecordStatus.Approved, TestContext.Current.CancellationToken);
+
+        // Approved records only: none has reasoning.
+        var wizard = CreateWizard(host, dataset.Id);
+        await wizard.InitializeAsync();
+        await wizard.PendingWork;
+        Assert.False(wizard.HasReasoning);
+
+        wizard.IncludeDraft = true;
+        await wizard.PendingWork;
+        Assert.True(wizard.HasReasoning);
+        Assert.True(wizard.IncludeReasoning);
+        Assert.Contains(wizard.Samples, line => line.Contains("\"reasoning_content\":\"İki artı iki.\"", StringComparison.Ordinal));
+
+        wizard.IncludeReasoning = false;
+        await wizard.PendingWork;
+        Assert.All(wizard.Samples, line => Assert.DoesNotContain("reasoning", line, StringComparison.Ordinal));
+        Assert.False(wizard.Options!.IncludeReasoning);
+    });
+
+    [Fact]
     public Task Records_the_model_scored_low_can_be_left_out() => UiTest.RunAsync(async () =>
     {
         await using var host = new DesktopTestHost();

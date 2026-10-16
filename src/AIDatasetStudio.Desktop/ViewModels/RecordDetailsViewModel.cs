@@ -76,11 +76,12 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRecord), nameof(IsEmpty), nameof(Title), nameof(Status), nameof(StatusLabel), nameof(Info), nameof(IsJudgmentOutdated))]
     [NotifyPropertyChangedFor(nameof(IsChat), nameof(ShowChatEditor), nameof(IsArchived), nameof(IsEditable))]
+    [NotifyPropertyChangedFor(nameof(IsToolCalling), nameof(ShowToolsEditor), nameof(ShowWriteReply))]
     [NotifyPropertyChangedFor(nameof(IsPreference), nameof(ShowPreferenceCompare))]
     [NotifyPropertyChangedFor(nameof(ShowApprove), nameof(ShowSendToReview), nameof(ShowArchive), nameof(ShowRestore))]
     [NotifyCanExecuteChangedFor(nameof(ApproveCommand), nameof(SendToReviewCommand), nameof(ArchiveCommand), nameof(RestoreCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand), nameof(SaveCommand), nameof(AddMessageCommand), nameof(TogglePiiPreviewCommand), nameof(ApplyMaskCommand))]
-    [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand), nameof(TogglePreferenceCompareCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenTagPickerCommand), nameof(TogglePreferenceCompareCommand), nameof(AddToolCommand))]
     [NotifyCanExecuteChangedFor(nameof(WriteCommand), nameof(WriteMainCommand), nameof(JudgeCommand))]
     public partial RecordDetails? Record { get; private set; }
 
@@ -128,7 +129,17 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     public ObservableCollection<EditorMessage> Messages { get; } = [];
 
-    public bool IsChat => Record?.Payload is ChatPayload;
+    /// <summary>
+    /// The functions a tool calling record offers (SDD §4.4).
+    /// </summary>
+    public ObservableCollection<EditorTool> Tools { get; } = [];
+
+    /// <summary>
+    /// The record has turns: a chat or a tool calling conversation.
+    /// </summary>
+    public bool IsChat => Record?.Payload is ChatPayload or ToolCallingPayload;
+
+    public bool IsToolCalling => Record?.Payload is ToolCallingPayload;
 
     /// <summary>
     /// Archived records are read-only until restored (SDD §5.2).
@@ -230,7 +241,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// Shows the record with personal data masked instead of the editor (Mod+Shift+M).
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor), nameof(ShowPreferenceCompare))]
+    [NotifyPropertyChangedFor(nameof(IsEditing), nameof(ShowChatEditor), nameof(ShowPreferenceCompare), nameof(ShowToolsEditor))]
     [NotifyCanExecuteChangedFor(nameof(ApplyMaskCommand))]
     public partial bool IsPiiPreview { get; private set; }
 
@@ -253,6 +264,16 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     /// The chat turns and their "add message" button are shown.
     /// </summary>
     public bool ShowChatEditor => IsChat && IsEditing;
+
+    /// <summary>
+    /// The tools of a tool calling record and their "add" button are shown.
+    /// </summary>
+    public bool ShowToolsEditor => IsToolCalling && IsEditing;
+
+    /// <summary>
+    /// A model can write a chat's reply; a tool calling record's turns are written by hand.
+    /// </summary>
+    public bool ShowWriteReply => Record?.Payload is ChatPayload;
 
     // ===== Preference pairs: chosen against rejected (SDD §6.1) =====
 
@@ -471,9 +492,19 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanAddMessage))]
     private void AddMessage()
     {
-        // Alternate turns: an assistant answer follows a user message and vice versa.
-        var role = Messages.LastOrDefault()?.Role == ChatRole.User ? ChatRole.Assistant : ChatRole.User;
-        Messages.Add(CreateMessage(role, string.Empty));
+        // Alternate turns: an assistant answer follows a user message and vice versa; after a
+        // turn that calls functions comes the answer written from their results.
+        var last = Messages.LastOrDefault();
+        var role = last?.Role == ChatRole.User || last is { IsAssistant: true, Calls.Count: > 0 } ? ChatRole.Assistant : ChatRole.User;
+        Messages.Add(CreateMessage(role, string.Empty, calls: IsToolCalling ? [] : null));
+        OnEdited();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAddTool))]
+    private void AddTool()
+    {
+        Tools.Add(CreateTool(ToolCalls.NewTool));
+        NumberTools();
         OnEdited();
     }
 
@@ -649,6 +680,8 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private bool CanAddMessage() => IsChat && IsEditable;
 
+    private bool CanAddTool() => IsToolCalling && IsEditable;
+
     // While edits are pending, approving saves them first (the record goes to review, then is approved).
     private bool CanApprove() => Can(RecordStatus.Approved);
 
@@ -763,18 +796,37 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         switch (mask.Payload)
         {
             case InstructionPayload p:
-                (Fields[0].Text, Fields[1].Text, Fields[2].Text) = (p.Instruction, p.Input, p.Output);
+                (Field("Field_Instruction").Text, Field("Field_Input").Text, Field("Field_Output").Text) = (p.Instruction, p.Input, p.Output);
+                Field("Field_Reasoning").Text = p.Reasoning ?? string.Empty;
                 break;
             case ChatPayload p:
                 Fields[0].Text = p.SystemPrompt ?? string.Empty;
                 for (var i = 0; i < Messages.Count && i < p.Messages.Count; i++)
                 {
                     Messages[i].Text = p.Messages[i].Content;
+                    if (p.Messages[i].Reasoning is { } reasoning)
+                    {
+                        Messages[i].Reasoning = reasoning;
+                    }
                 }
 
                 break;
             case PreferencePayload p:
                 (Fields[0].Text, Fields[1].Text, Fields[2].Text) = (p.Prompt, p.Chosen, p.Rejected);
+                break;
+            case ToolCallingPayload p:
+                Fields[0].Text = p.SystemPrompt ?? string.Empty;
+                for (var i = 0; i < Messages.Count && i < p.Messages.Count; i++)
+                {
+                    Messages[i].Text = p.Messages[i].Content;
+                    Messages[i].Reasoning = p.Messages[i].Reasoning ?? Messages[i].Reasoning;
+                    for (var c = 0; c < Messages[i].Calls.Count && c < p.Messages[i].ToolCalls.Count; c++)
+                    {
+                        Messages[i].Calls[c].Arguments = p.Messages[i].ToolCalls[c].Arguments;
+                        Messages[i].Calls[c].Result = p.Messages[i].ToolCalls[c].Result ?? string.Empty;
+                    }
+                }
+
                 break;
         }
 
@@ -886,11 +938,17 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         PiiSummary = mask.HasFindings ? IssueText.PiiCounts(_localizer, mask.Counts) : _localizer["Pii_NoneFound"];
         PiiPreview = mask.Payload switch
         {
-            InstructionPayload p => [Block("Field_Instruction", p.Instruction), Block("Field_Input", p.Input), Block("Field_Output", p.Output)],
+            InstructionPayload p =>
+            [
+                Block("Field_Instruction", p.Instruction),
+                Block("Field_Input", p.Input),
+                .. Reasoning(p.Reasoning),
+                Block("Field_Output", p.Output),
+            ],
             ChatPayload p =>
             [
                 .. p.SystemPrompt is null ? [] : new[] { Block("Field_SystemPrompt", p.SystemPrompt, FieldTone.System) },
-                .. p.Messages.Select(m => Block($"Field_{m.Role}", m.Content)),
+                .. p.Messages.SelectMany(m => Reasoning(m.Reasoning).Append(Block($"Field_{m.Role}", m.Content))),
             ],
             PreferencePayload p =>
             [
@@ -898,11 +956,22 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                 Block("Field_Chosen", p.Chosen, FieldTone.Positive),
                 Block("Field_Rejected", p.Rejected, FieldTone.Negative),
             ],
+            ToolCallingPayload p =>
+            [
+                .. p.SystemPrompt is null ? [] : new[] { Block("Field_SystemPrompt", p.SystemPrompt, FieldTone.System) },
+                .. p.Messages.SelectMany(m => Reasoning(m.Reasoning).Append(Block($"Field_{m.Role}", m.Content))
+                    .Concat(m.ToolCalls.SelectMany(c => c.Result is null
+                        ? new[] { Block("Field_ToolCall", c.Name + " " + c.Arguments) }
+                        : [Block("Field_ToolCall", c.Name + " " + c.Arguments), Block("Field_ToolResult", c.Result)]))),
+            ],
             _ => [],
         };
 
         PreviewBlock Block(string labelKey, string text, FieldTone tone = FieldTone.Neutral) =>
             new(_localizer[labelKey], string.IsNullOrEmpty(text) ? _localizer["Field_Empty"] : text, string.IsNullOrEmpty(text), tone);
+
+        IEnumerable<PreviewBlock> Reasoning(string? reasoning) =>
+            reasoning is null ? [] : [Block("Field_Reasoning", reasoning, FieldTone.Reasoning)];
     }
 
     private void SetRecord(RecordDetails? record)
@@ -916,6 +985,7 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
             Fields.Clear();
             Messages.Clear();
+            Tools.Clear();
             _cleanHash = string.Empty;
             IsDirty = false;
             Reanalyze();
@@ -935,18 +1005,20 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         {
             Fields.Clear();
             Messages.Clear();
+            Tools.Clear();
             switch (record.Payload)
             {
                 case InstructionPayload p:
                     Fields.Add(CreateField("Field_Instruction", p.Instruction));
                     Fields.Add(CreateField("Field_Input", p.Input));
+                    Fields.Add(new EditorField("Field_Reasoning", p.Reasoning ?? string.Empty, FieldTone.Reasoning, _localizer, OnEdited, isOptional: true));
                     Fields.Add(CreateField("Field_Output", p.Output, writeTarget: AIWriteTarget.Answer));
                     break;
                 case ChatPayload p:
                     Fields.Add(CreateField("Field_SystemPrompt", p.SystemPrompt ?? string.Empty, FieldTone.System));
                     foreach (var message in p.Messages)
                     {
-                        Messages.Add(CreateMessage(message.Role, message.Content));
+                        Messages.Add(CreateMessage(message.Role, message.Content, message.Reasoning));
                     }
 
                     break;
@@ -954,6 +1026,20 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
                     Fields.Add(CreateField("Field_Prompt", p.Prompt));
                     Fields.Add(CreateField("Field_Chosen", p.Chosen, FieldTone.Positive, AIWriteTarget.Chosen));
                     Fields.Add(CreateField("Field_Rejected", p.Rejected, FieldTone.Negative, AIWriteTarget.Rejected));
+                    break;
+                case ToolCallingPayload p:
+                    Fields.Add(CreateField("Field_SystemPrompt", p.SystemPrompt ?? string.Empty, FieldTone.System));
+                    foreach (var tool in p.Tools)
+                    {
+                        Tools.Add(CreateTool(tool));
+                    }
+
+                    NumberTools();
+                    foreach (var message in p.Messages)
+                    {
+                        Messages.Add(CreateMessage(message.Role, message.Content, message.Reasoning, message.ToolCalls));
+                    }
+
                     break;
             }
 
@@ -971,9 +1057,14 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
 
     private RecordPayload BuildPayload(RecordPayload original) => original switch
     {
-        InstructionPayload => new InstructionPayload(Fields[0].Text, Fields[1].Text, Fields[2].Text),
-        ChatPayload => new ChatPayload(Fields[0].Text, Messages.Select(m => new ChatMessage(m.Role, m.Text)).ToList()),
+        InstructionPayload => new InstructionPayload(
+            Field("Field_Instruction").Text, Field("Field_Input").Text, Field("Field_Output").Text, Field("Field_Reasoning").Text),
+        ChatPayload => new ChatPayload(Fields[0].Text, Messages.Select(m => new ChatMessage(m.Role, m.Text, m.Reasoning)).ToList()),
         PreferencePayload => new PreferencePayload(Fields[0].Text, Fields[1].Text, Fields[2].Text),
+        ToolCallingPayload => new ToolCallingPayload(
+            Fields[0].Text,
+            [.. Tools.Select(t => t.Json)],
+            [.. Messages.Select(m => new ChatMessage(m.Role, m.Text, m.Reasoning, m.ToolCalls))]),
         _ => original,
     };
 
@@ -987,15 +1078,33 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         }
     }
 
+    private EditorField Field(string labelKey) => Fields.First(f => f.LabelKey == labelKey);
+
     private EditorField CreateField(string labelKey, string text, FieldTone tone = FieldTone.Neutral, AIWriteTarget? writeTarget = null) =>
         new(labelKey, text, tone, _localizer, OnEdited, writeTarget);
 
-    private EditorMessage CreateMessage(ChatRole role, string text) =>
+    private EditorMessage CreateMessage(ChatRole role, string text, string? reasoning = null, IEnumerable<ToolCall>? calls = null) =>
         new(role, text, _localizer, OnEdited, message =>
         {
             Messages.Remove(message);
             OnEdited();
+        }, reasoning, calls);
+
+    private EditorTool CreateTool(string json) =>
+        new(json, _localizer, OnEdited, tool =>
+        {
+            Tools.Remove(tool);
+            NumberTools();
+            OnEdited();
         });
+
+    private void NumberTools()
+    {
+        for (var i = 0; i < Tools.Count; i++)
+        {
+            Tools[i].Number = i + 1;
+        }
+    }
 
     private List<InfoItem> BuildInfo(RecordDetails record)
     {
@@ -1045,6 +1154,11 @@ public sealed partial class RecordDetailsViewModel : ViewModelBase
         foreach (var message in Messages)
         {
             message.RefreshLabel();
+        }
+
+        foreach (var tool in Tools)
+        {
+            tool.RefreshLabel();
         }
     }
 }

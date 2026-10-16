@@ -57,6 +57,9 @@ Bu kılavuz uygulamanın Türkçe arayüzüne göre yazılmıştır. Menü adlar
 | **Talimat** | Talimat, isteğe bağlı girdi ve yanıt | SFT, LoRA / QLoRA ince ayarı |
 | **Sohbet** | Sistem mesajı ve sırayla kullanıcı/asistan mesajları | Çok turlu sohbet asistanları |
 | **Tercih (DPO)** | Bir istem, tercih edilen yanıt ve reddedilen yanıt | DPO, ORPO gibi tercih eğitimleri |
+| **Araç çağırma** | Asistanın çağırabileceği fonksiyonlar ve onları çağıran, sonuçlarından yanıt yazan bir konuşma | Fonksiyon çağıran modeller ve ajanlar |
+
+Talimat yanıtları ve sohbetteki asistan mesajları isteğe bağlı bir **akıl yürütme** taşıyabilir: modelin yanıttan önce yazdığı düşünme. DeepSeek-R1 ya da Qwen3 gibi önce düşünüp sonra yanıtlayan bir model eğitmek için kullanılır.
 
 ### Kayıt durumları
 
@@ -91,6 +94,10 @@ Bir veri seti seçin ve **Dosya › Dosyadan İçe Aktar…** komutunu kullanın
 | **HTML ve Notion / Confluence dışa aktarımları** (`.html`, `.zip`) | Sayfalar belge olarak okunur; menüler, betikler, üst ve alt bilgiler atlanır. Ağ bağlantısı gerekmez. |
 | **Konuşma kayıtları** (WhatsApp dışa aktarımı, `Müşteri: …` biçiminde dökümler) | Her konuşma bir sohbet kaydı olur. Konuşmacılar sütun gibi eşlenir: müşteri soran, temsilci yanıtlayan. Medya ve silinen mesajlar atlanır; 6 saatlik bir aradan sonra yeni konuşma başlar. |
 
+Araç çağırma verileri de tanınır: `tool_calls` ve `tool` mesajları olan OpenAI konuşmaları, `function_call` ve `observation` turları olan ShareGPT (LLaMA-Factory) dosyaları ve `query` / `tools` / `answers` sütunlu xLAM satırları. Sonuçlar çağrılarına bağlanır; araçsız konuşmalar da araç gerektirmeyen örnek olarak aktarılabilir.
+
+Akıl yürüten modellerin verileri de okunur: asistan mesajındaki `reasoning_content` (ya da `reasoning`, `thinking`) alanı ve yanıtın başındaki `<think>…</think>` bloğu kaydın akıl yürütmesi olur. Sütunlu dosyalarda bir sütunu **Akıl yürütme** alanına eşleyebilirsiniz (`reasoning`, `thinking`, `düşünce` gibi adlar kendiliğinden önerilir).
+
 ### Hugging Face'ten içe aktarma
 
 Hugging Face'teki hazır veri setlerini doğrudan alabilirsiniz: bir veri seti seçin ve **Dosya › Hugging Face'ten İçe Aktar…** komutunu kullanın.
@@ -113,9 +120,21 @@ PDF, Word, Markdown, HTML ya da Notion/Confluence belgelerinden soru-cevap çift
 - Listeden bir kayıt seçin; alanlarını sağdaki düzenleyicide doğrudan değiştirin.
 - Değişiklikler **Mod+S** ile ya da başka bir kayda geçtiğinizde otomatik olarak kaydedilir.
 - Alanlar Markdown'ı, kod bloklarını (` ```json `, `python`, `sql` vb.) ve JSON'u renklendirir.
+- **Akıl yürütme:** talimat kaydında girdi ile çıktı arasındaki **Akıl yürütme ekle** düğmesi, modelin yanıttan önceki düşünmesi için bir alan açar. Sohbette asistan mesajının başlığındaki ampul düğmesi mesajın üstüne bir akıl yürütme balonu ekler. × akıl yürütmeyi kaldırır. Akıl yürütme token sayısında yanıt tarafına eklenir.
 - **Mod+Enter** kaydı onaylar ve sonrakine geçer; **Mod+Shift+Backspace** arşivler ve sonrakine geçer. Bu ikisiyle büyük veri setleri klavyeden hızla incelenir.
 - **F8 / Shift+F8** sonraki ve önceki kayda gider; listede ↑/↓ tuşları da çalışır.
 - **Kayıtlarda Ara** (Mod+F) metin araması yapar. Listenin üstündeki filtrelerle duruma, kalite sorununa ve etikete göre süzebilirsiniz.
+
+### Araç çağırma kayıtları
+
+Bir araç çağırma kaydı, asistanın çağırabileceği fonksiyonları ve bir konuşmayı tutar:
+
+- **ARAÇLAR:** her araç bir JSON fonksiyon tanımıdır: `name`, `description` ve parametreler (`parameters`, JSON Schema). Adı olan araç katlı görünür; adına tıklayınca tanım açılır. **Araç ekle** bir şablon ekler, × aracı kaldırır.
+- **Çağrılar:** asistan mesajının başlığındaki anahtar düğmesi bir **Araç çağrısı** ekler: fonksiyonun adı, argümanları (JSON nesnesi, ör. `{"location": "Kadıköy"}`) ve **Araç sonucu** (fonksiyonun döndürdüğü). Aynı mesaja birden çok çağrı ekleyebilirsiniz (paralel çağrı).
+- **Yanıt:** çağrıdan sonra **Mesaj ekle**, sonuçlardan yazılacak asistan yanıtını ekler. Örnek, yalnızca hangi fonksiyonun çağrılacağını öğretecekse çağrıyla da bitebilir; o zaman sonucu boş bırakın.
+- Fonksiyon gerektirmeyen sorular da (selamlaşma gibi) örnek olarak eklenmelidir: model ne zaman çağırmayacağını da öğrenir.
+- **Yeni kayıt**, ekrandaki kaydın araçları ve sistem talimatıyla başlar.
+- Kalite bölümü adı olmayan araçları, araçlarda olmayan bir fonksiyonu çağırmayı, JSON nesnesi olmayan argümanları, fonksiyonun istediği ama verilmemiş argümanları ve sırası bozuk turları (ya da yanıttan önce sonucu olmayan çağrıyı) gösterir. Sırası bozuk bir örnek dışa aktarılmaz.
 
 ### Toplu işlemler
 
@@ -184,10 +203,13 @@ Bir veri setinin o anki hâlini numaralı bir sürüm olarak dondurabilirsiniz. 
 2. **BİÇİM:** eğitim aracınızın beklediği biçim:
    - **OpenAI JSONL** (`messages`), **ShareGPT**, **Alpaca**, **Hugging Face DPO**;
    - metin şablonları: ChatML ve Llama 3.
+
+   Araç çağırma veri setleri **OpenAI JSONL** (`tool_calls`, `tool` mesajları, `tools`) ya da **ShareGPT** (LLaMA-Factory'nin `function_call` / `observation` biçimi) olarak yazılır. LLaMA-Factory ile eğitmek için ShareGPT, Axolotl ile eğitmek için OpenAI seçin. Turlarının sırası bozuk ya da yanıttan önce sonucu olmayan bir çağrısı olan kayıtlar dışarıda kalır ve önizlemede sayılır.
 3. **KAYITLAR:** hangi durumların yazılacağı ve şu seçenekler:
    - bağlam uzunluğunu aşan kayıtları dışarıda bırak;
    - birebir kopyaları dışarıda bırak (ilki kalır);
-   - modelin düşük puan verdiği kayıtları (1–2) dışarıda bırak.
+   - modelin düşük puan verdiği kayıtları (1–2) dışarıda bırak;
+   - **cevaplardan önceki akıl yürütmeyi dahil et** (yalnızca seçilen kayıtlarda akıl yürütme varsa görünür). Akıl yürütme OpenAI biçiminde `reasoning_content` alanına, diğer biçimlerde yanıtın önüne `<think>…</think>` olarak yazılır. Kutuyu kaldırırsanız önce düşünmeden yanıt veren bir model için yazılmaz. LLaMA-Factory'de akıl yürütmeyi düşünme olarak eğitmek için `qwen3` gibi bir akıl yürütme şablonu kullanın; Axolotl'da modelin sohbet şablonu `reasoning_content`'i yazıyorsa (Qwen3, DeepSeek-R1) eğitilir.
 4. **BÖLME:**
    - **Tek dosya**;
    - **Eğitim / doğrulama / test** (80 / 10 / 10);
@@ -217,6 +239,7 @@ Dışa aktarma eğitim yapılandırması yazdıysa sonuç ekranında **Eğitimi 
    - **Günlük** düğmesiyle aracın kendi çıktısı.
 4. **Durdur** aracı ve başlattığı her şeyi kapatır; o ana kadar kaydedilen ara kayıtlar kalır. Eğitim sürerken pencereyi kapatmak önce sorar.
 5. Bitince **Çıktı klasörünü aç** ile LoRA adaptörünü bulursunuz (`saves/…` ya da `outputs/…`).
+6. Eğitimi dışa aktarmanın sonuç ekranından LLaMA-Factory ile başlattıysanız **Modeli değerlendir** düğmesi de çıkar: eğitilen model, veri setinizin test sorularıyla hemen değerlendirilir (bkz. [Modeli değerlendirme](#modeli-değerlendirme-benchmark)).
 
 #### Windows'ta kurulum
 
@@ -299,6 +322,12 @@ Her veri setine **yapay zekâ talimatları** (ör. "Resmî Türkçe yaz.") gireb
 - Sorular varsayılan olarak son dışa aktarımın **test** bölümünden alınır; bunlar, eğitilen modelin görmediği sorulardır.
 - Bir hakem model, her yanıtı veri setindeki yanıtla karşılaştırıp 1–5 puan verir. Yanında modelden bağımsız bir kelime örtüşmesi (F1) puanı da gösterilir.
 - Biten değerlendirmeler saklanır; farklı modelleri aynı sorular üzerinde karşılaştırabilirsiniz. **Raporu kaydet…** bütün yanıtları JSON Lines dosyasına yazar.
+
+**Eğittiğiniz modeli değerlendirmek.** Son dışa aktarımın klasöründe LLaMA-Factory ile eğitilmiş bir adaptör varsa model listesinin başında iki seçenek görünür:
+- **Eğitilen model: …** — adaptörüyle birlikte eğittiğiniz model;
+- **Eğitimden önce: …** — aynı temel model, aynı ayarlarla ama adaptörsüz.
+
+Birini seçip **Değerlendir**'e basın. Uygulama modeli bilgisayarınızda LLaMA-Factory ile yükler (`llamafactory-cli api`); bu, modelin boyutuna göre birkaç dakika sürebilir, ilerleme satırında yükleme görünür. Model yalnızca sizin bilgisayarınızdan erişilebilir; pencereyi kapatınca durdurulur. Puanlamak için **Puanlayan** olarak Yapay Zekâ Bağlantıları'ndaki bir model gerekir (ör. Ollama'da daha büyük bir model). İkisini aynı sorular ve aynı tohumla değerlendirirseniz **Önceki değerlendirmeler**'de eğitimin puanı ne kadar değiştirdiğini yan yana görürsünüz. LLaMA-Factory klasöre bir `llamafactory-serve.yaml` da yazar; isterseniz `llamafactory-cli chat llamafactory-serve.yaml` ile eğittiğiniz modelle doğrudan konuşabilirsiniz.
 
 ---
 

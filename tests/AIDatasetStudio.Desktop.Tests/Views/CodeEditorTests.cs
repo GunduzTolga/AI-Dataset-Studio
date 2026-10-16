@@ -78,7 +78,7 @@ public sealed class CodeEditorTests
         fields[2].TextArea.Focus();
         fields[2].CaretOffset = fields[2].Text!.Length;
         window.KeyTextInput(" ve {}");
-        Assert.Equal("Yanıt 1 ve {}", details.Fields[2].Text);
+        Assert.Equal("Yanıt 1 ve {}", details.Fields[3].Text);
         Assert.True(details.IsDirty);
         Assert.True(fields[2].Document.UndoStack.CanUndo);
 

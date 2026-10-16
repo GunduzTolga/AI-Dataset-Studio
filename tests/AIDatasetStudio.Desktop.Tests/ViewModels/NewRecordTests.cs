@@ -35,7 +35,7 @@ public sealed class NewRecordTests
 
         // Written and saved like any record.
         main.Details.Fields[0].Text = "Kargo ne zaman gelir?";
-        main.Details.Fields[2].Text = "1-3 iş günü içinde.";
+        main.Details.Fields[3].Text = "1-3 iş günü içinde.";
         await main.Details.SaveCommand.ExecuteAsync(null);
         Assert.Equal("Kargo ne zaman gelir?", main.Records.Items[2].Preview);
 

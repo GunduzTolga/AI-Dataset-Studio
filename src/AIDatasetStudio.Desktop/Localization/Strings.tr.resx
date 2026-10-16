@@ -117,6 +117,9 @@
   <data name="DatasetType_Preference" xml:space="preserve">
     <value>Tercih (DPO)</value>
   </data>
+  <data name="DatasetType_ToolCalling" xml:space="preserve">
+    <value>Araç çağırma</value>
+  </data>
   <data name="RecordStatus_Draft" xml:space="preserve">
     <value>Taslak</value>
   </data>
@@ -191,6 +194,18 @@
   </data>
   <data name="Field_Rejected" xml:space="preserve">
     <value>Reddedilen</value>
+  </data>
+  <data name="Field_Reasoning" xml:space="preserve">
+    <value>Akıl yürütme</value>
+  </data>
+  <data name="Field_Tool" xml:space="preserve">
+    <value>Araç</value>
+  </data>
+  <data name="Field_ToolCall" xml:space="preserve">
+    <value>Araç çağrısı</value>
+  </data>
+  <data name="Field_ToolResult" xml:space="preserve">
+    <value>Araç sonucu</value>
   </data>
   <data name="Field_Empty" xml:space="preserve">
     <value>(boş)</value>
@@ -591,6 +606,9 @@
   <data name="Import_MessageCount" xml:space="preserve">
     <value>{0} mesaj</value>
   </data>
+  <data name="Import_CallCount" xml:space="preserve">
+    <value>{0} çağrı</value>
+  </data>
   <data name="Import_Close" xml:space="preserve">
     <value>Kapat</value>
   </data>
@@ -659,6 +677,15 @@
   </data>
   <data name="Layout_Transcript" xml:space="preserve">
     <value>Konuşmacıya göre konuşmalar</value>
+  </data>
+  <data name="Layout_OpenAiTools" xml:space="preserve">
+    <value>Araçlı OpenAI messages</value>
+  </data>
+  <data name="Layout_ShareGptTools" xml:space="preserve">
+    <value>Fonksiyon çağrılı ShareGPT</value>
+  </data>
+  <data name="Layout_XLam" xml:space="preserve">
+    <value>xLAM fonksiyon çağrıları</value>
   </data>
   <data name="ImportColumn_heading" xml:space="preserve">
     <value>Başlık</value>
@@ -734,6 +761,9 @@
   </data>
   <data name="ImportError_UnsupportedLayout" xml:space="preserve">
     <value>Dosya biçimi veri seti türüne uymuyor</value>
+  </data>
+  <data name="ImportError_ToolResultUnmatched" xml:space="preserve">
+    <value>Bir araç sonucu hiçbir fonksiyon çağrısını yanıtlamıyor</value>
   </data>
   <data name="Error_ImportFileNotFound" xml:space="preserve">
     <value>“{0}” bulunamadı.</value>
@@ -1037,6 +1067,54 @@
   </data>
   <data name="Editor_RemoveMessage" xml:space="preserve">
     <value>Bu mesajı kaldır</value>
+  </data>
+  <data name="Editor_AddReasoning" xml:space="preserve">
+    <value>Akıl yürütme ekle</value>
+  </data>
+  <data name="Editor_AddReasoningHint" xml:space="preserve">
+    <value>Cevaptan önceki düşünme; akıl yürüten bir model eğitmek için</value>
+  </data>
+  <data name="Editor_RemoveReasoning" xml:space="preserve">
+    <value>Akıl yürütmeyi kaldır</value>
+  </data>
+  <data name="Editor_ReasoningPlaceholder" xml:space="preserve">
+    <value>Cevaba nasıl varılıyor</value>
+  </data>
+  <data name="Editor_Tools" xml:space="preserve">
+    <value>ARAÇLAR</value>
+  </data>
+  <data name="Editor_ToolsHint" xml:space="preserve">
+    <value>Asistanın çağırabileceği fonksiyonlar, JSON olarak: ad, açıklama ve parametreler (JSON Schema)</value>
+  </data>
+  <data name="Editor_AddTool" xml:space="preserve">
+    <value>Araç ekle</value>
+  </data>
+  <data name="Editor_RemoveTool" xml:space="preserve">
+    <value>Bu aracı kaldır</value>
+  </data>
+  <data name="Editor_ToggleTool" xml:space="preserve">
+    <value>Tanımı göster ya da katla</value>
+  </data>
+  <data name="Editor_ToolNumber" xml:space="preserve">
+    <value>{0}. araç</value>
+  </data>
+  <data name="Editor_NoTools" xml:space="preserve">
+    <value>Henüz araç yok: asistanın çağırabileceği fonksiyonları ekleyin.</value>
+  </data>
+  <data name="Editor_AddToolCall" xml:space="preserve">
+    <value>Fonksiyon çağır</value>
+  </data>
+  <data name="Editor_RemoveToolCall" xml:space="preserve">
+    <value>Bu çağrıyı kaldır</value>
+  </data>
+  <data name="Editor_FunctionName" xml:space="preserve">
+    <value>Fonksiyon</value>
+  </data>
+  <data name="Editor_ArgumentsPlaceholder" xml:space="preserve">
+    <value>JSON olarak argümanlar, ör. {"city": "Ankara"}</value>
+  </data>
+  <data name="Editor_ToolResultPlaceholder" xml:space="preserve">
+    <value>Fonksiyonun döndürdüğü; örnek çağrıyla bitiyorsa boş</value>
   </data>
   <data name="Editor_AddMessage" xml:space="preserve">
     <value>Mesaj ekle</value>
@@ -1374,6 +1452,12 @@
   <data name="Export_MaskOption" xml:space="preserve">
     <value>Kişisel verileri maskele (e-posta, telefon, kimlik, anahtar…)</value>
   </data>
+  <data name="Export_ReasoningOption" xml:space="preserve">
+    <value>Cevaplardan önceki akıl yürütmeyi dahil et</value>
+  </data>
+  <data name="Export_ReasoningHint" xml:space="preserve">
+    <value>OpenAI biçiminde reasoning_content olarak, diğerlerinde cevabın önünde bir &lt;think&gt; bloğu olarak yazılır. Önce düşünmeden cevap veren bir model eğitmek için dışarıda bırakın.</value>
+  </data>
   <data name="Export_SplitNone" xml:space="preserve">
     <value>Tek dosya</value>
   </data>
@@ -1597,6 +1681,9 @@
   <data name="Training_OpenOutput" xml:space="preserve">
     <value>Çıktı klasörünü aç</value>
   </data>
+  <data name="Training_Evaluate" xml:space="preserve">
+    <value>Modeli değerlendir</value>
+  </data>
   <data name="Training_Stop" xml:space="preserve">
     <value>Durdur</value>
   </data>
@@ -1713,6 +1800,9 @@
   </data>
   <data name="Export_SkipUnsupported" xml:space="preserve">
     <value>Dışarıda: bu biçime sığmıyor</value>
+  </data>
+  <data name="Export_SkipToolTurnOrder" xml:space="preserve">
+    <value>Dışarıda: turların sırası bozuk ya da bir çağrının sonucu yok (Kalite'ye bakın)</value>
   </data>
   <data name="Export_SkipOverLimit" xml:space="preserve">
     <value>Dışarıda: bağlam uzunluğunu aşıyor</value>
@@ -2983,6 +3073,27 @@
   <data name="Evaluate_Stopped" xml:space="preserve">
     <value>{0:N0} sorudan sonra durduruldu.</value>
   </data>
+  <data name="Evaluate_TrainedModel" xml:space="preserve">
+    <value>Eğitilen model: {0}</value>
+  </data>
+  <data name="Evaluate_BaseModel" xml:space="preserve">
+    <value>Eğitimden önce: {0}</value>
+  </data>
+  <data name="Evaluate_Loading" xml:space="preserve">
+    <value>{0} LLaMA-Factory ile yükleniyor…</value>
+  </data>
+  <data name="Evaluate_LoadingLine" xml:space="preserve">
+    <value>{0} yükleniyor: {1}</value>
+  </data>
+  <data name="Evaluate_ServeNoTool" xml:space="preserve">
+    <value>Eğitilen modeli LLaMA-Factory sunar, ama komutu bulunamadı. Araçlar › Model Eğit penceresinde komutu seçin.</value>
+  </data>
+  <data name="Evaluate_ServeFailed" xml:space="preserve">
+    <value>Eğitilen model yüklenemedi: {0}</value>
+  </data>
+  <data name="Evaluate_ServeStopped" xml:space="preserve">
+    <value>LLaMA-Factory {0} modelini sunmayı bıraktı. Yeniden yüklemek için tekrar başlatın.</value>
+  </data>
   <data name="Evaluate_Saved" xml:space="preserve">
     <value>Rapor kaydedildi: {0}</value>
   </data>
@@ -3030,6 +3141,36 @@
   </data>
   <data name="Issue_NearDuplicate" xml:space="preserve">
     <value>#{0} numaralı kayıtla neredeyse aynı soru (ifade ya da anlam olarak).</value>
+  </data>
+  <data name="Rule_InvalidTool" xml:space="preserve">
+    <value>Geçersiz araçlar</value>
+  </data>
+  <data name="Issue_InvalidTool" xml:space="preserve">
+    <value>{0}. araç adı olan bir fonksiyon tanımı değil</value>
+  </data>
+  <data name="Rule_UnknownTool" xml:space="preserve">
+    <value>Bilinmeyen fonksiyonlar</value>
+  </data>
+  <data name="Issue_UnknownTool" xml:space="preserve">
+    <value>Araçlarda olmayan “{0}” çağrılıyor</value>
+  </data>
+  <data name="Rule_InvalidArguments" xml:space="preserve">
+    <value>Geçersiz argümanlar</value>
+  </data>
+  <data name="Issue_InvalidArguments" xml:space="preserve">
+    <value>“{0}” çağrısının argümanları bir JSON nesnesi değil</value>
+  </data>
+  <data name="Rule_MissingArgument" xml:space="preserve">
+    <value>Eksik argümanlar</value>
+  </data>
+  <data name="Issue_MissingArgument" xml:space="preserve">
+    <value>“{0}” çağrısında fonksiyonun istediği “{1}” yok</value>
+  </data>
+  <data name="Rule_ToolTurnOrder" xml:space="preserve">
+    <value>Sırası bozuk turlar</value>
+  </data>
+  <data name="Issue_ToolTurnOrder" xml:space="preserve">
+    <value>Turların sırası bozuk ya da bir çağrının sonucu yok: bu örnek dışa aktarılamaz</value>
   </data>
   <data name="QualityFilter_NearDuplicates" xml:space="preserve">
     <value>Benzer sorular</value>

@@ -124,6 +124,8 @@
                 <CheckBox x:Name="SkipLowScoreBox" IsChecked="{Binding SkipLowJudgeScore}" Content="{l:Tr Export_SkipLowJudgeScoreOption}"
                           IsVisible="{Binding CanSkipLowJudgeScore}" ToolTip.Tip="{l:Tr Export_SkipLowJudgeScoreHint}" />
                 <CheckBox IsChecked="{Binding MaskPersonalData}" Content="{l:Tr Export_MaskOption}" />
+                <CheckBox x:Name="ReasoningBox" IsChecked="{Binding IncludeReasoning}" Content="{l:Tr Export_ReasoningOption}"
+                          IsVisible="{Binding HasReasoning}" ToolTip.Tip="{l:Tr Export_ReasoningHint}" />
               </StackPanel>
 
               <!-- Split -->

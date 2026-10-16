@@ -5,6 +5,54 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+### Evaluating the model you trained
+- **Tools › Evaluate a Model…** offers the adapter trained with LLaMA-Factory in the folder of
+  the dataset's last export, and the same base model before training. The app serves the one you
+  choose with LLaMA-Factory (`llamafactory-cli api`) on this computer only — the same chat
+  template, the same 4-bit loading, on Windows and AMD too — and asks it the test questions;
+  a connection grades the answers. Evaluate both with the same questions and seed to see what
+  training changed side by side in **Earlier evaluations**.
+- After training from the export's result, **Evaluate the model** in the training window opens
+  the evaluation with the trained model chosen.
+- The serving configuration is written next to the training's (`llamafactory-serve.yaml`):
+  `llamafactory-cli chat llamafactory-serve.yaml` talks to the trained model.
+
+### Reasoning before the answer
+- Instruction records and assistant turns can carry the **reasoning** a model writes before its
+  answer, to train reasoning models (DeepSeek-R1 and Qwen3 style). In the editor, **Add
+  reasoning** opens it between the input and the output; in a chat, the bulb on an assistant turn
+  adds it above the answer.
+- Import reads it from `reasoning_content`, `reasoning` or `thinking` on assistant messages, from
+  a `<think>…</think>` block an answer starts with, or from a column mapped to **Reasoning**.
+- Export writes it as `reasoning_content` in the OpenAI format and as a `<think>` block before
+  the answer in ShareGPT, Alpaca, ChatML and Llama 3. When the chosen records have reasoning, the
+  wizard asks whether to include it; leave it out to train a model that answers without thinking
+  first. Axolotl configurations map `reasoning_content` to the chat template.
+- Reasoning counts on the answer side of the token count, is searched, checked for unclosed code
+  blocks, masked with the rest of the record, compared between versions, shown to the judge and
+  kept by variations that keep the answer. Records without reasoning keep their content hashes.
+
+### Tool calling datasets
+- A new dataset type, **Tool calling**, for training function calling and agents. A record holds
+  the functions the assistant may call (JSON definitions with a JSON Schema of parameters) and a
+  conversation whose assistant turns call them; each call keeps what the function returned, and
+  the next assistant turn answers from the results. Parallel calls, several rounds, examples that
+  need no tool and examples that end with the call (xLAM style) are all records.
+- The editor shows the tools folded by name and description, opens their JSON with a click, adds
+  a tool from a template, and adds calls to an assistant turn with the function, the arguments and
+  the result. **New Record** starts with the tools and system prompt of the record on screen.
+- Quality rules name tools without a function name, calls to functions that are not among the
+  tools, arguments that are not a JSON object, required arguments that are missing, and turns out
+  of order or calls without the result an answer needs.
+- Import recognizes OpenAI messages with `tool_calls` and `tool` results, LLaMA-Factory's ShareGPT
+  with `function_call` and `observation` turns, and xLAM rows (`query`, `tools`, `answers`).
+- Export writes OpenAI's shape (`tool_calls` with `call_N` ids, `tool` messages, `tools`) and
+  LLaMA-Factory's ShareGPT (`function_call`, `observation`, `tools`); an incomplete conversation is
+  left out and counted. LLaMA-Factory configurations name the tools column and the function and
+  observation tags; Axolotl reads the OpenAI shape through the model's chat template.
+- Sample data, masking of arguments and results, version comparison of tools and calls, and the
+  model's judgment cover tool calling records too.
+
 ## [1.0.0] - 2026-10-13
 
 The first release: the complete MVP of the design document (SDD §20) and what was built on it —

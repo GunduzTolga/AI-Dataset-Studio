@@ -34,6 +34,11 @@ internal static class IssueText
             localizer.Format("Issue_NearDuplicate", long.Parse(ordinal, System.Globalization.CultureInfo.InvariantCulture)),
         QualityRule.PersonalData when issue.Detail is { } kinds =>
             localizer.Format("Issue_PersonalData", PiiKinds(localizer, kinds.Split(',').Select(Enum.Parse<PiiKind>))),
+        QualityRule.InvalidTool or QualityRule.UnknownTool or QualityRule.InvalidArguments when issue.Detail is { } detail =>
+            localizer.Format($"Issue_{issue.Rule}", detail),
+        // "function.parameter"; a function name has no dots in any tool format.
+        QualityRule.MissingArgument when issue.Detail?.Split('.', 2) is [var function, var parameter] =>
+            localizer.Format("Issue_MissingArgument", function, parameter),
         _ => localizer[$"Issue_{issue.Rule}"],
     };
 

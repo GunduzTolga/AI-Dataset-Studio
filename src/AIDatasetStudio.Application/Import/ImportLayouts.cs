@@ -22,6 +22,11 @@ public static class ImportLayouts
         [TargetField.Prompt] = ["prompt", "istem", "question", "soru", "instruction", "talimat", "query"],
         [TargetField.Chosen] = ["chosen", "preferred", "tercihedilen", "secilen", "accepted"],
         [TargetField.Rejected] = ["rejected", "dispreferred", "nonpreferred", "reddedilen"],
+        [TargetField.Reasoning] =
+        [
+            "reasoning", "reasoningcontent", "thinking", "think", "thought", "thoughts", "rationale", "cot", "chainofthought",
+            "akilyurutme", "dusunme", "dusunce", "gerekce",
+        ],
     };
 
     // Normalized parts of speaker names (see Normalize); "Müşteri Hizmetleri" is an agent.
@@ -43,12 +48,14 @@ public static class ImportLayouts
             new(TargetField.Instruction, IsRequired: true),
             new(TargetField.Input, IsRequired: false),
             new(TargetField.Output, IsRequired: true),
+            new(TargetField.Reasoning, IsRequired: false),
         ],
         DatasetType.Chat =>
         [
             new(TargetField.SystemPrompt, IsRequired: false),
             new(TargetField.User, IsRequired: true),
             new(TargetField.Assistant, IsRequired: true),
+            new(TargetField.Reasoning, IsRequired: false),
         ],
         DatasetType.Preference =>
         [
@@ -84,8 +91,10 @@ public static class ImportLayouts
     {
         SourceLayout.Transcript => type is DatasetType.Chat or DatasetType.Instruction,
         _ when IsColumnBased(layout) => FieldsFor(type).Count > 0,
-        SourceLayout.OpenAiMessages or SourceLayout.ShareGpt => type is DatasetType.Chat or DatasetType.Instruction,
+        // A conversation without calls is also a tool calling example: one that needs no tool.
+        SourceLayout.OpenAiMessages or SourceLayout.ShareGpt => type is DatasetType.Chat or DatasetType.Instruction or DatasetType.ToolCalling,
         SourceLayout.OpenAiPreference => type is DatasetType.Preference,
+        SourceLayout.OpenAiTools or SourceLayout.ShareGptTools or SourceLayout.XLam => type is DatasetType.ToolCalling,
         _ => false,
     };
 
@@ -97,6 +106,7 @@ public static class ImportLayouts
         SourceLayout.Alpaca or SourceLayout.PromptCompletion => DatasetType.Instruction,
         SourceLayout.OpenAiMessages or SourceLayout.ShareGpt or SourceLayout.Transcript => DatasetType.Chat,
         SourceLayout.HuggingFaceDpo or SourceLayout.OpenAiPreference => DatasetType.Preference,
+        SourceLayout.OpenAiTools or SourceLayout.ShareGptTools or SourceLayout.XLam => DatasetType.ToolCalling,
         _ => null,
     };
 
@@ -122,16 +132,30 @@ public static class ImportLayouts
 
         if (Most(e => HasArray(e, "messages")))
         {
-            return SourceLayout.OpenAiMessages;
+            return Most(e => HasTools(e, "messages")) ? SourceLayout.OpenAiTools : SourceLayout.OpenAiMessages;
         }
 
         if (Most(e => HasArray(e, "conversations")))
         {
-            return SourceLayout.ShareGpt;
+            return Most(e => HasTools(e, "conversations")) ? SourceLayout.ShareGptTools : SourceLayout.ShareGpt;
+        }
+
+        if (Most(e => e.TryGetProperty("query", out _) && e.TryGetProperty("answers", out _)))
+        {
+            return SourceLayout.XLam;
         }
 
         return DetectFromColumns(ColumnsOf(objects));
     }
+
+    // A conversation with function calls: tools offered, or a turn that calls or answers a call.
+    private static bool HasTools(JsonElement row, string conversation) =>
+        (row.TryGetProperty("tools", out var tools) && tools.ValueKind is not JsonValueKind.Null)
+        || (row.TryGetProperty("functions", out var functions) && functions.ValueKind is not JsonValueKind.Null)
+        || (row.TryGetProperty(conversation, out var turns) && turns.ValueKind == JsonValueKind.Array && turns.EnumerateArray().Any(m => m.ValueKind == JsonValueKind.Object
+            && (m.TryGetProperty("tool_calls", out _) || m.TryGetProperty("function_call", out _)
+                || ((m.TryGetProperty("role", out var role) || m.TryGetProperty("from", out role)) && role.ValueKind == JsonValueKind.String
+                    && Normalize(role.GetString()!) is "tool" or "function" or "functioncall" or "observation"))));
 
     /// <summary>
     /// Guesses a column-based layout from column names (CSV headers or JSON keys).
