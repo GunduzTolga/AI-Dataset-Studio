@@ -241,6 +241,20 @@ public sealed class WorkspaceServiceTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Files_carry_a_migration_1_0_does_not_know_so_it_cannot_drop_reasoning_or_tool_calls()
+    {
+        // The last migration of 1.0.0; its payload JSON had no reasoning, tool calls or tool calling kind.
+        const string LastMigrationOf10 = "20261009024914_AddEvaluationRuns";
+        await _service.CreateAsync(PathFor("marked"), "Marked", cancellationToken: Ct);
+        await using var context = _service.CreateDbContext();
+
+        var applied = (await context.Database.GetAppliedMigrationsAsync(Ct)).ToList();
+
+        Assert.Contains(LastMigrationOf10, applied);
+        Assert.Contains("20261020213711_AddReasoningAndToolCalls", applied);
+    }
+
+    [Fact]
     public async Task Disposing_twice_is_harmless()
     {
         var service = new WorkspaceService(_clock);
