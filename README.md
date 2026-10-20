@@ -106,7 +106,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 - **Belgeden soru-cevap çıkarma:** model bir PDF ya da Word belgesinin her bölümü için sorular yazar; siz onayladıklarınızı eklersiniz.
 - **Varyant üretme** (Ctrl+Shift+G): bir soruyu farklı biçimlerde (isterseniz günlük dille ve yazım hatalarıyla) yeniden yazdırın, veri setini zenginleştirin.
 - **Modelle değerlendirme** (Ctrl+J): model her kayda 1–5 arası puan ve gerekçe verir, çelişen cevapları bulur.
-- **Model değerlendirme (benchmark):** eğittiğiniz modelin test sorularına verdiği cevapları bir hakem model puanlar; sonuçlar saklanır, modeller karşılaştırılır.
+- **Model değerlendirme (benchmark):** eğittiğiniz modelin test sorularına verdiği cevapları bir hakem model puanlar; sonuçlar saklanır, modeller karşılaştırılır. LLaMA-Factory ile eğittiğiniz adaptör bu bilgisayarda sunulur; eğitimden önceki ve sonraki puanlar yan yana görünür.
 
 **Diğer**
 - **Veri setlerini birleştirme:** farklı projelerden ya da başka bir `.adstudio` dosyasından. Diğer dosya hiç değiştirilmez.
@@ -122,7 +122,7 @@ Her şey **kendi bilgisayarınızda** çalışır. İnternete bağlanması gerek
 
 ### Kurulum ve çalıştırma
 
-- **Hazır paket:** GitHub **Releases** sayfasından işletim sisteminize uygun paketi indirin. Paketler bir sürüm etiketi (ör. `v1.0.0`) atıldığında yayınlanır.
+- **Hazır paket:** GitHub **Releases** sayfasından işletim sisteminize uygun paketi indirin. Paketler bir sürüm etiketi (ör. `v1.1.0`) atıldığında yayınlanır.
 - **Kaynaktan:** [.NET 10 SDK](https://dotnet.microsoft.com/download) kurulu olmalı.
 
   ```bash
@@ -161,7 +161,9 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - 📦 **Portable `.adstudio` Projects:** Workspaces and datasets are saved into self-contained, portable SQLite database files; Tools › Merge Datasets brings datasets over from another `.adstudio` file without changing it.
 - 🌐 **Bilingual UI:** English and Turkish, switchable at runtime (View › Language).
 - 🎨 **Light & Dark Themes:** Token-based design system with Fluent UI icons (View › Theme).
-- 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat and Preference (DPO/ORPO/RLHF) datasets.
+- 🗂️ **Universal Schema Engine:** Support for Instruction (SFT), Multi-turn Chat, Preference (DPO/ORPO/RLHF) and Tool calling datasets.
+- 🛠️ **Tool calling datasets:** Records hold the functions the assistant may call (JSON definitions) and a conversation whose assistant turns call them, each call with what the function returned: parallel calls, several rounds and examples that need no tool. Quality rules catch unknown functions, arguments that are not JSON objects, missing required arguments and calls without results.
+- 💭 **Reasoning before the answer:** Instruction outputs and assistant turns can carry the model's thinking before its answer, to train reasoning models (DeepSeek-R1 and Qwen3 style); exported as `reasoning_content` or a `<think>` block, or left out.
 - ⚡ **High-Performance Virtualization:** Seamlessly navigate and search 100,000+ records with zero UI lag.
 - 📐 **Token & Context Engine:** Real-time token counting (Tiktoken / BPE) to prevent Out-Of-Memory (OOM) training failures.
 - 🛡️ **PII & Secret Scrubber:** Automatically detect and mask emails, phone numbers, API keys, and sensitive tokens before training.
@@ -175,10 +177,10 @@ Training state-of-the-art AI models requires clean, consistent, and strictly val
 - ⚖️ **AI judge:** Record › Judge with AI (Mod+J) has the model rate a record from 1 to 5 with a reason — checking an answer written from a document against its passage and the order of a preference pair — and compare it with records that ask the same thing to find contradicting answers. Scores show in the list, filters list the low ones, and the overview shows how they spread.
 - 🧭 **Questions alike in meaning:** Choose an embedding model on your AI connection (e.g. `bge-m3` in Ollama) and the dataset overview's **Compare by meaning** finds questions asked in other words ("Parolamı unuttum" / "Şifremi nasıl sıfırlarım?"). They join the near-duplicate groups, so the filter, the clean-up and the split treat them alike. Vectors are made only when you start it and are kept in the workspace.
 - 🏋️ **Training from the app:** Start training on the export's result screen (or Tools › Train a Model…) runs the LLaMA-Factory or Axolotl installed on your computer on the exported files and shows the run live: step and time left, a training and validation loss chart, the GPU's memory and the log. Stop it at any time; a failed run says why (out of GPU memory, a missing package, no GPU, a model that cannot be downloaded).
-- 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the one you trained — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models; the answers can be saved as a JSON Lines report.
+- 🏆 **Model evaluation:** Tools › Evaluate a Model asks a model — the base model, or the adapter you trained with LLaMA-Factory, served on your computer — the questions of the dataset's test part (the records the last export put in `test.jsonl`, so questions it was not trained on), and a grader model scores each answer against the dataset's answer from 1 to 5, with word overlap (F1) alongside. Finished evaluations are kept with the dataset to compare models, before and after training side by side; the answers can be saved as a JSON Lines report.
 - 🔄 **Universal Import & Export:**
-  - **Import:** JSONL, JSON, Parquet, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records.
-  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA or QLoRA configuration next to the files, set for your GPU (NVIDIA or AMD ROCm, its memory, optional memory saving) with an estimate of whether the model fits.
+  - **Import:** JSONL, JSON, Parquet, CSV (with a column mapping wizard), Excel, Markdown, plain text, PDF, Word, HTML pages, Notion or Confluence exports (ZIP), and customer conversations (WhatsApp chat exports and transcripts) as chat records. Tool calls are read from OpenAI `tool_calls`, LLaMA-Factory's ShareGPT (`function_call` / `observation`) and xLAM rows; reasoning from `reasoning_content` and `<think>` blocks.
+  - **Export:** OpenAI JSONL, ShareGPT, ChatML, Alpaca, Llama-3, HuggingFace DPO, and tool calling as OpenAI `tool_calls` or ShareGPT `function_call`; optionally leaving out records the AI judge scored low, and with a ready-to-run Axolotl or LLaMA-Factory LoRA or QLoRA configuration next to the files, set for your GPU (NVIDIA or AMD ROCm, its memory, optional memory saving) with an estimate of whether the model fits.
   - **Hugging Face:** File › Import from Hugging Face lists a Hub dataset's files from its id (`tatsu-lab/alpaca`), downloads the one you choose and opens it in the import wizard; gated and private datasets with a token in `HF_TOKEN`.
 - ✍️ **Records written by hand:** Record › New Record (Mod+Shift+N) adds an empty draft of the dataset's type and puts the keyboard in it.
 
@@ -341,6 +343,10 @@ dotnet ef migrations add <Name> --project src/AIDatasetStudio.Infrastructure --o
 | M26 | QLoRA training configurations (model loaded in 4 bits) | ✅ |
 | M27 | Training settings for your GPU: memory estimate, AMD (ROCm), memory saving with Liger kernels | ✅ |
 | M28 | Training from the app: runs LLaMA-Factory or Axolotl on the export, with live progress, loss chart, GPU memory and log | ✅ |
+| M29 | Training on Windows: the training computer's system, a configuration that runs on Windows, GPU memory of AMD cards | ✅ |
+| M30 | Evaluating the trained model: the adapter and its base model served locally with LLaMA-Factory, scores before and after training side by side | ✅ |
+| M31 | Reasoning before the answer: an optional field, imported from `reasoning_content` and `<think>`, exported in each format's own way | ✅ |
+| M32 | Tool calling datasets: tools, calls and results; OpenAI, ShareGPT and xLAM import; OpenAI and ShareGPT export with LLaMA-Factory and Axolotl configurations | ✅ |
 
 **Tools › Generate Sample Records** fills the selected dataset with synthetic Turkish/English records.
 

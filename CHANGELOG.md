@@ -5,6 +5,13 @@ from 1.0.0 on, every version opens `.adstudio` files written by earlier versions
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-20
+
+Training data for reasoning models and for function calling, and a before-and-after measure of
+the model you trained. Files from 1.0.0 open as before. Files that 1.1.0 has opened or saved no
+longer open in 1.0.0, which would drop reasoning and tool calls without telling you: it asks you
+to update instead.
+
 ### Evaluating the model you trained
 - **Tools › Evaluate a Model…** offers the adapter trained with LLaMA-Factory in the folder of
   the dataset's last export, and the same base model before training. The app serves the one you
